@@ -59,7 +59,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <TooltipProvider>
           <AppShell>{children}</AppShell>
         </TooltipProvider>
-        <Toaster />
+        <Toaster position="bottom-right" richColors />
         <TanStackDevtools
           config={{
             position: 'bottom-right',

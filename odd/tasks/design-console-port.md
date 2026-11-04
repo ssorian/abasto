@@ -23,8 +23,8 @@ Source of truth: the unminified app regions embedded in the HTML bundle (`app/*`
 - T5 (S1) — Browser comparison of Mostrador and Clientes vs reference at 1440/390; checks; one commit per module. Route: inline. Done: parent visual pass matches reference; tsc (only pre-existing drizzle error), eslint (2 generated no-shadow warnings), build pass; assess medium, no review due. Commits 1e9d189 (customers), 6d00136 (counter).
 - Tn (S1) — Type-check, lint, build; browser comparison with the reference at desktop and mobile. Route: inline. Commit: pending.
 - T6 (S1, S2) — Routes `/catalogo`, `/inventario` (search param `q` for "Consultar inventario"), nav links, stub pages. Route: inline. Commit: `feat(web): add catalog and inventory routes`.
-- T7 (S1, S2, S5) — Catálogo module `src/modules/catalog/`. Route: gentle-ai-worker (parallel with T8). Commit: pending.
-- T8 (S1, S2, S6) — Inventario module `src/modules/inventory/` plus the shared "Importar CSV" dialog in `src/modules/product-import/`. Route: gentle-ai-worker (parallel with T7). Commit: pending.
+- T7 (S1, S2, S5) — Catálogo module `src/modules/catalog/`. Route: gentle-ai-worker mw2d46kn-4-6i11 (done: grid, search, publish/pause, product form, presentations editor, reason dialog, inventory link; geometry within 2px at 1440/390; omitted: persistence/audit, 4-column ≥1700px, presentation removal (absent in reference), min stock not stored). Commit: `feat(web): add catalog module`.
+- T8 (S1, S2, S6) — Inventario module `src/modules/inventory/` plus the shared "Importar CSV" dialog in `src/modules/product-import/`. Route: gentle-ai-worker mw2d46ko-5-sqdi (running, port 4613). Commit: pending.
 - T9 (S1, S5, S6) — Wire "Importar CSV" into Catálogo, parent visual pass at 1440/390, checks, commits. Route: inline. Commit: pending.
 
 ## Log
@@ -44,3 +44,4 @@ Source of truth: the unminified app regions embedded in the HTML bundle (`app/*`
 - L13: One React hydration-attribute mismatch seen once on the first load after a cold dev-server start; not reproduced in 6 further loads (/, /mostrador, /clientes at 390 and 1440). Open follow-up: shared extraction of duplicated console UI (dialog shell/overlay, fields, buttons, tables, money formatter, sensitive-operation dialog, number-spinner rule).
 - L14: "Ahora sigue con catalogo e inventario" — branch `feat/catalog-inventory` from main 18112e0. Port 3000 is taken by an unrelated Docker container (vitae-plus-frontend-1); user dev server runs on 3001.
 - L15: Decisions: "Importar CSV" appears in both sections, so it is its own module `product-import` built by the inventory worker; the parent wires it into Catálogo after both finish. Catálogo links to `/inventario?q=<product name>`. Per-module local state continues (L9). The shared-UI extraction (L13) stays deferred; it will be one later commit.
+- L16: Global Toaster now uses the reference props `position="bottom-right" richColors` (found by the catalog worker; reference page.tsx Toaster).
