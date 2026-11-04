@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as ClientesRouteImport } from './routes/clientes'
+import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as MostradorRouteImport } from './routes/mostrador'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -19,9 +21,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CatalogoRoute = CatalogoRouteImport.update({
+  id: '/catalogo',
+  path: '/catalogo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientesRoute = ClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventarioRoute = InventarioRouteImport.update({
+  id: '/inventario',
+  path: '/inventario',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MostradorRoute = MostradorRouteImport.update({
@@ -37,34 +49,61 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
+  '/inventario': typeof InventarioRoute
   '/mostrador': typeof MostradorRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
+  '/inventario': typeof InventarioRoute
   '/mostrador': typeof MostradorRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
+  '/inventario': typeof InventarioRoute
   '/mostrador': typeof MostradorRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/clientes' | '/mostrador' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/catalogo'
+    | '/clientes'
+    | '/inventario'
+    | '/mostrador'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/clientes' | '/mostrador' | '/api/auth/$'
-  id: '__root__' | '/' | '/clientes' | '/mostrador' | '/api/auth/$'
+  to:
+    | '/'
+    | '/catalogo'
+    | '/clientes'
+    | '/inventario'
+    | '/mostrador'
+    | '/api/auth/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/catalogo'
+    | '/clientes'
+    | '/inventario'
+    | '/mostrador'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CatalogoRoute: typeof CatalogoRoute
   ClientesRoute: typeof ClientesRoute
+  InventarioRoute: typeof InventarioRoute
   MostradorRoute: typeof MostradorRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -78,11 +117,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/catalogo': {
+      id: '/catalogo'
+      path: '/catalogo'
+      fullPath: '/catalogo'
+      preLoaderRoute: typeof CatalogoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clientes': {
       id: '/clientes'
       path: '/clientes'
       fullPath: '/clientes'
       preLoaderRoute: typeof ClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventario': {
+      id: '/inventario'
+      path: '/inventario'
+      fullPath: '/inventario'
+      preLoaderRoute: typeof InventarioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mostrador': {
@@ -104,7 +157,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CatalogoRoute: CatalogoRoute,
   ClientesRoute: ClientesRoute,
+  InventarioRoute: InventarioRoute,
   MostradorRoute: MostradorRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
