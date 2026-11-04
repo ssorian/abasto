@@ -30,7 +30,7 @@ Source of truth: the unminified app regions embedded in the HTML bundle (`app/*`
 - T9 (S1, S5, S6) — Wire "Importar CSV" into Catálogo, parent visual pass at 1440/390, checks, commits. Route: inline. Done: catalog import adds new products (headless run: toast, new card, 9 publicados, no console errors); "Consultar inventario" prefills search at 1440/390; inventory tabs render at 390. Commit: `feat(web): wire CSV import into catalog`.
 - T10 (S1, S2) — Routes `/almacenes`, `/reportes`, nav links, stubs. Route: inline. Commit: `feat(web): add warehouses and reports routes`.
 - T11 (S1, S2, S8) — Reportes module `src/modules/reports/` (Ventas y utilidad, Mermas y rotación). Route: gentle-ai-worker. Commit: pending.
-- T12 (S1, S2, S7) — Almacenes module `src/modules/warehouses/` plus `/inventario?almacen=` so "Ver inventario" opens that warehouse. Route: inline (small). Commit: pending.
+- T12 (S1, S2, S7) — Almacenes module `src/modules/warehouses/` plus `/inventario?almacen=` so "Ver inventario" opens that warehouse. Route: inline (small). Done: 0 geometry diffs vs reference at 1440/1100/390; counts 7/3, 8/0, 0/0; Norte link opens Almacén Norte. Commit: `feat(web): add warehouses module`.
 
 ## Log
 

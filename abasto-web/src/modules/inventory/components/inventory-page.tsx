@@ -60,6 +60,8 @@ import type {
 type InventoryPageProps = {
   /** Pre-filled product search, e.g. from Catálogo "Consultar inventario". */
   initialQuery: string
+  /** Warehouse shown first, e.g. from Almacenes "Ver inventario". */
+  initialWarehouse: WarehouseName
 }
 
 const tabs: Array<{ name: string; icon: LucideIcon }> = [
@@ -73,10 +75,13 @@ const tabs: Array<{ name: string; icon: LucideIcon }> = [
 const headingButton =
   'max-md:min-h-[43px] max-md:px-[11px] max-md:py-[9px] max-md:text-[11px]'
 
-export function InventoryPage({ initialQuery }: InventoryPageProps) {
+export function InventoryPage({
+  initialQuery,
+  initialWarehouse,
+}: InventoryPageProps) {
   const { state, apply } = useInventoryState()
   const [tab, setTab] = useState('Productos')
-  const [warehouse, setWarehouse] = useState<WarehouseScope>('Centro')
+  const [warehouse, setWarehouse] = useState<WarehouseScope>(initialWarehouse)
   const [query, setQuery] = useState(initialQuery)
   const [filter, setFilter] = useState<StatusFilter>('Todos')
   const [category, setCategory] = useState('Todas')
