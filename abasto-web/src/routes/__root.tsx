@@ -8,6 +8,9 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
+import { AppShell } from '#/components/layout/app-shell'
+import { TooltipProvider } from '#/components/ui/tooltip'
+
 import appCss from '../styles.css?url'
 
 import type { QueryClient } from '@tanstack/react-query'
@@ -27,7 +30,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Operación mayorista · Abarroteros',
+      },
+      {
+        name: 'description',
+        content:
+          'Demo Abarroteros: etiquetas por lote, promociones con margen, mostrador, caja, reportes de mermas e importación CSV',
       },
     ],
     links: [
@@ -42,12 +50,14 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="es-MX">
       <head>
         <HeadContent />
       </head>
       <body>
-        {children}
+        <TooltipProvider>
+          <AppShell>{children}</AppShell>
+        </TooltipProvider>
         <TanStackDevtools
           config={{
             position: 'bottom-right',

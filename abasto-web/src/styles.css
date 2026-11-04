@@ -1,17 +1,193 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
-@import "tailwindcss";
-
-* {
-  box-sizing: border-box;
+/*
+ * Abarroteros design system.
+ * Values mirror docs/design/abarroteros-demo-actualizada(4).html.
+ * shadcn/ui semantic variables live in :root; design-specific tokens in @theme.
+ */
+:root {
+  --radius: 0.7rem;
+  --background: #f6f8fb;
+  --foreground: #172c48;
+  --card: #ffffff;
+  --card-foreground: #172c48;
+  --popover: #ffffff;
+  --popover-foreground: #172c48;
+  --primary: #ffd03d;
+  --primary-foreground: #152a47;
+  --secondary: #edf1f6;
+  --secondary-foreground: #172c48;
+  --muted: #f0f3f7;
+  --muted-foreground: #737f90;
+  --accent: #edf3fa;
+  --accent-foreground: #142d50;
+  --destructive: #c94b49;
+  --border: #e2e7ee;
+  --input: #dce3eb;
+  --ring: #446f9b;
+  --sidebar: #112c4c;
+  --sidebar-foreground: #eaf0f7;
+  --sidebar-primary: #ffcf3f;
+  --sidebar-primary-foreground: #112c4c;
+  --sidebar-accent: #203c5b;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2a4260;
+  --sidebar-ring: #f5cc4a;
 }
 
-html,
-body,
-#app {
-  min-height: 100%;
+@theme inline {
+  --font-sans: Inter, 'Segoe UI', Arial, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-body {
-  margin: 0;
+@theme {
+  /* Reference breakpoints (rem so they sort with Tailwind's md = 48rem). */
+  --breakpoint-phone: 23.8125rem; /* 381px */
+  --breakpoint-panels: 62.5625rem; /* 1001px */
+  --breakpoint-tablet: 70.0625rem; /* 1121px */
+  --breakpoint-metrics: 78.1875rem; /* 1251px */
+  --breakpoint-wide: 84.4375rem; /* 1351px */
+
+  /* The reference inherits line-height 1.5 for body copy sizes. */
+  --text-xs--line-height: 1.5;
+  --text-sm--line-height: 1.5;
+  --text-base--line-height: 1.5;
+  --text-xl--line-height: 1.5;
+  --text-2xl--line-height: 1.5;
+
+  --color-focus: #5a87bd;
+
+  /* Text */
+  --color-ink-heading: #284f79;
+  --color-ink-link: #244e7b;
+  --color-ink-row: #3a597c;
+  --color-ink-figure: #173963;
+  --color-ink-muted: #7b8798;
+  --color-ink-subtle: #8b99aa;
+  --color-ink-faint: #8a9aaf;
+  --color-ink-eyebrow: #758396;
+  --color-ink-footnote: #8291a4;
+
+  /* Brand */
+  --color-brand-hover: #f4c22c;
+  --color-brand-ink: #142d4c;
+  --color-hero: #173963;
+  --color-hero-eyebrow: #a6bdd9;
+  --color-hero-copy: #c0d0e4;
+
+  /* Panels */
+  --color-panel-border: #e1e8f1;
+  --color-row-border: #edf1f6;
+  --color-metric-label: #6c8199;
+
+  /* Topbar and footer */
+  --color-topbar-border: #e5eaf0;
+  --color-crumb: #8c96a5;
+  --color-crumb-strong: #354a63;
+  --color-pill: #75879d;
+  --color-pill-bg: #f8fafc;
+  --color-pill-border: #dfe6ef;
+  --color-avatar: #385577;
+  --color-avatar-bg: #dce6f2;
+  --color-footer: #a0aab8;
+  --color-footer-border: #e7ecf2;
+  --color-footer-brand: #8493a6;
+  --color-footer-dot: #c3a648;
+
+  /* Sidebar details */
+  --color-sidebar-surface: #1c3858;
+  --color-sidebar-surface-border: #304966;
+  --color-sidebar-callout: #1a3657;
+  --color-sidebar-callout-border: #2e4968;
+  --color-sidebar-hover: #203d5d;
+  --color-sidebar-divider: #294260;
+  --color-sidebar-text: #afc0d4;
+  --color-sidebar-label: #7f95af;
+  --color-sidebar-caption: #8ba0b9;
+  --color-sidebar-muted: #94aac2;
+  --color-sidebar-strong: #eff4fa;
+  --color-sidebar-tag: #f1d175;
+  --color-sidebar-active: #172e4a;
+
+  /* Status tones */
+  --color-status-green: #39816e;
+  --color-status-green-bg: #e9f4ef;
+  --color-status-amber: #a77a24;
+  --color-status-amber-bg: #fff0d1;
+  --color-status-red: #bd5754;
+  --color-status-red-bg: #fbeae7;
+  --color-status-blue: #557caa;
+  --color-status-blue-bg: #e9f0fa;
+  --color-status-gray: #85909e;
+  --color-status-gray-bg: #e9edf2;
+  --color-saved: #3b9270;
 }
 
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :is(button, a):focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 3px;
+  }
+}

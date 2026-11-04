@@ -1,0 +1,25 @@
+# Design console port
+
+Port the operational console in `docs/design/abarroteros-demo-actualizada(4).html` into `abasto-web` faithfully.
+Source of truth: the unminified app regions embedded in the HTML bundle (`app/*`, `components/ui/*`, `hooks/*`, `lib/*`), its CSS and its image assets.
+
+## Specs
+
+- S1: "Necesito que copies fielmente el documento de diseno que esta en docs a la aplicacion web" — same screens, copy, data, interactions and styling as the reference HTML.
+- S2: "utilizando la skill de code organization" — app-wide code under `src/components`, `src/components/ui`, `src/lib`, `src/lib/utils`, `src/hooks`, `src/shared`, `src/routes`, `src/config`; feature-owned code under `src/modules/<module>/`; framework entrypoints stay in `src/routes/`.
+
+## Tasks
+
+- T1 (S1, S2) — Stage 1: design tokens, shadcn/ui primitives, app shell (sidebar + header), Inicio overview with mock data, `/` route. Route: inline. Done: geometry identical to reference at 1440/1100/390 px; mobile sheet opens. Commit: see git log `feat(web): add console shell and overview`.
+- T2.. (S1, S2) — Remaining modules, one per commit, order chosen by the user after stage 1. Route: per Writer rule. Commit: pending.
+- Tn (S1) — Type-check, lint, build; browser comparison with the reference at desktop and mobile. Route: inline. Commit: pending.
+
+## Log
+
+- L1: "Necesito que copies fielmente el documento de diseno que esta en docs a la aplicacion web, utilizando la skill de code organization"
+- L2: Repository was re-initialized (single commit `00f84d1`); earlier `odd/tasks/operational-console-ui.md` work is not present in the tree. Starting fresh on `feat/design-console-port`.
+- L3: Reference bundle is not minified and keeps `//#region <path>` markers for ~10.7k lines of app code (shadcn/ui + Radix + lucide-react + sonner + tailwind-merge + cva). Decision: mechanically decompile `jsx()` calls back to JSX for fidelity instead of hand-recreating screens.
+- L4: "Espera no necesito que descompiles el bundle, queria hacer una integracion de 0" — L3 decompile strategy dropped. Rebuild from scratch, using the reference HTML as visual/functional authority.
+- L5: User decisions: "shadcn/ui + Radix + lucide"; "Por etapas, empezando por el shell"; "Datos mock locales" (same products and copy as the design, per-module fixtures, local state, no backend).
+- L6: "No es mejor instalar directamente shadcn?" — hand-written primitives dropped; shadcn CLI `add` used with a hand-written `components.json` (interactive `init` hangs without a TTY). CLI mis-resolved the `utils` alias to npm package `cn`; package removed and imports rewritten to `#/lib/utils/cn`.
+- L7: Placement: app-wide `src/config` (navigation, workspace), `src/components/layout` (shell), `src/components` (page-heading, status-badge), `src/components/ui` (shadcn); Inicio in `src/modules/overview/{components,lib}`. Sections other than Inicio render as inert nav items until their routes exist. Avatar "Cambiar perfil de demo", Configuración, Guía rápida and panel links are visual only in stage 1.
