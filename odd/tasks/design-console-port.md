@@ -24,7 +24,7 @@ Source of truth: the unminified app regions embedded in the HTML bundle (`app/*`
 - Tn (S1) — Type-check, lint, build; browser comparison with the reference at desktop and mobile. Route: inline. Commit: pending.
 - T6 (S1, S2) — Routes `/catalogo`, `/inventario` (search param `q` for "Consultar inventario"), nav links, stub pages. Route: inline. Commit: `feat(web): add catalog and inventory routes`.
 - T7 (S1, S2, S5) — Catálogo module `src/modules/catalog/`. Route: gentle-ai-worker mw2d46kn-4-6i11 (done: grid, search, publish/pause, product form, presentations editor, reason dialog, inventory link; geometry within 2px at 1440/390; omitted: persistence/audit, 4-column ≥1700px, presentation removal (absent in reference), min stock not stored). Commit: `feat(web): add catalog module`.
-- T8 (S1, S2, S6) — Inventario module `src/modules/inventory/` plus the shared "Importar CSV" dialog in `src/modules/product-import/`. Route: gentle-ai-worker mw2d46ko-5-sqdi (running, port 4613). Commit: pending.
+- T8 (S1, S2, S6) — Inventario module `src/modules/inventory/` plus the shared "Importar CSV" dialog in `src/modules/product-import/`. Route: gentle-ai-worker mw2d46ko-5-sqdi (done: warehouse switcher, 5 tabs, cards/table, filters, detail sheet with lots/labels/price history, receipt/outflow/adjust/count/transfer flows, CSV import for catalog and stock; ≤5px diffs at 1440/390; omitted: drafts, persistence/audit/authorization, returns and scenarios panels, import history, 4-column ≥1700px). Commit: `feat(web): add inventory and CSV import modules`.
 - T9 (S1, S5, S6) — Wire "Importar CSV" into Catálogo, parent visual pass at 1440/390, checks, commits. Route: inline. Commit: pending.
 
 ## Log
