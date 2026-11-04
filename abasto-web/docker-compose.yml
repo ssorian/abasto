@@ -1,0 +1,23 @@
+# Local Postgres for development (`abasto`) and tests (`abasto_test`).
+name: abasto
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: abasto
+      POSTGRES_PASSWORD: abasto
+      POSTGRES_DB: abasto
+    ports:
+      - '127.0.0.1:55450:5432'
+    volumes:
+      - abasto-db:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-test-database.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U abasto -d abasto']
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  abasto-db:

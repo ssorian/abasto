@@ -9,6 +9,26 @@ bun install
 bun --bun run dev
 ```
 
+# Database and tests
+
+Postgres 17 runs in Docker (`docker-compose.yml`, port 55450) with two databases: `abasto` for development and `abasto_test` for tests.
+
+```bash
+bun run db:up     # start Postgres and wait until it is healthy
+bun run db:migrate
+bun run test      # bun test against abasto_test
+bun run db:down   # stop it (data stays in the abasto-db volume)
+```
+
+Set these in `.env.local`:
+
+```bash
+DATABASE_URL=postgresql://abasto:abasto@localhost:55450/abasto
+TEST_DATABASE_URL=postgresql://abasto:abasto@localhost:55450/abasto_test
+```
+
+`TEST_DATABASE_URL` is optional (that value is the default). Tests refuse to run against a database whose name does not end in `_test`, and they apply the migrations in `drizzle/` before running.
+
 # Building For Production
 
 To build this application for production:

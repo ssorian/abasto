@@ -13,6 +13,9 @@
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
     "check": "prettier --check .",
+    "test": "bun test",
+    "db:up": "docker compose up -d --wait db",
+    "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -50,6 +53,7 @@
   "devDependencies": {
     "@tanstack/devtools-vite": "0.8.6",
     "@tanstack/eslint-config": "0.4.0",
+    "@types/bun": "^1.4.4",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.15.6",
     "@types/react": "^19.2.0",
