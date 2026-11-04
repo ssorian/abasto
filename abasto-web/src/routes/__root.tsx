@@ -9,6 +9,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
 import { AppShell } from '#/components/layout/app-shell'
+import { Toaster } from '#/components/ui/sonner'
 import { TooltipProvider } from '#/components/ui/tooltip'
 
 import appCss from '../styles.css?url'
@@ -58,6 +59,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <TooltipProvider>
           <AppShell>{children}</AppShell>
         </TooltipProvider>
+        <Toaster />
         <TanStackDevtools
           config={{
             position: 'bottom-right',

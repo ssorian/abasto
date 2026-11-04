@@ -17,13 +17,13 @@ export type NavItem = {
   label: string
   icon: LucideIcon
   /** Route path. Sections without a route yet render as inert items. */
-  to?: '/'
+  to?: '/' | '/mostrador' | '/clientes'
 }
 
 export const primaryNav: Array<NavItem> = [
   { label: 'Inicio', icon: House, to: '/' },
-  { label: 'Mostrador', icon: ScanLine },
-  { label: 'Clientes', icon: Users },
+  { label: 'Mostrador', icon: ScanLine, to: '/mostrador' },
+  { label: 'Clientes', icon: Users, to: '/clientes' },
   { label: 'Cobros', icon: Wallet },
   { label: 'Catálogo', icon: LayoutGrid },
   { label: 'Promociones', icon: Tags },
