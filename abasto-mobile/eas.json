@@ -1,0 +1,10 @@
+{
+  "build": {
+    "preview": {
+      "bun": "1.4.2",
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  }
+}

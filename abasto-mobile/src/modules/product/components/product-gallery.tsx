@@ -1,0 +1,18 @@
+import { Image, Pressable, ScrollView, View } from 'react-native';
+import { BrandText as Text } from '../../../components/ui/brand-text';
+import { ProductIcon } from './product-chrome';
+
+const images = [
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuDN8qmBep_TJxBXE4StwccOAsIymw3Kr2LWTQ-QmtS4d1Si3qg3PMvp0L-WuHVeb_RlP-BDMif3GJ47DbAL9g1i_Y04MQkwIqlAZm_TFzA65dLhgQr8Ib12WjBS2ecHIedteS5VE-0LKuVqCIbGEOsOLErgCPvUKQUnWTr_1USy7-qcQ6U8f3h23bnT0n5vTUnZyyqprOiDxrDFGNlj9HahKAE88YThgopx-XZKusWBqfk_RPVay9nDlA',
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuBZDDTt-J-0o8JYPQlzJvggZXsQB6d3omfjYwnfxORxwOXM-c9ZhIuhqNZkj6aHUyjEmvklwW51CdwgxJhVl5y0hz8uXH6piNFlA-YY35bCAuxY67AkV5bfYxIITQY7bVKGZHnv1gf3c2ObtgjmThB2IOu9EOG7m-ujgfpOYsJtKC6UqblG_ejpZIvubdKCrbQQeLjtWvwELAm7tpHEQ1lMmJ6mk7YmeUUzzP6KcepuNM_aANu67mxaYw',
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuBaptcvzJ_OIiCnxRrbS0ZG53gvUQET0G481pJy-0olKVlSWIyz24U7nTlAP4rpxmWZK5i59elPeWr4C3xrXXgGShnIKuS8C7mmm7y-d5EB0MRJK0B02jY9PQiCF8EHUxAHqqX2OkxOhGfV0b73exYYMoit7C9u8MEunQkUw_Ca2fDwwWSqEG95BUY0PNid3_slL-rdhxBP2wfOXjPuYET3CwHW45d-kEc1qWHNSWd3bRYMcGDi8RAdKA',
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuAAAUk8RBMXLznm73KOBYowwDQWVXkofdY0Ch0S4suom9lxXZSseHJha8T0-fRNI6OzffbvFP4LpRfos8_uGRXOU5S52dE7z2aHk9LsX6FN3xUXDa8Yl04CgBQ0WHlagwlrLFx7QCagdD67tq4jKk__nrAkCEoGqsG9Ud4F-gAMuVVnEK6wX2OqShhlo-nb1BkmyneNXMGx_8HUUc2vDxoamNIHWM6jd90YH1RAyog-BysHo5OXNl3brw',
+];
+
+export function ProductGallery() {
+  return <View className="mb-4 px-4"><View className="aspect-[4/3] overflow-hidden rounded-xl bg-white shadow-sm"><Image source={{ uri: images[0] }} resizeMode="contain" className="h-full w-full p-4" />
+    <View className="absolute left-3 top-3 gap-1.5"><View className="flex-row items-center gap-1 rounded-full bg-[#FFCE4B] px-2.5 py-1"><ProductIcon name="offer" size={14} color="#7D5D00" /><Text className="text-[11px] font-bold text-[#735800]">5% DESCUENTO MAYOREO</Text></View><View className="flex-row items-center gap-1 rounded-full bg-stock-green-bg px-2.5 py-1"><ProductIcon name="stock" size={14} color="#2E7D4F" /><Text className="text-[11px] font-bold text-stock-green">En Stock Cedis Central</Text></View></View>
+    <Pressable accessibilityLabel="Agrandar imagen (vista de demostración)" className="absolute right-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white"><ProductIcon name="zoom" /></Pressable>
+    <View className="absolute bottom-3 left-3 right-3 flex-row items-center justify-between gap-1 rounded-lg bg-[#20252BCC] px-3 py-1.5"><View className="min-w-0 flex-1 flex-row items-center gap-1"><ProductIcon name="trending" size={16} color="#F5C542" /><Text numberOfLines={2} className="text-[11px] font-bold text-white">Alta Rotación en Tienda (Top 3 de Mostrador)</Text></View><Text className="text-[9px] font-extrabold uppercase text-[#E4E2DD]">Surtido Inmediato</Text></View>
+  </View><ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-2.5" contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>{images.slice(1).map((uri, index) => <Pressable key={uri} accessibilityLabel={`Imagen adicional ${index + 1} (vista de demostración)`} className={`h-16 w-16 rounded-lg bg-white p-1 ${index === 0 ? 'bg-surface-container-highest' : 'opacity-70'}`}><Image source={{ uri }} resizeMode="contain" className="h-full w-full" /></Pressable>)}<View className="h-16 items-center justify-center rounded-lg bg-surface-container px-3"><ProductIcon name="rotate" size={18} color="#66717A" /><Text className="text-[11px] font-bold text-text-muted">Giro 360°</Text></View></ScrollView></View>;
+}

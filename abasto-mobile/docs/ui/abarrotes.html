@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "error-container": "#ffdad6",
+          "on-surface": "#1b1c19",
+          "tertiary-fixed": "#a4f4bc",
+          "tertiary": "#00562f",
+          "inverse-primary": "#ffb4ab",
+          "on-primary": "#ffffff",
+          "on-secondary-fixed-variant": "#594400",
+          "stock-green": "#2E7D4F",
+          "on-error": "#ffffff",
+          "on-error-container": "#93000a",
+          "on-background": "#1b1c19",
+          "primary": "#960e12",
+          "primary-container": "#b92b27",
+          "on-primary-fixed": "#410002",
+          "outline-variant": "#e2beba",
+          "maize-dark": "#7D5D00",
+          "surface-container": "#f0eee8",
+          "background": "#fbf9f3",
+          "border-warm": "#E8E2D5",
+          "surface-bright": "#fbf9f3",
+          "red-institutional": "#B92B27",
+          "on-surface-variant": "#5a413e",
+          "outline": "#8e706d",
+          "surface-variant": "#e4e2dd",
+          "surface-container-high": "#eae8e2",
+          "surface": "#fbf9f3",
+          "inverse-on-surface": "#f2f1eb",
+          "secondary": "#765a00",
+          "cream-canvas": "#FAF8F2",
+          "inverse-surface": "#30312d",
+          "secondary-fixed-dim": "#f0c03e",
+          "on-primary-container": "#ffd5d0",
+          "surface-container-lowest": "#ffffff",
+          "error": "#ba1a1a",
+          "text-muted": "#66717A",
+          "on-tertiary-container": "#a0f0b8",
+          "on-tertiary": "#ffffff",
+          "cream-card": "#FFFFFF",
+          "primary-fixed": "#ffdad6",
+          "text-carbon": "#20252B",
+          "secondary-container": "#ffce4b",
+          "tertiary-fixed-dim": "#88d7a1",
+          "maize-gold": "#F5C542",
+          "red-warm": "#C83E3E",
+          "primary-fixed-dim": "#ffb4ab",
+          "on-secondary": "#ffffff",
+          "tertiary-container": "#1e7043",
+          "surface-container-highest": "#e4e2dd",
+          "surface-tint": "#b42724",
+          "on-secondary-container": "#735800",
+          "surface-dim": "#dcdad4",
+          "on-tertiary-fixed": "#00210f",
+          "on-secondary-fixed": "#251a00",
+          "surface-container-low": "#f5f3ee",
+          "stock-green-bg": "#EAF5EE",
+          "on-primary-fixed-variant": "#91080f",
+          "on-tertiary-fixed-variant": "#00522c",
+          "secondary-fixed": "#ffdf95"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "space-sm": "0.5rem",
+          "gutter-mobile": "0.75rem",
+          "space-md": "1rem",
+          "margin-mobile": "1rem",
+          "gutter": "1rem",
+          "space-xs": "0.25rem",
+          "space-lg": "1.5rem",
+          "margin": "1.5rem",
+          "space-xl": "2rem"
+        },
+        "fontFamily": {
+          "label-md": ["Inter"],
+          "price-hero": ["Plus Jakarta Sans"],
+          "display-lg-mobile": ["Plus Jakarta Sans"],
+          "body-sm": ["Inter"],
+          "headline-md": ["Plus Jakarta Sans"],
+          "price-hero-mobile": ["Plus Jakarta Sans"],
+          "label-lg": ["Inter"],
+          "wholesale-unit": ["Inter"],
+          "body-md": ["Inter"],
+          "body-lg": ["Inter"],
+          "headline-lg": ["Plus Jakarta Sans"],
+          "display-lg": ["Plus Jakarta Sans"],
+          "label-sm": ["Inter"],
+          "headline-sm": ["Plus Jakarta Sans"]
+        },
+        "fontSize": {
+          "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "700" }],
+          "price-hero": ["28px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+          "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+          "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+          "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+          "price-hero-mobile": ["22px", { "lineHeight": "26px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+          "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+          "wholesale-unit": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "800" }],
+          "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+          "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+          "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+          "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+          "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "700" }],
+          "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }]
+        }
+      },
+    }
+  };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style></head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen antialiased"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/95 backdrop-blur-xl border-b border-border-warm/60"><div class="h-16 px-gutter-mobile flex items-center justify-between gap-2"><div class="flex items-center gap-2.5 min-w-0 flex-1"><div class="w-9 h-9 rounded-lg bg-surface-container-lowest border border-border-warm flex items-center justify-center p-0.5 shrink-0 shadow-sm"><img alt="Abarroteros Logo" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UjSNzTWl4jCMbNkhVBZTCWtKjyry-3p2iNifq0dqpFblobNwflin3Cs3zOeLe5msJgsiFyDXhGVVhFwZvf8ZFjN7KUx1u12kw-pGrSLofHUTlZcGEanqrXJl8x3nn7GKy6JRjFsbBNcOhvCPWDyk7yKQK-OJ5KT0dQRn6dlLuZjrNFJ1mcjCoPqOJBSfZr96ztRLsQMxgX4uuUtwjUXo12LeuyZNguAbtUIiv6X6luGTItVreL5Hh1eQiy"/></div><div class="flex flex-col min-w-0"><div class="flex items-center gap-1"><span class="font-headline-sm text-[15px] text-text-carbon font-bold truncate leading-tight">Abarrotes Lupita</span><span class="material-symbols-outlined text-text-muted text-[16px] shrink-0">expand_more</span></div><span class="font-wholesale-unit text-[10px] uppercase text-primary font-black tracking-widest leading-none">CATÁLOGO</span></div></div><div class="flex items-center gap-1 shrink-0"><button aria-label="Notificaciones" class="w-10 h-10 flex items-center justify-center text-text-carbon rounded-full hover:bg-surface-container active:bg-surface-container-high transition-colors relative"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary ring-2 ring-surface"></span></button><a aria-label="Carrito de compras" class="w-10 h-10 flex items-center justify-center text-text-carbon rounded-full hover:bg-surface-container active:bg-surface-container-high transition-colors relative" data-path="carrito" href="#"><span class="material-symbols-outlined text-[22px]">shopping_cart</span><span class="absolute top-1 right-1 min-w-[17px] h-[17px] px-1 bg-maize-gold text-text-carbon font-label-sm text-[10px] rounded-full flex items-center justify-center font-extrabold shadow-sm ring-2 ring-surface">3</span></a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold shrink-0 ml-1 shadow-sm"><span class="material-symbols-outlined text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-28 bg-surface flex-1"><div class="flex flex-col w-full">
+<!-- Search & Filters Sticky Bar -->
+<section class="px-margin-mobile pt-2.5 pb-2 bg-surface sticky top-16 z-30 border-b border-border-warm/60 backdrop-blur-md bg-surface/95">
+<div class="flex items-center gap-2">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-[20px]">search</span>
+<input class="w-full h-10 pl-9 pr-9 rounded-xl bg-surface-container text-text-carbon placeholder:text-text-muted font-body-sm text-[13px] border border-transparent focus:border-primary/40 focus:outline-none focus:bg-surface-container-lowest transition-all" placeholder="Buscar refrescos, abarrotes, botanas..." type="search"/>
+<button aria-label="Escanear código de barras" class="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors p-1 flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
+</button>
+</div>
+<button class="h-10 px-3 bg-surface-container border border-border-warm hover:bg-surface-container-high rounded-xl text-text-carbon flex items-center justify-center gap-1 shrink-0 font-label-md text-label-md active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+<span class="font-bold">Filtros</span>
+<span class="w-5 h-5 rounded-full bg-primary text-on-primary text-[10px] font-extrabold flex items-center justify-center">2</span>
+</button>
+</div>
+<!-- Category Chips Horizontal Scroll -->
+<div class="flex items-center gap-1.5 overflow-x-auto pt-2.5 pb-0.5 no-scrollbar -mx-margin-mobile px-margin-mobile">
+<button class="px-3.5 py-1.5 rounded-full bg-primary text-on-primary font-label-md text-[12px] whitespace-nowrap shadow-sm flex items-center gap-1">
+<span>Todas</span>
+</button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container border border-border-warm text-text-carbon font-label-md text-[12px] whitespace-nowrap hover:bg-surface-container-high transition-colors">
+        Refrescos
+      </button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container border border-border-warm text-text-carbon font-label-md text-[12px] whitespace-nowrap hover:bg-surface-container-high transition-colors">
+        Cervezas
+      </button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container border border-border-warm text-text-carbon font-label-md text-[12px] whitespace-nowrap hover:bg-surface-container-high transition-colors">
+        Aceites y Granos
+      </button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container border border-border-warm text-text-carbon font-label-md text-[12px] whitespace-nowrap hover:bg-surface-container-high transition-colors">
+        Botanas
+      </button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container border border-border-warm text-text-carbon font-label-md text-[12px] whitespace-nowrap hover:bg-surface-container-high transition-colors">
+        Limpieza
+      </button>
+<button class="px-3 py-1.5 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-[12px] whitespace-nowrap flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+        En Promoción
+      </button>
+</div>
+</section>
+<!-- Metric / Results Sub-header -->
+<div class="px-margin-mobile py-2 flex items-center justify-between bg-surface-container-low border-b border-border-warm/50 text-[11px]">
+<div class="flex items-center gap-1.5 truncate">
+<span class="font-wholesale-unit text-wholesale-unit uppercase text-primary font-black tracking-wider">Catálogo Mayorista</span>
+<span class="text-text-muted">·</span>
+<span class="font-label-sm text-label-sm text-text-muted font-semibold">248 productos disponibles</span>
+</div>
+<button class="flex items-center gap-0.5 text-text-carbon hover:text-primary font-label-md text-[12px] shrink-0 font-bold">
+<span>Más vendidos</span>
+<span class="material-symbols-outlined text-[16px]">arrow_drop_down</span>
+</button>
+</div>
+<!-- Product Grid (2 columns) -->
+<section class="px-margin-mobile py-3.5 grid grid-cols-2 gap-2.5 pb-28">
+<!-- CARD 1: Coca Cola 600 ml (2 in cart) -->
+<article class="bg-surface-container-lowest border border-border-warm rounded-2xl p-2.5 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+<div class="absolute top-2 left-2 z-10">
+<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container font-label-sm text-[10px] font-extrabold shadow-sm">
+          5% DESC
+        </span>
+</div>
+<div>
+<div class="w-full aspect-[4/3] rounded-xl bg-surface-container-low flex items-center justify-center p-2 mb-2 relative overflow-hidden">
+<img class="w-full h-full object-contain mix-blend-multiply" data-alt="Pack of 24 Coca-Cola original 600ml PET bottles neatly arranged in a wholesale transparent shrink-wrapped cardboard tray on a clean studio table under warm retail lighting, mercantile product photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATJC9w8uWN3zdZgUterQRpAMr2MUhykv83wWOw35RaQbpDP5SmmFvqg_gQc4f-iHyAF54QJnHLJEpF-9xorQuhWHSaHwD5DL_gsJkqRINA-m5OSHhVQ9XR0dvqpt42inuSlGNO5K9WLuv2vv5CohZSeTIH4_6OfORz2T1DyGFLvqQXY-0QL4QznPoyVZuYRnLIRsIgNUELqFZo-XkbTTjj7xZdGCAccBIi52c_yYhuJp0CmejjaMVlMg"/>
+<div class="absolute bottom-1 right-1 bg-stock-green-bg px-1.5 py-0.5 rounded text-stock-green font-label-sm text-[9px] font-extrabold border border-stock-green/20">
+            Surtido inmediato
+          </div>
+</div>
+<div class="flex flex-col min-w-0 mb-2">
+<span class="font-wholesale-unit text-[10px] uppercase text-primary font-black tracking-wider">Refrescos</span>
+<h2 class="font-headline-sm text-[14px] text-text-carbon font-bold truncate leading-tight mt-0.5">Coca-Cola 600 ml</h2>
+<span class="font-body-sm text-[11px] text-text-muted mt-0.5">Caja × 24 botellas</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2 mb-2 border border-border-warm/60">
+<div class="flex items-baseline justify-between">
+<span class="font-headline-lg text-[18px] text-primary font-black leading-none tracking-tight">$412.80</span>
+<span class="font-wholesale-unit text-[10px] uppercase text-text-muted font-extrabold">Caja</span>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1 border-t border-border-warm/40 text-[10px]">
+<span class="text-stock-green font-bold">$17.20 / pza</span>
+<span class="text-text-muted">Sug. $21.00</span>
+</div>
+</div>
+</div>
+<!-- Quantity Stepper Active -->
+<div class="w-full h-10 bg-surface-container rounded-xl flex items-center justify-between p-1 border border-border-warm">
+<button aria-label="Disminuir cantidad" class="w-8 h-8 rounded-lg bg-surface-container-lowest text-text-carbon hover:bg-surface font-bold flex items-center justify-center shadow-xs active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="font-headline-sm text-[14px] font-black text-text-carbon leading-none">2</span>
+<span class="text-[8px] uppercase font-black text-primary tracking-wider">cajas</span>
+</div>
+<button aria-label="Aumentar cantidad" class="w-8 h-8 rounded-lg bg-primary text-on-primary font-bold flex items-center justify-center shadow-xs active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</article>
+<!-- CARD 2: Sabritas Clasicas 45g -->
+<article class="bg-surface-container-lowest border border-border-warm rounded-2xl p-2.5 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+<div class="absolute top-2 left-2 z-10">
+<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-stock-green-bg text-stock-green font-label-sm text-[10px] font-extrabold border border-stock-green/20">
+          En Stock
+        </span>
+</div>
+<div>
+<div class="w-full aspect-[4/3] rounded-xl bg-surface-container-low flex items-center justify-center p-2 mb-2 relative overflow-hidden">
+<img class="w-full h-full object-contain mix-blend-multiply" data-alt="Cardboard box of 30 Sabritas original salted potato chips bags 45g each, branded classic Mexican yellow snack packaging in retail carton presentation with vibrant commercial studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8F7QBGlmhmwp87ALgro0Ru77hmozxpR83gegZ_xu7H9RxkwoxWDg5Bsl4zZkNDB29ZcJdakl3ypzOE8aZtpB7d0kLPxP_todV894ZEs_-CKP3R_sS1BxxKNRN9AeOyKW3qrfFMLMkbm8qClZwGPPq00_vNlaqHYKL9ktA1MgCtqSfhuBGcvy3Ke-hXEk0cmVDsUjgVSdZlJu-Hr5ib93goDQ91JhQFnHlB_LWdYUdx9NheoPfNsW_Sw"/>
+<span class="absolute bottom-1 right-1 bg-surface-container-highest/90 text-text-carbon font-label-sm text-[9px] px-1.5 py-0.5 rounded font-semibold">
+            Alta rotación
+          </span>
+</div>
+<div class="flex flex-col min-w-0 mb-2">
+<span class="font-wholesale-unit text-[10px] uppercase text-primary font-black tracking-wider">Botanas</span>
+<h2 class="font-headline-sm text-[14px] text-text-carbon font-bold truncate leading-tight mt-0.5">Sabritas Clásicas Sal 45g</h2>
+<span class="font-body-sm text-[11px] text-text-muted mt-0.5">Caja × 30 bolsas</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2 mb-2 border border-border-warm/60">
+<div class="flex items-baseline justify-between">
+<span class="font-headline-lg text-[18px] text-text-carbon font-black leading-none tracking-tight">$480.00</span>
+<span class="font-wholesale-unit text-[10px] uppercase text-text-muted font-extrabold">Caja</span>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1 border-t border-border-warm/40 text-[10px]">
+<span class="text-stock-green font-bold">$16.00 / pza</span>
+<span class="text-text-muted">Sug. $20.00</span>
+</div>
+</div>
+</div>
+<button class="w-full h-10 bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+<span>+ Agregar</span>
+</button>
+</article>
+<!-- CARD 3: Aceite Nutrioli 946ml -->
+<article class="bg-surface-container-lowest border border-border-warm rounded-2xl p-2.5 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+<div class="absolute top-2 left-2 z-10">
+<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container font-label-sm text-[10px] font-extrabold shadow-sm">
+          Compra 3 ahorra 8%
+        </span>
+</div>
+<div>
+<div class="w-full aspect-[4/3] rounded-xl bg-surface-container-low flex items-center justify-center p-2 mb-2 relative overflow-hidden">
+<img class="w-full h-full object-contain mix-blend-multiply" data-alt="Wholesale corrugated cardboard master shipping case containing 12 bottles of Nutrioli pure soybean cooking oil 946ml with green cap, professional mercantile catalog presentation on a crisp neutral backdrop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFbNGMlXA87c8WwbPgadelkzq3tXbZ1j-yChy6_VIlBWYJJWm5EFqAhehq9n-lEDbwhM-oVG3U4bJqpdnlfy0x5zBRc6oQCUQclW4ZluUm4S2tR5tDWEp0zXcTkz72r2HmJpGQUCsihPOj_MRIUshP1HM5FH5lhR0Ep73NLLysp6XErhz75Za_YQMmYggUBGgAv6Fq9zsQkz3HZLhwr68QMmz383Q_B_P9b3I4l3pbLID3tYn2OMwPtg"/>
+<div class="absolute bottom-1 right-1 bg-stock-green-bg px-1.5 py-0.5 rounded text-stock-green font-label-sm text-[9px] font-extrabold border border-stock-green/20">
+            Surtido inmediato
+          </div>
+</div>
+<div class="flex flex-col min-w-0 mb-2">
+<span class="font-wholesale-unit text-[10px] uppercase text-primary font-black tracking-wider">Aceites y Granos</span>
+<h2 class="font-headline-sm text-[14px] text-text-carbon font-bold truncate leading-tight mt-0.5">Aceite Nutrioli 946ml</h2>
+<span class="font-body-sm text-[11px] text-text-muted mt-0.5">Caja × 12 piezas</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2 mb-2 border border-border-warm/60">
+<div class="flex items-baseline justify-between">
+<span class="font-headline-lg text-[18px] text-text-carbon font-black leading-none tracking-tight">$432.00</span>
+<span class="font-wholesale-unit text-[10px] uppercase text-text-muted font-extrabold">Caja</span>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1 border-t border-border-warm/40 text-[10px]">
+<span class="text-stock-green font-bold">$36.00 / pza</span>
+<span class="text-text-muted">Sug. $43.00</span>
+</div>
+</div>
+</div>
+<button class="w-full h-10 bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+<span>+ Agregar</span>
+</button>
+</article>
+<!-- CARD 4: Galletas Marias Gamesa -->
+<article class="bg-surface-container-lowest border border-border-warm rounded-2xl p-2.5 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+<div>
+<div class="w-full aspect-[4/3] rounded-xl bg-surface-container-low flex items-center justify-center p-2 mb-2 relative overflow-hidden">
+<img class="w-full h-full object-contain mix-blend-multiply" data-alt="Heavy bundle wrapped in bulk plastic containing 20 rolls of traditional Gamesa Marias wheat biscuits cookies, authentic Mexican neighborhood corner grocery merchandise pack shot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcxwUWgU321BPO4ia0F9YMnPnbwF-RyLgZLJPRavWPigLwIqx3KZr57aK1fJTueKMrR7yklpHUpPXpLQEfdXMWhp4z_vDFJ3HTDFOZLl4Gt_VTKgW9t6vwTaGDpQ0zgsX41nYaYlK2g02pXp1YLYg2dTTdBkPGrYeKf2iTkgB5JMmLezGlYxoT6e1xPR1CzN3MKETQAYpVVXSMTzgCVnffggrXIyXY8KiipJEn1Tz-US-Sdaz7f1ecHw"/>
+<div class="absolute bottom-1 right-1 bg-stock-green-bg px-1.5 py-0.5 rounded text-stock-green font-label-sm text-[9px] font-extrabold border border-stock-green/20">
+            Surtido inmediato
+          </div>
+</div>
+<div class="flex flex-col min-w-0 mb-2">
+<span class="font-wholesale-unit text-[10px] uppercase text-primary font-black tracking-wider">Abarrotes</span>
+<h2 class="font-headline-sm text-[14px] text-text-carbon font-bold truncate leading-tight mt-0.5">Galletas Gamesa Marías</h2>
+<span class="font-body-sm text-[11px] text-text-muted mt-0.5">Bulto × 20 rollos</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2 mb-2 border border-border-warm/60">
+<div class="flex items-baseline justify-between">
+<span class="font-headline-lg text-[18px] text-text-carbon font-black leading-none tracking-tight">$310.00</span>
+<span class="font-wholesale-unit text-[10px] uppercase text-text-muted font-extrabold">Bulto</span>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1 border-t border-border-warm/40 text-[10px]">
+<span class="text-stock-green font-bold">$15.50 / pza</span>
+<span class="text-text-muted">Sug. $20.00</span>
+</div>
+</div>
+</div>
+<button class="w-full h-10 bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+<span>+ Agregar</span>
+</button>
+</article>
+<!-- CARD 5: Cerveza Victoria (1 in cart) -->
+<article class="bg-surface-container-lowest border border-border-warm rounded-2xl p-2.5 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+<div class="absolute top-2 left-2 z-10">
+<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-red-warm text-on-primary font-label-sm text-[10px] font-extrabold shadow-sm gap-0.5">
+<span class="material-symbols-outlined text-[12px]">bolt</span>
+          Oferta Relámpago
+        </span>
+</div>
+<div>
+<div class="w-full aspect-[4/3] rounded-xl bg-surface-container-low flex items-center justify-center p-2 mb-2 relative overflow-hidden">
+<img class="w-full h-full object-contain mix-blend-multiply" data-alt="Carton box of 24 Victoria Vienna style beer glass bottles 355ml, crisp amber beverage packaging in heavy duty wholesale cardboard distributor case, Mexican brewery grocery warehouse photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoEUNXtROBXRYYVPrcQkEj4I7N52B3L7J8VRUlcoj6eqjurV38P4PXp8dc4eyAyQAM62T0lqY_5InKu4DEqwxWJyxIc1B6Du_ot2IFkfO6mE5ZVn5HhiHul-0Uuha2q_vrepwWHpG978EQNuhinv75V-COWLhXLTmuuodrhnuGIOrTtFKhDoNJ1OFUWSEFkxtEoHOTpXC2_BrI9tZBV6ME8UZMFjs3hCgxCkCQRWrNFMFJZgE62yj3Tg"/>
+<div class="absolute bottom-1 right-1 bg-stock-green-bg px-1.5 py-0.5 rounded text-stock-green font-label-sm text-[9px] font-extrabold border border-stock-green/20">
+            Surtido inmediato
+          </div>
+</div>
+<div class="flex flex-col min-w-0 mb-2">
+<span class="font-wholesale-unit text-[10px] uppercase text-primary font-black tracking-wider">Cervezas</span>
+<h2 class="font-headline-sm text-[14px] text-text-carbon font-bold truncate leading-tight mt-0.5">Cerveza Victoria Mega 1.2L</h2>
+<span class="font-body-sm text-[11px] text-text-muted mt-0.5">Cartón × 24 botellas</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2 mb-2 border border-border-warm/60">
+<div class="flex items-baseline justify-between">
+<span class="font-headline-lg text-[18px] text-primary font-black leading-none tracking-tight">$456.00</span>
+<span class="font-wholesale-unit text-[10px] uppercase text-text-muted font-extrabold">Cartón</span>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1 border-t border-border-warm/40 text-[10px]">
+<span class="text-stock-green font-bold">$19.00 / pza</span>
+<span class="text-text-muted">Sug. $24.00</span>
+</div>
+</div>
+</div>
+<!-- Quantity Stepper Active (1 item) -->
+<div class="w-full h-10 bg-surface-container rounded-xl flex items-center justify-between p-1 border border-border-warm">
+<button aria-label="Disminuir cantidad" class="w-8 h-8 rounded-lg bg-surface-container-lowest text-text-carbon hover:bg-surface font-bold flex items-center justify-center shadow-xs active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="font-headline-sm text-[14px] font-black text-text-carbon leading-none">1</span>
+<span class="text-[8px] uppercase font-black text-primary tracking-wider">cartón</span>
+</div>
+<button aria-label="Aumentar cantidad" class="w-8 h-8 rounded-lg bg-primary text-on-primary font-bold flex items-center justify-center shadow-xs active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</article>
+<!-- CARD 6: Harina Maseca -->
+<article class="bg-surface-container-lowest border border-border-warm rounded-2xl p-2.5 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+<div>
+<div class="w-full aspect-[4/3] rounded-xl bg-surface-container-low flex items-center justify-center p-2 mb-2 relative overflow-hidden">
+<img class="w-full h-full object-contain mix-blend-multiply" data-alt="Heavy kraft bale package containing 10 sacks of Maseca corn flour nixtamalized 1kg each with traditional green and yellow graphics, authentic Mexican tortilla store staples in high quality retail catalog format" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD--B8Z5vITIn9WoduexmI_4Khb8AuMuPQohQbpKZ6SDMKJ9VsjFN5n2JAyn3LuTFVx3d4VFnuj9wYGbfrmMblx8XqLTsbLU3fR_yjjsOTjF8g2rJi84F1p2-5BWjs8r88D8rcsh8HVDlMHkeY0SuryAdVmwZ5XC8FwdFXfjlLT38BZhSS3CSw7xm94776agzWg2eCZtdhf74OrI40xIdKv0nILlWe4dTA0K8UJyWkCZTMd9YOQlYIdKg"/>
+<div class="absolute bottom-1 right-1 bg-stock-green-bg px-1.5 py-0.5 rounded text-stock-green font-label-sm text-[9px] font-extrabold border border-stock-green/20">
+            Surtido inmediato
+          </div>
+</div>
+<div class="flex flex-col min-w-0 mb-2">
+<span class="font-wholesale-unit text-[10px] uppercase text-primary font-black tracking-wider">Granos y Harinas</span>
+<h2 class="font-headline-sm text-[14px] text-text-carbon font-bold truncate leading-tight mt-0.5">Harina Maseca 1kg</h2>
+<span class="font-body-sm text-[11px] text-text-muted mt-0.5">Bulto × 10 kg</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2 mb-2 border border-border-warm/60">
+<div class="flex items-baseline justify-between">
+<span class="font-headline-lg text-[18px] text-text-carbon font-black leading-none tracking-tight">$195.00</span>
+<span class="font-wholesale-unit text-[10px] uppercase text-text-muted font-extrabold">Bulto</span>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1 border-t border-border-warm/40 text-[10px]">
+<span class="text-stock-green font-bold">$19.50 / pza</span>
+<span class="text-text-muted">Sug. $24.50</span>
+</div>
+</div>
+</div>
+<button class="w-full h-10 bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+<span>+ Agregar</span>
+</button>
+</article>
+</section>
+<!-- Sticky Floating Cart Pill -->
+<aside class="fixed bottom-[72px] left-0 right-0 z-40 px-margin-mobile pointer-events-none">
+<div class="max-w-md mx-auto bg-text-carbon text-surface-bright rounded-2xl p-2.5 shadow-xl flex items-center justify-between gap-3 pointer-events-auto ring-1 ring-white/10">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-on-primary font-black text-headline-sm shrink-0 shadow-xs">
+          3
+        </div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-[11px] text-secondary-fixed uppercase font-bold tracking-wider leading-none">3 bultos / cajas</span>
+<span class="font-headline-sm text-[16px] text-surface-bright font-extrabold tracking-tight mt-0.5 truncate">$1,304.80 MXN</span>
+</div>
+</div>
+<a class="h-10 px-3.5 bg-maize-gold hover:bg-secondary-fixed-dim text-text-carbon font-label-lg text-label-lg font-black rounded-xl flex items-center justify-center gap-1 shrink-0 shadow-md active:scale-95 transition-transform" data-path="carrito" href="#">
+<span>Ver Carrito</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</a>
+</div>
+</aside>
+</div>
+<script>
+  // Micro-interaction for tenderos rapid cart adjustment
+  document.querySelectorAll('article button').forEach(button => {
+    button.addEventListener('click', (e) => {
+      button.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        button.style.transform = '';
+      }, 120);
+    });
+  });
+</script></main><!-- Fixed Mobile Bottom Navigation Bar (5 tabs) --><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/95 backdrop-blur-xl border-t border-border-warm shadow-[0_-2px_10px_rgba(0,0,0,0.04)]"><div class="flex items-center justify-around h-16 px-gutter-mobile"><a class="flex flex-col items-center justify-center w-14 h-14 text-text-muted hover:text-text-carbon transition-colors" data-path="inicio" href="#"><span class="material-symbols-outlined text-[24px]">home</span><span class="font-label-sm text-[11px] mt-0.5">Inicio</span></a><a class="flex flex-col items-center justify-center w-14 h-14 text-primary font-bold transition-colors" data-path="catalogo" href="#"><span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">grid_view</span><span class="font-label-sm text-[11px] mt-0.5">Catálogo</span></a><a class="flex flex-col items-center justify-center w-14 h-14 text-text-muted hover:text-text-carbon transition-colors relative" data-path="pedidos" href="#"><span class="material-symbols-outlined text-[24px]">receipt_long</span><span class="font-label-sm text-[11px] mt-0.5">Pedidos</span><span class="absolute top-2.5 right-3.5 w-2 h-2 rounded-full bg-stock-green"></span></a><a class="flex flex-col items-center justify-center w-14 h-14 text-text-muted hover:text-text-carbon transition-colors relative" data-path="carrito" href="#"><span class="material-symbols-outlined text-[24px]">shopping_cart</span><span class="font-label-sm text-[11px] mt-0.5">Carrito</span><span class="absolute top-2 right-2.5 min-w-[16px] h-4 px-1 bg-maize-gold text-text-carbon font-label-sm text-[10px] rounded-full flex items-center justify-center font-bold">3</span></a><a class="flex flex-col items-center justify-center w-14 h-14 text-text-muted hover:text-text-carbon transition-colors" data-path="cuenta" href="#"><span class="material-symbols-outlined text-[24px]">storefront</span><span class="font-label-sm text-[11px] mt-0.5">Cuenta</span></a></div></nav></body></html>

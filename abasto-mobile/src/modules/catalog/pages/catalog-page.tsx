@@ -1,0 +1,16 @@
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { BrandText as Text } from '../../../components/ui/brand-text';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { CatalogBottomNav, CatalogHeader, CatalogIcon, FloatingCart } from '../components/catalog-chrome';
+import { CatalogProducts } from '../components/catalog-products';
+import { categories } from '../lib/catalog-data';
+
+function SearchAndFilters() {
+  return <View className="border-b border-[#E8E2D5] bg-surface px-4 pb-4 pt-2.5"><View className="flex-row items-center gap-2"><View className="h-10 min-w-0 flex-1 flex-row items-center rounded-xl bg-surface-container px-3"><CatalogIcon name="search" color="#66717A" size={20} /><TextInput placeholder="Buscar refrescos, abarrotes, botanas..." placeholderTextColor="#66717A" className="min-w-0 flex-1 pl-1 text-[13px] text-text-carbon" /><Pressable accessibilityLabel="Escanear código de barras (vista de demostración)"><CatalogIcon name="barcode" color="#66717A" size={20} /></Pressable></View><Pressable accessibilityLabel="Filtros (vista de demostración)" className="h-10 flex-row items-center gap-1 rounded-xl border border-[#E8E2D5] bg-surface-container px-3"><CatalogIcon name="tune" size={18} /><Text className="text-[12px] font-bold text-text-carbon">Filtros</Text><View className="h-5 w-5 items-center justify-center rounded-full bg-primary"><Text className="text-[10px] font-extrabold text-white">2</Text></View></Pressable></View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-4 mt-2.5" contentContainerStyle={{ paddingHorizontal: 16, gap: 6 }}>{categories.map((category, index) => <Pressable key={category} accessibilityLabel={`${category} (vista de demostración)`} className={`rounded-full py-1.5 ${index === 0 ? 'bg-primary px-3.5' : index === 6 ? 'bg-[#FFCE4B] px-3' : 'border border-[#E8E2D5] bg-surface-container px-3'}`}><Text className={`text-[12px] font-semibold ${index === 0 ? 'text-white' : 'text-text-carbon'}`}>{index === 6 ? '♨ ' : ''}{category}</Text></Pressable>)}</ScrollView>
+  </View>;
+}
+
+export default function CatalogPage() {
+  return <SafeAreaView className="flex-1 bg-surface" edges={['top', 'bottom']}><View className="mx-auto w-full max-w-screen-sm flex-1 bg-surface"><CatalogHeader /><SearchAndFilters /><ScrollView showsVerticalScrollIndicator={false}><View className="flex-row items-center justify-between border-b border-[#E8E2D5] bg-[#f5f3ee] px-4 pb-2 pt-3"><View className="min-w-0 flex-1 flex-row items-center gap-1.5"><Text className="shrink-0 text-[10px] font-black uppercase tracking-wider text-primary">Catálogo Mayorista</Text><Text className="shrink-0 text-[11px] text-text-muted">·</Text><Text numberOfLines={1} className="min-w-0 flex-shrink text-[11px] font-semibold text-text-muted">248 productos disponibles</Text></View><Pressable accessibilityLabel="Ordenar por Más vendidos (vista de demostración)" className="shrink-0 flex-row items-center"><Text className="text-[12px] font-bold text-text-carbon">Más vendidos</Text><CatalogIcon name="down" size={16} /></Pressable></View><CatalogProducts /></ScrollView><FloatingCart /><CatalogBottomNav /></View></SafeAreaView>;
+}

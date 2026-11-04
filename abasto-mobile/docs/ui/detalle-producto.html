@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&amp;family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary-container": "#735800", "stock-green": "#2E7D4F", "on-secondary-fixed": "#251a00", "on-error": "#ffffff", "maize-dark": "#7D5D00", "surface-bright": "#fbf9f3", "on-tertiary-container": "#a0f0b8", "surface-tint": "#b42724", "tertiary": "#00562f", "surface-container": "#f0eee8", "surface-container-highest": "#e4e2dd", "on-primary": "#ffffff", "red-warm": "#C83E3E", "red-institutional": "#B92B27", "secondary-fixed-dim": "#f0c03e", "surface-container-lowest": "#ffffff", "on-surface": "#1b1c19", "surface-container-high": "#eae8e2", "text-carbon": "#20252B", "cream-canvas": "#FAF8F2", "outline-variant": "#e2beba", "text-muted": "#66717A", "on-primary-fixed-variant": "#91080f", "tertiary-fixed": "#a4f4bc", "inverse-primary": "#ffb4ab", "surface-container-low": "#f5f3ee", "on-surface-variant": "#5a413e", "on-tertiary-fixed": "#00210f", "on-error-container": "#93000a", "secondary-fixed": "#ffdf95", "surface-dim": "#dcdad4", "inverse-on-surface": "#f2f1eb", "secondary-container": "#ffce4b", "surface": "#fbf9f3", "maize-gold": "#F5C542", "primary": "#960e12", "on-tertiary-fixed-variant": "#00522c", "outline": "#8e706d", "on-background": "#1b1c19", "on-tertiary": "#ffffff", "on-secondary-fixed-variant": "#594400", "border-warm": "#E8E2D5", "error": "#ba1a1a", "cream-card": "#FFFFFF", "stock-green-bg": "#EAF5EE", "on-primary-container": "#ffd5d0", "primary-container": "#b92b27", "surface-variant": "#e4e2dd", "background": "#fbf9f3", "on-secondary": "#ffffff", "primary-fixed-dim": "#ffb4ab", "error-container": "#ffdad6", "tertiary-container": "#1e7043", "secondary": "#765a00", "inverse-surface": "#30312d", "tertiary-fixed-dim": "#88d7a1", "on-primary-fixed": "#410002", "primary-fixed": "#ffdad6" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.5rem", "space-md": "1rem", "space-xl": "2rem", "gutter-mobile": "0.75rem", "gutter": "1rem", "space-xs": "0.25rem", "space-sm": "0.5rem", "margin-mobile": "1rem", "margin": "1.5rem" }, "fontFamily": { "headline-md": ["Plus Jakarta Sans"], "body-sm": ["Inter"], "body-md": ["Inter"], "price-hero": ["Plus Jakarta Sans"], "label-lg": ["Inter"], "headline-sm": ["Plus Jakarta Sans"], "label-sm": ["Inter"], "body-lg": ["Inter"], "headline-lg": ["Plus Jakarta Sans"], "display-lg-mobile": ["Plus Jakarta Sans"], "wholesale-unit": ["Inter"], "price-hero-mobile": ["Plus Jakarta Sans"], "label-md": ["Inter"], "display-lg": ["Plus Jakarta Sans"] }, "fontSize": { "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "price-hero": ["28px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }], "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "700" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "wholesale-unit": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "800" }], "price-hero-mobile": ["22px", { "lineHeight": "26px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "700" }], "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "800" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-xs min-w-0 flex-1"><button aria-label="Volver" class="w-11 h-11 -ml-1 flex items-center justify-center text-text-carbon rounded-full hover:bg-surface-container active:bg-surface-container-high transition-colors shrink-0" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><div class="flex flex-col min-w-0"><h1 class="font-headline-sm text-headline-sm text-text-carbon truncate leading-tight">Detalle De Producto — Ficha Mayorista</h1><div class="flex items-center gap-space-xs"><span class="font-label-sm text-label-sm text-text-muted truncate">Abarrotes Lupita</span></div></div></div><div class="flex items-center gap-space-xs shrink-0"><button aria-label="Notificaciones" class="w-11 h-11 flex items-center justify-center text-text-carbon rounded-full hover:bg-surface-container active:bg-surface-container-high transition-colors relative"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary ring-2 ring-surface"></span></button><a aria-label="Carrito de compras" class="w-11 h-11 flex items-center justify-center text-text-carbon rounded-full hover:bg-surface-container active:bg-surface-container-high transition-colors relative" data-path="carrito" href="#"><span class="material-symbols-outlined text-[22px]">shopping_cart</span><span class="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-maize-gold text-text-carbon font-label-sm text-label-sm rounded-full flex items-center justify-center font-extrabold shadow-sm">3</span></a></div></div></header><main class="flex flex-col relative w-full pt-16 pb-safe bg-surface flex-1"><div class="flex flex-col w-full pb-36">
+<!-- Breadcrumbs & Brand Header -->
+<div class="px-gutter pt-space-sm pb-space-xs flex flex-col gap-1">
+<nav class="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap text-text-muted font-body-sm text-body-sm">
+<span class="hover:text-primary">Bebidas</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="hover:text-primary">Refrescos</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-text-carbon font-label-sm text-label-sm">Refrescos de Cola</span>
+</nav>
+<div class="flex items-center justify-between mt-1">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm uppercase tracking-wider text-text-muted bg-surface-container px-2.5 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[14px] text-primary">verified</span>
+        The Coca-Cola Company
+      </span>
+<span class="font-label-sm text-label-sm text-text-muted">SKU: 7501055300075</span>
+</div>
+</div>
+<!-- Product Title & Main Specs -->
+<div class="px-gutter pt-space-xs pb-space-sm">
+<h2 class="font-headline-lg text-headline-lg text-text-carbon leading-snug">
+      Coca-Cola Original 600 ml
+    </h2>
+<p class="font-body-md text-body-md text-text-muted mt-0.5">
+      Caja corrugada flejada de distribución con 24 botellas PET no retornables
+    </p>
+</div>
+<!-- Product Visual Stage / Wholesale Gallery -->
+<div class="px-gutter mb-space-md">
+<div class="relative w-full rounded-xl bg-surface-container-lowest overflow-hidden shadow-sm aspect-[4/3] flex items-center justify-center">
+<!-- Commercial Floating Badges -->
+<div class="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start">
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-maize-dark">local_offer</span>
+          5% DESCUENTO MAYOREO
+        </span>
+<span class="bg-stock-green-bg text-stock-green font-label-sm text-label-sm px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">inventory_2</span>
+          En Stock Cedis Central
+        </span>
+</div>
+<div class="absolute top-3 right-3 z-10">
+<button aria-label="Agrandar imagen de producto" class="w-10 h-10 rounded-full bg-surface-container-lowest/90 backdrop-blur-sm text-text-carbon shadow-sm flex items-center justify-center active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">zoom_in</span>
+</button>
+</div>
+<!-- Main Product Image -->
+<img class="w-full h-full object-contain p-4" data-alt="Professional commercial packshot of a wholesale cardboard case of 24 Coca-Cola 600ml original PET bottles arranged neatly in corrugated packaging. Crisp studio lighting, Mexican tiendita wholesale warehouse context, vibrant red labels, refreshing condensation on plastic bottles, ultra sharp product photography on warm cream neutral floor." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDN8qmBep_TJxBXE4StwccOAsIymw3Kr2LWTQ-QmtS4d1Si3qg3PMvp0L-WuHVeb_RlP-BDMif3GJ47DbAL9g1i_Y04MQkwIqlAZm_TFzA65dLhgQr8Ib12WjBS2ecHIedteS5VE-0LKuVqCIbGEOsOLErgCPvUKQUnWTr_1USy7-qcQ6U8f3h23bnT0n5vTUnZyyqprOiDxrDFGNlj9HahKAE88YThgopx-XZKusWBqfk_RPVay9nDlA"/>
+<!-- Quick Badge Overlay -->
+<div class="absolute bottom-3 left-3 right-3 flex items-center justify-between px-3 py-1.5 bg-text-carbon/80 backdrop-blur-md rounded-lg text-surface-container-lowest">
+<span class="flex items-center gap-1.5 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-maize-gold text-[16px]">trending_up</span>
+          Alta Rotación en Tienda (Top 3 de Mostrador)
+        </span>
+<span class="font-wholesale-unit text-wholesale-unit text-surface-container-high uppercase">Surtido Inmediato</span>
+</div>
+</div>
+<!-- Thumbnail Strip -->
+<div class="flex items-center gap-2 mt-2.5 overflow-x-auto pb-1">
+<button class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container-lowest shadow-sm flex-shrink-0 p-1 bg-surface-container-highest">
+<img class="w-full h-full object-contain" data-alt="Close up of single Coca Cola 600ml bottle barcode label with pristine packaging in warehouse." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZDDTt-J-0o8JYPQlzJvggZXsQB6d3omfjYwnfxORxwOXM-c9ZhIuhqNZkj6aHUyjEmvklwW51CdwgxJhVl5y0hz8uXH6piNFlA-YY35bCAuxY67AkV5bfYxIITQY7bVKGZHnv1gf3c2ObtgjmThB2IOu9EOG7m-ujgfpOYsJtKC6UqblG_ejpZIvubdKCrbQQeLjtWvwELAm7tpHEQ1lMmJ6mk7YmeUUzzP6KcepuNM_aANu67mxaYw"/>
+</button>
+<button class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container-lowest shadow-sm flex-shrink-0 p-1 opacity-70 hover:opacity-100 transition-opacity">
+<img class="w-full h-full object-contain" data-alt="Wholesale pallet packed with dozens of 24-pack Coca Cola boxes wrapped in clear logistics shrink plastic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaptcvzJ_OIiCnxRrbS0ZG53gvUQET0G481pJy-0olKVlSWIyz24U7nTlAP4rpxmWZK5i59elPeWr4C3xrXXgGShnIKuS8C7mmm7y-d5EB0MRJK0B02jY9PQiCF8EHUxAHqqX2OkxOhGfV0b73exYYMoit7C9u8MEunQkUw_Ca2fDwwWSqEG95BUY0PNid3_slL-rdhxBP2wfOXjPuYET3CwHW45d-kEc1qWHNSWd3bRYMcGDi8RAdKA"/>
+</button>
+<button class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container-lowest shadow-sm flex-shrink-0 p-1 opacity-70 hover:opacity-100 transition-opacity">
+<img class="w-full h-full object-contain" data-alt="Frontal angled view of corrugated cardboard shipping case showing Coca-Cola official logos and technical specifications." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAAAUk8RBMXLznm73KOBYowwDQWVXkofdY0Ch0S4suom9lxXZSseHJha8T0-fRNI6OzffbvFP4LpRfos8_uGRXOU5S52dE7z2aHk9LsX6FN3xUXDa8Yl04CgBQ0WHlagwlrLFx7QCagdD67tq4jKk__nrAkCEoGqsG9Ud4F-gAMuVVnEK6wX2OqShhlo-nb1BkmyneNXMGx_8HUUc2vDxoamNIHWM6jd90YH1RAyog-BysHo5OXNl3brw"/>
+</button>
+<div class="h-16 px-3 rounded-lg bg-surface-container flex flex-col items-center justify-center text-text-muted font-label-sm text-label-sm flex-shrink-0 text-center">
+<span class="material-symbols-outlined text-[18px]">360</span>
+<span>Giro 360°</span>
+</div>
+</div>
+</div>
+<!-- Pricing Calculator Card (Tendero Profitability Matrix) -->
+<div class="px-gutter mb-space-md">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted">Precio por Caja (24 Pzas)</span>
+<div class="flex items-baseline gap-2 mt-0.5">
+<span class="font-price-hero-mobile text-price-hero-mobile text-red-institutional">$412.80</span>
+<span class="font-body-sm text-body-sm text-text-muted line-through">$434.50</span>
+<span class="font-label-sm text-label-sm text-stock-green font-bold bg-stock-green-bg px-1.5 py-0.5 rounded">-5%</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-text-muted">Costo Unitario</span>
+<p class="font-headline-sm text-headline-sm text-text-carbon mt-0.5">$17.20 <span class="font-wholesale-unit text-wholesale-unit text-text-muted font-normal">/ pza</span></p>
+</div>
+</div>
+<!-- Retail Margin Callout -->
+<div class="bg-surface-container-low rounded-lg p-3 flex flex-col gap-2">
+<div class="flex items-center justify-between font-body-sm text-body-sm">
+<span class="text-text-muted flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-text-muted">storefront</span>
+            Precio Sugerido al Mostrador
+          </span>
+<span class="font-label-lg text-label-lg text-text-carbon font-bold">$21.00 – $22.00 / pza</span>
+</div>
+<div class="h-px bg-surface-container-highest w-full"></div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-stock-green text-[20px]">payments</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-stock-green uppercase font-bold">Tu Margen Estimado: 22%</span>
+<span class="font-body-sm text-body-sm text-text-carbon">+$4.80 por botella vendida</span>
+</div>
+</div>
+<div class="bg-stock-green-bg text-stock-green font-label-md text-label-md px-2.5 py-1 rounded-md text-right">
+            +$115.20 <span class="font-body-sm text-body-sm block">ganancia x caja</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Wholesale Volume Discount Scale (PRD Escalado B2B) -->
+<div class="px-gutter mb-space-md">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-red-institutional text-[22px]">stacked_bar_chart</span>
+<h3 class="font-headline-sm text-headline-sm text-text-carbon">Escala de Descuento por Volumen</h3>
+</div>
+<span class="font-label-sm text-label-sm text-text-muted">Mayoreo Directo</span>
+</div>
+<div class="flex flex-col gap-2.5">
+<!-- Tier 1 -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-surface-container-highest flex items-center justify-center font-label-sm text-label-sm text-text-carbon">
+              1-2
+            </div>
+<div>
+<p class="font-label-md text-label-md text-text-carbon">1 a 2 Cajas</p>
+<p class="font-body-sm text-body-sm text-text-muted">$17.20 neto por pieza</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-lg text-label-lg text-text-carbon">$412.80 c/u</p>
+<span class="font-label-sm text-label-sm text-text-muted">Precio Base</span>
+</div>
+</div>
+<!-- Tier 2 (Highlighted weekend deal) -->
+<div class="flex flex-col p-3 rounded-lg bg-surface-container-low relative overflow-hidden shadow-sm">
+<div class="flex items-center justify-between mb-1.5">
+<span class="inline-flex items-center gap-1 bg-maize-gold text-text-carbon font-label-sm text-label-sm px-2 py-0.5 rounded-full font-bold">
+<span class="material-symbols-outlined text-[13px]">stars</span>
+              Recomendado para fin de semana
+            </span>
+<span class="bg-red-warm/10 text-red-warm font-label-sm text-label-sm px-2 py-0.5 rounded font-bold">
+              Ahorra 8%
+            </span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-red-institutional text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold">
+                3-5
+              </div>
+<div>
+<p class="font-label-md text-label-md text-text-carbon">3 a 5 Cajas</p>
+<p class="font-body-sm text-body-sm text-stock-green font-semibold">$16.58 neto por pieza</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-lg text-label-lg text-red-institutional font-bold">$398.00 c/u</p>
+<span class="font-label-sm text-label-sm text-stock-green font-bold">+$130.08 margen x caja</span>
+</div>
+</div>
+</div>
+<!-- Tier 3 -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-low transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-surface-container-highest flex items-center justify-center font-label-sm text-label-sm text-text-carbon">
+              6+
+            </div>
+<div>
+<p class="font-label-md text-label-md text-text-carbon">6 o más Cajas</p>
+<p class="font-body-sm text-body-sm text-stock-green font-semibold">$16.04 neto por pieza</p>
+</div>
+</div>
+<div class="text-right flex flex-col items-end">
+<div class="flex items-center gap-1">
+<span class="bg-stock-green-bg text-stock-green font-label-sm text-label-sm px-1.5 py-0.5 rounded font-bold">Ahorra 12%</span>
+<p class="font-label-lg text-label-lg text-text-carbon">$385.00 c/u</p>
+</div>
+<span class="font-label-sm text-label-sm text-text-muted">Tarima / Camión</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Wholesale Packaging Chips Selector (Interactive Units) -->
+<div class="px-gutter mb-space-md">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<h3 class="font-headline-sm text-headline-sm text-text-carbon mb-2">Unidad de Compra</h3>
+<div class="grid grid-cols-3 gap-2">
+<button class="flex flex-col items-center justify-center p-2.5 rounded-lg bg-red-institutional text-on-primary shadow-sm text-center" type="button">
+<span class="font-label-md text-label-md uppercase font-bold">Caja Mayorista</span>
+<span class="font-wholesale-unit text-wholesale-unit opacity-90">× 24 botellas</span>
+<span class="font-body-sm text-body-sm font-semibold mt-1 text-secondary-fixed">$412.80</span>
+</button>
+<button class="flex flex-col items-center justify-center p-2.5 rounded-lg bg-surface-container-low text-text-carbon text-center opacity-70" type="button">
+<span class="font-label-md text-label-md uppercase font-bold">Media Caja</span>
+<span class="font-wholesale-unit text-wholesale-unit text-text-muted">× 12 botellas</span>
+<span class="font-body-sm text-body-sm text-text-muted mt-1">$216.00</span>
+</button>
+<button class="flex flex-col items-center justify-center p-2.5 rounded-lg bg-surface-container-low text-text-carbon text-center opacity-70" type="button">
+<span class="font-label-md text-label-md uppercase font-bold">Tarima Completa</span>
+<span class="font-wholesale-unit text-wholesale-unit text-text-muted">× 60 cajas</span>
+<span class="font-body-sm text-body-sm text-text-muted mt-1">$23,100</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Logistics & Physical Specifications Card -->
+<div class="px-gutter mb-space-md">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-primary text-[22px]">local_shipping</span>
+<h3 class="font-headline-sm text-headline-sm text-text-carbon">Especificaciones de Carga &amp; Bodega</h3>
+</div>
+<div class="space-y-3 font-body-sm text-body-sm">
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center shrink-0 text-text-carbon">
+<span class="material-symbols-outlined text-[18px]">inventory</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md text-text-carbon">Presentación de Fábrica</p>
+<p class="text-text-muted">Caja de cartón reforzado flejada con 24 botellas PET de 600 ml cada una.</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center shrink-0 text-text-carbon">
+<span class="material-symbols-outlined text-[18px]">scale</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md text-text-carbon">Peso de Maniobra</p>
+<p class="text-text-muted">~15.5 kg por caja flejada. Bulto estibable máximo a 5 camas en mostrador.</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center shrink-0 text-text-carbon">
+<span class="material-symbols-outlined text-[18px]">calendar_clock</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md text-text-carbon">Caducidad Fresca Garantizada</p>
+<p class="text-text-muted">Mínimo 6 meses de vigencia activa al momento de la entrega en tienda.</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center shrink-0 text-text-carbon">
+<span class="material-symbols-outlined text-[18px]">barcode_scanner</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md text-text-carbon">Códigos de Lectura Rápida</p>
+<p class="text-text-muted">Botella individual: 7501055300075 | DUN-14 Caja: 17501055300072</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center shrink-0 text-stock-green">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md text-text-carbon">Ventana de Despacho Abarroteros</p>
+<p class="text-stock-green font-medium">Entrega al día siguiente en ruta matutina consolidada (8:00 AM – 1:00 PM).</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Reassurance Mercantile Micro-perks -->
+<div class="px-gutter mb-6">
+<div class="grid grid-cols-2 gap-2">
+<div class="bg-surface-container-low p-3 rounded-lg flex items-center gap-2">
+<span class="material-symbols-outlined text-red-institutional text-[20px]">assignment_return</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-text-carbon font-bold">Cambio por Merma</span>
+<span class="font-body-sm text-body-sm text-text-muted">Garantía por rotura</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg flex items-center gap-2">
+<span class="material-symbols-outlined text-maize-dark text-[20px]">receipt_long</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-text-carbon font-bold">Factura CFDI 4.0</span>
+<span class="font-body-sm text-body-sm text-text-muted">Descarga automática</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Bottom Requisition Bar (PRD Step 6) -->
+<aside class="fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest shadow-[0_-4px_16px_rgba(32,37,43,0.08)] pb-safe">
+<div class="px-gutter py-3 flex flex-col gap-2 max-w-md mx-auto">
+<!-- Dynamic Savings Micro-indicator -->
+<div class="flex items-center justify-between text-text-carbon px-1">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-stock-green"></span>
+<span class="font-body-sm text-body-sm text-text-muted" id="volume-indicator">Comprando 2 cajas: Precio regular</span>
+</div>
+<span class="font-label-sm text-label-sm text-stock-green font-bold" id="margin-calc">+48 botellas para tu tienda</span>
+</div>
+<!-- Action Row: Stepper & Add Button -->
+<div class="flex items-center gap-3">
+<!-- Wholesale Box Stepper -->
+<div class="flex items-center bg-surface-container-low rounded-lg h-[52px] p-1 shadow-sm shrink-0">
+<button aria-label="Disminuir una caja" class="w-11 h-full rounded-md flex items-center justify-center text-text-carbon hover:bg-surface-container active:bg-surface-container-highest transition-colors font-bold select-none disabled:opacity-40" id="btn-decrement" type="button">
+<span class="material-symbols-outlined text-[20px]">remove</span>
+</button>
+<div class="flex flex-col items-center justify-center px-2.5 min-w-[54px] select-none">
+<span class="font-headline-sm text-headline-sm text-text-carbon font-bold leading-none" id="case-counter">2</span>
+<span class="font-wholesale-unit text-wholesale-unit text-text-muted uppercase mt-0.5">cajas</span>
+</div>
+<button aria-label="Aumentar una caja" class="w-11 h-full rounded-md flex items-center justify-center text-text-carbon hover:bg-surface-container active:bg-surface-container-highest transition-colors font-bold select-none" id="btn-increment" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+<!-- Big Primary Red CTA with Live Subtotal -->
+<button class="flex-1 h-[52px] bg-red-institutional hover:bg-primary active:bg-primary text-on-primary rounded-lg font-label-lg text-label-lg font-bold flex items-center justify-between px-4 shadow-md transition-all active:scale-[0.99]" id="btn-add-order" type="button">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
+<span>Agregar al Pedido</span>
+</div>
+<span class="font-headline-sm text-headline-sm font-extrabold tracking-tight" id="total-price-display">$825.60</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Interactive Logic for Stepper and Price Tiers -->
+<script>
+    (function() {
+      const btnDec = document.getElementById('btn-decrement');
+      const btnInc = document.getElementById('btn-increment');
+      const counterEl = document.getElementById('case-counter');
+      const totalEl = document.getElementById('total-price-display');
+      const volumeIndicator = document.getElementById('volume-indicator');
+      const marginCalc = document.getElementById('margin-calc');
+      const btnAdd = document.getElementById('btn-add-order');
+
+      let quantity = 2;
+
+      function calculateUnitPrice(qty) {
+        if (qty >= 6) return 385.00;
+        if (qty >= 3) return 398.00;
+        return 412.80;
+      }
+
+      function updateUI() {
+        counterEl.textContent = quantity;
+        btnDec.disabled = quantity <= 1;
+
+        const unitPrice = calculateUnitPrice(quantity);
+        const subtotal = unitPrice * quantity;
+        totalEl.textContent = '$' + subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const totalBottles = quantity * 24;
+        marginCalc.textContent = `+${totalBottles} botellas para tu tienda`;
+
+        if (quantity >= 6) {
+          volumeIndicator.textContent = '¡Máximo Descuento 12% aplicado!';
+          volumeIndicator.className = 'font-body-sm text-body-sm text-stock-green font-bold';
+        } else if (quantity >= 3) {
+          volumeIndicator.textContent = '¡Precio Escala Fin de Semana (-8%)!';
+          volumeIndicator.className = 'font-body-sm text-body-sm text-primary font-bold';
+        } else {
+          volumeIndicator.textContent = 'Comprando ' + quantity + ' cajas: Precio base';
+          volumeIndicator.className = 'font-body-sm text-body-sm text-text-muted';
+        }
+      }
+
+      btnInc.addEventListener('click', function() {
+        if (quantity < 99) {
+          quantity++;
+          updateUI();
+        }
+      });
+
+      btnDec.addEventListener('click', function() {
+        if (quantity > 1) {
+          quantity--;
+          updateUI();
+        }
+      });
+
+      btnAdd.addEventListener('click', function() {
+        const originalText = btnAdd.innerHTML;
+        btnAdd.innerHTML = '<span class="material-symbols-outlined text-[20px] animate-bounce">check_circle</span> <span>¡Agregado con Éxito!</span> <span>' + totalEl.textContent + '</span>';
+        btnAdd.classList.remove('bg-red-institutional');
+        btnAdd.classList.add('bg-stock-green');
+
+        setTimeout(function() {
+          btnAdd.innerHTML = originalText;
+          btnAdd.classList.remove('bg-stock-green');
+          btnAdd.classList.add('bg-red-institutional');
+          updateUI();
+        }, 1600);
+      });
+
+      updateUI();
+    })();
+  </script>
+</div></main></body></html>

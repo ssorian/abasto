@@ -1,0 +1,27 @@
+# Local Pi runtime state
+.atl/
+
+# Shared dependency and build outputs
+node_modules/
+dist/
+dist-ssr/
+build/
+.output/
+.expo/
+.tanstack/
+.nitro/
+*.tsbuildinfo
+.DS_Store
+
+# Machine-local code navigation indexes
+/.codegraph/
+/abasto-mobile/.codegraph/
+
+# Locally installed design skill (not shared by this repository)
+/.agents/skills/impeccable/
+/.pi/skills/impeccable
+/skills-lock.json
+
+# Generated visual review and image outputs
+/.impeccable/review/
+/.pi/generated-images/

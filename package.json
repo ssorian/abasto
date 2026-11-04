@@ -1,0 +1,22 @@
+{
+  "name": "abasto",
+  "private": true,
+  "packageManager": "bun@1.4.2",
+  "workspaces": [
+    "abasto-mobile",
+    "abasto-web"
+  ],
+  "scripts": {
+    "mobile": "bun run --filter abasto-mobile start",
+    "mobile:android": "bun run --filter abasto-mobile android",
+    "mobile:lint": "bun run --filter abasto-mobile lint",
+    "web": "bun run --filter abasto-web dev",
+    "web:lint": "bun run --filter abasto-web lint",
+    "web:check": "bun run --filter abasto-web check",
+    "web:build": "bun run --filter abasto-web build"
+  },
+  "trustedDependencies": [
+    "esbuild",
+    "lightningcss"
+  ]
+}
