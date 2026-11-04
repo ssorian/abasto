@@ -25,7 +25,7 @@ Source of truth: the unminified app regions embedded in the HTML bundle (`app/*`
 - T6 (S1, S2) — Routes `/catalogo`, `/inventario` (search param `q` for "Consultar inventario"), nav links, stub pages. Route: inline. Commit: `feat(web): add catalog and inventory routes`.
 - T7 (S1, S2, S5) — Catálogo module `src/modules/catalog/`. Route: gentle-ai-worker mw2d46kn-4-6i11 (done: grid, search, publish/pause, product form, presentations editor, reason dialog, inventory link; geometry within 2px at 1440/390; omitted: persistence/audit, 4-column ≥1700px, presentation removal (absent in reference), min stock not stored). Commit: `feat(web): add catalog module`.
 - T8 (S1, S2, S6) — Inventario module `src/modules/inventory/` plus the shared "Importar CSV" dialog in `src/modules/product-import/`. Route: gentle-ai-worker mw2d46ko-5-sqdi (done: warehouse switcher, 5 tabs, cards/table, filters, detail sheet with lots/labels/price history, receipt/outflow/adjust/count/transfer flows, CSV import for catalog and stock; ≤5px diffs at 1440/390; omitted: drafts, persistence/audit/authorization, returns and scenarios panels, import history, 4-column ≥1700px). Commit: `feat(web): add inventory and CSV import modules`.
-- T9 (S1, S5, S6) — Wire "Importar CSV" into Catálogo, parent visual pass at 1440/390, checks, commits. Route: inline. Commit: pending.
+- T9 (S1, S5, S6) — Wire "Importar CSV" into Catálogo, parent visual pass at 1440/390, checks, commits. Route: inline. Done: catalog import adds new products (headless run: toast, new card, 9 publicados, no console errors); "Consultar inventario" prefills search at 1440/390; inventory tabs render at 390. Commit: `feat(web): wire CSV import into catalog`.
 
 ## Log
 
@@ -45,3 +45,4 @@ Source of truth: the unminified app regions embedded in the HTML bundle (`app/*`
 - L14: "Ahora sigue con catalogo e inventario" — branch `feat/catalog-inventory` from main 18112e0. Port 3000 is taken by an unrelated Docker container (vitae-plus-frontend-1); user dev server runs on 3001.
 - L15: Decisions: "Importar CSV" appears in both sections, so it is its own module `product-import` built by the inventory worker; the parent wires it into Catálogo after both finish. Catálogo links to `/inventario?q=<product name>`. Per-module local state continues (L9). The shared-UI extraction (L13) stays deferred; it will be one later commit.
 - L16: Global Toaster now uses the reference props `position="bottom-right" richColors` (found by the catalog worker; reference page.tsx Toaster).
+- L17: `product-import` is consumed by both `catalog` and `inventory` as a feature module (module-to-module import kept on purpose instead of moving it to `src/components`, since it owns domain parsing rules).

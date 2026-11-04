@@ -13,6 +13,11 @@ import { PresentationsDialog } from '#/modules/catalog/forms/presentations-dialo
 import { ProductFormDialog } from '#/modules/catalog/forms/product-form-dialog'
 import { useCatalog } from '#/modules/catalog/hooks/use-catalog'
 import {
+  importReferenceProducts,
+  productFromImport,
+} from '#/modules/catalog/lib/catalog-import'
+import { ImportCsvDialog } from '#/modules/product-import/components/import-csv-dialog'
+import {
   filterCatalog,
   publicationCounts,
 } from '#/modules/catalog/lib/catalog-search'
@@ -22,16 +27,12 @@ import { validatePresentations } from '#/modules/catalog/schemas/presentations-s
 import { validateProductDraft } from '#/modules/catalog/schemas/product-schema'
 
 import type { CatalogReview } from '#/modules/catalog/lib/catalog-review'
+import type { ImportResult } from '#/modules/product-import/lib/import-types'
 import type {
   CatalogProduct,
   PresentationDraft,
   ProductDraft,
 } from '#/modules/catalog/lib/catalog-types'
-
-type CatalogPageProps = {
-  /** Opens the shared CSV import dialog; wired by the app shell. */
-  onImport?: () => void
-}
 
 /** Signed-in demo user who files the sensitive operations. */
 const REQUESTER = 'Mariana Ruiz'
@@ -46,8 +47,21 @@ type PendingChange = {
 /** Editor target: `{}` creates a product, `{ productId }` edits one. */
 type Editor = { productId?: string } | undefined
 
-export function CatalogPage({ onImport }: CatalogPageProps) {
+export function CatalogPage() {
   const { products, upsertProduct } = useCatalog()
+  const [importOpen, setImportOpen] = useState(false)
+
+  function applyImport(result: ImportResult) {
+    if (result.mode !== 'catalog') return
+    for (const row of result.products)
+      upsertProduct(
+        productFromImport(
+          row,
+          `PROD-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+        ),
+      )
+    toast.success('Importación CSV registrada.')
+  }
   const [query, setQuery] = useState('')
   const [editor, setEditor] = useState<Editor>()
   const [presentationsId, setPresentationsId] = useState<string>()
@@ -133,7 +147,7 @@ export function CatalogPage({ onImport }: CatalogPageProps) {
           <>
             <CatalogButton
               className="min-h-[43px] flex-1 px-[13px] text-[13px] md:min-h-11 md:flex-none md:px-[17px] md:text-sm"
-              onClick={onImport}
+              onClick={() => setImportOpen(true)}
             >
               Importar CSV
             </CatalogButton>
@@ -192,6 +206,13 @@ export function CatalogPage({ onImport }: CatalogPageProps) {
           onConfirm={() => store(pending.product, pending.message)}
         />
       )}
+      <ImportCsvDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        initialMode="catalog"
+        products={importReferenceProducts(products)}
+        onApply={applyImport}
+      />
     </>
   )
 }
