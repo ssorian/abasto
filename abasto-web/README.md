@@ -94,40 +94,18 @@ console.log(env.VITE_APP_TITLE);
 
 
 
-## Setting up Better Auth
+## Accounts and roles
 
-1. Generate and set the `BETTER_AUTH_SECRET` environment variable in your `.env.local`:
+Better Auth stores users and sessions in Postgres (`src/db/auth-schema.ts`). Public sign-up is disabled: the owner creates staff accounts and assigns them to warehouses as `manager` or `clerk`.
+
+1. Set `BETTER_AUTH_SECRET` in `.env.local` (`bunx --bun @better-auth/cli secret` generates one).
+2. Create the first owner once:
 
    ```bash
-   bunx --bun @better-auth/cli secret
+   bun run auth:create-owner --name "Nombre" --email dueno@example.com
    ```
 
-2. Visit the [Better Auth documentation](https://www.better-auth.com) to unlock the full potential of authentication in your app.
-
-### Adding a Database (Optional)
-
-Better Auth can work in stateless mode, but to persist user data, add a database:
-
-```typescript
-// src/lib/auth.ts
-import { betterAuth } from "better-auth";
-import { Pool } from "pg";
-
-export const auth = betterAuth({
-  database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
-  // ... rest of config
-});
-```
-
-Then run migrations:
-
-```bash
-bunx --bun @better-auth/cli migrate
-```
-
-
+   The password is read from `OWNER_PASSWORD` or asked interactively (at least 8 characters). A second run fails with `Ya existe un dueño registrado.`
 
 ## Routing
 

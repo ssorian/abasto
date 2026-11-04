@@ -1,7 +1,4 @@
-import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
-
-export const todos = pgTable('todos', {
-  id: serial().primaryKey(),
-  title: text().notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
-})
+/** Every Drizzle table, for the client and drizzle-kit. Modules own their tables. */
+export * from './auth-schema.ts'
+export * from '../modules/warehouses/db/schema.ts'
+export * from '../modules/access/db/schema.ts'

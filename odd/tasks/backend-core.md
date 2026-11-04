@@ -21,8 +21,8 @@ Delivery strategy: `ask-on-risk` with `chain_strategy=feature-branch-chain` (cha
 ## Tasks
 
 Phase 1 — base
-- T1 [S10,S12] inline — Local Postgres for dev/test, `bun test` harness with isolated test DB, Drizzle migrations. Status: in progress. Commit: —
-- T2 [S7] inline + verify (security) — Better Auth on Drizzle; warehouses; user warehouse assignments with roles; permission policy and server guard; owner bootstrap. Status: pending. Commit: —
+- T1 [S10,S12] inline — Local Postgres for dev/test, `bun test` harness with isolated test DB, Drizzle migrations. Status: done. Commit: cb59354 (RED: missing `#/db/testing`; GREEN 3/3; assess medium → deferred to slice)
+- T2 [S7] inline + verify (security) — Better Auth on Drizzle; warehouses; user warehouse assignments with roles; permission policy and server guard; owner bootstrap. Status: in progress (RED: missing modules; GREEN 26/26; lint/tsc clean; independent verify running). Commit: —
 - T3 [S9] inline — Catalog backend: products, presentations (base-unit presentation required, factor immutable, unique/non-reserved barcodes, unique SKU), suppliers. Status: pending. Commit: —
 - T4 [S7,S9,S11] inline — Login screen; wire Catálogo, Almacenes and supplier data to server functions; drop demo identity. Status: pending. Commit: —
 
@@ -42,3 +42,6 @@ Later phases (refined when reached)
 - L4 (2026-11-04) "Si, arranca" — authorizes the phased backend plan starting with phase 1.
 - L5 (2026-11-04) Evidence: `src/db/schema.ts` only holds the starter `todos` table; Better Auth has no database adapter; `.env.local` holds placeholder credentials (`role "username" does not exist` on localhost:5432); no test runner in `abasto-web`. RDD global on.
 - L6 (2026-11-04) Answers: database "Docker Compose propio (Recomendado)" — own Postgres 17 on port 55450 with separate dev and test databases; delivery "Cadena sobre rama de feature".
+- L7 (2026-11-04) T1: Gentle safety policy blocks writing `.env*` files, so env vars are documented in `abasto-web/README.md`; the user must set `DATABASE_URL` in `.env.local` for dev. Added devDependency `@types/bun` for `bun:test` types. Fixed pre-existing `drizzle.config.ts` tsc error; full `tsc --noEmit` now passes. `README.md`/`package.json` were already Prettier-unformatted at HEAD.
+- L8 (2026-11-04) T2 role assumptions (S7): owner = everything in every warehouse, catalog/suppliers/users/warehouses management, credit authorization; manager = manages assigned warehouse operations; clerk = operates assigned warehouse (orders, cash). Public sign-up disabled; users are created by the owner or the bootstrap script.
+- L9 (2026-11-04) T2 implementation: `src/db/auth-schema.ts` (Better Auth tables + `user.role`), `modules/warehouses/{db,services}`, `modules/access/{db,lib/policy,services,scripts/create-owner}`, migration `drizzle/0000_auth_warehouses.sql`. Server-function guard wiring (request headers → `requireActor`) moves to T4 with the first server functions. `auth:create-owner` checked by hand against `abasto_test`: missing args exit 1 with usage; first run "Owner created: dueno@abasto.test" exit 0; second run "Ya existe un dueño registrado." exit 1.
