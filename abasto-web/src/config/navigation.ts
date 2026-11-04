@@ -17,7 +17,14 @@ export type NavItem = {
   label: string
   icon: LucideIcon
   /** Route path. Sections without a route yet render as inert items. */
-  to?: '/' | '/mostrador' | '/clientes' | '/catalogo' | '/inventario'
+  to?:
+    | '/'
+    | '/mostrador'
+    | '/clientes'
+    | '/catalogo'
+    | '/inventario'
+    | '/almacenes'
+    | '/reportes'
 }
 
 export const primaryNav: Array<NavItem> = [
@@ -28,8 +35,8 @@ export const primaryNav: Array<NavItem> = [
   { label: 'Catálogo', icon: LayoutGrid, to: '/catalogo' },
   { label: 'Promociones', icon: Tags },
   { label: 'Inventario', icon: Boxes, to: '/inventario' },
-  { label: 'Almacenes', icon: Warehouse },
-  { label: 'Reportes', icon: ChartColumn },
+  { label: 'Almacenes', icon: Warehouse, to: '/almacenes' },
+  { label: 'Reportes', icon: ChartColumn, to: '/reportes' },
 ]
 
 export const secondaryNav: Array<NavItem> = [

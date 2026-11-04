@@ -10,15 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AlmacenesRouteImport } from './routes/almacenes'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as MostradorRouteImport } from './routes/mostrador'
+import { Route as ReportesRouteImport } from './routes/reportes'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlmacenesRoute = AlmacenesRouteImport.update({
+  id: '/almacenes',
+  path: '/almacenes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CatalogoRoute = CatalogoRouteImport.update({
@@ -41,6 +48,11 @@ const MostradorRoute = MostradorRouteImport.update({
   path: '/mostrador',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportesRoute = ReportesRouteImport.update({
+  id: '/reportes',
+  path: '/reportes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -49,62 +61,76 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/almacenes': typeof AlmacenesRoute
   '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/inventario': typeof InventarioRoute
   '/mostrador': typeof MostradorRoute
+  '/reportes': typeof ReportesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/almacenes': typeof AlmacenesRoute
   '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/inventario': typeof InventarioRoute
   '/mostrador': typeof MostradorRoute
+  '/reportes': typeof ReportesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/almacenes': typeof AlmacenesRoute
   '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/inventario': typeof InventarioRoute
   '/mostrador': typeof MostradorRoute
+  '/reportes': typeof ReportesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/almacenes'
     | '/catalogo'
     | '/clientes'
     | '/inventario'
     | '/mostrador'
+    | '/reportes'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/almacenes'
     | '/catalogo'
     | '/clientes'
     | '/inventario'
     | '/mostrador'
+    | '/reportes'
     | '/api/auth/$'
   id:
     | '__root__'
     | '/'
+    | '/almacenes'
     | '/catalogo'
     | '/clientes'
     | '/inventario'
     | '/mostrador'
+    | '/reportes'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AlmacenesRoute: typeof AlmacenesRoute
   CatalogoRoute: typeof CatalogoRoute
   ClientesRoute: typeof ClientesRoute
   InventarioRoute: typeof InventarioRoute
   MostradorRoute: typeof MostradorRoute
+  ReportesRoute: typeof ReportesRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -115,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/almacenes': {
+      id: '/almacenes'
+      path: '/almacenes'
+      fullPath: '/almacenes'
+      preLoaderRoute: typeof AlmacenesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/catalogo': {
@@ -145,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MostradorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reportes': {
+      id: '/reportes'
+      path: '/reportes'
+      fullPath: '/reportes'
+      preLoaderRoute: typeof ReportesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -157,10 +197,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AlmacenesRoute: AlmacenesRoute,
   CatalogoRoute: CatalogoRoute,
   ClientesRoute: ClientesRoute,
   InventarioRoute: InventarioRoute,
   MostradorRoute: MostradorRoute,
+  ReportesRoute: ReportesRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
