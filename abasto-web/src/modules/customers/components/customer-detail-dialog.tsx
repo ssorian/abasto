@@ -4,26 +4,34 @@ import { CustomerOrderHistory } from '#/modules/customers/components/customer-or
 import {
   contactLine,
   creditSummary,
-} from '#/modules/customers/lib/customer-format'
+  ruleLabel,
+} from '#/modules/customers/lib/customer-labels'
 
 import type {
-  CustomerOrderSummary,
-  CustomerRecord,
-} from '#/modules/customers/lib/customer-types'
+  CustomerView,
+  PresentationOption,
+  RuleView,
+} from '#/modules/customers/lib/customer-view'
 
 type CustomerDetailDialogProps = {
-  customer: CustomerRecord
-  orders: ReadonlyArray<CustomerOrderSummary>
+  customer: CustomerView
+  rules: ReadonlyArray<RuleView>
+  presentations: ReadonlyArray<PresentationOption>
+  /** Only the owner edits. */
+  canManage: boolean
   onEdit: () => void
   onClose: () => void
 }
 
 export function CustomerDetailDialog({
   customer,
-  orders,
+  rules,
+  presentations,
+  canManage,
   onEdit,
   onClose,
 }: CustomerDetailDialogProps) {
+  const names = new Map(presentations.map(({ id, label }) => [id, label]))
   return (
     <CustomerModal
       wide
@@ -33,16 +41,30 @@ export function CustomerDetailDialog({
     >
       <div className="rounded-[10px] bg-[#f5f8fc] px-[18px] py-4 text-[13px] leading-[1.8] whitespace-pre-line text-[#637c99]">
         <p>{customer.addresses.join(' · ') || 'Sin domicilios registrados'}</p>
-        <p>{customer.notes}</p>
+        {customer.notes && <p>{customer.notes}</p>}
         <p>{creditSummary(customer)}</p>
       </div>
-      <CustomerButton onClick={onEdit}>
-        Editar cliente y condiciones
-      </CustomerButton>
-      <h3 className="mt-6 mb-3.5 text-[17px] font-[650]">
-        Historial de pedidos
-      </h3>
-      <CustomerOrderHistory orders={orders} />
+      <h3 className="text-[17px] font-[650]">Condiciones comerciales</h3>
+      {rules.length === 0 ? (
+        <p className="text-[13px] text-[#6b819b]">
+          Sin condiciones: compra a precio de lista.
+        </p>
+      ) : (
+        <ul className="list-disc pl-5 text-[13px] leading-[1.9] text-[#31465e]">
+          {rules.map((rule) => (
+            <li key={`${rule.presentationId}:${rule.minQuantity}`}>
+              {ruleLabel(rule, names)}
+            </li>
+          ))}
+        </ul>
+      )}
+      {canManage && (
+        <CustomerButton onClick={onEdit}>
+          Editar cliente y condiciones
+        </CustomerButton>
+      )}
+      <h3 className="mt-2 text-[17px] font-[650]">Historial de pedidos</h3>
+      <CustomerOrderHistory customerId={customer.id} />
     </CustomerModal>
   )
 }

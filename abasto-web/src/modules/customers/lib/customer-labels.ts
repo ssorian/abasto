@@ -1,0 +1,74 @@
+import { formatBps, formatCents } from '#/modules/pricing/lib/money'
+import type {
+  CustomerView,
+  PresentationOption,
+  RuleView,
+} from '#/modules/customers/lib/customer-view'
+
+type Credit = Pick<
+  CustomerView,
+  'creditEnabled' | 'creditLimitCents' | 'termsDays'
+>
+
+export const termsLabel = (customer: Credit) =>
+  customer.creditEnabled
+    ? `${customer.termsDays} días · ${formatCents(customer.creditLimitCents)}`
+    : 'Contado'
+
+export const statusLabel = (customer: Pick<CustomerView, 'active'>) =>
+  customer.active ? 'Activo' : 'Inactivo'
+
+export const contactLine = (
+  customer: Pick<CustomerView, 'contact' | 'phone'>,
+) =>
+  `${customer.contact || 'Sin contacto'} · ${customer.phone || 'Sin teléfono'}`
+
+export const creditSummary = (
+  customer: Credit & Pick<CustomerView, 'active'>,
+) =>
+  `${
+    customer.creditEnabled
+      ? `Crédito: ${formatCents(customer.creditLimitCents)} · ${customer.termsDays} días`
+      : 'Venta de contado'
+  } · ${statusLabel(customer)}`
+
+/** "Leche · Caja: 12.5% desde 5" or "…: $438.50 desde 1". */
+export function ruleLabel(
+  rule: RuleView,
+  names: ReadonlyMap<string, string>,
+): string {
+  const value =
+    rule.priceCents !== null
+      ? formatCents(rule.priceCents)
+      : `${formatBps(rule.discountBps ?? 0)}%`
+  return `${names.get(rule.presentationId) ?? 'Presentación'}: ${value} desde ${rule.minQuantity}`
+}
+
+/** One option per active presentation, labelled "Producto · Presentación". */
+export function presentationOptions(
+  products: ReadonlyArray<{
+    name: string
+    presentations: ReadonlyArray<{ id: string; name: string; active: boolean }>
+  }>,
+): Array<PresentationOption> {
+  return products.flatMap((product) =>
+    product.presentations
+      .filter((presentation) => presentation.active)
+      .map((presentation) => ({
+        id: presentation.id,
+        label: `${product.name} · ${presentation.name}`,
+      })),
+  )
+}
+
+const dateTime = new Intl.DateTimeFormat('es-MX', {
+  timeZone: 'America/Mexico_City',
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+/** Date and time in the business time zone, the same on server and client. */
+export const formatOrderDate = (date: Date) => dateTime.format(date)

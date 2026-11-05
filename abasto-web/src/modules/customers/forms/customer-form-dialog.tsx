@@ -1,6 +1,6 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 
-import { publicCustomerId } from '#/shared/demo/customers'
 import { CustomerButton } from '#/modules/customers/components/customer-button'
 import { CustomerModal } from '#/modules/customers/components/customer-modal'
 import { CommercialRulesFields } from '#/modules/customers/forms/commercial-rules-fields'
@@ -12,45 +12,65 @@ import {
 } from '#/modules/customers/forms/form-field'
 import {
   draftFromCustomer,
+  draftToInput,
   emptyDraft,
-} from '#/modules/customers/lib/customer-draft'
+} from '#/modules/customers/lib/customer-form'
 
+import type { CustomerDraft } from '#/modules/customers/lib/customer-form'
+import type { SaveCustomerInput } from '#/modules/customers/lib/customer-inputs'
 import type {
-  CustomerDraft,
-  CustomerRecord,
-} from '#/modules/customers/lib/customer-types'
+  CustomerView,
+  PresentationOption,
+  RuleView,
+} from '#/modules/customers/lib/customer-view'
 
 type CustomerFormDialogProps = {
   /** Customer being edited; undefined creates a new one. */
-  customer?: CustomerRecord
-  onSubmit: (draft: CustomerDraft) => void
+  customer?: CustomerView
+  rules: ReadonlyArray<RuleView>
+  presentations: ReadonlyArray<PresentationOption>
+  /** Resolves to true when saved, which closes the dialog. */
+  onSubmit: (input: SaveCustomerInput) => Promise<boolean>
   onClose: () => void
 }
 
 export function CustomerFormDialog({
   customer,
+  rules,
+  presentations,
   onSubmit,
   onClose,
 }: CustomerFormDialogProps) {
   const [draft, setDraft] = useState(() =>
-    customer ? draftFromCustomer(customer) : emptyDraft(),
+    customer ? draftFromCustomer(customer, rules) : emptyDraft(),
   )
+  const [saving, setSaving] = useState(false)
   const patch = (change: Partial<CustomerDraft>) =>
     setDraft((current) => ({ ...current, ...change }))
-  const isPublic = draft.id === publicCustomerId
+
+  async function save() {
+    const parsed = draftToInput(draft)
+    if (!parsed.ok) {
+      toast.error(parsed.message)
+      return
+    }
+    setSaving(true)
+    const saved = await onSubmit(parsed.value)
+    setSaving(false)
+    if (saved) onClose()
+  }
 
   return (
     <CustomerModal
       wide
       title={customer ? 'Editar cliente' : 'Nuevo cliente'}
-      description="Las condiciones se aplican al crear pedidos nuevos. Los precios ya acordados se conservan."
+      description="Las condiciones se aplican al crear pedidos nuevos. Los precios ya acordados en pedidos existentes se conservan."
       onClose={onClose}
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 metrics:grid-cols-3">
         <Field label="Nombre del negocio">
           <TextInput
             value={draft.name}
-            disabled={isPublic}
             onChange={(event) => patch({ name: event.target.value })}
           />
         </Field>
@@ -69,7 +89,6 @@ export function CustomerFormDialog({
         <Field label="Estado">
           <SelectInput
             value={draft.active ? 'Activo' : 'Inactivo'}
-            disabled={isPublic}
             onChange={(event) =>
               patch({ active: event.target.value === 'Activo' })
             }
@@ -96,7 +115,6 @@ export function CustomerFormDialog({
         <input
           type="checkbox"
           className="size-[17px] flex-none accent-[#326447]"
-          disabled={isPublic}
           checked={draft.credit}
           onChange={(event) => patch({ credit: event.target.checked })}
         />
@@ -126,10 +144,11 @@ export function CustomerFormDialog({
       )}
       <CommercialRulesFields
         rules={draft.rules}
-        onChange={(rules) => patch({ rules })}
+        presentations={presentations}
+        onChange={(next) => patch({ rules: next })}
       />
-      <CustomerButton tone="primary" onClick={() => onSubmit(draft)}>
-        Guardar cliente
+      <CustomerButton tone="primary" disabled={saving} onClick={save}>
+        {saving ? 'Guardando…' : 'Guardar cliente'}
       </CustomerButton>
     </CustomerModal>
   )

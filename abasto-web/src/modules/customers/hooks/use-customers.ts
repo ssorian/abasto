@@ -1,23 +1,55 @@
-import { useState } from 'react'
+import { useRouter } from '@tanstack/react-router'
+import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
+import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
+import type { SaveCustomerInput } from '#/modules/customers/lib/customer-inputs'
 import {
-  seedCustomers,
-  seedOrders,
-} from '#/modules/customers/lib/customer-seed'
+  customerOrdersFn,
+  saveCustomerFn,
+} from '#/modules/customers/server/customers'
+import type { CustomerOrder } from '#/modules/customers/server/customer-orders'
 
-import type { CustomerRecord } from '#/modules/customers/lib/customer-types'
+const messageOf = (failure: unknown) =>
+  failure instanceof ClientError ? failure.message : genericErrorMessage
 
-/** Local, non-persistent customer book seeded from the demo data. */
-export function useCustomers() {
-  const [customers, setCustomers] = useState(seedCustomers)
-  const [orders] = useState(seedOrders)
+/** Saves a customer and reloads the page; resolves to whether it worked. */
+export function useSaveCustomer() {
+  const router = useRouter()
+  return async (input: SaveCustomerInput) => {
+    try {
+      unwrap(await saveCustomerFn({ data: input }))
+      await router.invalidate()
+      toast.success('Cliente guardado.')
+      return true
+    } catch (failure) {
+      toast.error(messageOf(failure))
+      // The customer may exist already (see save-customer): show it in the list.
+      await router.invalidate()
+      return false
+    }
+  }
+}
 
-  const upsertCustomer = (customer: CustomerRecord) =>
-    setCustomers((current) =>
-      current.some(({ id }) => id === customer.id)
-        ? current.map((item) => (item.id === customer.id ? customer : item))
-        : [...current, customer],
-    )
+export type OrdersState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; orders: Array<CustomerOrder> }
 
-  return { customers, orders, upsertCustomer }
+/** A customer's orders, fetched when their detail opens. */
+export function useCustomerOrders(customerId: string) {
+  const [state, setState] = useState<OrdersState>({ status: 'loading' })
+  const load = useCallback(async () => {
+    setState({ status: 'loading' })
+    try {
+      const orders = unwrap(await customerOrdersFn({ data: { customerId } }))
+      setState({ status: 'ready', orders })
+    } catch (failure) {
+      setState({ status: 'error', message: messageOf(failure) })
+    }
+  }, [customerId])
+  useEffect(() => {
+    void load()
+  }, [load])
+  return { state, reload: load }
 }

@@ -1,97 +1,127 @@
-import { RotateCcwClock } from 'lucide-react'
+import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { PageHeading } from '#/components/page-heading'
-import { useCounterState } from '#/modules/counter/hooks/use-counter-state'
 import { ActionButton } from '#/modules/counter/components/action-button'
-import { AuthorizationDialog } from '#/modules/counter/components/authorization-dialog'
-import { CashPanel } from '#/modules/counter/components/cash-panel'
-import { CounterDialog } from '#/modules/counter/components/counter-dialog'
-import { CounterTabs } from '#/modules/counter/components/counter-tabs'
-import { FollowupDialog } from '#/modules/counter/components/followup-dialog'
-import { SaleComposer } from '#/modules/counter/components/sale-composer'
+import { FieldSelect } from '#/modules/counter/components/form-controls'
+import { NewOrderDialog } from '#/modules/counter/components/new-order-dialog'
+import { OrderList } from '#/modules/counter/components/order-list'
+import { OrderViewDialog } from '#/modules/counter/components/order-view-dialog'
+import { ReservationSetting } from '#/modules/counter/components/reservation-setting'
+import { orderStatusFilters } from '#/modules/counter/lib/order-status'
+import type { StatusFilter } from '#/modules/counter/lib/order-status'
+import type { CounterOverview } from '#/modules/counter/types/counter-view'
+import { cn } from '#/lib/utils/cn'
 
-import type { CounterTab } from '#/modules/counter/components/counter-tabs'
+type CounterPageProps = {
+  overview: CounterOverview
+  onSelectWarehouse: (warehouseId: string) => void
+}
 
-export function CounterPage() {
-  const { state, apply, pending, authorize, dismissPending, revision } =
-    useCounterState()
-  const [tab, setTab] = useState<CounterTab>('Venta')
-  const [showFollowup, setShowFollowup] = useState(false)
-  const [newOrder, setNewOrder] = useState(false)
+export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
+  const [filter, setFilter] = useState<StatusFilter>('Todos')
+  const [composing, setComposing] = useState(false)
+  const [openId, setOpenId] = useState<string>()
+  const selected = overview.warehouses.find(
+    ({ id }) => id === overview.selectedId,
+  )
 
-  function approve() {
-    if (authorize()) {
-      setShowFollowup(false)
-      setNewOrder(false)
-    }
+  const heading = (
+    <PageHeading
+      eyebrow="ABARROTEROS · ALMACÉN"
+      title="Mostrador"
+      description="Reserva, prepara y entrega los pedidos de tus clientes."
+      actions={
+        selected && (
+          <ActionButton tone="primary" onClick={() => setComposing(true)}>
+            <PlusIcon size={19} />
+            Nuevo pedido
+          </ActionButton>
+        )
+      }
+    />
+  )
+  if (!selected) {
+    return (
+      <>
+        {heading}
+        <p className="text-sm text-ink-muted">
+          Aún no tienes almacenes asignados.
+        </p>
+      </>
+    )
   }
+
+  const orders = overview.orders.filter(
+    (order) => filter === 'Todos' || order.status === filter,
+  )
 
   return (
     <>
-      <PageHeading
-        eyebrow="ABARROTEROS · ALMACÉN"
-        title="Mostrador"
-        description="Escanea, cobra y entrega desde el mismo inventario."
-        actions={
-          <ActionButton
-            className="max-md:flex-1"
-            onClick={() => setShowFollowup(true)}
+      {heading}
+      <div className="mb-5 flex flex-wrap items-end gap-4">
+        <label className="flex min-w-[220px] flex-col gap-[7px] text-[13px] font-medium text-[#32455e]">
+          Almacén
+          <FieldSelect
+            value={selected.id}
+            onChange={(event) => {
+              setFilter('Todos')
+              onSelectWarehouse(event.target.value)
+            }}
           >
-            <RotateCcwClock size={17} />
-            Ventas y entregas
-          </ActionButton>
-        }
-      />
-
-      <CounterTabs value={tab} onChange={setTab} />
-
-      {tab === 'Venta' ? (
-        <SaleComposer
-          state={state}
-          apply={apply}
-          mode="counter"
-          onOpenCash={() => setTab('Caja')}
-        />
-      ) : (
-        <CashPanel key={`cash-${revision}`} state={state} apply={apply} />
-      )}
-
-      {showFollowup && (
-        <FollowupDialog
-          key={`followup-${revision}`}
-          state={state}
-          apply={apply}
-          onClose={() => setShowFollowup(false)}
-          onNewOrder={() => {
-            setShowFollowup(false)
-            setNewOrder(true)
-          }}
-        />
-      )}
-
-      {newOrder && (
-        <CounterDialog
-          wide
-          title="Venta con entrega pendiente"
-          description="App, mostrador, teléfono o WhatsApp. Captura el origen y confirma productos, lotes y precios."
-          onClose={() => setNewOrder(false)}
+            {overview.warehouses.map((warehouse) => (
+              <option key={warehouse.id} value={warehouse.id}>
+                {warehouse.name}
+              </option>
+            ))}
+          </FieldSelect>
+        </label>
+        <div
+          role="group"
+          aria-label="Filtrar por estado"
+          className="flex flex-wrap gap-2"
         >
-          <SaleComposer
-            state={state}
-            apply={apply}
-            mode="pending"
-            onDone={() => setNewOrder(false)}
-          />
-        </CounterDialog>
+          {orderStatusFilters.map((status) => (
+            <button
+              key={status}
+              type="button"
+              aria-pressed={filter === status}
+              onClick={() => setFilter(status)}
+              className={cn(
+                'rounded-full border border-[#dce3ed] bg-white px-3.5 py-2 text-[13px] text-[#5c7694]',
+                filter === status &&
+                  'border-transparent bg-primary font-[650] text-brand-ink',
+              )}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
+      </div>
+      {overview.canSetHours && (
+        <ReservationSetting
+          key={overview.reservationHours}
+          hours={overview.reservationHours}
+        />
       )}
-
-      {pending && (
-        <AuthorizationDialog
-          action={pending.message}
-          review={pending.review}
-          onClose={dismissPending}
-          onApprove={approve}
+      <OrderList orders={orders} now={overview.now} onOpen={setOpenId} />
+      {composing && (
+        <NewOrderDialog
+          key={selected.id}
+          warehouseId={selected.id}
+          warehouseName={selected.name}
+          customers={overview.customers}
+          sellable={overview.sellable}
+          reservationHours={overview.reservationHours}
+          onClose={() => setComposing(false)}
+        />
+      )}
+      {openId && (
+        <OrderViewDialog
+          key={openId}
+          orderId={openId}
+          now={overview.now}
+          onClose={() => setOpenId(undefined)}
         />
       )}
     </>

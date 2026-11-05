@@ -1,0 +1,33 @@
+import { z } from 'zod'
+
+const id = z.string().min(1)
+const whole = z.number().int()
+
+const ruleInput = z.object({
+  presentationId: id,
+  minQuantity: whole,
+  discountBps: whole.optional(),
+  priceCents: whole.optional(),
+})
+
+/** Create (no id) or edit a customer with its credit settings and rules. */
+export const saveCustomerInput = z.object({
+  id: id.optional(),
+  name: z.string(),
+  contact: z.string(),
+  phone: z.string(),
+  notes: z.string(),
+  addresses: z.array(z.string()),
+  active: z.boolean(),
+  credit: z.object({
+    enabled: z.boolean(),
+    limitCents: whole,
+    termsDays: whole,
+  }),
+  rules: z.array(ruleInput),
+})
+
+export const customerOrdersInput = z.object({ customerId: id })
+
+export type SaveCustomerInput = z.infer<typeof saveCustomerInput>
+export type RuleInput = z.infer<typeof ruleInput>
