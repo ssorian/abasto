@@ -9,6 +9,8 @@ import {
   Td,
   Th,
 } from '#/modules/counter/components/data-table'
+import { PaymentStep } from '#/modules/counter/components/payment-step'
+import { ReceiptView } from '#/modules/counter/components/receipt-view'
 import { StatusBadge } from '#/modules/counter/components/status-badge'
 import {
   useOrderActions,
@@ -23,12 +25,15 @@ import {
   availableActions,
   statusHint,
 } from '#/modules/counter/lib/order-status'
+import type { PickupWithReceipt } from '#/modules/counter/server/pickup'
 import { formatCents } from '#/modules/pricing/lib/money'
 import type { OrderDetail } from '#/modules/orders/services/order-reads'
 
 type OrderViewDialogProps = {
   orderId: string
   now: Date
+  /** The warehouse's drawer is open, so cash can be collected. */
+  drawerOpen: boolean
   onClose: () => void
 }
 
@@ -36,6 +41,7 @@ type OrderViewDialogProps = {
 export function OrderViewDialog({
   orderId,
   now,
+  drawerOpen,
   onClose,
 }: OrderViewDialogProps) {
   const actions = useOrderActions()
@@ -43,6 +49,8 @@ export function OrderViewDialog({
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
+  const [paying, setPaying] = useState(false)
+  const [receipt, setReceipt] = useState<PickupWithReceipt>()
 
   useEffect(() => {
     actions
@@ -65,6 +73,21 @@ export function OrderViewDialog({
     return (
       <CounterDialog title="Pedido" description="Cargando…" onClose={onClose}>
         {error && <p className="text-sm text-[#a1372e]">{error}</p>}
+      </CounterDialog>
+    )
+  }
+  if (receipt) {
+    return (
+      <CounterDialog
+        title="Pedido entregado"
+        description="Resumen del cobro."
+        onClose={onClose}
+      >
+        <ReceiptView
+          result={receipt}
+          customerName={order.customerName}
+          onDone={onClose}
+        />
       </CounterDialog>
     )
   }
@@ -139,6 +162,13 @@ export function OrderViewDialog({
             No, volver
           </ActionButton>
         </div>
+      ) : paying ? (
+        <PaymentStep
+          order={order}
+          drawerOpen={drawerOpen}
+          onPaid={setReceipt}
+          onBack={() => setPaying(false)}
+        />
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           {allowed.prepare && (
@@ -150,7 +180,7 @@ export function OrderViewDialog({
             <ActionButton
               tone="primary"
               disabled={busy}
-              onClick={() => act(actions.pickup)}
+              onClick={() => setPaying(true)}
             >
               Entregar (recoge el cliente)
             </ActionButton>
@@ -162,12 +192,6 @@ export function OrderViewDialog({
             >
               Cancelar pedido
             </ActionButton>
-          )}
-          {allowed.pickup && (
-            <small className="basis-full text-xs text-[#8390a2]">
-              Por ahora Entregar solo da salida al producto. El cobro y el
-              crédito llegan con el módulo de caja.
-            </small>
           )}
         </div>
       )}

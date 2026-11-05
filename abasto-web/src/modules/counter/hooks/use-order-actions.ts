@@ -1,6 +1,9 @@
 import { useRouter } from '@tanstack/react-router'
 import { toast } from 'sonner'
 
+import { counterPickupFn } from '#/modules/counter/server/pickup'
+import type { PickupWithReceipt } from '#/modules/counter/server/pickup'
+import type { PickupPayment } from '#/modules/orders/services/pickup-gate'
 import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
 import type { Result } from '#/lib/boundary'
 import type { OrderInput } from '#/modules/counter/lib/order-draft'
@@ -8,7 +11,6 @@ import {
   cancelOrderFn,
   createOrderFn,
   orderDetailFn,
-  pickupOrderFn,
   prepareOrderFn,
   setReservationHoursFn,
 } from '#/modules/orders/server/orders'
@@ -45,8 +47,28 @@ export function useOrderActions() {
       run(() => createOrderFn({ data: input }), 'Pedido reservado.'),
     prepare: (orderId: string) =>
       run(() => prepareOrderFn({ data: { orderId } }), 'Pedido preparado.'),
-    pickup: (orderId: string) =>
-      run(() => pickupOrderFn({ data: { orderId } }), 'Pedido entregado.'),
+    /**
+     * Delivers the order with its payment. The refusal message comes back to
+     * the payment step (no toast) so it can sit next to what to do about it.
+     */
+    pickup: async (
+      orderId: string,
+      payment: PickupPayment,
+    ): Promise<
+      { ok: true; data: PickupWithReceipt } | { ok: false; message: string }
+    > => {
+      try {
+        const data = unwrap(
+          await counterPickupFn({ data: { orderId, payment } }),
+        )
+        await router.invalidate()
+        toast.success('Pedido entregado.')
+        return { ok: true, data }
+      } catch (failure) {
+        await router.invalidate()
+        return { ok: false, message: messageOf(failure) }
+      }
+    },
     cancel: (orderId: string) =>
       run(() => cancelOrderFn({ data: { orderId } }), 'Pedido cancelado.'),
     setHours: (hours: number) =>

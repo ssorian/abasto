@@ -147,6 +147,16 @@ export function draftToInput(draft: CustomerDraft): Parsed<SaveCustomerInput> {
       return fail(MESSAGES.basics)
     }
     credit = { enabled: true, limitCents: limit.value, termsDays }
+  } else if (draft.id) {
+    // Turning credit off must not erase the agreed limit and terms: send the
+    // stored values back (anything unreadable counts as zero).
+    const limit = parsePesosToCents(draft.creditLimit, { allowZero: true })
+    const termsDays = wholeNumber(draft.termsDays, 0)
+    credit = {
+      enabled: false,
+      limitCents: limit.ok ? limit.value : 0,
+      termsDays: termsDays !== null && termsDays <= 3650 ? termsDays : 0,
+    }
   }
 
   const rules: SaveCustomerInput['rules'] = []

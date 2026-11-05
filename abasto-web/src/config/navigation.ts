@@ -23,6 +23,7 @@ export type NavItem = {
     | '/'
     | '/mostrador'
     | '/clientes'
+    | '/cobros'
     | '/catalogo'
     | '/inventario'
     | '/precios'
@@ -35,7 +36,7 @@ export const primaryNav: Array<NavItem> = [
   { label: 'Inicio', icon: House, to: '/' },
   { label: 'Mostrador', icon: ScanLine, to: '/mostrador' },
   { label: 'Clientes', icon: Users, to: '/clientes' },
-  { label: 'Cobros', icon: Wallet },
+  { label: 'Cobros', icon: Wallet, to: '/cobros' },
   { label: 'Catálogo', icon: LayoutGrid, to: '/catalogo' },
   { label: 'Precios', icon: Tags, to: '/precios' },
   { label: 'Inventario', icon: Boxes, to: '/inventario' },

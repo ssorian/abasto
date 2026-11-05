@@ -1,5 +1,6 @@
 import { can } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
+import { getOpenCashSession } from '#/modules/cash/services/cash-sessions'
 import { buildSellable } from '#/modules/counter/lib/sellable'
 import type { CounterOverview } from '#/modules/counter/types/counter-view'
 import { listCustomers } from '#/modules/customers/services/customers'
@@ -29,20 +30,25 @@ export async function getCounterOverview(
     return {
       ...base,
       selectedId: null,
+      cash: null,
+      canViewCashHistory: false,
       orders: [],
       customers: [],
       sellable: [],
     }
   }
-  const [orders, customers, prices, stock] = await Promise.all([
+  const [orders, customers, prices, stock, cash] = await Promise.all([
     listOrders(actor, { warehouseId: selected.id }),
     listCustomers(actor, { active: true }),
     listWarehousePrices(actor, selected.id),
     getWarehouseStock(actor, selected.id),
+    getOpenCashSession(actor, selected.id),
   ])
   return {
     ...base,
     selectedId: selected.id,
+    cash,
+    canViewCashHistory: can(actor, 'warehouse.manage', selected.id),
     orders,
     customers: customers.map(({ id, name }) => ({ id, name })),
     sellable: buildSellable(prices, stock),

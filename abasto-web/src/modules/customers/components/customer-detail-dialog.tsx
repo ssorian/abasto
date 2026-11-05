@@ -1,3 +1,4 @@
+import { CustomerBalance } from '#/modules/customers/components/customer-balance'
 import { CustomerButton } from '#/modules/customers/components/customer-button'
 import { CustomerModal } from '#/modules/customers/components/customer-modal'
 import { CustomerOrderHistory } from '#/modules/customers/components/customer-order-history'
@@ -43,6 +44,7 @@ export function CustomerDetailDialog({
         <p>{customer.addresses.join(' · ') || 'Sin domicilios registrados'}</p>
         {customer.notes && <p>{customer.notes}</p>}
         <p>{creditSummary(customer)}</p>
+        <CustomerBalance customerId={customer.id} />
       </div>
       <h3 className="text-[17px] font-[650]">Condiciones comerciales</h3>
       {rules.length === 0 ? (

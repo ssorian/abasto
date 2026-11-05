@@ -45,6 +45,10 @@ describe('getCounterOverview', () => {
     ])
     expect(view.reservationHours).toBe(24)
     expect(view.canSetHours).toBe(false)
+    // setupOrders leaves A's drawer open with no cash in it; a clerk has no history.
+    expect(view.cash?.session.warehouseId).toBe(fx.a.id)
+    expect(view.cash?.expectedCents).toBe(0)
+    expect(view.canViewCashHistory).toBe(false)
   })
 
   test('the owner sees every warehouse, can set the hours and picks one with the id', async () => {
@@ -57,6 +61,9 @@ describe('getCounterOverview', () => {
     expect(view.selectedId).toBe(fx.b.id)
     expect(view.canSetHours).toBe(true)
     expect(view.sellable).toEqual([])
+    // Warehouse B has no open drawer; the owner may read its history.
+    expect(view.cash).toBeNull()
+    expect(view.canViewCashHistory).toBe(true)
   })
 
   test("a warehouse the actor can't operate falls back to their own", async () => {

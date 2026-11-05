@@ -2,6 +2,7 @@ import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { PageHeading } from '#/components/page-heading'
+import { CashPanel } from '#/modules/cash/components/cash-panel'
 import { ActionButton } from '#/modules/counter/components/action-button'
 import { FieldSelect } from '#/modules/counter/components/form-controls'
 import { NewOrderDialog } from '#/modules/counter/components/new-order-dialog'
@@ -98,6 +99,12 @@ export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
           ))}
         </div>
       </div>
+      <CashPanel
+        warehouseId={selected.id}
+        warehouseName={selected.name}
+        cash={overview.cash}
+        canViewHistory={overview.canViewCashHistory}
+      />
       {overview.canSetHours && (
         <ReservationSetting
           key={overview.reservationHours}
@@ -121,6 +128,7 @@ export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
           key={openId}
           orderId={openId}
           now={overview.now}
+          drawerOpen={overview.cash !== null}
           onClose={() => setOpenId(undefined)}
         />
       )}

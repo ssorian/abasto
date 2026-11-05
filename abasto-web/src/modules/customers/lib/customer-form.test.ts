@@ -99,6 +99,57 @@ describe('draftToInput credit', () => {
   })
 })
 
+describe('draftToInput turning credit off', () => {
+  const stored = {
+    id: 'c1',
+    credit: false,
+    creditLimit: '1500.50',
+    termsDays: '15',
+  }
+
+  test('an existing customer keeps the stored limit and terms', () => {
+    expect(ok(draft(stored)).credit).toEqual({
+      enabled: false,
+      limitCents: 150050,
+      termsDays: 15,
+    })
+  })
+
+  test('a stored zero limit stays zero', () => {
+    expect(ok(draft({ ...stored, creditLimit: '' })).credit).toEqual({
+      enabled: false,
+      limitCents: 0,
+      termsDays: 15,
+    })
+  })
+
+  test('unreadable leftovers fall back to zero instead of blocking the save', () => {
+    expect(
+      ok(draft({ ...stored, creditLimit: 'basura', termsDays: 'x' })).credit,
+    ).toEqual({ enabled: false, limitCents: 0, termsDays: 0 })
+  })
+
+  test('a draft built from a customer with credit off round-trips its values', () => {
+    const customer = {
+      id: 'c1',
+      name: 'Don Pepe',
+      contact: '',
+      phone: '',
+      addresses: [],
+      notes: '',
+      active: true,
+      creditEnabled: false,
+      creditLimitCents: 250000,
+      termsDays: 30,
+    }
+    expect(ok(draftFromCustomer(customer, [])).credit).toEqual({
+      enabled: false,
+      limitCents: 250000,
+      termsDays: 30,
+    })
+  })
+})
+
 describe('draftToInput rules', () => {
   test('a percent becomes basis points', () => {
     expect(
