@@ -11,11 +11,11 @@ import { formatOrderDate } from '#/modules/customers/lib/customer-labels'
 import { formatCents } from '#/modules/pricing/lib/money'
 
 const head =
-  'h-auto bg-[#f8fafc] px-[11px] py-[13px] text-[11px] font-semibold tracking-[0.35px] text-[#78879b] md:px-3.5 md:py-[15px]'
+  'h-auto bg-[#fcfaf8] px-[11px] py-[13px] text-[11px] font-semibold tracking-[0.35px] text-[#947f86] md:px-3.5 md:py-[15px]'
 const cell =
   'border-t border-row-border px-[11px] py-[13px] text-[13px] md:px-3.5 md:py-4'
 const message =
-  'flex flex-col items-center gap-[15px] rounded-[14px] border border-dashed border-[#dbe5ef] bg-white px-[25px] py-[60px] text-center text-sm text-[#6b819b]'
+  'flex flex-col items-center gap-[15px] rounded-[14px] border border-dashed border-[#e6dfeb] bg-white px-[25px] py-[60px] text-center text-sm text-[#91757e]'
 
 /** Orders the customer placed in the warehouses the signed-in user operates. */
 export function CustomerOrderHistory({ customerId }: { customerId: string }) {
@@ -54,7 +54,7 @@ export function CustomerOrderHistory({ customerId }: { customerId: string }) {
         </TableHeader>
         <TableBody>
           {state.orders.map((order) => (
-            <TableRow key={order.id} className="border-0 hover:bg-[#fafcff]">
+            <TableRow key={order.id} className="border-0 hover:bg-[#fefdfb]">
               <TableCell className={cell}>
                 {formatOrderDate(order.createdAt)}
               </TableCell>

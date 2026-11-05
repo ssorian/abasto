@@ -9,8 +9,8 @@ type CustomerButtonProps = Omit<ComponentProps<typeof Button>, 'variant'> & {
 
 const tones = {
   primary:
-    'bg-primary text-brand-ink shadow-[0_2px_3px_#8e67120a] hover:bg-brand-hover hover:shadow-[0_3px_9px_#8e67121c]',
-  secondary: 'border-[#dce3ed] bg-white text-[#31465e] hover:bg-[#f1f5fa]',
+    'bg-primary text-brand-ink shadow-[0_2px_3px_#c81d4e0a] hover:bg-brand-hover hover:shadow-[0_3px_9px_#c81d4e1c]',
+  secondary: 'border-[#e8e1e3] bg-white text-[#503f45] hover:bg-[#faf6f1]',
 }
 
 /** Console button: 44px tall, 9px radius, bold 14px label. */

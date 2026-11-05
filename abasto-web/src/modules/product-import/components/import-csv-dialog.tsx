@@ -183,7 +183,7 @@ function ImportDialogContent({
         <DialogTitle className="text-[23px] leading-[1.3] font-semibold tracking-[-0.7px] md:text-[25px]">
           Importar CSV
         </DialogTitle>
-        <DialogDescription className="text-[13px] leading-[1.7] text-[#8692a3] md:text-sm">
+        <DialogDescription className="text-[13px] leading-[1.7] text-[#9d8c92] md:text-sm">
           Revisa la carga completa antes de agregar productos o existencias
           iniciales.
         </DialogDescription>
@@ -194,8 +194,8 @@ function ImportDialogContent({
             <span
               key={label}
               className={cn(
-                'rounded-[18px] bg-[#eef2f8] px-3.5 py-2 text-[#8195ae]',
-                index === stepIndex && 'bg-[#ffdf74] font-[650] text-[#173963]',
+                'rounded-[18px] bg-[#f8f3ee] px-3.5 py-2 text-[#a48b93]',
+                index === stepIndex && 'bg-[#ffdf74] font-[650] text-[#401763]',
               )}
             >
               {label}
@@ -233,7 +233,7 @@ function ImportDialogContent({
           </ImportButton>
         </div>
       </div>
-      <div className="my-[15px] rounded-[9px] border border-[#d9e5f2] bg-[#eaf1fa] p-[13px] text-xs leading-[1.7] text-[#54759a]">
+      <div className="my-[15px] rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972]">
         {modeBanners[mode]}
       </div>
       <Note className="mt-3 mb-5">
@@ -242,8 +242,8 @@ function ImportDialogContent({
         no perder ceros iniciales. La plantilla contiene una fila de ejemplo:
         reemplázala con tus datos.
       </Note>
-      <details className="rounded-[9px] border border-[#e0e8f2] bg-[#f5f8fc] px-4 py-3.5 text-xs leading-[1.8] text-[#6b829e]">
-        <summary className="cursor-pointer font-semibold text-[#284f79]">
+      <details className="rounded-[9px] border border-[#f2eae0] bg-[#fbf9f6] px-4 py-3.5 text-xs leading-[1.8] text-[#937680]">
+        <summary className="cursor-pointer font-semibold text-[#532879]">
           Ver columnas y reglas
         </summary>
         <p className="mt-[9px] [overflow-wrap:anywhere]">
@@ -256,7 +256,7 @@ function ImportDialogContent({
           type="file"
           accept=".csv,text/csv,text/plain"
           onChange={(event) => void readFile(event.target.files?.[0])}
-          className="min-h-[43px] w-full rounded-[8px] border border-[#dce4ed] bg-white px-3 py-2 text-sm font-normal"
+          className="min-h-[43px] w-full rounded-[8px] border border-[#e8e1e3] bg-white px-3 py-2 text-sm font-normal"
         />
       </Field>
       <Field label="O pega aquí el contenido del CSV">
@@ -279,7 +279,7 @@ function ImportDialogContent({
       </ImportButton>
       {error && <ErrorNote>{error}</ErrorNote>}
       {preview && (
-        <div className="mt-4 flex flex-col gap-[15px] border-t border-[#dbe5f0] pt-2.5">
+        <div className="mt-4 flex flex-col gap-[15px] border-t border-[#e7dfec] pt-2.5">
           <ImportPreviewPanel preview={preview} />
           <label className="flex cursor-pointer items-center gap-[9px] text-[13px] leading-[1.6] text-[#3b4f41]">
             <input

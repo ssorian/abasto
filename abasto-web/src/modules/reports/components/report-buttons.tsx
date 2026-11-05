@@ -12,8 +12,8 @@ const base =
 
 const tones = {
   primary:
-    'bg-primary text-brand-ink shadow-[0_2px_3px_#8e67120a] hover:bg-brand-hover hover:shadow-[0_3px_9px_#8e67121c]',
-  secondary: 'border-[#dce3ed] bg-white text-[#31465e] hover:bg-[#f1f5fa]',
+    'bg-primary text-brand-ink shadow-[0_2px_3px_#c81d4e0a] hover:bg-brand-hover hover:shadow-[0_3px_9px_#c81d4e1c]',
+  secondary: 'border-[#e8e1e3] bg-white text-[#503f45] hover:bg-[#faf6f1]',
 }
 
 /** Yellow primary or white secondary button of the console. */
@@ -52,7 +52,7 @@ export function IconButton({ className, ...props }: ComponentProps<'button'>) {
     <button
       type="button"
       className={cn(
-        'inline-flex size-9 items-center justify-center rounded-[7px] text-[#64758a] hover:bg-[#e9eff6]',
+        'inline-flex size-9 items-center justify-center rounded-[7px] text-[#826c73] hover:bg-[#f6f0e9]',
         className,
       )}
       {...props}

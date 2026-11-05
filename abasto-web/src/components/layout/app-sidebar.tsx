@@ -37,7 +37,7 @@ function Brand() {
 function BusinessCard() {
   return (
     <div className="mb-[34px] flex items-center gap-2.5 rounded-[10px] border border-sidebar-surface-border bg-sidebar-surface px-2.5 py-[13px]">
-      <span className="flex h-[33px] w-[29px] shrink-0 items-center justify-center text-[#d1dfed]">
+      <span className="flex h-[33px] w-[29px] shrink-0 items-center justify-center text-[#e0d7e7]">
         <Store size={21} />
       </span>
       <div>
@@ -82,7 +82,7 @@ export function AppSidebar({ user }: { user: SessionUser }) {
             className="mb-1.5 min-h-[46px] py-[13px] text-[13px]"
           />
         ))}
-        <div className="mx-2 mt-[15px] border-t border-sidebar-divider py-[19px] text-xs text-[#8299b2]">
+        <div className="mx-2 mt-[15px] border-t border-sidebar-divider py-[19px] text-xs text-sidebar-label">
           <span>Hecho para tu negocio.</span>
         </div>
       </SidebarFooter>

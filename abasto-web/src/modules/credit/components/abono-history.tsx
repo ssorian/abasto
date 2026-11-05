@@ -17,7 +17,7 @@ export function AbonoHistory({ rows }: { rows: Array<AbonoRow> }) {
     return <EmptyState>Todavía no hay abonos registrados.</EmptyState>
   }
   return (
-    <TableWrap className="rounded-xl border border-[#e3e9f0] bg-white">
+    <TableWrap className="rounded-xl border border-[#f0eae3] bg-white">
       <DataTable>
         <thead>
           <tr>

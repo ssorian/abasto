@@ -120,12 +120,12 @@ function TransferRow({
             <Icon size={18} />
           </span>
           <span>
-            <strong className="text-[#385571]">
+            <strong className="text-[#5f4a51]">
               {outgoing
                 ? `Hacia ${transfer.toWarehouseName}`
                 : `Desde ${transfer.fromWarehouseName}`}
             </strong>
-            <small className="block text-[#788596]">
+            <small className="block text-[#907e84]">
               {outgoing ? 'Salida' : 'Entrada'} · {transfer.createdByName}
             </small>
           </span>
@@ -141,12 +141,12 @@ function TransferRow({
               : line.quantity}{' '}
             {line.unit}
             {line.lotCode ? (
-              <small className="ml-1 text-[#788596]">lote {line.lotCode}</small>
+              <small className="ml-1 text-[#907e84]">lote {line.lotCode}</small>
             ) : null}
           </span>
         ))}
         {transfer.notes && (
-          <small className="block text-[#788596]">{transfer.notes}</small>
+          <small className="block text-[#907e84]">{transfer.notes}</small>
         )}
       </ListCell>
       <ListCell>
@@ -159,7 +159,7 @@ function TransferRow({
       </ListCell>
       <ListCell>
         {dateLabel(created)}
-        <small className="block text-[#788596]">{timeLabel(created)}</small>
+        <small className="block text-[#907e84]">{timeLabel(created)}</small>
       </ListCell>
       <ListCell>
         <span className="flex flex-wrap justify-end gap-2">

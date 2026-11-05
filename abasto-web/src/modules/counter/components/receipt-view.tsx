@@ -15,10 +15,10 @@ export function ReceiptView({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-[#31465e]">
+      <p className="text-sm text-[#503f45]">
         {orderCode(result.id)} · {customerName} · entregado
       </p>
-      <dl className="grid grid-cols-2 gap-2 rounded-xl border border-[#e3e9f0] bg-[#f8fafc] p-4 text-sm">
+      <dl className="grid grid-cols-2 gap-2 rounded-xl border border-[#f0eae3] bg-[#fcfaf8] p-4 text-sm">
         {receiptLines(result.totalCents, result.payment, result.dueOn).map(
           ([label, value]) => (
             <div key={label} className="contents">

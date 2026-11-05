@@ -3,7 +3,7 @@ import type { ComponentProps, ReactNode } from 'react'
 import { cn } from '#/lib/utils/cn'
 
 const control =
-  'min-h-[43px] w-full rounded-lg border border-[#dce4ed] bg-white px-3 py-2.5 text-sm font-normal text-[#223751] focus:outline-2 focus:outline-offset-1 focus:outline-[#b3cef6]'
+  'min-h-[43px] w-full rounded-lg border border-[#e8e1e3] bg-white px-3 py-2.5 text-sm font-normal text-[#3b2251] focus:outline-2 focus:outline-offset-1 focus:outline-[#d8c0e9]'
 
 /** Label above a control. */
 export function Field({
@@ -18,7 +18,7 @@ export function Field({
   return (
     <label
       className={cn(
-        'flex min-w-0 flex-col gap-[7px] text-[13px] font-medium text-[#32455e]',
+        'flex min-w-0 flex-col gap-[7px] text-[13px] font-medium text-[#513f45]',
         className,
       )}
     >

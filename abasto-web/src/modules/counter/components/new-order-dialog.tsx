@@ -126,7 +126,7 @@ export function NewOrderDialog({
         </Field>
       </div>
       {sellable.length === 0 && (
-        <p className="text-sm text-[#8390a2]">
+        <p className="text-sm text-[#9c898f]">
           Este almacén no tiene productos con precio. Defínelos en Precios.
         </p>
       )}
@@ -192,7 +192,7 @@ export function NewOrderDialog({
                       <button
                         type="button"
                         aria-label="Quitar producto"
-                        className="inline-flex size-9 items-center justify-center rounded-[7px] text-[#64758a] hover:bg-[#e9eff6]"
+                        className="inline-flex size-9 items-center justify-center rounded-[7px] text-[#826c73] hover:bg-[#f6f0e9]"
                         onClick={() =>
                           setLines((current) =>
                             removeLine(current, line.presentationId),
@@ -216,7 +216,7 @@ export function NewOrderDialog({
           onChange={(event) => setNotes(event.target.value)}
         />
       </Field>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e8edf4] pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#f4eee8] pt-4">
         <div className="text-sm">
           {quote.status === 'error' ? (
             <span className="text-[#a1372e]">{quote.message}</span>
@@ -228,7 +228,7 @@ export function NewOrderDialog({
                   ? formatCents(quote.quote.totalCents)
                   : '—'}
               </strong>
-              <small className="block text-xs text-[#8390a2]">
+              <small className="block text-xs text-[#9c898f]">
                 Cotización con el precio actual del almacén y las condiciones
                 del cliente. El pedido guarda el precio al reservar.
               </small>

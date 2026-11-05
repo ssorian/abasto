@@ -18,7 +18,7 @@ export function PillTabs<TValue extends string>({
     <div
       role="group"
       className={cn(
-        'mb-[22px] flex gap-[5px] rounded-[10px] bg-[#eaf0f7] p-[5px] md:inline-flex',
+        'mb-[22px] flex gap-[5px] rounded-[10px] bg-[#f7f1ea] p-[5px] md:inline-flex',
         className,
       )}
     >
@@ -29,9 +29,9 @@ export function PillTabs<TValue extends string>({
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            'rounded-[7px] px-2 py-2.5 text-xs text-[#5c7694] max-md:flex-1 md:px-[17px] md:text-[13px]',
+            'rounded-[7px] px-2 py-2.5 text-xs text-[#866a73] max-md:flex-1 md:px-[17px] md:text-[13px]',
             value === option.value &&
-              'bg-white font-[650] text-ink-figure shadow-[0_1px_5px_#163a6512]',
+              'bg-white font-[650] text-ink-figure shadow-[0_1px_5px_#40166512]',
           )}
         >
           {option.label}

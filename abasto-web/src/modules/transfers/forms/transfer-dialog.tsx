@@ -131,9 +131,9 @@ export function TransferDialog({
           return (
             <fieldset
               key={line.key}
-              className="grid gap-3 rounded-[10px] border border-[#e3e8ef] p-4"
+              className="grid gap-3 rounded-[10px] border border-[#efe9e3] p-4"
             >
-              <legend className="px-1 text-xs font-[650] text-[#64798f]">
+              <legend className="px-1 text-xs font-[650] text-[#866d75]">
                 Producto {index + 1}
               </legend>
               <div className="grid gap-3 md:grid-cols-[1fr_auto]">

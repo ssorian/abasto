@@ -56,14 +56,14 @@ export function PresentationsDialog({
       description={`Inventario en ${product.unit}. Cada venta descuenta sus equivalencias del mismo lote.`}
       onClose={onClose}
     >
-      <p className="my-[15px] rounded-[9px] border border-[#d9e5f2] bg-[#eaf1fa] p-[13px] text-xs leading-[1.7] text-[#54759a]">
+      <p className="my-[15px] rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972]">
         Los precios se capturan por almacén; aquí sólo se definen nombre,
         equivalencia y código de cada presentación.
       </p>
       {rows.map((row) => (
         <div
           key={row.key}
-          className="rounded-[10px] border border-[#e0e7ef] bg-white p-4 [&+&]:mt-2.5"
+          className="rounded-[10px] border border-[#efe8e0] bg-white p-4 [&+&]:mt-2.5"
         >
           <div className="grid grid-cols-1 gap-4 tablet:grid-cols-4 md:grid-cols-2">
             <Field label="Nombre">
@@ -130,7 +130,7 @@ export function PresentationsDialog({
             ))}
         </SelectInput>
       </Field>
-      <p className="mt-3 mb-5 text-xs leading-[1.8] text-[#8b99aa] md:text-sm">
+      <p className="mt-3 mb-5 text-xs leading-[1.8] text-[#a49197] md:text-sm">
         Las equivalencias existentes no se cambian: desactiva la presentación y
         crea otra para conservar el historial. Las presentaciones no se borran.
       </p>

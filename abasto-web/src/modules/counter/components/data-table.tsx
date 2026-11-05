@@ -20,7 +20,7 @@ export function Th({ className, ...props }: ComponentProps<'th'>) {
   return (
     <th
       className={cn(
-        'bg-[#f8fafc] px-[11px] py-[13px] text-[11px] font-semibold tracking-[0.35px] whitespace-nowrap text-[#78879b] md:px-[14px] md:py-[15px]',
+        'bg-[#fcfaf8] px-[11px] py-[13px] text-[11px] font-semibold tracking-[0.35px] whitespace-nowrap text-[#947f86] md:px-[14px] md:py-[15px]',
         className,
       )}
       {...props}
@@ -32,7 +32,7 @@ export function Td({ className, ...props }: ComponentProps<'td'>) {
   return (
     <td
       className={cn(
-        'border-t border-[#edf1f5] px-[11px] py-[13px] whitespace-nowrap first:min-w-[170px] first:whitespace-normal md:px-[14px] md:py-4',
+        'border-t border-[#f5f1ed] px-[11px] py-[13px] whitespace-nowrap first:min-w-[170px] first:whitespace-normal md:px-[14px] md:py-4',
         className,
       )}
       {...props}
@@ -44,7 +44,7 @@ export function Td({ className, ...props }: ComponentProps<'td'>) {
 export function CellNote({ className, ...props }: ComponentProps<'small'>) {
   return (
     <small
-      className={cn('mt-1 block text-[11px] text-[#7d8b9b]', className)}
+      className={cn('mt-1 block text-[11px] text-[#958389]', className)}
       {...props}
     />
   )

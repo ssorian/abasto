@@ -101,7 +101,7 @@ export function MinimumDialog({
         </Field>
         {product && (
           <>
-            <p className="text-xs text-[#8390a2]">
+            <p className="text-xs text-[#9c898f]">
               Mínimo actual:{' '}
               {current > 0
                 ? formatQuantity(current, packInfoOf(product))

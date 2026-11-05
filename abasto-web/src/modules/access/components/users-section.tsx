@@ -26,7 +26,7 @@ export function UsersSection({ users, warehouses }: UsersSectionProps) {
       <h2 id="users-heading" className="mb-3 text-xl font-[650]">
         Usuarios
       </h2>
-      <div className="overflow-x-auto rounded-[13px] border border-[#e0e6ee] bg-white">
+      <div className="overflow-x-auto rounded-[13px] border border-[#eee7e0] bg-white">
         <Table>
           <TableHeader>
             <TableRow>
@@ -51,13 +51,13 @@ export function UsersSection({ users, warehouses }: UsersSectionProps) {
                       {member.assignments.map((assignment) => (
                         <span
                           key={assignment.warehouseId}
-                          className="inline-flex items-center gap-1 rounded-full bg-[#eaf0f7] py-1 pr-1.5 pl-3 text-xs font-semibold"
+                          className="inline-flex items-center gap-1 rounded-full bg-[#f7f1ea] py-1 pr-1.5 pl-3 text-xs font-semibold"
                         >
                           {chipLabel(assignment)}
                           <button
                             type="button"
                             aria-label={`Quitar ${assignment.warehouseName} a ${member.name}`}
-                            className="rounded-full p-0.5 hover:bg-[#d1dce9]"
+                            className="rounded-full p-0.5 hover:bg-[#ded6e4]"
                             onClick={() =>
                               void unassign({
                                 userId: member.id,

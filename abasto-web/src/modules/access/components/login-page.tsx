@@ -58,7 +58,7 @@ export function LoginPage({ redirectTo }: { redirectTo: string }) {
       <form
         onSubmit={(event) => void submit(event)}
         noValidate
-        className="w-full max-w-[400px] rounded-2xl border border-[#e0e6ee] bg-white p-7"
+        className="w-full max-w-[400px] rounded-2xl border border-[#eee7e0] bg-white p-7"
       >
         <span className="block text-xs font-bold tracking-[1.5px] text-ink-eyebrow">
           {workspace.appName.toUpperCase()}

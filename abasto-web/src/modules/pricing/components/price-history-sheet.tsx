@@ -58,26 +58,26 @@ export function PriceHistorySheet({ target, onClose }: PriceHistorySheetProps) {
           {error ? (
             <p className="text-sm text-[#b42318]">{error}</p>
           ) : !entries ? (
-            <p className="text-sm text-[#6d7d90]">Cargando…</p>
+            <p className="text-sm text-[#89747b]">Cargando…</p>
           ) : !entries.length ? (
-            <p className="text-sm text-[#6d7d90]">
+            <p className="text-sm text-[#89747b]">
               Aún no hay precios propios en este almacén.
             </p>
           ) : (
-            <ul className="divide-y divide-[#edf0f4]">
+            <ul className="divide-y divide-[#f4f1ed]">
               {entries.map((entry) => (
                 <li key={entry.id} className="py-3 text-sm">
-                  <strong className="text-[#223751]">
+                  <strong className="text-[#3b2251]">
                     {formatCents(entry.priceCents)}
                   </strong>
-                  <span className="ml-2 text-xs text-[#6d7d90]">
+                  <span className="ml-2 text-xs text-[#89747b]">
                     {sourceLabels[entry.source] ?? entry.source}
                   </span>
-                  <time className="block text-xs text-[#8a97a8]">
+                  <time className="block text-xs text-[#a29096]">
                     {new Date(entry.effectiveFrom).toLocaleString('es-MX')}
                   </time>
                   {entry.reason && (
-                    <span className="block text-xs text-[#6d7d90]">
+                    <span className="block text-xs text-[#89747b]">
                       {entry.reason}
                     </span>
                   )}

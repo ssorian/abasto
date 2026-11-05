@@ -112,7 +112,7 @@ export function SuppliersDialog({
               <option>Inactivo</option>
             </SelectInput>
           </Field>
-          <div className="flex items-center justify-between gap-3 border-t border-[#e8edf4] pt-5">
+          <div className="flex items-center justify-between gap-3 border-t border-[#f4eee8] pt-5">
             <CatalogButton onClick={() => setEditor(undefined)}>
               Volver
             </CatalogButton>
@@ -128,7 +128,7 @@ export function SuppliersDialog({
       ) : (
         <>
           {suppliers.length === 0 ? (
-            <p className="text-sm text-[#6b819b]">
+            <p className="text-sm text-[#91757e]">
               Aún no hay proveedores. Crea el primero.
             </p>
           ) : (
@@ -136,13 +136,13 @@ export function SuppliersDialog({
               {suppliers.map((supplier) => (
                 <li
                   key={supplier.id}
-                  className="flex items-center justify-between gap-3 rounded-[10px] border border-[#e0e7ef] p-3.5"
+                  className="flex items-center justify-between gap-3 rounded-[10px] border border-[#efe8e0] p-3.5"
                 >
                   <div className="min-w-0">
                     <strong className="block truncate text-sm">
                       {supplier.name}
                     </strong>
-                    <span className="block truncate text-xs text-[#8a95a4]">
+                    <span className="block truncate text-xs text-[#9f8f94]">
                       {[supplier.contact, supplier.phone]
                         .filter(Boolean)
                         .join(' · ') || 'Sin contacto'}

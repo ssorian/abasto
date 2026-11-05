@@ -33,7 +33,7 @@ export function Picker({
       <SelectTrigger
         aria-label={label}
         className={cn(
-          'max-w-full data-[size=default]:h-[43px] rounded-[8px] border-[#dce3eb] bg-white px-[13px] text-sm text-[#3b4e64] shadow-none',
+          'max-w-full data-[size=default]:h-[43px] rounded-[8px] border-[#e7e0e2] bg-white px-[13px] text-sm text-[#59464c] shadow-none',
           className,
         )}
       >

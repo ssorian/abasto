@@ -40,7 +40,7 @@ function TermsButton({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'rounded-full border border-[#dce3ed] bg-white px-4 py-2 text-[13px] text-[#5c7694]',
+        'rounded-full border border-[#e8e1e3] bg-white px-4 py-2 text-[13px] text-[#866a73]',
         active && 'border-transparent bg-primary font-[650] text-brand-ink',
       )}
     >
@@ -96,7 +96,7 @@ export function PaymentStep({
   const note = refusal ? creditRefusalNote(refusal) : null
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-[#e3e9f0] bg-[#f8fafc] p-4">
+    <div className="flex flex-col gap-4 rounded-xl border border-[#f0eae3] bg-[#fcfaf8] p-4">
       <h3 className="text-[17px] font-[650]">
         Cobrar {formatCents(order.totalCents)}
       </h3>
@@ -144,7 +144,7 @@ export function PaymentStep({
           )}
         </>
       ) : (
-        <div className="text-sm leading-[1.8] text-[#31465e]">
+        <div className="text-sm leading-[1.8] text-[#503f45]">
           {balanceError && <p className="text-[#a1372e]">{balanceError}</p>}
           {!balance && !balanceError && <p>Cargando saldo…</p>}
           {balance && !balance.creditEnabled && (

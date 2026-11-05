@@ -126,7 +126,7 @@ export function LotsDialog({
             </ListTable>
           </ListPanel>
         ) : (
-          <p className="text-sm text-[#8390a2]">
+          <p className="text-sm text-[#9c898f]">
             Este producto no tiene lotes con existencias en este almacén.
           </p>
         )}

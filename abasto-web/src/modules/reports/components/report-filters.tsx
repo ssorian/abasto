@@ -49,9 +49,9 @@ export function ReportFilters({
   const usesWarehouse = tab !== 'cartera'
 
   return (
-    <div className="mb-[22px] rounded-[13px] border border-[#e1e8f0] bg-white p-[15px] md:px-[23px] md:py-5">
+    <div className="mb-[22px] rounded-[13px] border border-[#f0e9e1] bg-white p-[15px] md:px-[23px] md:py-5">
       {tab === 'cartera' && (
-        <p className="text-xs leading-[1.7] text-[#79879b]">
+        <p className="text-xs leading-[1.7] text-[#948087]">
           La cartera es de toda la empresa: un cliente tiene un solo saldo en
           todos los almacenes.
         </p>
@@ -60,7 +60,7 @@ export function ReportFilters({
         <div className="flex flex-col gap-3.5 md:flex-row md:items-center md:justify-between">
           <div
             role="group"
-            className="flex rounded-lg border border-[#dbe4ef] bg-[#f6f8fb] p-[3px]"
+            className="flex rounded-lg border border-[#e6dfeb] bg-[#fbf9f6] p-[3px]"
           >
             {presets.map((option) => (
               <button
@@ -74,8 +74,8 @@ export function ReportFilters({
                   })
                 }
                 className={cn(
-                  'flex-1 rounded-[5px] p-2 text-[13px] text-[#65758c] md:flex-none md:px-5 md:py-[9px]',
-                  preset === option.value && 'bg-[#123566] text-white',
+                  'flex-1 rounded-[5px] p-2 text-[13px] text-[#846d75] md:flex-none md:px-5 md:py-[9px]',
+                  preset === option.value && 'bg-[#3f1266] text-white',
                 )}
               >
                 {option.label}
@@ -83,7 +83,7 @@ export function ReportFilters({
             ))}
           </div>
           {range && (
-            <span className="flex items-center gap-[9px] text-xs text-[#38597e]">
+            <span className="flex items-center gap-[9px] text-xs text-[#5d387e]">
               <CalendarDaysIcon size={15} />
               {rangeLabel(range)} · Ciudad de México
             </span>

@@ -12,7 +12,7 @@ export function SectionRow({ title, description, children }: SectionRowProps) {
     <div className="mb-[23px] flex flex-col items-start gap-[13px] md:flex-row md:items-center md:justify-between md:gap-[15px]">
       <div>
         <h2 className="text-xl font-[650] tracking-[-0.4px]">{title}</h2>
-        <p className="mt-[7px] text-xs text-[#8390a2]">{description}</p>
+        <p className="mt-[7px] text-xs text-[#9c898f]">{description}</p>
       </div>
       {children}
     </div>

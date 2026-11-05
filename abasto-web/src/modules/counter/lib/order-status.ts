@@ -18,9 +18,9 @@ export function availableActions(status: OrderStatus) {
 
 const tones: Record<OrderStatus, string> = {
   Reservado: 'bg-[#fff4d6] text-[#8a5a00]',
-  Preparado: 'bg-[#e3efff] text-[#1f4f8f]',
+  Preparado: 'bg-[#f7f1eb] text-[#5b1f8f]',
   Recogido: 'bg-[#e1f4e7] text-[#256b41]',
-  Cancelado: 'bg-[#eef0f3] text-[#5d6b7c]',
+  Cancelado: 'bg-[#f3f1ee] text-[#766369]',
   Vencido: 'bg-[#fde8e6] text-[#a1372e]',
 }
 

@@ -37,7 +37,7 @@ export function QuantityFields({
     : null
   return (
     <div className="grid gap-1.5">
-      <span className="text-[13px] font-medium text-[#32455e]">{label}</span>
+      <span className="text-[13px] font-medium text-[#513f45]">{label}</span>
       <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2">
         <FieldInput
           inputMode="numeric"
@@ -67,7 +67,7 @@ export function QuantityFields({
         />
       </div>
       {total?.ok && total.value > 0 && (
-        <small className="text-[11px] text-[#8290a2]">
+        <small className="text-[11px] text-[#9c888f]">
           Total: {total.value} {unit}
         </small>
       )}

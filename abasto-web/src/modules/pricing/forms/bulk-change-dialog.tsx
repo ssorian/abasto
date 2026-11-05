@@ -131,11 +131,11 @@ export function BulkChangeDialog({
           />
         </Field>
       </div>
-      <fieldset className="grid gap-1.5 text-sm text-[#32455e]">
+      <fieldset className="grid gap-1.5 text-sm text-[#513f45]">
         <legend className="mb-1 text-[13px] font-medium">
           Productos (opcional)
         </legend>
-        <div className="max-h-[130px] overflow-y-auto rounded-lg border border-[#dce4ed] p-2">
+        <div className="max-h-[130px] overflow-y-auto rounded-lg border border-[#e8e1e3] p-2">
           {products.map(({ id, name, sku }) => (
             <label key={id} className="flex items-center gap-2 py-0.5">
               <input
@@ -143,12 +143,12 @@ export function BulkChangeDialog({
                 checked={productIds.includes(id)}
                 onChange={() => setProductIds((list) => toggle(list, id))}
               />
-              {name} <span className="text-xs text-[#8a97a8]">{sku}</span>
+              {name} <span className="text-xs text-[#a29096]">{sku}</span>
             </label>
           ))}
         </div>
       </fieldset>
-      <fieldset className="grid gap-1.5 text-sm text-[#32455e]">
+      <fieldset className="grid gap-1.5 text-sm text-[#513f45]">
         <legend className="mb-1 text-[13px] font-medium">Almacenes</legend>
         <label className="flex items-center gap-2 font-semibold">
           <input
@@ -174,7 +174,7 @@ export function BulkChangeDialog({
       <Field label="Motivo (opcional)">
         <TextInput value={reason} onChange={(e) => setReason(e.target.value)} />
       </Field>
-      <p className="text-sm text-[#6d7d90]">
+      <p className="text-sm text-[#89747b]">
         {hasFilter
           ? `En ${currentWarehouse?.name ?? 'el almacén actual'}: ${affected} precios propios cambiarían. Los demás almacenes se calculan al aplicar.`
           : 'Elige un proveedor, una categoría o productos.'}

@@ -75,7 +75,7 @@ export function HomeRow({ title, detail, aside }: HomeRowProps) {
 
 export function HomeRowFigure({ children }: { children: ReactNode }) {
   return (
-    <b className="text-xs whitespace-nowrap text-[#365b84] md:text-[13px]">
+    <b className="text-xs whitespace-nowrap text-ink-heading md:text-[13px]">
       {children}
     </b>
   )

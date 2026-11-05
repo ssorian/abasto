@@ -65,14 +65,14 @@ export function MovementTable({
                 <ListCell>
                   <span className="flex items-center gap-[11px]">
                     <MovementIcon qty={movement.quantity} />
-                    <strong className="text-[#385571]">
+                    <strong className="text-[#5f4a51]">
                       {movementLabel(movement.type)}
                     </strong>
                   </span>
                 </ListCell>
                 <ListCell>
                   <strong>{product?.name ?? 'Producto'}</strong>
-                  <small className="block text-[#788596]">
+                  <small className="block text-[#907e84]">
                     {product?.sku}
                     {movement.lotCode ? ` · lote ${movement.lotCode}` : ''}
                   </small>
@@ -93,13 +93,13 @@ export function MovementTable({
                 </ListCell>
                 <ListCell>
                   {movement.reason}
-                  <small className="block text-[#788596]">
+                  <small className="block text-[#907e84]">
                     {movement.actorName}
                   </small>
                 </ListCell>
                 <ListCell>
                   {dateLabel(created)}
-                  <small className="block text-[#788596]">
+                  <small className="block text-[#907e84]">
                     {timeLabel(created)}
                   </small>
                 </ListCell>

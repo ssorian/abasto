@@ -130,7 +130,7 @@ export function CountDialog({
               }}
             />
             {counted.ok && (
-              <p className="text-xs leading-[1.7] text-[#54759a]">
+              <p className="text-xs leading-[1.7] text-[#856972]">
                 El sistema tiene {formatQuantity(expected, pack)}. Diferencia:{' '}
                 {countDifference(expected, counted.value) > 0 ? '+' : ''}
                 {formatQuantity(countDifference(expected, counted.value), pack)}

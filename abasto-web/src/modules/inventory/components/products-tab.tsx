@@ -92,11 +92,11 @@ export function ProductsTab({
                   <ListRow key={row.productId}>
                     <ListCell>
                       <strong>{row.name}</strong>
-                      <small className="block text-[#788596]">{row.sku}</small>
+                      <small className="block text-[#907e84]">{row.sku}</small>
                     </ListCell>
                     <ListCell>
                       <strong>{formatQuantity(row.onHand, pack)}</strong>
-                      <small className="block text-[#788596]">
+                      <small className="block text-[#907e84]">
                         {row.onHand} {row.unit}
                       </small>
                     </ListCell>

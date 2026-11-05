@@ -15,7 +15,7 @@ export function ListPanel({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-[12px] border border-[#e0e6ee] bg-white',
+        'overflow-hidden rounded-[12px] border border-[#eee7e0] bg-white',
         className,
       )}
       {...props}
@@ -30,7 +30,7 @@ export function ListHead({ children }: { children: Array<string> }) {
         {children.map((label, index) => (
           <TableHead
             key={`${label}-${index}`}
-            className="h-auto bg-[#f7f9fc] p-[15px] text-xs font-[550] text-[#77879b] md:px-5 md:py-[14px]"
+            className="h-auto bg-[#fcfaf7] p-[15px] text-xs font-[550] text-[#947e85] md:px-5 md:py-[14px]"
           >
             {label}
           </TableHead>
@@ -47,7 +47,7 @@ export function ListCell({
   return (
     <TableCell
       className={cn(
-        'p-[15px] text-sm leading-5 text-[#526984] md:px-5 md:py-[18px] [&_small]:mt-[5px] [&_small]:text-xs [&_small]:leading-[1.4] [&_button]:leading-5 [&_strong]:font-semibold',
+        'p-[15px] text-sm leading-5 text-[#785e67] md:px-5 md:py-[18px] [&_small]:mt-[5px] [&_small]:text-xs [&_small]:leading-[1.4] [&_button]:leading-5 [&_strong]:font-semibold',
         className,
       )}
       {...props}

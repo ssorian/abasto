@@ -56,7 +56,7 @@ export function InventoryDialog({
           <DialogTitle className="text-[23px] leading-[1.3] font-semibold tracking-[-0.7px] md:text-[25px]">
             {title}
           </DialogTitle>
-          <DialogDescription className="text-[13px] leading-[1.7] text-[#8692a3] md:text-sm">
+          <DialogDescription className="text-[13px] leading-[1.7] text-[#9d8c92] md:text-sm">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -81,7 +81,7 @@ export function DialogActions({
   return (
     <div
       className={cn(
-        'mt-[5px] flex items-center justify-between gap-3 border-t border-[#e8edf4] pt-5 max-md:flex-wrap',
+        'mt-[5px] flex items-center justify-between gap-3 border-t border-[#f4eee8] pt-5 max-md:flex-wrap',
         className,
       )}
     >

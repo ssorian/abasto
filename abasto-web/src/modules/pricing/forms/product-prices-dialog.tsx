@@ -73,23 +73,23 @@ export function ProductPricesDialog({
       size="editor"
       onClose={onClose}
     >
-      <ul className="divide-y divide-[#edf0f4] rounded-xl border border-[#e2e7ee]">
+      <ul className="divide-y divide-[#f4f1ed] rounded-xl border border-[#eee8e2]">
         {group.rows.map((row) => (
           <li
             key={row.presentationId}
             className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3"
           >
             <div className="min-w-0 flex-1">
-              <strong className="block text-sm text-[#223751]">
+              <strong className="block text-sm text-[#3b2251]">
                 {row.presentationName}
                 {row.factor > 1 && (
-                  <span className="font-normal text-[#8a97a8]">
+                  <span className="font-normal text-[#a29096]">
                     {' '}
                     ×{row.factor}
                   </span>
                 )}
               </strong>
-              <span className="mt-1 flex items-center gap-2 text-xs text-[#6d7d90]">
+              <span className="mt-1 flex items-center gap-2 text-xs text-[#89747b]">
                 <StatusBadge tone={originTones[row.origin]}>
                   {originLabels[row.origin]}
                 </StatusBadge>
@@ -126,7 +126,7 @@ export function ProductPricesDialog({
             <button
               type="button"
               aria-label={`Historial de ${row.presentationName}`}
-              className="rounded p-1.5 text-[#6d7d90] hover:bg-[#f1f5fa]"
+              className="rounded p-1.5 text-[#89747b] hover:bg-[#faf6f1]"
               onClick={() => onHistory(row)}
             >
               <HistoryIcon size={16} />
@@ -135,10 +135,10 @@ export function ProductPricesDialog({
         ))}
       </ul>
       {marginBps !== null && (
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[#32455e]">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[#513f45]">
           <span>
             Margen objetivo
-            <span className="block text-xs text-[#8a97a8]">
+            <span className="block text-xs text-[#a29096]">
               Sugiere el precio al registrar una compra.
             </span>
           </span>

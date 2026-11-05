@@ -24,10 +24,10 @@ type CustomersTableProps = {
 }
 
 const head =
-  'h-auto bg-[#f8fafc] px-[11px] py-[13px] text-[11px] font-semibold tracking-[0.35px] text-[#78879b] md:px-3.5 md:py-[15px]'
+  'h-auto bg-[#fcfaf8] px-[11px] py-[13px] text-[11px] font-semibold tracking-[0.35px] text-[#947f86] md:px-3.5 md:py-[15px]'
 const cell =
   'border-t border-row-border px-[11px] py-[13px] text-[13px] md:px-3.5 md:py-4'
-const note = 'mt-1 block text-[11px] leading-normal text-[#7d8b9b]'
+const note = 'mt-1 block text-[11px] leading-normal text-[#958389]'
 
 export function CustomersTable({
   customers,
@@ -36,13 +36,13 @@ export function CustomersTable({
 }: CustomersTableProps) {
   if (customers.length === 0) {
     return (
-      <p className="rounded-[14px] border border-dashed border-[#dbe5ef] bg-white px-[25px] py-[60px] text-center text-sm text-[#6b819b]">
+      <p className="rounded-[14px] border border-dashed border-[#e6dfeb] bg-white px-[25px] py-[60px] text-center text-sm text-[#91757e]">
         No hay clientes que coincidan.
       </p>
     )
   }
   return (
-    <div className="w-full overflow-x-auto rounded-xl border border-[#e3e9f0] bg-white">
+    <div className="w-full overflow-x-auto rounded-xl border border-[#f0eae3] bg-white">
       <Table className="text-[13px]">
         <TableHeader>
           <TableRow className="border-0 hover:bg-transparent">
@@ -58,7 +58,7 @@ export function CustomersTable({
             return (
               <TableRow
                 key={customer.id}
-                className="border-0 hover:bg-[#fafcff]"
+                className="border-0 hover:bg-[#fefdfb]"
               >
                 <TableCell
                   className={`${cell} min-w-[170px] whitespace-normal`}

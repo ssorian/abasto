@@ -24,7 +24,7 @@ export function OrderList({ orders, now, onOpen }: OrderListProps) {
     return <EmptyState>No hay pedidos con este filtro.</EmptyState>
   }
   return (
-    <TableWrap className="rounded-xl border border-[#e3e9f0] bg-white">
+    <TableWrap className="rounded-xl border border-[#f0eae3] bg-white">
       <DataTable>
         <thead>
           <tr>
@@ -37,7 +37,7 @@ export function OrderList({ orders, now, onOpen }: OrderListProps) {
         </thead>
         <tbody>
           {orders.map((order) => (
-            <tr key={order.id} className="hover:bg-[#fafcff]">
+            <tr key={order.id} className="hover:bg-[#fefdfb]">
               <Td>
                 <strong>{orderCode(order.id)}</strong>
                 <CellNote>

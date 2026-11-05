@@ -40,7 +40,7 @@ export function CommercialRulesFields({
           Agregar condición
         </CustomerButton>
       </div>
-      <p className="mt-3 mb-5 text-xs leading-[1.8] text-[#8b99aa] md:text-sm">
+      <p className="mt-3 mb-5 text-xs leading-[1.8] text-[#a49197] md:text-sm">
         Se usa la condición de la presentación con mayor cantidad mínima
         alcanzada. Un precio pactado sustituye el precio de lista del almacén;
         el descuento se aplica sólo cuando no hay precio pactado.
@@ -48,7 +48,7 @@ export function CommercialRulesFields({
       {rules.map((rule, index) => (
         <div
           key={index}
-          className="flex flex-wrap items-start gap-3 border-b border-[#e3e8f0] py-4 metrics:flex-nowrap metrics:items-end"
+          className="flex flex-wrap items-start gap-3 border-b border-[#f0eae3] py-4 metrics:flex-nowrap metrics:items-end"
         >
           <Field label="Presentación" className="min-w-[130px] flex-[2]">
             <SelectInput
@@ -103,7 +103,7 @@ export function CommercialRulesFields({
           <button
             type="button"
             aria-label="Quitar condición"
-            className="mb-2 inline-flex size-9 items-center justify-center rounded-[7px] text-[#64758a] hover:bg-[#e9eff6]"
+            className="mb-2 inline-flex size-9 items-center justify-center rounded-[7px] text-[#826c73] hover:bg-[#f6f0e9]"
             onClick={() => onChange(rules.filter((_, i) => i !== index))}
           >
             <Trash2Icon className="size-4" />

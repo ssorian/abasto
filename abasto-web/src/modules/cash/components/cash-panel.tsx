@@ -30,12 +30,12 @@ function Figure({
 }) {
   return (
     <div className="min-w-[120px]">
-      <span className="block text-[11px] font-semibold tracking-[0.35px] text-[#78879b]">
+      <span className="block text-[11px] font-semibold tracking-[0.35px] text-[#947f86]">
         {label}
       </span>
       <strong
         className={cn(
-          'text-base font-[650] text-[#223751]',
+          'text-base font-[650] text-[#3b2251]',
           strong && 'text-xl',
         )}
       >
@@ -60,14 +60,14 @@ export function CashPanel({
   return (
     <section
       aria-label="Caja"
-      className="mb-5 rounded-xl border border-[#e3e9f0] bg-white p-4 md:p-5"
+      className="mb-5 rounded-xl border border-[#f0eae3] bg-white p-4 md:p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-[17px] font-[650]">
             Caja · {cash ? 'abierta' : 'cerrada'}
           </h2>
-          <p className="mt-1 text-xs text-[#8390a2]">
+          <p className="mt-1 text-xs text-[#9c898f]">
             {cash
               ? 'Todo el efectivo de los pedidos y abonos entra a esta caja.'
               : 'Ábrela para poder cobrar pedidos de contado y recibir abonos.'}

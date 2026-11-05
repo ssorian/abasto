@@ -12,7 +12,7 @@ function SaveIndicator() {
   return (
     <p
       role="status"
-      className="mb-3 flex items-center justify-end gap-[7px] text-[11px] text-[#627189] md:mb-[17px] md:text-xs"
+      className="mb-3 flex items-center justify-end gap-[7px] text-[11px] text-[#816a72] md:mb-[17px] md:text-xs"
     >
       <span className="size-1.5 rounded-full bg-saved" />
       Guardado en este navegador

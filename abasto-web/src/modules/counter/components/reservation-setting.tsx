@@ -22,8 +22,8 @@ export function ReservationSetting({ hours }: { hours: number }) {
   }
 
   return (
-    <div className="mb-5 flex flex-wrap items-end gap-3 rounded-xl border border-[#e3e9f0] bg-white p-4">
-      <label className="flex flex-col gap-[7px] text-[13px] font-medium text-[#32455e]">
+    <div className="mb-5 flex flex-wrap items-end gap-3 rounded-xl border border-[#f0eae3] bg-white p-4">
+      <label className="flex flex-col gap-[7px] text-[13px] font-medium text-[#513f45]">
         Duración de la reserva (horas)
         <FieldInput
           type="number"
@@ -36,7 +36,7 @@ export function ReservationSetting({ hours }: { hours: number }) {
         />
       </label>
       <ActionButton onClick={save}>Guardar</ActionButton>
-      <p className="basis-full text-xs text-[#8390a2]">
+      <p className="basis-full text-xs text-[#9c898f]">
         Un pedido sin recoger libera su producto al vencer la reserva. Solo el
         dueño puede cambiarla.
       </p>

@@ -14,7 +14,7 @@ export function SectionRow({ title, description, action }: SectionRowProps) {
         <h2 className="text-[19px] font-[650] tracking-[-0.4px] md:text-xl">
           {title}
         </h2>
-        <p className="mt-[7px] text-xs text-[#8390a2] md:text-sm">
+        <p className="mt-[7px] text-xs text-[#9c898f] md:text-sm">
           {description}
         </p>
       </div>

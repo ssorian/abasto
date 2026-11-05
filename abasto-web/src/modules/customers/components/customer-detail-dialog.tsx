@@ -40,7 +40,7 @@ export function CustomerDetailDialog({
       description={contactLine(customer)}
       onClose={onClose}
     >
-      <div className="rounded-[10px] bg-[#f5f8fc] px-[18px] py-4 text-[13px] leading-[1.8] whitespace-pre-line text-[#637c99]">
+      <div className="rounded-[10px] bg-[#fbf9f6] px-[18px] py-4 text-[13px] leading-[1.8] whitespace-pre-line text-[#8d6f79]">
         <p>{customer.addresses.join(' · ') || 'Sin domicilios registrados'}</p>
         {customer.notes && <p>{customer.notes}</p>}
         <p>{creditSummary(customer)}</p>
@@ -48,11 +48,11 @@ export function CustomerDetailDialog({
       </div>
       <h3 className="text-[17px] font-[650]">Condiciones comerciales</h3>
       {rules.length === 0 ? (
-        <p className="text-[13px] text-[#6b819b]">
+        <p className="text-[13px] text-[#91757e]">
           Sin condiciones: compra a precio de lista.
         </p>
       ) : (
-        <ul className="list-disc pl-5 text-[13px] leading-[1.9] text-[#31465e]">
+        <ul className="list-disc pl-5 text-[13px] leading-[1.9] text-[#503f45]">
           {rules.map((rule) => (
             <li key={`${rule.presentationId}:${rule.minQuantity}`}>
               {ruleLabel(rule, names)}

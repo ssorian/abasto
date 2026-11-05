@@ -17,7 +17,7 @@ export function AppTopbar({ user }: { user: SessionUser }) {
       <div className="flex items-center gap-[7px] text-xs text-crumb md:gap-3">
         <SidebarTrigger className="-ml-1.5 text-crumb md:hidden" />
         <span className="hidden md:inline">{workspace.appName}</span>
-        <ChevronRight size={14} className="text-[#9ba7b6]" />
+        <ChevronRight size={14} className="text-[#b1a0a6]" />
         <strong className="font-[550] text-crumb-strong">
           {current?.label ?? ''}
         </strong>
@@ -26,13 +26,13 @@ export function AppTopbar({ user }: { user: SessionUser }) {
       <div className="flex items-center gap-2.5 tablet:gap-4">
         <div className="hidden tablet:block">
           <strong className="block text-xs font-[650]">{user.name}</strong>
-          <span className="mt-1 block text-xs text-[#8a96a5]">
+          <span className="mt-1 block text-xs text-[#a08f95]">
             {user.roleLabel}
           </span>
         </div>
         <span
           aria-hidden
-          className="grid size-[31px] place-items-center rounded-full border-[3px] border-white bg-avatar-bg text-xs font-[750] text-avatar shadow-[0_0_0_1px_#dbe3ed] md:size-9"
+          className="grid size-[31px] place-items-center rounded-full border-[3px] border-white bg-avatar-bg text-xs font-[750] text-avatar shadow-[0_0_0_1px_#e7e1e3] md:size-9"
         >
           {user.initials}
         </span>
@@ -43,7 +43,7 @@ export function AppTopbar({ user }: { user: SessionUser }) {
           onClick={() => {
             void authClient.signOut().then(() => router.invalidate())
           }}
-          className="grid size-9 place-items-center rounded-full text-crumb hover:bg-[#f1f5fa]"
+          className="grid size-9 place-items-center rounded-full text-crumb hover:bg-[#faf6f1]"
         >
           <LogOut size={17} />
         </button>

@@ -21,7 +21,7 @@ export function CardPrices({
   onOpen,
 }: CardPricesProps) {
   return (
-    <div className="mb-3 border-b border-[#edf0f4] pb-[15px] text-xs text-[#8a97a8] md:text-sm">
+    <div className="mb-3 border-b border-[#f4f1ed] pb-[15px] text-xs text-[#a29096] md:text-sm">
       <span>Precio en {warehouseName}</span>
       {group?.rows.length ? (
         <ul className="mt-[7px] space-y-1">
@@ -30,14 +30,14 @@ export function CardPrices({
               key={row.presentationId}
               className="flex items-baseline justify-between gap-2"
             >
-              <span className="min-w-0 truncate text-[#32455e]">
+              <span className="min-w-0 truncate text-[#513f45]">
                 {row.presentationName}
               </span>
               <strong
                 className={
                   row.priceCents === null
-                    ? 'font-normal text-[#9aa5b3]'
-                    : 'text-base font-bold text-[#2b486a]'
+                    ? 'font-normal text-[#ae9fa4]'
+                    : 'text-base font-bold text-[#4d2b6a]'
                 }
               >
                 {row.priceCents === null
@@ -48,7 +48,7 @@ export function CardPrices({
           ))}
         </ul>
       ) : (
-        <p className="mt-[7px] text-[#9aa5b3]">Sin presentaciones activas.</p>
+        <p className="mt-[7px] text-[#ae9fa4]">Sin presentaciones activas.</p>
       )}
       {group?.rows.length ? (
         <CatalogButton className="mt-3 w-full" onClick={onOpen}>

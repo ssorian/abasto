@@ -93,7 +93,7 @@ export function PurchaseResultDialog({
         <>
           <div>
             <h3 className="text-base font-[650]">Precios sugeridos</h3>
-            <p className="mt-1 text-xs leading-[1.7] text-[#8390a2]">
+            <p className="mt-1 text-xs leading-[1.7] text-[#9c898f]">
               Con el costo de esta compra y el margen del producto. Los precios
               no cambian hasta que los apliques; puedes corregir cualquier
               monto.
@@ -117,7 +117,7 @@ export function PurchaseResultDialog({
                     </ListCell>
                     <ListCell>
                       <strong>{item.productName}</strong>
-                      <small className="block text-[#788596]">
+                      <small className="block text-[#907e84]">
                         por {item.presentationName} · margen{' '}
                         {item.marginBps / 100}%
                       </small>

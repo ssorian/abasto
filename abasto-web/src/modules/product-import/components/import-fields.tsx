@@ -4,7 +4,7 @@ import { Button } from '#/components/ui/button'
 import { cn } from '#/lib/utils/cn'
 
 const control =
-  'min-h-[43px] w-full rounded-[8px] border border-[#dce4ed] bg-white px-3 py-2.5 text-sm font-normal text-[#223751] focus:outline-2 focus:outline-offset-1 focus:outline-[#b3cef6]'
+  'min-h-[43px] w-full rounded-[8px] border border-[#e8e1e3] bg-white px-3 py-2.5 text-sm font-normal text-[#3b2251] focus:outline-2 focus:outline-offset-1 focus:outline-[#d8c0e9]'
 
 export function Field({
   label,
@@ -14,7 +14,7 @@ export function Field({
   children: ReactNode
 }) {
   return (
-    <label className="flex min-w-0 flex-col gap-[7px] text-[13px] font-medium text-[#32455e]">
+    <label className="flex min-w-0 flex-col gap-[7px] text-[13px] font-medium text-[#513f45]">
       <span className="leading-normal">{label}</span>
       {children}
     </label>
@@ -53,8 +53,8 @@ export function ImportButton({
       className={cn(
         'h-auto min-h-11 gap-[9px] rounded-[9px] px-[17px] py-2.5 text-sm font-[650] disabled:opacity-50',
         tone === 'primary'
-          ? 'bg-primary text-brand-ink shadow-[0_2px_3px_#8e67120a] hover:bg-brand-hover'
-          : 'border-[#dce3ed] bg-white text-[#31465e] hover:bg-[#f1f5fa]',
+          ? 'bg-primary text-brand-ink shadow-[0_2px_3px_#c81d4e0a] hover:bg-brand-hover'
+          : 'border-[#e8e1e3] bg-white text-[#503f45] hover:bg-[#faf6f1]',
         className,
       )}
       {...props}
@@ -72,7 +72,7 @@ export function Note({
   return (
     <p
       className={cn(
-        'text-sm leading-[1.8] text-[#8b99aa] max-md:text-xs',
+        'text-sm leading-[1.8] text-[#a49197] max-md:text-xs',
         className,
       )}
     >

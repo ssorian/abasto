@@ -148,7 +148,7 @@ export function ProductFormDialog({
           </SelectInput>
         </Field>
       </div>
-      <div className="mt-[5px] flex items-center justify-between gap-3 border-t border-[#e8edf4] pt-5">
+      <div className="mt-[5px] flex items-center justify-between gap-3 border-t border-[#f4eee8] pt-5">
         <CatalogButton onClick={onClose}>Cancelar</CatalogButton>
         <CatalogButton
           tone="primary"

@@ -130,7 +130,7 @@ export function ReceivablesPage({
                 <option key={option}>{option}</option>
               ))}
             </CompactSelect>
-            <label className="flex items-center gap-2 text-[13px] text-[#32455e] max-md:basis-full md:ml-auto">
+            <label className="flex items-center gap-2 text-[13px] text-[#513f45] max-md:basis-full md:ml-auto">
               Recibir abonos en
               <CompactSelect
                 aria-label="Caja que recibe los abonos"

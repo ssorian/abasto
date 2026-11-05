@@ -100,7 +100,7 @@ export function OrderViewDialog({
       description={statusHint(order.status)}
       onClose={onClose}
     >
-      <div className="flex flex-wrap items-center gap-3 text-[13px] text-[#637c99]">
+      <div className="flex flex-wrap items-center gap-3 text-[13px] text-[#8d6f79]">
         <StatusBadge status={order.status} />
         {(order.status === 'Reservado' || order.status === 'Preparado') && (
           <span>{expiryLabel(order.expiresAt, now)}</span>
@@ -146,7 +146,7 @@ export function OrderViewDialog({
           </tbody>
         </DataTable>
       </TableWrap>
-      <p className="text-xs text-[#8390a2]">
+      <p className="text-xs text-[#9c898f]">
         Los precios quedaron fijos al reservar. Cantidades en presentaciones;
         los lotes muestran unidades base.
       </p>

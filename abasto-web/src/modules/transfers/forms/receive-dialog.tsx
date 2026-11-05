@@ -67,13 +67,13 @@ export function ReceiveDialog({ transfer, onClose }: ReceiveDialogProps) {
         {transfer.lines.map((line) => (
           <label
             key={line.id}
-            className="grid gap-1.5 rounded-[10px] border border-[#e3e8ef] p-4 text-[13px] font-medium text-[#32455e]"
+            className="grid gap-1.5 rounded-[10px] border border-[#efe9e3] p-4 text-[13px] font-medium text-[#513f45]"
           >
             <span>
               {line.productName}
               {line.lotCode ? ` · lote ${line.lotCode}` : ''}
             </span>
-            <small className="text-[11px] font-normal text-[#8290a2]">
+            <small className="text-[11px] font-normal text-[#9c888f]">
               Enviado: {line.quantity} {line.unit}
               {line.expiresOn ? ` · caduca ${line.expiresOn}` : ''}
             </small>

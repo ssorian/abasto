@@ -32,8 +32,8 @@ export function PurchaseLineFields({
   const presentations = product ? quantityPresentations(product) : []
 
   return (
-    <fieldset className="grid gap-3 rounded-[10px] border border-[#e3e8ef] p-4">
-      <legend className="px-1 text-xs font-[650] text-[#64798f]">
+    <fieldset className="grid gap-3 rounded-[10px] border border-[#efe9e3] p-4">
+      <legend className="px-1 text-xs font-[650] text-[#866d75]">
         Línea {index + 1}
       </legend>
       <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_auto]">

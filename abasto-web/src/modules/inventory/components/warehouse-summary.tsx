@@ -19,7 +19,7 @@ const statButton =
   'flex items-center gap-2.5 whitespace-nowrap md:flex-col md:items-baseline md:gap-0.5 tablet:flex-row tablet:gap-[7px]'
 const statNumber =
   'text-[23px] leading-9 font-[650] tracking-[-0.7px] md:text-[22px] tablet:text-2xl'
-const statLabel = 'text-xs text-[#7f8b9b] tablet:text-sm'
+const statLabel = 'text-xs text-[#95858a] tablet:text-sm'
 
 /** Warehouse switcher (only warehouses the user can see) plus the headline counters. */
 export function WarehouseSummary({
@@ -31,13 +31,13 @@ export function WarehouseSummary({
   canManage,
 }: WarehouseSummaryProps) {
   return (
-    <div className="mb-5 flex min-h-[92px] flex-wrap items-center gap-5 rounded-[12px] border border-[#e3e8ef] bg-white p-[17px] md:mb-[23px] md:flex-nowrap md:gap-[15px] tablet:gap-5">
-      <div className="flex flex-1 items-center gap-[13px] md:flex-none md:border-r md:border-[#e8edf3] md:pr-[15px] tablet:pr-5">
-        <span className="flex size-11 items-center justify-center rounded-[11px] bg-[#edf2f9] text-[#476887]">
+    <div className="mb-5 flex min-h-[92px] flex-wrap items-center gap-5 rounded-[12px] border border-[#efe9e3] bg-white p-[17px] md:mb-[23px] md:flex-nowrap md:gap-[15px] tablet:gap-5">
+      <div className="flex flex-1 items-center gap-[13px] md:flex-none md:border-r md:border-[#f3eee8] md:pr-[15px] tablet:pr-5">
+        <span className="flex size-11 items-center justify-center rounded-[11px] bg-[#f8f3ee] text-[#735b63]">
           <WarehouseIcon size={22} />
         </span>
         <div>
-          <span className="ml-[9px] text-xs font-[650] tracking-[1.1px] text-[#8793a3]">
+          <span className="ml-[9px] text-xs font-[650] tracking-[1.1px] text-[#9d8d92]">
             ESTÁS CONSULTANDO
           </span>
           <Picker
@@ -48,11 +48,11 @@ export function WarehouseSummary({
               value: id,
               label: name,
             }))}
-            className="data-[size=default]:h-[27px] min-w-[150px] border-0 bg-transparent px-[9px] text-sm font-[650] text-[#243e60] md:min-w-[165px]"
+            className="data-[size=default]:h-[27px] min-w-[150px] border-0 bg-transparent px-[9px] text-sm font-[650] text-[#442460] md:min-w-[165px]"
           />
         </div>
       </div>
-      <div className="flex w-full items-center justify-around gap-3 border-t border-[#e7edf4] pt-4 md:ml-auto md:w-auto md:justify-start md:border-0 md:p-0 tablet:gap-5 wide:ml-0 wide:gap-[19px]">
+      <div className="flex w-full items-center justify-around gap-3 border-t border-[#f4eee7] pt-4 md:ml-auto md:w-auto md:justify-start md:border-0 md:p-0 tablet:gap-5 wide:ml-0 wide:gap-[19px]">
         <button
           type="button"
           className={statButton}
@@ -61,7 +61,7 @@ export function WarehouseSummary({
           <strong className={statNumber}>{pad(counts.products)}</strong>
           <span className={statLabel}>Productos</span>
         </button>
-        <span className="h-[19px] w-px bg-[#e7ebf0] md:h-6" />
+        <span className="h-[19px] w-px bg-[#f0ece7] md:h-6" />
         <button
           type="button"
           className={statButton}
@@ -72,7 +72,7 @@ export function WarehouseSummary({
           </strong>
           <span className={statLabel}>Stock bajo</span>
         </button>
-        <span className="h-[19px] w-px bg-[#e7ebf0] md:h-6" />
+        <span className="h-[19px] w-px bg-[#f0ece7] md:h-6" />
         <button
           type="button"
           className={statButton}
@@ -85,7 +85,7 @@ export function WarehouseSummary({
         </button>
       </div>
       {!canManage && (
-        <span className="ml-auto text-xs whitespace-nowrap text-[#8a96a7]">
+        <span className="ml-auto text-xs whitespace-nowrap text-[#a19096]">
           Solo consulta en este almacén
         </span>
       )}

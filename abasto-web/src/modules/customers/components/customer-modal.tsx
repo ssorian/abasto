@@ -33,7 +33,7 @@ export function CustomerModal({
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogPortal>
-        <DialogOverlay className="bg-[#112b4b66] supports-backdrop-filter:backdrop-blur-[3px]" />
+        <DialogOverlay className="bg-[#30114b66] supports-backdrop-filter:backdrop-blur-[3px]" />
         <DialogPrimitive.Content
           data-slot="dialog-content"
           className={cn(
@@ -47,7 +47,7 @@ export function CustomerModal({
             <DialogTitle className="text-[23px] leading-[1.3] font-semibold tracking-[-0.7px] md:text-[25px]">
               {title}
             </DialogTitle>
-            <DialogDescription className="text-[13px] leading-[1.7] text-[#8692a3] md:text-sm">
+            <DialogDescription className="text-[13px] leading-[1.7] text-[#9d8c92] md:text-sm">
               {description}
             </DialogDescription>
           </DialogHeader>

@@ -35,10 +35,10 @@ export function WarehouseCard({
 }) {
   const { metrics } = warehouse
   return (
-    <article className="flex overflow-hidden rounded-[13px] border border-[#e0e6ee] bg-white tablet:block">
-      <div className="flex w-[95px] shrink-0 flex-col items-center justify-center gap-[5px] bg-[#eaf0f7] p-5 text-[#617e9e] md:w-[150px] md:p-[25px] tablet:h-[146px] tablet:w-auto tablet:flex-row tablet:justify-between tablet:gap-0 tablet:p-[35px]">
+    <article className="flex overflow-hidden rounded-[13px] border border-[#eee7e0] bg-white tablet:block">
+      <div className="flex w-[95px] shrink-0 flex-col items-center justify-center gap-[5px] bg-[#f7f1ea] p-5 text-[#8f707a] md:w-[150px] md:p-[25px] tablet:h-[146px] tablet:w-auto tablet:flex-row tablet:justify-between tablet:gap-0 tablet:p-[35px]">
         <Warehouse className="w-[37px] md:w-auto" size={47} aria-hidden />
-        <span className="text-[44px] font-[750] tracking-[-4px] text-[#d1dce9] md:text-[62px]">
+        <span className="text-[44px] font-[750] tracking-[-4px] text-[#ded6e4] md:text-[62px]">
           {number}
         </span>
       </div>

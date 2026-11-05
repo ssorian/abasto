@@ -61,7 +61,7 @@ export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
     <>
       {heading}
       <div className="mb-5 flex flex-wrap items-end gap-4">
-        <label className="flex min-w-[220px] flex-col gap-[7px] text-[13px] font-medium text-[#32455e]">
+        <label className="flex min-w-[220px] flex-col gap-[7px] text-[13px] font-medium text-[#513f45]">
           Almacén
           <FieldSelect
             value={selected.id}
@@ -89,7 +89,7 @@ export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
               aria-pressed={filter === status}
               onClick={() => setFilter(status)}
               className={cn(
-                'rounded-full border border-[#dce3ed] bg-white px-3.5 py-2 text-[13px] text-[#5c7694]',
+                'rounded-full border border-[#e8e1e3] bg-white px-3.5 py-2 text-[13px] text-[#866a73]',
                 filter === status &&
                   'border-transparent bg-primary font-[650] text-brand-ink',
               )}

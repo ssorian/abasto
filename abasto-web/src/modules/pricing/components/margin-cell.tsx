@@ -38,7 +38,7 @@ export function MarginCell({ marginBps, onSave }: MarginCellProps) {
         aria-invalid={Boolean(error)}
         title={error}
       />
-      <span className="text-sm text-[#6d7d90]">%</span>
+      <span className="text-sm text-[#89747b]">%</span>
       {text !== undefined && text !== stored && (
         <CatalogButton
           className="min-h-[36px] px-3"

@@ -27,13 +27,13 @@
   --border: #ede3d6;
   --input: #e4d8ca;
   --ring: #5b2a86;
-  --sidebar: #4a2270;
-  --sidebar-foreground: #f3ecf8;
+  --sidebar: #2a1c36;
+  --sidebar-foreground: #efe8f4;
   --sidebar-primary: #c81d4e;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #5b2a86;
+  --sidebar-accent: #3a2849;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #63388c;
+  --sidebar-border: #3d2c4c;
   --sidebar-ring: #f08aa6;
 }
 
@@ -91,10 +91,10 @@
   --color-focus: #5b2a86;
 
   /* Text */
-  --color-ink-heading: #5b2a86;
+  --color-ink-heading: #4a2670;
   --color-ink-link: #a3173f;
   --color-ink-row: #3d3438;
-  --color-ink-figure: #3b1d59;
+  --color-ink-figure: #2a1d33;
   --color-ink-muted: #7a6f72;
   --color-ink-subtle: #887c7f;
   --color-ink-faint: #938789;
@@ -104,9 +104,10 @@
   /* Brand */
   --color-brand-hover: #a8173f;
   --color-brand-ink: #ffffff;
-  --color-hero: #4a2270;
-  --color-hero-eyebrow: #d9c3ec;
-  --color-hero-copy: #e6d9f1;
+  --color-hero: #f4eef8;
+  --color-hero-eyebrow: #7a4aa3;
+  --color-hero-copy: #5e5266;
+  --color-hero-title: #2e1a40;
 
   /* Panels */
   --color-panel-border: #efe5d8;
@@ -128,19 +129,19 @@
   --color-footer-dot: #c81d4e;
 
   /* Sidebar details */
-  --color-sidebar-surface: #56297f;
-  --color-sidebar-surface-border: #6a3d93;
-  --color-sidebar-callout: #522678;
-  --color-sidebar-callout-border: #673a90;
-  --color-sidebar-hover: #5a2c84;
-  --color-sidebar-divider: #61368b;
-  --color-sidebar-text: #d6c6e4;
-  --color-sidebar-label: #b39dca;
-  --color-sidebar-caption: #bba8d0;
-  --color-sidebar-muted: #c4b3d6;
+  --color-sidebar-surface: #33233f;
+  --color-sidebar-surface-border: #45334f;
+  --color-sidebar-callout: #31213d;
+  --color-sidebar-callout-border: #44324f;
+  --color-sidebar-hover: #382745;
+  --color-sidebar-divider: #3b2a49;
+  --color-sidebar-text: #cbbfd6;
+  --color-sidebar-label: #9886a8;
+  --color-sidebar-caption: #a595b3;
+  --color-sidebar-muted: #b3a5c0;
   --color-sidebar-strong: #faf5fd;
-  --color-sidebar-tag: #f7a8be;
-  --color-sidebar-active: #3a1858;
+  --color-sidebar-tag: #f4a3b9;
+  --color-sidebar-active: #ffffff;
 
   /* Status tones */
   --color-status-green: #39816e;

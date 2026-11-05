@@ -41,7 +41,7 @@ export function CustomersPage({ overview, presentations }: CustomersPageProps) {
           <h2 className="text-[19px] font-[650] tracking-[-0.4px] md:text-xl">
             Cartera de clientes
           </h2>
-          <p className="mt-[7px] text-xs text-[#8390a2] md:text-sm">
+          <p className="mt-[7px] text-xs text-[#9c898f] md:text-sm">
             Distribuidores autorizados, sus condiciones y su historial de
             pedidos.
           </p>

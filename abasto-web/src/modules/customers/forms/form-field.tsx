@@ -6,7 +6,7 @@ import { cn } from '#/lib/utils/cn'
 import type { ComponentProps, ReactNode } from 'react'
 
 const control =
-  'min-h-[43px] rounded-lg font-normal border-[#dce4ed] bg-white px-3 py-2.5 text-sm text-[#223751] focus-visible:border-[#dce4ed] focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-1 focus-visible:outline-[#b3cef6] disabled:bg-[#f4f6f9] disabled:text-[#71839a] disabled:opacity-100 md:text-sm'
+  'min-h-[43px] rounded-lg font-normal border-[#e8e1e3] bg-white px-3 py-2.5 text-sm text-[#3b2251] focus-visible:border-[#e8e1e3] focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-1 focus-visible:outline-[#d8c0e9] disabled:bg-[#f9f7f4] disabled:text-[#927981] disabled:opacity-100 md:text-sm'
 
 export function Field({
   label,
@@ -20,7 +20,7 @@ export function Field({
   return (
     <Label
       className={cn(
-        'min-w-0 flex-col items-stretch gap-[7px] text-[13px] leading-normal font-medium text-[#32455e]',
+        'min-w-0 flex-col items-stretch gap-[7px] text-[13px] leading-normal font-medium text-[#513f45]',
         className,
       )}
     >
@@ -59,7 +59,7 @@ export function SelectInput({ className, ...props }: ComponentProps<'select'>) {
   return (
     <select
       className={cn(
-        'h-auto w-full min-w-0 rounded-lg border border-[#dce4ed] bg-white px-3 py-2.5 text-sm font-normal text-[#223751] outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-1 focus-visible:outline-[#b3cef6] disabled:bg-[#f4f6f9] disabled:text-[#71839a]',
+        'h-auto w-full min-w-0 rounded-lg border border-[#e8e1e3] bg-white px-3 py-2.5 text-sm font-normal text-[#3b2251] outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-1 focus-visible:outline-[#d8c0e9] disabled:bg-[#f9f7f4] disabled:text-[#927981]',
         'min-h-[43px]',
         className,
       )}

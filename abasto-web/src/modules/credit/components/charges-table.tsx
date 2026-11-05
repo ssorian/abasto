@@ -55,7 +55,7 @@ export function ChargesTable({
   onStatement,
 }: ChargesTableProps) {
   return (
-    <TableWrap className="rounded-xl border border-[#e3e9f0] bg-white">
+    <TableWrap className="rounded-xl border border-[#f0eae3] bg-white">
       <DataTable>
         <thead>
           <tr>

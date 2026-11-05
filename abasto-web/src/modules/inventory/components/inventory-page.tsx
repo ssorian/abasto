@@ -222,13 +222,13 @@ export function InventoryPage({
       >
         <TabsList
           variant="line"
-          className="mb-5 h-12 w-full justify-start gap-[22px] overflow-x-auto overflow-y-hidden rounded-none border-b border-[#dfe5ed] p-0 md:mb-[25px] md:gap-[17px] md:overflow-visible tablet:gap-6 wide:gap-[26px]"
+          className="mb-5 h-12 w-full justify-start gap-[22px] overflow-x-auto overflow-y-hidden rounded-none border-b border-[#ede6df] p-0 md:mb-[25px] md:gap-[17px] md:overflow-visible tablet:gap-6 wide:gap-[26px]"
         >
           {tabs.map(({ name, icon: Icon }) => (
             <TabsTrigger
               key={name}
               value={name}
-              className="h-full flex-none gap-[5px] rounded-none border-0 px-0.5 pt-0 pb-[13px] max-md:px-0 text-xs font-[550] text-[#7a8799] data-[state=active]:font-[650] data-[state=active]:text-[#183e6a] md:gap-2 md:text-sm after:inset-x-0 after:-bottom-px after:h-[3px] after:rounded-t-[3px] after:bg-[#224f80] data-[state=active]:after:opacity-100 max-md:[&_svg]:size-3.5"
+              className="h-full flex-none gap-[5px] rounded-none border-0 px-0.5 pt-0 pb-[13px] max-md:px-0 text-xs font-[550] text-[#938086] data-[state=active]:font-[650] data-[state=active]:text-[#44186a] md:gap-2 md:text-sm after:inset-x-0 after:-bottom-px after:h-[3px] after:rounded-t-[3px] after:bg-[#542280] data-[state=active]:after:opacity-100 max-md:[&_svg]:size-3.5"
             >
               <Icon size={17} />
               {name}

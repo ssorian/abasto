@@ -15,7 +15,7 @@ export function InfoBanner({
   return (
     <div
       className={cn(
-        'my-[15px] flex items-center gap-[13px] rounded-[9px] border border-[#d9e5f2] bg-[#eaf1fa] p-[13px] text-xs leading-[1.7] text-[#54759a] max-md:items-start',
+        'my-[15px] flex items-center gap-[13px] rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972] max-md:items-start',
         className,
       )}
     >
@@ -30,7 +30,7 @@ export function SectionHelp({ className, ...props }: ComponentProps<'p'>) {
   return (
     <p
       className={cn(
-        'mt-3 mb-5 text-sm leading-[1.8] text-[#8b99aa] max-md:text-xs',
+        'mt-3 mb-5 text-sm leading-[1.8] text-[#a49197] max-md:text-xs',
         className,
       )}
       {...props}
@@ -83,10 +83,10 @@ export function InfoPairs({ rows }: { rows: Array<[string, ReactNode]> }) {
       {rows.map(([label, value]) => (
         <div
           key={label}
-          className="flex justify-between gap-5 border-b border-[#edf1f5] py-[13px] text-xs md:text-sm"
+          className="flex justify-between gap-5 border-b border-[#f5f1ed] py-[13px] text-xs md:text-sm"
         >
-          <span className="shrink-0 text-[#91a0b2]">{label}</span>
-          <b className="text-right font-[550] text-[#496480]">{value}</b>
+          <span className="shrink-0 text-[#ab989e]">{label}</span>
+          <b className="text-right font-[550] text-[#715860]">{value}</b>
         </div>
       ))}
     </div>

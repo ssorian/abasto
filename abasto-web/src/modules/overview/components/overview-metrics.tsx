@@ -6,7 +6,7 @@ export function OverviewMetrics({
   metrics: Array<OverviewMetric>
 }) {
   return (
-    <div className="my-[18px] grid grid-cols-2 rounded-xl border border-[#e1e8f0] bg-white md:grid-cols-4">
+    <div className="my-[18px] grid grid-cols-2 rounded-xl border border-[#f0e9e1] bg-white md:grid-cols-4">
       {metrics.map((metric) => (
         <div
           key={metric.label}
