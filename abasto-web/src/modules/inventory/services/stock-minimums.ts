@@ -4,7 +4,9 @@ import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { stockMinimums } from '#/modules/inventory/db/schema'
 import {
+  assertFitsInt4,
   isWholeNumber,
+  MAX_INT4,
   requireProduct,
   requireWarehouse,
 } from '#/modules/inventory/services/stock-ledger'
@@ -18,6 +20,7 @@ export async function setMinimumStock(
   if (!isWholeNumber(input.minimum) || input.minimum < 0) {
     throw new AppError('invalid', 'El mínimo debe ser cero o mayor.')
   }
+  assertFitsInt4(input.minimum, `El mínimo no puede ser mayor que ${MAX_INT4}.`)
   await db.transaction(async (tx) => {
     await requireWarehouse(tx, input.warehouseId)
     await requireProduct(tx, input.productId)

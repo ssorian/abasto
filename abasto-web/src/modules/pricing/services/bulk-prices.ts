@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { authorize, can } from '#/modules/access/lib/policy'
@@ -89,6 +89,13 @@ export async function bulkChangePrices(
   const category = input.category?.trim()
   return db.transaction(async (tx) => {
     for (const id of warehouseIds) await requireWarehouse(tx, id)
+    // Serialises bulk changes per warehouse so each reads the previous result;
+    // sorted to take the locks in one global order (no deadlocks).
+    for (const id of [...warehouseIds].sort()) {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`bulk-prices:${id}`}, 0))`,
+      )
+    }
     const matched = await tx
       .select({ id: presentations.id })
       .from(presentations)

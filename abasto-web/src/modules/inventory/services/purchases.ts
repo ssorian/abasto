@@ -7,8 +7,10 @@ import { products } from '#/modules/catalog/db/schema'
 import { lots, purchaseLines, purchases } from '#/modules/inventory/db/schema'
 import {
   appendMovement,
+  assertFitsInt4,
   isIsoDate,
   isWholeNumber,
+  MAX_INT4,
   requireSupplier,
   requireWarehouse,
 } from '#/modules/inventory/services/stock-ledger'
@@ -44,12 +46,20 @@ function validate(input: PurchaseInput) {
     if (!isWholeNumber(line.quantity) || line.quantity <= 0) {
       throw new AppError('invalid', 'La cantidad debe ser mayor que cero.')
     }
+    assertFitsInt4(
+      line.quantity,
+      `La cantidad no puede ser mayor que ${MAX_INT4}.`,
+    )
     if (!isWholeNumber(line.totalCostCents) || line.totalCostCents < 0) {
       throw new AppError(
         'invalid',
         'El costo debe ser un monto en centavos de cero o más.',
       )
     }
+    assertFitsInt4(
+      line.totalCostCents,
+      `El costo no puede ser mayor que ${MAX_INT4} centavos.`,
+    )
     if (line.expiresOn && !isIsoDate(line.expiresOn)) {
       throw new AppError('invalid', 'La fecha de caducidad no es válida.')
     }

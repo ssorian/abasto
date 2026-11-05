@@ -6,9 +6,11 @@ import { lossCategories } from '#/modules/inventory/db/schema'
 import type { LossCategory } from '#/modules/inventory/db/schema'
 import {
   appendMovement,
+  assertFitsInt4,
   insufficientStock,
   isWholeNumber,
   lockLot,
+  MAX_INT4,
 } from '#/modules/inventory/services/stock-ledger'
 
 /** Locks the lot, checks the actor manages its warehouse and applies the movement. */
@@ -44,6 +46,10 @@ export async function adjustLot(
       'La cantidad del ajuste debe ser un entero distinto de cero.',
     )
   }
+  assertFitsInt4(
+    input.quantity,
+    `La cantidad del ajuste no puede ser mayor que ${MAX_INT4}.`,
+  )
   if (!reason) throw new AppError('invalid', 'Escribe el motivo del ajuste.')
   await moveLot(actor, input.lotId, 'adjustment', input.quantity, reason)
 }
@@ -64,6 +70,10 @@ export async function registerLoss(
   if (!isWholeNumber(input.quantity) || input.quantity <= 0) {
     throw new AppError('invalid', 'La cantidad debe ser mayor que cero.')
   }
+  assertFitsInt4(
+    input.quantity,
+    `La cantidad no puede ser mayor que ${MAX_INT4}.`,
+  )
   const reason = input.reason.trim()
   if (!reason) throw new AppError('invalid', 'Escribe el motivo de la pérdida.')
   await moveLot(

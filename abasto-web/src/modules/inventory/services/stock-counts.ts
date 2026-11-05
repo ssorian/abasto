@@ -6,8 +6,11 @@ import type { Actor } from '#/modules/access/lib/policy'
 import { lots, stockCounts } from '#/modules/inventory/db/schema'
 import {
   appendMovement,
+  assertFitsInt4,
   byFefo,
+  byNewest,
   isWholeNumber,
+  MAX_INT4,
   requireProduct,
   requireWarehouse,
 } from '#/modules/inventory/services/stock-ledger'
@@ -30,6 +33,10 @@ export async function countStock(actor: Actor, input: CountInput) {
   if (!isWholeNumber(input.countedQuantity) || input.countedQuantity < 0) {
     throw new AppError('invalid', 'La cantidad contada debe ser cero o mayor.')
   }
+  assertFitsInt4(
+    input.countedQuantity,
+    `La cantidad contada no puede ser mayor que ${MAX_INT4}.`,
+  )
   return db.transaction(async (tx) => {
     await requireWarehouse(tx, input.warehouseId)
     await requireProduct(tx, input.productId)
@@ -71,9 +78,7 @@ export async function countStock(actor: Actor, input: CountInput) {
       actorId: actor.userId,
     }
     if (difference > 0) {
-      const newest = [...locked].sort(
-        (a, b) => b.receivedAt.getTime() - a.receivedAt.getTime(),
-      )[0]
+      const newest = [...locked].sort(byNewest)[0]
       await appendMovement(tx, newest, { ...movement, quantity: difference })
     } else {
       let remaining = -difference

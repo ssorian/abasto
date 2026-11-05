@@ -1,10 +1,17 @@
-import { and, eq, gte, sql } from 'drizzle-orm'
+import { and, eq, gte, lte, sql } from 'drizzle-orm'
 import type { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { products, suppliers } from '#/modules/catalog/db/schema'
 import { lots, stockMovements } from '#/modules/inventory/db/schema'
 import type { MovementType } from '#/modules/inventory/db/schema'
 import { warehouses } from '#/modules/warehouses/db/schema'
+
+/** Largest value of a Postgres `integer` column. */
+export const MAX_INT4 = 2147483647
+
+/** True for a whole number whose magnitude fits a Postgres `integer`. */
+export const fitsInt4 = (value: number) =>
+  Number.isSafeInteger(value) && Math.abs(value) <= MAX_INT4
 
 /** An open database transaction. */
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
@@ -37,19 +44,24 @@ export async function appendMovement(
     actorId: string
   },
 ) {
+  // bigint arithmetic so an overflow is a refusal, not a raw database error.
+  const next = sql`${lots.onHand}::bigint + ${movement.quantity}::bigint`
   const updated = (
     await tx
       .update(lots)
-      .set({ onHand: sql`${lots.onHand} + ${movement.quantity}` })
-      .where(
-        and(
-          eq(lots.id, lot.id),
-          gte(sql`${lots.onHand} + ${movement.quantity}`, 0),
-        ),
-      )
+      .set({ onHand: sql`${next}` })
+      .where(and(eq(lots.id, lot.id), gte(next, 0), lte(next, MAX_INT4)))
       .returning({ id: lots.id })
   ).at(0)
-  if (!updated) throw insufficientStock()
+  if (!updated) {
+    if (movement.quantity > 0) {
+      throw new AppError(
+        'invalid',
+        `La existencia del lote no puede ser mayor que ${MAX_INT4}.`,
+      )
+    }
+    throw insufficientStock()
+  }
   await tx.insert(stockMovements).values({
     lotId: lot.id,
     productId: lot.productId,
@@ -90,6 +102,11 @@ export async function requireSupplier(tx: Tx, id: string) {
 
 export const isWholeNumber = (value: number) => Number.isSafeInteger(value)
 
+/** Throws the Spanish "too large" refusal when a quantity or cents amount exceeds int4. */
+export function assertFitsInt4(value: number, message: string) {
+  if (Math.abs(value) > MAX_INT4) throw new AppError('invalid', message)
+}
+
 /** True for a real calendar date written as YYYY-MM-DD. */
 export function isIsoDate(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
@@ -110,4 +127,19 @@ export function byFefo(
     return a.expiresOn < b.expiresOn ? -1 : 1
   }
   return a.receivedAt.getTime() - b.receivedAt.getTime()
+}
+
+/** Most recently received first; ties by later expiry (none = latest), then highest id. */
+export function byNewest(
+  a: { expiresOn: string | null; receivedAt: Date; id: string },
+  b: { expiresOn: string | null; receivedAt: Date; id: string },
+) {
+  const received = b.receivedAt.getTime() - a.receivedAt.getTime()
+  if (received) return received
+  if (a.expiresOn !== b.expiresOn) {
+    if (!a.expiresOn) return -1
+    if (!b.expiresOn) return 1
+    return a.expiresOn > b.expiresOn ? -1 : 1
+  }
+  return a.id < b.id ? 1 : a.id > b.id ? -1 : 0
 }

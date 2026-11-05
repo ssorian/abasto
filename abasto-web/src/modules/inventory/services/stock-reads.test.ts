@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, test } from 'bun:test'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import { setMinimumStock } from '#/modules/inventory/services/stock-minimums'
-import { getWarehouseStock } from '#/modules/inventory/services/stock-reads'
+import {
+  getWarehouseStock,
+  listStockMovements,
+} from '#/modules/inventory/services/stock-reads'
+import { countStock } from '#/modules/inventory/services/stock-counts'
 import { adjustLot } from '#/modules/inventory/services/stock-adjustments'
 import {
   errorOf,
@@ -81,5 +85,81 @@ describe('getWarehouseStock', () => {
       'forbidden',
       'No tienes permiso para esta acción.',
     ])
+  })
+})
+
+describe('listStockMovements', () => {
+  async function history() {
+    const fx = await setupInventory()
+    const milkLot = await receive(fx, { quantity: 10, lotCode: 'L-1' })
+    const sodaLot = await receive(fx, {
+      productId: fx.soda.id,
+      quantity: 8,
+      lotCode: 'S-1',
+    })
+    await adjustLot(fx.managerA, {
+      lotId: milkLot.id,
+      quantity: -3,
+      reason: 'Se cayó',
+    })
+    await countStock(fx.managerA, {
+      productId: fx.milk.id,
+      warehouseId: fx.a.id,
+      countedQuantity: 9,
+    })
+    await receive(fx, { warehouseId: fx.b.id, quantity: 50 })
+    return { fx, milkLot, sodaLot }
+  }
+
+  test('lists the warehouse ledger newest first with signed quantity, reason, actor and lot code', async () => {
+    const { fx } = await history()
+    const rows = await listStockMovements(fx.clerkA, { warehouseId: fx.a.id })
+    expect(rows.map((row) => [row.type, row.quantity])).toEqual([
+      ['count', 2],
+      ['adjustment', -3],
+      ['purchase', 8],
+      ['purchase', 10],
+    ])
+    expect(rows[1]).toMatchObject({
+      reason: 'Se cayó',
+      actorName: 'gerente-a',
+      lotCode: 'L-1',
+    })
+    expect(rows[1].createdAt).toBeInstanceOf(Date)
+    expect(rows[3].reference).toBeString()
+    expect(rows[3].actorName).toBe('Dueño')
+  })
+
+  test('filters by product and by lot, and limits the result', async () => {
+    const { fx, milkLot, sodaLot } = await history()
+    const soda = await listStockMovements(fx.owner, {
+      warehouseId: fx.a.id,
+      productId: fx.soda.id,
+    })
+    expect(soda.map((row) => row.lotCode)).toEqual(['S-1'])
+    const byLot = await listStockMovements(fx.owner, {
+      warehouseId: fx.a.id,
+      lotId: milkLot.id,
+    })
+    expect(byLot).toHaveLength(3)
+    const other = await listStockMovements(fx.owner, {
+      warehouseId: fx.a.id,
+      lotId: sodaLot.id,
+      productId: fx.milk.id,
+    })
+    expect(other).toHaveLength(0)
+    const limited = await listStockMovements(fx.owner, {
+      warehouseId: fx.a.id,
+      limit: 2,
+    })
+    expect(limited.map((row) => row.type)).toEqual(['count', 'adjustment'])
+  })
+
+  test('needs warehouse.view for that warehouse', async () => {
+    const { fx } = await history()
+    const error = await errorOf(() =>
+      listStockMovements(fx.clerkA, { warehouseId: fx.b.id }),
+    )
+    expect(error.code).toBe('forbidden')
   })
 })

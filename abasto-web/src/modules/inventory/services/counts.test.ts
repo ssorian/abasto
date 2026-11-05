@@ -4,6 +4,7 @@ import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import type { AppErrorCode } from '#/lib/errors'
 import { stockCounts, stockMovements } from '#/modules/inventory/db/schema'
+import { createPurchase } from '#/modules/inventory/services/purchases'
 import { countStock } from '#/modules/inventory/services/stock-counts'
 import {
   errorOf,
@@ -87,6 +88,55 @@ describe('countStock', () => {
     expect(await onHandOf(none.id)).toBe(8)
     expect(await onHandOf(early.id)).toBe(5)
     expect(await ledgerSum(none.id)).toBe(8)
+  })
+
+  test('a surplus is deterministic when lots tie on received_at: later expiry wins', async () => {
+    const fx = await setupInventory()
+    const purchase = await createPurchase(fx.owner, {
+      supplierId: fx.supplier.id,
+      warehouseId: fx.a.id,
+      purchasedOn: '2026-11-01',
+      lines: [
+        {
+          productId: fx.milk.id,
+          quantity: 5,
+          totalCostCents: 100,
+          expiresOn: '2026-12-01',
+        },
+        {
+          productId: fx.milk.id,
+          quantity: 5,
+          totalCostCents: 100,
+          expiresOn: '2027-03-01',
+        },
+        { productId: fx.milk.id, quantity: 5, totalCostCents: 100 },
+      ],
+    })
+    const [early, late, none] = purchase.lots
+    expect(late.receivedAt.getTime()).toBe(early.receivedAt.getTime())
+    await count(fx, 20)
+    // No expiry counts as the latest expiry; the other two are untouched.
+    expect(await onHandOf(none.id)).toBe(10)
+    expect(await onHandOf(early.id)).toBe(5)
+    expect(await onHandOf(late.id)).toBe(5)
+  })
+
+  test('with the same expiry too, ties break by the highest lot id', async () => {
+    const fx = await setupInventory()
+    const purchase = await createPurchase(fx.owner, {
+      supplierId: fx.supplier.id,
+      warehouseId: fx.a.id,
+      purchasedOn: '2026-11-01',
+      lines: [
+        { productId: fx.milk.id, quantity: 5, totalCostCents: 100 },
+        { productId: fx.milk.id, quantity: 5, totalCostCents: 100 },
+      ],
+    })
+    const expected = [...purchase.lots].sort((a, b) =>
+      a.id < b.id ? 1 : -1,
+    )[0]
+    await count(fx, 12)
+    expect(await onHandOf(expected.id)).toBe(7)
   })
 
   test('a matching count only records the count', async () => {

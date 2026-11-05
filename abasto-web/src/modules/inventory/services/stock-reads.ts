@@ -1,9 +1,15 @@
-import { and, eq, gt } from 'drizzle-orm'
+import { and, desc, eq, gt } from 'drizzle-orm'
 import { db } from '#/db'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
+import { user } from '#/db/auth-schema'
 import { products } from '#/modules/catalog/db/schema'
-import { lots, stockMinimums } from '#/modules/inventory/db/schema'
+import {
+  lots,
+  stockMinimums,
+  stockMovements,
+} from '#/modules/inventory/db/schema'
+import type { MovementType } from '#/modules/inventory/db/schema'
 import { byFefo } from '#/modules/inventory/services/stock-ledger'
 
 export type StockLot = {
@@ -90,4 +96,57 @@ export async function getWarehouseStock(
       }
     })
     .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export type StockMovementRow = {
+  id: string
+  type: MovementType
+  /** Signed base units. */
+  quantity: number
+  reason: string
+  reference: string | null
+  actorName: string
+  lotId: string
+  lotCode: string
+  createdAt: Date
+}
+
+/** Ledger entries of one warehouse, newest first; optionally for one product or lot. */
+export async function listStockMovements(
+  actor: Actor,
+  input: {
+    warehouseId: string
+    productId?: string
+    lotId?: string
+    limit?: number
+  },
+): Promise<Array<StockMovementRow>> {
+  authorize(actor, 'warehouse.view', input.warehouseId)
+  const limit = Math.min(Math.max(Math.trunc(input.limit ?? 100), 1), 500)
+  return db
+    .select({
+      id: stockMovements.id,
+      type: stockMovements.type,
+      quantity: stockMovements.quantity,
+      reason: stockMovements.reason,
+      reference: stockMovements.reference,
+      actorName: user.name,
+      lotId: stockMovements.lotId,
+      lotCode: lots.code,
+      createdAt: stockMovements.createdAt,
+    })
+    .from(stockMovements)
+    .innerJoin(lots, eq(lots.id, stockMovements.lotId))
+    .innerJoin(user, eq(user.id, stockMovements.actorId))
+    .where(
+      and(
+        eq(stockMovements.warehouseId, input.warehouseId),
+        input.productId
+          ? eq(stockMovements.productId, input.productId)
+          : undefined,
+        input.lotId ? eq(stockMovements.lotId, input.lotId) : undefined,
+      ),
+    )
+    .orderBy(desc(stockMovements.createdAt), desc(stockMovements.id))
+    .limit(limit)
 }

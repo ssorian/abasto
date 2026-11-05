@@ -273,4 +273,33 @@ describe('bulkChangePrices', () => {
       expect(await pricingState(fx)).toEqual(before)
     })
   }
+
+  test('two concurrent +10% changes on the same price compose instead of overwriting', async () => {
+    const fx = await priced()
+    const raise = () =>
+      bulkChangePrices(fx.owner, {
+        warehouseIds: [fx.a.id],
+        supplierId: fx.cocaCola.id,
+        change: { kind: 'percent', bps: 1000 },
+      })
+    await Promise.all([raise(), raise()])
+    expect(await priceOf(fx, fx.a.id, fx.piece(fx.cola).id)).toBe(1210)
+  })
+
+  test('concurrent changes over several warehouses in opposite order do not deadlock', async () => {
+    const fx = await priced()
+    const raise = (warehouseIds: Array<string>) =>
+      bulkChangePrices(fx.owner, {
+        warehouseIds,
+        supplierId: fx.cocaCola.id,
+        change: { kind: 'percent', bps: 1000 },
+      })
+    await Promise.all([
+      raise([fx.a.id, fx.b.id]),
+      raise([fx.b.id, fx.a.id]),
+      raise('all' as never),
+    ])
+    expect(await priceOf(fx, fx.a.id, fx.piece(fx.cola).id)).toBe(1331)
+    expect(await priceOf(fx, fx.b.id, fx.piece(fx.cola).id)).toBe(1331)
+  })
 })

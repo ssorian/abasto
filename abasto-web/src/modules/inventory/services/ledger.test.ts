@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import { lots, stockMovements } from '#/modules/inventory/db/schema'
+import { presentationPrices } from '#/modules/pricing/db/schema'
 import {
   adjustLot,
   registerLoss,
@@ -120,5 +121,21 @@ describe('stock ledger', () => {
     )
     expect(String(error.cause ?? error.message)).toContain('lots_on_hand_min')
     expect(await onHandOf(lot.id)).toBe(10)
+  })
+
+  test('TRUNCATE is refused on the ledger and on price history unless explicitly allowed', async () => {
+    const fx = await setupInventory()
+    const lot = await receive(fx, { quantity: 10 })
+    for (const table of ['stock_movements', 'presentation_prices']) {
+      const error = await errorOf(() =>
+        db.execute(sql.raw(`truncate table ${table}`)),
+      )
+      expect(String(error.cause ?? error.message)).toContain('append-only')
+    }
+    expect(await ledgerSum(lot.id)).toBe(10)
+    // resetDatabase opts in explicitly and still empties everything.
+    await resetDatabase(db)
+    expect(await db.select().from(stockMovements)).toHaveLength(0)
+    expect(await db.select().from(presentationPrices)).toHaveLength(0)
   })
 })

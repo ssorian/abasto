@@ -22,7 +22,11 @@ export async function resetDatabase(database: NodePgDatabase<any>) {
   )
   if (!result.rows.length) return
   const tables = result.rows.map(({ name }) => `"public"."${name}"`).join(', ')
-  await database.execute(
-    sql.raw(`truncate table ${tables} restart identity cascade`),
-  )
+  // Append-only tables refuse TRUNCATE unless this transaction opts in.
+  await database.transaction(async (tx) => {
+    await tx.execute(sql`set local abasto.allow_truncate = on`)
+    await tx.execute(
+      sql.raw(`truncate table ${tables} restart identity cascade`),
+    )
+  })
 }
