@@ -12,6 +12,7 @@ import { orders } from '#/modules/orders/db/schema'
 import { createOrder } from '#/modules/orders/services/orders'
 import {
   HOUR,
+  payCash,
   receive,
   setupOrders,
   useClock,
@@ -106,7 +107,7 @@ async function crossingRound(race: Race) {
   overdue = true
   const second = Promise.allSettled([
     race === 'pickup'
-      ? pickupOrder(fx.clerkA, p.id)
+      ? pickupOrder(fx.clerkA, p.id, payCash)
       : race === 'cancel'
         ? cancelOrder(fx.clerkA, p.id)
         : countStock(fx.managerA, {

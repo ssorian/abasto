@@ -16,6 +16,7 @@ import {
   advance,
   errorOf,
   orderState,
+  payCash,
   receive,
   setupOrders,
   useClock,
@@ -35,6 +36,9 @@ async function setup(quantity = 20) {
     })
   return { fx, lot, place }
 }
+
+const pay = (actor: Parameters<typeof getOrder>[0], id: string) =>
+  pickupOrder(actor, id, payCash)
 
 const statusOf = async (
   fx: { clerkA: Parameters<typeof getOrder>[0] },
@@ -67,7 +71,7 @@ describe('prepareOrder', () => {
     const before = await orderState()
     const again = await errorOf(() => prepareOrder(fx.clerkA, order.id))
     expect([again.code, again.message]).toEqual(['conflict', onlyReserved])
-    await pickupOrder(fx.clerkA, order.id)
+    await pickupOrder(fx.clerkA, order.id, payCash)
     const done = await errorOf(() => prepareOrder(fx.clerkA, order.id))
     expect(done.message).toBe(onlyReserved)
     expect(await orderState()).not.toEqual(before)
@@ -85,7 +89,7 @@ describe('pickupOrder', () => {
     const order = await place(9)
     expect(order.lines[0].allocations).toHaveLength(2)
     await prepareOrder(fx.clerkA, order.id)
-    const picked = await pickupOrder(fx.clerkA, order.id)
+    const picked = await pickupOrder(fx.clerkA, order.id, payCash)
     expect(picked.status).toBe('Recogido')
     const movements = await db
       .select()
@@ -105,27 +109,23 @@ describe('pickupOrder', () => {
   test('works straight from Reservado', async () => {
     const { fx, place } = await setup()
     const order = await place(2)
-    expect((await pickupOrder(fx.clerkA, order.id)).status).toBe('Recogido')
+    expect((await pickupOrder(fx.clerkA, order.id, payCash)).status).toBe(
+      'Recogido',
+    )
   })
 
   test('a picked-up, cancelled or expired order cannot be picked up again', async () => {
     const { fx, place } = await setup()
     const picked = await place(2)
-    await pickupOrder(fx.clerkA, picked.id)
+    await pickupOrder(fx.clerkA, picked.id, payCash)
     const cancelled = await place(2)
     await cancelOrder(fx.clerkA, cancelled.id)
     for (const id of [picked.id, cancelled.id]) {
       const before = await orderState()
-      const error = await errorOf(() => pickupOrder(fx.clerkA, id))
+      const error = await errorOf(() => pickupOrder(fx.clerkA, id, payCash))
       expect([error.code, error.message]).toEqual(['conflict', onlyOpenPickup])
       expect(await orderState()).toEqual(before)
     }
-  })
-
-  test('has a payment seam that does not block yet', async () => {
-    const { fx, place } = await setup()
-    const order = await place(1)
-    expect((await pickupOrder(fx.clerkA, order.id)).status).toBe('Recogido')
   })
 })
 
@@ -148,7 +148,7 @@ describe('cancelOrder', () => {
   test('cannot cancel a picked-up or already cancelled order', async () => {
     const { fx, place } = await setup()
     const picked = await place(2)
-    await pickupOrder(fx.clerkA, picked.id)
+    await pickupOrder(fx.clerkA, picked.id, payCash)
     const cancelled = await place(2)
     await cancelOrder(fx.clerkA, cancelled.id)
     for (const id of [picked.id, cancelled.id]) {
@@ -164,7 +164,7 @@ describe('permissions and unknown orders', () => {
   test('the clerk of A acts on A orders; staff of B and others are forbidden', async () => {
     const { fx, place } = await setup()
     const order = await place(3)
-    for (const act of [prepareOrder, pickupOrder, cancelOrder, getOrder]) {
+    for (const act of [prepareOrder, pay, cancelOrder, getOrder]) {
       const error = await errorOf(() => act(fx.managerB, order.id))
       expect([error.code, error.message]).toEqual([
         'forbidden',
@@ -178,7 +178,7 @@ describe('permissions and unknown orders', () => {
 
   test('unknown order', async () => {
     const { fx } = await setup()
-    for (const act of [prepareOrder, pickupOrder, cancelOrder, getOrder]) {
+    for (const act of [prepareOrder, pay, cancelOrder, getOrder]) {
       const error = await errorOf(() => act(fx.owner, crypto.randomUUID()))
       expect([error.code, error.message]).toEqual([
         'not_found',
@@ -193,7 +193,7 @@ describe('lazy expiry', () => {
     const { fx, place } = await setup()
     const order = await place(10)
     advance(25)
-    for (const act of [prepareOrder, pickupOrder, cancelOrder]) {
+    for (const act of [prepareOrder, pay, cancelOrder]) {
       const error = await errorOf(() => act(fx.clerkA, order.id))
       expect([error.code, error.message]).toEqual(['conflict', expired])
     }
@@ -230,7 +230,7 @@ describe('lazy expiry', () => {
   test('picked-up and cancelled orders never expire', async () => {
     const { fx, place } = await setup()
     const picked = await place(2)
-    await pickupOrder(fx.clerkA, picked.id)
+    await pickupOrder(fx.clerkA, picked.id, payCash)
     const cancelled = await place(2)
     await cancelOrder(fx.clerkA, cancelled.id)
     advance(100)
@@ -328,7 +328,9 @@ describe('pickup of a lot that expired meanwhile', () => {
     const before = await orderState()
     for (const status of ['Reservado', 'Preparado'] as const) {
       if (status === 'Preparado') await prepareOrder(fx.clerkA, order.id)
-      const error = await errorOf(() => pickupOrder(fx.clerkA, order.id))
+      const error = await errorOf(() =>
+        pickupOrder(fx.clerkA, order.id, payCash),
+      )
       expect(error.code).toBe('conflict')
       expect(error.message).toBe(caducado)
     }
@@ -343,7 +345,7 @@ describe('pickup of a lot that expired meanwhile', () => {
   test('a lot expiring today can still be picked up', async () => {
     const { fx, order } = await reserveOnExpiringLot()
     useClock(() => new Date('2098-12-02T04:00:00Z')) // 22:00 on 12-01 in Mexico City
-    const picked = await pickupOrder(fx.clerkA, order.id)
+    const picked = await pickupOrder(fx.clerkA, order.id, payCash)
     expect(picked.status).toBe('Recogido')
   })
 })

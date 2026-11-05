@@ -12,6 +12,7 @@ import { setReservationHours } from '#/modules/orders/services/reservation-setti
 import {
   createOrderInput,
   orderIdInput,
+  pickupOrderInput,
   reservationHoursInput,
 } from '#/modules/orders/server/order-inputs'
 
@@ -39,13 +40,14 @@ export const prepareOrderFn = createServerFn({ method: 'POST' })
     ),
   )
 
-/** Pickup only hands the order over; payment is added with the cash module. */
+/** Pickup settles the payment (cash or credit); without one the service refuses. */
 export const pickupOrderFn = createServerFn({ method: 'POST' })
   .validator((data: unknown) => data)
   .handler(({ data }) =>
-    runWithActor((actor) =>
-      pickupOrder(actor, parseInput(orderIdInput, data).orderId),
-    ),
+    runWithActor((actor) => {
+      const { orderId, payment } = parseInput(pickupOrderInput, data)
+      return pickupOrder(actor, orderId, payment)
+    }),
   )
 
 export const cancelOrderFn = createServerFn({ method: 'POST' })

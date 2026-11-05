@@ -1,6 +1,7 @@
 /** Shared fixtures for orders service tests. */
 import { asc, count } from 'drizzle-orm'
 import { db } from '#/db'
+import { openCashSession } from '#/modules/cash/services/cash-sessions'
 import { createCustomer } from '#/modules/customers/services/customers'
 import { lots, stockMovements } from '#/modules/inventory/db/schema'
 import {
@@ -15,7 +16,16 @@ import { useClock } from '#/modules/orders/services/clock'
 export { errorOf, receive } from '#/modules/pricing/services/testing'
 export { useClock }
 
-/** Pricing fixture plus a customer and a 1000-cent piece price (box derives 12000) in warehouse A. */
+/** Cash tendered that covers any test order. */
+export const payCash = {
+  terms: 'contado' as const,
+  tenderedCents: 100_000_000,
+}
+
+/**
+ * Pricing fixture plus a customer, a 1000-cent piece price (box derives
+ * 12000) in warehouse A, and an open cash drawer there (opening 0).
+ */
 export async function setupOrders() {
   const fx = await setupPricing()
   const customer = await createCustomer(fx.owner, {
@@ -27,6 +37,7 @@ export async function setupOrders() {
     warehouseId: fx.a.id,
     prices: [{ presentationId: piece, priceCents: 1000 }],
   })
+  await openCashSession(fx.clerkA, { warehouseId: fx.a.id, openingCents: 0 })
   return { ...fx, customer, pieceId: piece, boxId: box }
 }
 

@@ -57,6 +57,20 @@
       "when": 1793840914635,
       "tag": "0007_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793843581100,
+      "tag": "0008_cash_credit",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793843586402,
+      "tag": "0009_cash_credit_append_only",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import { AppError } from '#/lib/errors'
 import {
   createOrderInput,
   orderIdInput,
+  pickupOrderInput,
   quoteOrderInput,
   reservationHoursInput,
 } from '#/modules/orders/server/order-inputs'
@@ -70,5 +71,30 @@ describe('order server function inputs', () => {
   test('a quote takes the order lines and drops notes', () => {
     expect(parseInput(quoteOrderInput, { ...order, notes: 'x' })).toEqual(order)
     expect(fails(quoteOrderInput, { warehouseId: 'w1' })).toBe(true)
+  })
+
+  test('pickup takes an order id and an optional cash or credit payment', () => {
+    expect(parseInput(pickupOrderInput, { orderId: 'o1' })).toEqual({
+      orderId: 'o1',
+    })
+    const cash = { terms: 'contado' as const, tenderedCents: 5000 }
+    expect(
+      parseInput(pickupOrderInput, { orderId: 'o1', payment: cash }).payment,
+    ).toEqual(cash)
+    expect(
+      parseInput(pickupOrderInput, {
+        orderId: 'o1',
+        payment: { terms: 'credito' },
+      }).payment,
+    ).toEqual({ terms: 'credito' })
+    for (const payment of [
+      { terms: 'tarjeta' },
+      { terms: 'contado' },
+      { terms: 'contado', tenderedCents: 1.5 },
+      { terms: 'contado', tenderedCents: '5' },
+    ]) {
+      expect(fails(pickupOrderInput, { orderId: 'o1', payment })).toBe(true)
+    }
+    expect(fails(pickupOrderInput, { payment: cash })).toBe(true)
   })
 })

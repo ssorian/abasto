@@ -11,7 +11,13 @@ import { now } from '#/modules/orders/services/clock'
 import { expireOverdueOrders } from '#/modules/orders/services/expiry'
 import { orderNotFound, readOrder } from '#/modules/orders/services/order-reads'
 import type { OrderDetail } from '#/modules/orders/services/order-reads'
-import { assertPickupAllowed } from '#/modules/orders/services/pickup-gate'
+import { CreditAuthorizationRequired } from '#/modules/credit/services/credit-charge'
+import { requestCreditAuthorization } from '#/modules/credit/services/credit-authorizations'
+import { settlePickup } from '#/modules/orders/services/pickup-gate'
+import type {
+  PickupPayment,
+  PickupReceipt,
+} from '#/modules/orders/services/pickup-gate'
 import {
   allocationsOf,
   hasExpiredLot,
@@ -93,46 +99,65 @@ export const cancelOrder = (actor: Actor, orderId: string) =>
     },
   )
 
+export type PickupResult = OrderDetail & { payment: PickupReceipt }
+
 /**
- * Reservado/Preparado → Recogido (whole order): appends one `sale` movement
- * per allocation and lowers `on_hand` and `reserved` together.
+ * Reservado/Preparado → Recogido (whole order), paid in cash or on credit:
+ * settles the payment, appends one `sale` movement per allocation and lowers
+ * `on_hand` and `reserved` together, all in one transaction. A credit pickup
+ * refused for limit or overdue balance leaves a pending authorization for the
+ * owner (created after the rollback).
  */
-export const pickupOrder = (actor: Actor, orderId: string) =>
-  transition(
-    actor,
-    orderId,
-    ['Reservado', 'Preparado'],
-    'Solo se puede entregar un pedido reservado o preparado.',
-    async (tx, order) => {
-      if (await hasExpiredLot(tx, orderId)) {
-        throw new AppError(
-          'conflict',
-          'Un lote de este pedido ya caducó. Cancélalo y crea un pedido nuevo.',
-        )
-      }
-      await assertPickupAllowed(tx, order)
-      const allocations = await allocationsOf(tx, orderId)
-      const locked = await lockLotsInOrder(
-        tx,
-        allocations.map((a) => a.lotId),
-      )
-      for (const { lotId, quantity } of allocations) {
-        await appendMovement(
+export async function pickupOrder(
+  actor: Actor,
+  orderId: string,
+  payment: PickupPayment | undefined,
+): Promise<PickupResult> {
+  let receipt: PickupReceipt | undefined
+  try {
+    const detail = await transition(
+      actor,
+      orderId,
+      ['Reservado', 'Preparado'],
+      'Solo se puede entregar un pedido reservado o preparado.',
+      async (tx, order) => {
+        if (await hasExpiredLot(tx, orderId)) {
+          throw new AppError(
+            'conflict',
+            'Un lote de este pedido ya caducó. Cancélalo y crea un pedido nuevo.',
+          )
+        }
+        receipt = await settlePickup(tx, order, payment, actor.userId)
+        const allocations = await allocationsOf(tx, orderId)
+        const locked = await lockLotsInOrder(
           tx,
-          locked.get(lotId)!,
-          {
-            type: 'sale',
-            quantity: -quantity,
-            reason: 'Pedido recogido',
-            reference: orderId,
-            actorId: actor.userId,
-          },
-          { fromReserved: true },
+          allocations.map((a) => a.lotId),
         )
-      }
-      await tx
-        .update(orders)
-        .set({ status: 'Recogido', closedAt: now() })
-        .where(eq(orders.id, orderId))
-    },
-  )
+        for (const { lotId, quantity } of allocations) {
+          await appendMovement(
+            tx,
+            locked.get(lotId)!,
+            {
+              type: 'sale',
+              quantity: -quantity,
+              reason: 'Pedido recogido',
+              reference: orderId,
+              actorId: actor.userId,
+            },
+            { fromReserved: true },
+          )
+        }
+        await tx
+          .update(orders)
+          .set({ status: 'Recogido', closedAt: now() })
+          .where(eq(orders.id, orderId))
+      },
+    )
+    return { ...detail, payment: receipt! }
+  } catch (error) {
+    if (error instanceof CreditAuthorizationRequired && error.request) {
+      await requestCreditAuthorization(error.request)
+    }
+    throw error
+  }
+}
