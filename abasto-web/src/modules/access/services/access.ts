@@ -41,11 +41,18 @@ export async function requireActor(headers: Headers): Promise<Actor> {
   }
 }
 
-async function insertUser(
-  executor: Executor,
+type PreparedUser = {
+  name: string
+  email: string
+  role: UserRole
+  passwordHash: string
+}
+
+/** Validates and hashes outside any transaction: hashing is slow CPU work. */
+async function prepareUser(
   input: NewUserInput,
   role: UserRole,
-) {
+): Promise<PreparedUser> {
   const name = input.name.trim()
   const email = input.email.trim().toLowerCase()
   if (!name || !email.includes('@')) {
@@ -58,7 +65,12 @@ async function insertUser(
     )
   }
   const context = await auth.$context
-  const password = await context.password.hash(input.password)
+  const passwordHash = await context.password.hash(input.password)
+  return { name, email, role, passwordHash }
+}
+
+async function insertUser(executor: Executor, prepared: PreparedUser) {
+  const { name, email, role, passwordHash } = prepared
   const id = crypto.randomUUID()
   try {
     const [created] = await executor
@@ -70,7 +82,7 @@ async function insertUser(
       accountId: id,
       providerId: 'credential',
       userId: id,
-      password,
+      password: passwordHash,
     })
     return created
   } catch (error) {
@@ -83,6 +95,7 @@ async function insertUser(
 
 /** Creates the first owner. Run once, from the `auth:create-owner` script. */
 export async function bootstrapOwner(input: NewUserInput) {
+  const prepared = await prepareUser(input, 'owner')
   return db.transaction(async (tx) => {
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext('bootstrap-owner'))`,
@@ -95,14 +108,15 @@ export async function bootstrapOwner(input: NewUserInput) {
     if (owners.length) {
       throw new AppError('conflict', 'Ya existe un dueño registrado.')
     }
-    return insertUser(tx, input, 'owner')
+    return insertUser(tx, prepared)
   })
 }
 
 /** The owner creates a staff account; access comes from warehouse assignments. */
 export async function createStaffUser(actor: Actor, input: NewUserInput) {
   authorize(actor, 'users.manage')
-  return db.transaction((tx) => insertUser(tx, input, 'staff'))
+  const prepared = await prepareUser(input, 'staff')
+  return db.transaction((tx) => insertUser(tx, prepared))
 }
 
 /** Grants (or changes) a user's role in one warehouse. */
