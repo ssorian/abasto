@@ -1,12 +1,13 @@
-import { businessDate } from '#/lib/utils/format'
-import { unregistered } from '#/modules/reports/lib/constants'
-import { eventAmounts } from '#/modules/reports/lib/sales'
-
 import type {
   AgingRow,
-  LossRow,
-  SaleEvent,
+  CashCutRow,
+  LotAlertRow,
+  LowStockRow,
+  ProductSalesRow,
+  SalesDimension,
+  SalesRow,
 } from '#/modules/reports/types/reports'
+import { marginPercent } from '#/modules/reports/lib/margin'
 
 type Cell = string | number | null | undefined
 
@@ -25,125 +26,152 @@ export function buildCsv(headings: Array<string>, rows: Array<Array<Cell>>) {
   return `\uFEFF${[headings, ...rows].map((row) => row.map(cell).join(',')).join('\r\n')}`
 }
 
-const cents = (value: number) => (value / 100).toFixed(2)
+/** Integer cents as an exact decimal string: -1005 → "-10.05". */
+export function centsToDecimal(cents: number) {
+  const abs = Math.abs(cents)
+  const text = `${Math.trunc(abs / 100)}.${String(abs % 100).padStart(2, '0')}`
+  return cents < 0 ? `-${text}` : text
+}
 
-export function salesCsv(rows: ReadonlyArray<SaleEvent>) {
+const percentText = (margin: number, revenue: number) => {
+  const value = marginPercent(margin, revenue)
+  return value === null ? '' : value.toFixed(2)
+}
+
+const dimensionHeading: Record<SalesDimension, string> = {
+  day: 'Día',
+  product: 'Producto',
+  customer: 'Cliente',
+  warehouse: 'Almacén',
+}
+
+export function salesCsv(
+  dimension: SalesDimension,
+  rows: ReadonlyArray<SalesRow | ProductSalesRow>,
+) {
   return buildCsv(
     [
-      'Fecha (Ciudad de México)',
-      'Tipo',
-      'Pedido',
-      'Canal',
-      'Cliente',
-      'Promoción',
-      'Producto',
-      'SKU',
-      'Almacén',
-      'Recepción',
-      'Lote',
-      'Cantidad base',
-      'Unidad base',
-      'Presentación',
-      'Equivalencia',
-      'Costo por unidad base',
-      'Precio acordado',
-      'Precio neto',
-      'Descuento %',
-      'Venta neta',
-      'Costo neto',
-      'Utilidad bruta',
+      dimensionHeading[dimension],
+      'Pedidos',
+      'Unidades base',
+      'Ventas',
+      'Costo',
+      'Utilidad',
+      'Margen %',
     ],
-    rows.map((event) => {
-      const amounts = eventAmounts(event)
-      return [
-        businessDate(new Date(event.date)),
-        event.type,
-        event.orderId,
-        event.channel || unregistered,
-        event.customer || unregistered,
-        event.promotionName,
-        event.productName,
-        event.sku,
-        event.warehouse,
-        event.receiptId,
-        event.lot,
-        amounts.quantity,
-        event.unit,
-        event.presentationName || event.unit,
-        event.priceFactor || 1,
-        (event.unitCostCents / 100).toFixed(6),
-        cents(event.unitPriceCents),
-        cents(event.netUnitPriceCents),
-        event.discountPct,
-        cents(amounts.net),
-        cents(amounts.cost),
-        cents(amounts.profit),
-      ]
-    }),
+    rows.map((row) => [
+      row.name,
+      row.orders,
+      row.units,
+      centsToDecimal(row.revenueCents),
+      centsToDecimal(row.costCents),
+      centsToDecimal(row.marginCents),
+      percentText(row.marginCents, row.revenueCents),
+    ]),
   )
 }
 
-export function lossesCsv(rows: ReadonlyArray<LossRow>) {
+const dateTime = (date: Date | null) =>
+  date ? date.toISOString().replace('T', ' ').slice(0, 16) : ''
+
+export function cashCutsCsv(rows: ReadonlyArray<CashCutRow>) {
   return buildCsv(
     [
-      'Fecha CDMX',
-      'Referencia',
-      'SKU',
-      'Producto',
       'Almacén',
-      'Lote',
-      'Motivo',
-      'Cantidad base',
-      'Unidad',
-      'Costo histórico de baja',
-      'Responsable',
-      'Nota',
+      'Estado',
+      'Apertura',
+      'Cierre',
+      'Abrió',
+      'Cerró',
+      'Fondo inicial',
+      'Ventas en efectivo',
+      'Abonos',
+      'Entradas',
+      'Retiros',
+      'Esperado',
+      'Contado',
+      'Diferencia',
     ],
     rows.map((row) => [
-      row.date,
-      row.ref,
+      row.warehouseName,
+      row.status === 'open' ? 'Abierta' : 'Cerrada',
+      dateTime(row.openedAt),
+      dateTime(row.closedAt),
+      row.openedByName,
+      row.closedByName,
+      centsToDecimal(row.openingCents),
+      centsToDecimal(row.salesCents),
+      centsToDecimal(row.abonosCents),
+      centsToDecimal(row.entriesCents),
+      centsToDecimal(row.withdrawalsCents),
+      centsToDecimal(row.expectedCents),
+      row.countedCents === null ? '' : centsToDecimal(row.countedCents),
+      row.differenceCents === null ? '' : centsToDecimal(row.differenceCents),
+    ]),
+  )
+}
+
+export function lowStockCsv(rows: ReadonlyArray<LowStockRow>) {
+  return buildCsv(
+    ['Almacén', 'SKU', 'Producto', 'Disponible', 'Mínimo', 'Faltan', 'Unidad'],
+    rows.map((row) => [
+      row.warehouseName,
       row.sku,
       row.name,
-      row.warehouse,
-      row.lot,
-      row.reason,
-      row.quantity,
+      row.available,
+      row.minimum,
+      row.missing,
       row.unit,
-      cents(row.costCents),
-      row.actor,
-      row.note,
+    ]),
+  )
+}
+
+export function lotsCsv(rows: ReadonlyArray<LotAlertRow>) {
+  return buildCsv(
+    [
+      'Almacén',
+      'SKU',
+      'Producto',
+      'Lote',
+      'Caduca',
+      'Días',
+      'Existencia',
+      'Apartado',
+      'Unidad',
+      'Valor al costo',
+    ],
+    rows.map((row) => [
+      row.warehouseName,
+      row.sku,
+      row.name,
+      row.lotCode,
+      row.expiresOn,
+      row.daysLeft,
+      row.onHand,
+      row.reserved,
+      row.unit,
+      centsToDecimal(row.valueCents),
     ]),
   )
 }
 
 export function agingCsv(rows: ReadonlyArray<AgingRow>) {
-  const today = businessDate()
   return buildCsv(
     [
-      'Consulta al',
-      'SKU',
-      'Producto',
-      'Almacén',
-      'Existencia base',
-      'Unidad',
-      'Valor al costo',
-      'Última venta registrada',
-      'Primera entrada conocida',
-      'Días desde venta o entrada',
-      'Sin ventas registradas',
+      'Cliente',
+      'Al corriente',
+      '1-30 días',
+      '31-60 días',
+      'Más de 60 días',
+      'Saldo total',
     ],
     rows.map((row) => [
-      today,
-      row.sku,
       row.name,
-      row.warehouse,
-      row.quantity,
-      row.unit,
-      cents(row.valueCents),
-      row.lastSale,
-      row.firstKnown,
-      row.days,
-      row.lastSale ? 'No' : 'Sí',
+      centsToDecimal(row.currentCents),
+      centsToDecimal(row.days1to30Cents),
+      centsToDecimal(row.days31to60Cents),
+      centsToDecimal(row.over60Cents),
+      centsToDecimal(row.totalCents),
     ]),
   )
 }

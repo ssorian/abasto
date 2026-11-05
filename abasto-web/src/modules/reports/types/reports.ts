@@ -1,181 +1,140 @@
-import type { WarehouseName } from '#/shared/demo/types'
+/** Shapes shared by the report services, CSV builders and screens. Money is integer cents. */
 
-export type PeriodMode = 'daily' | 'weekly' | 'monthly'
+export type PeriodPreset = 'today' | '7' | '30' | 'custom'
 
+/** Period asked by the user; `from` and `to` (YYYY-MM-DD) matter for `custom` only. */
+export type PeriodInput = { preset: PeriodPreset; from?: string; to?: string }
+
+/** Business dates (America/Mexico_City), both included. */
 export type DateRange = { from: string; to: string }
 
-export type SaleType = 'Venta' | 'Devolución'
+export type ReportWarehouse = { id: string; name: string }
 
-/** One delivered sale (or return) with the price and cost frozen at that moment. */
-export type SaleEvent = {
-  id: string
-  type: SaleType
-  orderId: string
-  channel: string
-  customer: string
-  promotionName: string
-  productId: string
-  productName: string
-  sku: string
-  /** Base unit used to show quantities, e.g. "piezas". */
-  unit: string
-  warehouse: WarehouseName
-  receiptId: string
-  lot: string
-  /** Quantity in base units, always positive. */
-  quantity: number
-  presentationName: string
-  /** Base units per presentation. */
-  priceFactor: number
-  /** Cost of one base unit in MXN cents (may carry decimals). */
-  unitCostCents: number
-  /** Agreed price per presentation in MXN cents. */
-  unitPriceCents: number
-  /** Price per presentation after discount, in MXN cents. */
-  netUnitPriceCents: number
-  discountPct: number
-  grossCents: number
-  netCents: number
-  costCents: number
-  /** ISO timestamp. */
-  date: string
-}
-
-/** Signed amounts of an event: returns subtract. All values are MXN cents. */
-export type EventAmounts = {
-  gross: number
-  discount: number
-  net: number
-  cost: number
-  profit: number
-  refund: number
-  quantity: number
-}
-
-export type SalesSummary = {
-  gross: number
-  discount: number
-  net: number
-  cost: number
-  profit: number
-  refund: number
-  /** Percentage over net sales; null when net sales are not positive. */
-  margin: number | null
+export type SalesTotals = {
   orders: number
-  returns: number
+  /** Base units sold. */
+  units: number
+  revenueCents: number
+  costCents: number
+  marginCents: number
 }
 
-export type GroupMode = 'product' | 'lot' | 'warehouse' | 'channel'
-
-export type SalesGroup = {
+export type SalesRow = SalesTotals & {
+  /** Day, product id, customer id or warehouse id. */
   key: string
   name: string
-  rows: Array<SaleEvent>
-  summary: SalesSummary
-  /** Net quantity per unit, e.g. "432 piezas". */
-  units: string
 }
 
-export type Reconciliation = {
-  beforeDiscounts: number
-  discounts: number
-  refunds: number
+export type ProductSalesRow = SalesRow & { sku: string; unit: string }
+
+export type SalesReport = {
+  range: DateRange
+  warehouses: Array<ReportWarehouse>
+  summary: SalesTotals
+  byDay: Array<SalesRow>
+  byProduct: Array<ProductSalesRow>
+  byCustomer: Array<SalesRow>
+  byWarehouse: Array<SalesRow>
 }
 
-/** One layer of stock inside a warehouse. */
-export type StockLayer = {
-  quantity: number
-  /** Cost of one base unit in MXN cents (may carry decimals). */
-  unitCostCents: number
-  /** Business date (YYYY-MM-DD). */
-  receivedDate: string
-  expiryDate: string | null
-  blocked: boolean
+export type SalesDimension = 'day' | 'product' | 'customer' | 'warehouse'
+
+export type CashCutRow = {
+  sessionId: string
+  warehouseId: string
+  warehouseName: string
+  status: 'open' | 'closed'
+  openedAt: Date
+  closedAt: Date | null
+  openedByName: string
+  closedByName: string | null
+  openingCents: number
+  salesCents: number
+  abonosCents: number
+  entriesCents: number
+  /** Cash taken out, as a positive amount. */
+  withdrawalsCents: number
+  /** Stored at close; running value while the drawer is open. */
+  expectedCents: number
+  countedCents: number | null
+  /** Counted − expected; null while open. */
+  differenceCents: number | null
 }
 
-export type StockPosition = {
-  productId: string
-  warehouse: WarehouseName
-  reserved: number
-  layers: Array<StockLayer>
-  /** Business dates of the receipts known for this product and warehouse. */
-  entryDates: Array<string>
+export type CashCutTotals = {
+  sessions: number
+  salesCents: number
+  expectedCents: number
+  /** Closed sessions only. */
+  countedCents: number
+  differenceCents: number
 }
 
-export type LossReason =
-  | 'Merma'
-  | 'Producto dañado'
-  | 'Caducidad'
-  | 'Pérdida'
-  | 'Diferencia de inventario'
-  | 'Faltante en traslado'
-  | 'Otras salidas manuales'
-
-export type LossMovementType =
-  'Faltante en traslado' | 'Ajuste negativo' | 'Salida manual' | 'Otro'
-
-/** Inventory movement that may represent a loss; it comes from the inventory ledger. */
-export type LossMovement = {
-  id: string
-  ref: string
-  type: LossMovementType
-  /** Signed base units; negative when stock leaves. */
-  quantity: number
-  /** ISO timestamp. */
-  date: string
-  productId: string
-  warehouse: WarehouseName
-  note: string
-  actor: string
-  lots: Array<{ lot: string; quantity: number; unitCostCents: number }>
+export type CashCuts = {
+  range: DateRange
+  warehouses: Array<ReportWarehouse>
+  rows: Array<CashCutRow>
+  totals: CashCutTotals
 }
 
-export type LossRow = {
-  id: string
-  date: string
-  ref: string
+export type LowStockRow = {
+  warehouseId: string
+  warehouseName: string
   productId: string
   name: string
   sku: string
-  warehouse: WarehouseName
   unit: string
-  reason: LossReason
-  note: string
-  actor: string
-  lot: string
-  quantity: number
-  /** Historical cost in MXN cents. */
-  costCents: number
+  available: number
+  minimum: number
+  missing: number
+}
+
+export type LotAlertRow = {
+  lotId: string
+  warehouseId: string
+  warehouseName: string
+  productId: string
+  name: string
+  sku: string
+  unit: string
+  lotCode: string
+  expiresOn: string
+  /** Negative once expired. */
+  daysLeft: number
+  onHand: number
+  /** Units held by open orders. */
+  reserved: number
+  /** On-hand units at the lot's own unit cost, rounded once. */
+  valueCents: number
+}
+
+export type StockAlerts = {
+  warehouses: Array<ReportWarehouse>
+  expiringDays: number
+  lowStock: Array<LowStockRow>
+  expiring: Array<LotAlertRow>
+  expired: Array<LotAlertRow>
 }
 
 export type AgingRow = {
-  productId: string
+  customerId: string
   name: string
-  sku: string
-  warehouse: WarehouseName
-  unit: string
-  quantity: number
-  reserved: number
-  valueCents: number
-  lastSale: string | null
-  firstKnown: string | null
-  days: number | null
-  blockedValueCents: number
-  expiringValueCents: number
+  /** Not yet due. */
+  currentCents: number
+  days1to30Cents: number
+  days31to60Cents: number
+  over60Cents: number
+  totalCents: number
 }
 
-/** A line of the sensitive-operation review shown before loading the samples. */
-export type ReviewChange = { entity: string; detail: string }
-
-export type SampleReview = {
-  risks: Array<string>
-  changes: Array<ReviewChange>
+export type AgingTotals = Omit<AgingRow, 'customerId' | 'name'> & {
+  customers: number
 }
 
-/** Everything the sample-sales action adds to the module state. */
-export type SampleScenario = {
-  sales: Array<SaleEvent>
-  /** Replacement stock position of the warehouse that received the samples. */
-  position: StockPosition
-  review: SampleReview
+export type ReceivablesAging = {
+  asOf: string
+  rows: Array<AgingRow>
+  totals: AgingTotals
 }
+
+export type ReportTab = 'ventas' | 'cajas' | 'inventario' | 'cartera'

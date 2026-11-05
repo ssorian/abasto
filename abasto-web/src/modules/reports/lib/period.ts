@@ -1,70 +1,48 @@
-import { businessDate } from '#/lib/utils/format'
-
-import type { DateRange, PeriodMode } from '#/modules/reports/types/reports'
+import { AppError } from '#/lib/errors'
+import type { DateRange, PeriodInput } from '#/modules/reports/types/reports'
 
 const DAY_MS = 86_400_000
+const MAX_DAYS = 366
 
-/** Parses a business date at noon UTC so day arithmetic never crosses a boundary. */
+/** Noon UTC, so day arithmetic never crosses a boundary. */
 const parse = (date: string) => new Date(`${date}T12:00:00Z`)
-const toIso = (date: Date) => date.toISOString().slice(0, 10)
 
-export function isValidDate(date: string) {
-  return Number.isFinite(parse(date).getTime())
+/** A real calendar date written as YYYY-MM-DD. */
+export function isBusinessDate(date: string | undefined): date is string {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false
+  return parse(date).toISOString().slice(0, 10) === date
 }
 
 export function addDays(date: string, days: number) {
   const next = parse(date)
   next.setUTCDate(next.getUTCDate() + days)
-  return toIso(next)
+  return next.toISOString().slice(0, 10)
 }
 
-/** Whole days between two business dates, never negative. */
-export function dayDistance(from: string, to: string) {
-  return Math.max(
-    0,
-    Math.floor((parse(to).getTime() - parse(from).getTime()) / DAY_MS),
-  )
-}
+/** Signed whole days from `from` to `to`. */
+export const daysBetween = (from: string, to: string) =>
+  Math.round((parse(to).getTime() - parse(from).getTime()) / DAY_MS)
 
-/** Day, Monday-to-Sunday week or calendar month that contains the reference date. */
-export function periodRange(mode: PeriodMode, reference: string): DateRange {
-  const start = parse(isValidDate(reference) ? reference : businessDate())
-  let end = new Date(start)
-
-  if (mode === 'weekly') {
-    start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7))
-    end = new Date(start)
-    end.setUTCDate(start.getUTCDate() + 6)
+/** Business-date range of a period; `today` is the current business day. */
+export function resolvePeriod(period: PeriodInput, today: string): DateRange {
+  if (period.preset === 'today') return { from: today, to: today }
+  if (period.preset === '7') return { from: addDays(today, -6), to: today }
+  if (period.preset === '30') return { from: addDays(today, -29), to: today }
+  const { from, to } = period
+  if (!isBusinessDate(from) || !isBusinessDate(to)) {
+    throw new AppError('invalid', 'Elige fechas válidas para el periodo.')
   }
-
-  if (mode === 'monthly') {
-    start.setUTCDate(1)
-    end = new Date(
-      Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0, 12),
+  if (from > to) {
+    throw new AppError(
+      'invalid',
+      'La fecha inicial no puede ser posterior a la final.',
     )
   }
-
-  return { from: toIso(start), to: toIso(end) }
-}
-
-/** Moves the reference date one period back (-1) or forward (1). */
-export function shiftReference(
-  mode: PeriodMode,
-  reference: string,
-  amount: number,
-) {
-  const next = parse(reference)
-
-  if (mode === 'monthly') {
-    next.setUTCDate(1)
-    next.setUTCMonth(next.getUTCMonth() + amount)
-  } else {
-    next.setUTCDate(next.getUTCDate() + amount * (mode === 'weekly' ? 7 : 1))
+  if (daysBetween(from, to) >= MAX_DAYS) {
+    throw new AppError('invalid', 'El periodo no puede ser mayor a un año.')
   }
-
-  return toIso(next)
+  return { from, to }
 }
 
-export function rangeLabel(range: DateRange) {
-  return range.from === range.to ? range.from : `${range.from} al ${range.to}`
-}
+export const rangeLabel = (range: DateRange) =>
+  range.from === range.to ? range.from : `${range.from} al ${range.to}`

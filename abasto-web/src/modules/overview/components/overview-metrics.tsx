@@ -1,4 +1,4 @@
-import type { OverviewMetric } from '#/modules/overview/lib/overview-fixtures'
+export type OverviewMetric = { label: string; value: string }
 
 export function OverviewMetrics({
   metrics,

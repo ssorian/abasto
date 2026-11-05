@@ -1,10 +1,15 @@
+import { Link } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+
+export type PanelTarget = '/mostrador' | '/inventario' | '/cobros' | '/reportes'
 
 type HomePanelProps = {
   title: string
   icon: LucideIcon
   actionLabel: string
+  /** Screen the action link opens. */
+  to: PanelTarget
   emptyMessage: string
   children?: ReactNode
 }
@@ -14,6 +19,7 @@ export function HomePanel({
   title,
   icon: Icon,
   actionLabel,
+  to,
   emptyMessage,
   children,
 }: HomePanelProps) {
@@ -27,12 +33,12 @@ export function HomePanel({
           <Icon size={19} />
           {title}
         </h3>
-        <button
-          type="button"
+        <Link
+          to={to}
           className="inline-flex items-center gap-[7px] text-[11px] font-[650] whitespace-nowrap text-ink-link hover:underline"
         >
           {actionLabel}
-        </button>
+        </Link>
       </div>
       {isEmpty ? (
         <p className="mt-3 mb-5 text-sm leading-[1.8] text-ink-subtle">

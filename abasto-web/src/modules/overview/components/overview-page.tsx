@@ -1,10 +1,4 @@
-import {
-  Boxes,
-  RotateCcwClock,
-  TriangleAlert,
-  Truck,
-  Wallet,
-} from 'lucide-react'
+import { Boxes, TriangleAlert, Truck, Wallet } from 'lucide-react'
 
 import { PageHeading } from '#/components/page-heading'
 import { StatusBadge } from '#/components/status-badge'
@@ -15,19 +9,21 @@ import {
 } from '#/modules/overview/components/home-panel'
 import { OverviewHero } from '#/modules/overview/components/overview-hero'
 import { OverviewMetrics } from '#/modules/overview/components/overview-metrics'
-import {
-  expiringLots,
-  openCashRegisters,
-  overdueCollections,
-  overviewMetrics,
-  pendingOrders,
-  recentActivity,
-  restockItems,
-} from '#/modules/overview/lib/overview-fixtures'
+import { metricsOf } from '#/modules/overview/lib/overview-metrics'
+import type { Overview } from '#/modules/overview/types/overview'
+import { formatCents } from '#/modules/pricing/lib/money'
 
 const rowStatus = 'text-[10px] max-md:max-w-[110px] max-md:whitespace-normal'
 
-export function OverviewPage() {
+const daysText = (days: number) =>
+  days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `En ${days} días`
+
+export function OverviewPage({ overview }: { overview: Overview }) {
+  const { warehouses, totals } = overview
+  const managesMoney = totals.salesCents !== undefined
+  const showsCredit =
+    overview.overdueCents !== null || overview.pendingAuthorizations !== null
+
   return (
     <>
       <PageHeading
@@ -36,123 +32,170 @@ export function OverviewPage() {
         description="Una vista del día para decidir qué atender primero."
       />
 
-      <OverviewHero />
-      <OverviewMetrics metrics={overviewMetrics} />
+      <OverviewHero today={overview.today} />
+      <OverviewMetrics metrics={metricsOf(overview)} />
 
-      <div className="mt-6 grid grid-cols-1 gap-5 panels:grid-cols-2">
-        <HomePanel
-          title="Cajas abiertas"
-          icon={Wallet}
-          actionLabel="Ver caja"
-          emptyMessage="No hay turnos abiertos. Abre caja para comenzar la venta en mostrador."
-        >
-          {openCashRegisters.map((register) => (
-            <HomeRow
-              key={register.name}
-              title={register.name}
-              detail={register.detail}
-              aside={<HomeRowFigure>{register.amount}</HomeRowFigure>}
-            />
-          ))}
-        </HomePanel>
+      {warehouses.length === 0 ? (
+        <p className="text-sm text-ink-muted">
+          Aún no tienes almacenes asignados.
+        </p>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-5 panels:grid-cols-2">
+          <HomePanel
+            title="Cajas"
+            icon={Wallet}
+            actionLabel="Ver caja"
+            to="/mostrador"
+            emptyMessage="No hay almacenes."
+          >
+            {warehouses.map((item) => (
+              <HomeRow
+                key={item.id}
+                title={item.name}
+                detail={
+                  item.drawerOpen
+                    ? 'Turno abierto'
+                    : 'Abre la caja para cobrar en mostrador'
+                }
+                aside={
+                  <StatusBadge
+                    tone={item.drawerOpen ? 'green' : 'gray'}
+                    className={rowStatus}
+                  >
+                    {item.drawerOpen ? 'Abierta' : 'Cerrada'}
+                  </StatusBadge>
+                }
+              />
+            ))}
+          </HomePanel>
 
-        <HomePanel
-          title="Ventas y entregas"
-          icon={Truck}
-          actionLabel="Dar seguimiento"
-          emptyMessage="No hay operaciones pendientes."
-        >
-          {pendingOrders.map((order) => (
-            <HomeRow
-              key={order.folio}
-              title={order.customer}
-              detail={`${order.folio} · ${order.warehouse}`}
-              aside={
-                <StatusBadge tone={order.tone} className={rowStatus}>
-                  {order.status}
-                </StatusBadge>
-              }
-            />
-          ))}
-        </HomePanel>
+          <HomePanel
+            title="Pedidos y entregas"
+            icon={Truck}
+            actionLabel="Ir a mostrador"
+            to="/mostrador"
+            emptyMessage="No hay pedidos abiertos."
+          >
+            {warehouses.map((item) => (
+              <HomeRow
+                key={item.id}
+                title={item.name}
+                detail={`${item.expiringTodayOrders} vencen hoy · ${item.pickedUpToday} entregados hoy`}
+                aside={
+                  <HomeRowFigure>{item.openOrders} abiertos</HomeRowFigure>
+                }
+              />
+            ))}
+          </HomePanel>
 
-        <HomePanel
-          title="Caducidades próximas"
-          icon={TriangleAlert}
-          actionLabel="Ver inventario"
-          emptyMessage="No hay lotes que venzan en los próximos 30 días."
-        >
-          {expiringLots.map((lot) => (
-            <HomeRow
-              key={`${lot.warehouse}-${lot.lot}`}
-              title={lot.product}
-              detail={`${lot.warehouse} · ${lot.lot} · ${lot.expiresOn}`}
-              aside={
-                <StatusBadge tone={lot.tone} className={rowStatus}>
-                  {lot.status}
-                </StatusBadge>
-              }
-            />
-          ))}
-        </HomePanel>
+          <HomePanel
+            title="Caducidades próximas"
+            icon={TriangleAlert}
+            actionLabel="Ver inventario"
+            to="/inventario"
+            emptyMessage="No hay lotes que caduquen en los próximos 7 días."
+          >
+            {overview.expiring.map((lot) => (
+              <HomeRow
+                key={`${lot.warehouseName}-${lot.name}-${lot.lotCode}-${lot.expiresOn}`}
+                title={lot.name}
+                detail={`${lot.warehouseName} · ${lot.lotCode || 'sin lote'} · ${lot.expiresOn} · ${lot.onHand} ${lot.unit}`}
+                aside={
+                  <StatusBadge
+                    tone={lot.daysLeft <= 1 ? 'red' : 'amber'}
+                    className={rowStatus}
+                  >
+                    {daysText(lot.daysLeft)}
+                  </StatusBadge>
+                }
+              />
+            ))}
+          </HomePanel>
 
-        <HomePanel
-          title="Reposición de inventario"
-          icon={Boxes}
-          actionLabel="Ver existencias"
-          emptyMessage="Los productos con existencias están sobre su mínimo."
-        >
-          {restockItems.map((item) => (
-            <HomeRow
-              key={`${item.warehouse}-${item.product}`}
-              title={item.product}
-              detail={`${item.warehouse} · Mínimo ${item.minimum} ${item.unit}`}
-              aside={
-                <HomeRowFigure>
-                  {item.stock} {item.unit}
-                </HomeRowFigure>
-              }
-            />
-          ))}
-        </HomePanel>
+          <HomePanel
+            title="Reposición de inventario"
+            icon={Boxes}
+            actionLabel="Ver existencias"
+            to="/inventario"
+            emptyMessage="Los productos con mínimo están cubiertos."
+          >
+            {overview.lowStock.map((item) => (
+              <HomeRow
+                key={`${item.warehouseName}-${item.name}`}
+                title={item.name}
+                detail={`${item.warehouseName} · Mínimo ${item.minimum} ${item.unit}`}
+                aside={
+                  <HomeRowFigure>
+                    {item.available} {item.unit}
+                  </HomeRowFigure>
+                }
+              />
+            ))}
+          </HomePanel>
 
-        <HomePanel
-          title="Cobros vencidos"
-          icon={Wallet}
-          actionLabel="Ver cartera"
-          emptyMessage="No hay crédito vencido registrado."
-        >
-          {overdueCollections.map((collection) => (
-            <HomeRow
-              key={collection.customer}
-              title={collection.customer}
-              detail={collection.detail}
-              aside={<HomeRowFigure>{collection.amount}</HomeRowFigure>}
-            />
-          ))}
-        </HomePanel>
+          {managesMoney && (
+            <HomePanel
+              title="Ventas de hoy"
+              icon={Wallet}
+              actionLabel="Ver reportes"
+              to="/reportes"
+              emptyMessage="Aún no hay ventas hoy."
+            >
+              {warehouses
+                .filter((item) => item.salesCents !== undefined)
+                .map((item) => (
+                  <HomeRow
+                    key={item.id}
+                    title={item.name}
+                    detail={`Utilidad bruta ${formatCents(item.marginCents ?? 0)}`}
+                    aside={
+                      <HomeRowFigure>
+                        {formatCents(item.salesCents ?? 0)}
+                      </HomeRowFigure>
+                    }
+                  />
+                ))}
+            </HomePanel>
+          )}
 
-        <HomePanel
-          title="Actividad reciente"
-          icon={RotateCcwClock}
-          actionLabel="Ver bitácora"
-          emptyMessage="Las nuevas operaciones aparecerán aquí con su responsable."
-        >
-          {recentActivity.map((activity) => (
-            <HomeRow
-              key={activity.title}
-              title={activity.title}
-              detail={activity.detail}
-              aside={null}
-            />
-          ))}
-        </HomePanel>
-      </div>
+          {showsCredit && (
+            <HomePanel
+              title="Crédito"
+              icon={Wallet}
+              actionLabel="Ver cobros"
+              to="/cobros"
+              emptyMessage="No hay crédito vencido ni autorizaciones pendientes."
+            >
+              {overview.pendingAuthorizations !== null && (
+                <HomeRow
+                  title="Autorizaciones pendientes"
+                  detail="Pedidos a crédito que esperan tu decisión"
+                  aside={
+                    <HomeRowFigure>
+                      {overview.pendingAuthorizations}
+                    </HomeRowFigure>
+                  }
+                />
+              )}
+              {overview.overdueCents !== null && (
+                <HomeRow
+                  title="Crédito vencido"
+                  detail="Saldo atrasado de todos los clientes"
+                  aside={
+                    <HomeRowFigure>
+                      {formatCents(overview.overdueCents)}
+                    </HomeRowFigure>
+                  }
+                />
+              )}
+            </HomePanel>
+          )}
+        </div>
+      )}
 
       <p className="mt-[25px] max-w-[950px] text-[11px] leading-[1.8] text-ink-footnote">
-        Hoy se calcula con la fecha de Ciudad de México. Venta entregada y
-        dinero cobrado son indicadores diferentes; una venta a crédito puede
-        tener cobros en fechas posteriores.
+        Hoy se calcula con la fecha de Ciudad de México. Las ventas cuentan los
+        pedidos entregados hoy; una venta a crédito se cobra después.
       </p>
     </>
   )
