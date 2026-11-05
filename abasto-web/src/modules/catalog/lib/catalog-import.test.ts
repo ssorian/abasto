@@ -55,6 +55,7 @@ describe('CSV row → createProduct input', () => {
         name: 'N',
         brand: '',
         description: '',
+        imageUrl: null,
         category: 'Bebidas',
         unit: 'cajas',
         supplierId: null,

@@ -13,6 +13,7 @@ const product: CatalogProduct = {
   name: 'A',
   brand: '',
   description: '',
+  imageUrl: null,
   category: 'Bebidas',
   unit: 'piezas',
   supplierId: null,

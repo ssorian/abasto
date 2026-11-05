@@ -20,6 +20,8 @@ beforeEach(() => resetDatabase(db))
 const forbidden = 'No tienes permiso para esta acción.'
 const requiredMessage =
   'Completa nombre, SKU, presentación, unidad y categoría.'
+const imageMessage =
+  'La imagen debe ser una URL que empiece con http:// o https://.'
 
 const base = {
   name: 'Leche entera 1L',
@@ -75,6 +77,50 @@ describe('createProduct', () => {
     )
     expect(error.code).toBe('invalid')
     expect(error.message).toBe(requiredMessage)
+    expect(await counts()).toEqual({
+      suppliers: 0,
+      products: 0,
+      presentations: 0,
+    })
+  })
+
+  test('stores a trimmed image URL and treats a blank one as none', async () => {
+    const { owner, staff } = await setupActors()
+    const url = 'https://cdn.example.com/leche.png'
+    const withImage = await createProduct(owner, {
+      ...base,
+      imageUrl: `  ${url} `,
+    })
+    expect(withImage.imageUrl).toBe(url)
+    expect((await getProduct(staff, withImage.id)).imageUrl).toBe(url)
+    const blank = await createProduct(owner, {
+      ...base,
+      sku: 'LEC-002',
+      presentations: [{ name: 'Pieza', factor: 1 }],
+      defaultIndex: 0,
+      imageUrl: '  ',
+    })
+    expect(blank.imageUrl).toBeNull()
+    const omitted = await createProduct(owner, {
+      ...base,
+      sku: 'LEC-003',
+      presentations: [{ name: 'Pieza', factor: 1 }],
+      defaultIndex: 0,
+    })
+    expect(omitted.imageUrl).toBeNull()
+  })
+
+  test.each([
+    ['not a URL', 'leche.png'],
+    ['another scheme', 'ftp://cdn.example.com/leche.png'],
+    ['a script', 'javascript:alert(1)'],
+  ])('rejects an image URL that is %s', async (_case, imageUrl) => {
+    const { owner } = await setupActors()
+    const error = await errorOf(() =>
+      createProduct(owner, { ...base, imageUrl }),
+    )
+    expect(error.code).toBe('invalid')
+    expect(error.message).toBe(imageMessage)
     expect(await counts()).toEqual({
       suppliers: 0,
       products: 0,
@@ -201,6 +247,31 @@ describe('updateProduct', () => {
     expect(await getProduct(owner, product.id)).toEqual(updated)
     const cleared = await updateProduct(owner, product.id, { supplierId: null })
     expect(cleared.supplierId).toBeNull()
+  })
+
+  test('sets, rejects and clears the image URL', async () => {
+    const { owner } = await setupActors()
+    const product = await createProduct(owner, base)
+    const url = 'http://cdn.example.com/leche.png'
+    const withImage = await updateProduct(owner, product.id, { imageUrl: url })
+    expect(withImage.imageUrl).toBe(url)
+    const error = await errorOf(() =>
+      updateProduct(owner, product.id, {
+        imageUrl: 'data:image/png;base64,AA',
+      }),
+    )
+    expect(error.code).toBe('invalid')
+    expect(error.message).toBe(imageMessage)
+    expect(await getProduct(owner, product.id)).toEqual(withImage)
+    expect(
+      (await updateProduct(owner, product.id, { imageUrl: '' })).imageUrl,
+    ).toBeNull()
+    expect(
+      (await updateProduct(owner, product.id, { imageUrl: url })).imageUrl,
+    ).toBe(url)
+    expect(
+      (await updateProduct(owner, product.id, { imageUrl: null })).imageUrl,
+    ).toBeNull()
   })
 
   test("allows keeping its own SKU in another case, rejects another product's SKU", async () => {

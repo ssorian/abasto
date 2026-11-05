@@ -99,6 +99,13 @@
       "when": 1793848959397,
       "tag": "0013_ordering_clock",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793918348010,
+      "tag": "0014_product_image",
+      "breakpoints": true
     }
   ]
 }

@@ -36,11 +36,22 @@ export function CatalogCard({
   return (
     <article className="relative overflow-hidden rounded-xl border border-[#e2e7ee] bg-white shadow-[0_3px_5px_#14325202] transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[#ccd8e5] hover:shadow-[0_7px_22px_#1233570b]">
       <div className="relative m-[5px_5px_0] flex h-[162px] items-center justify-center overflow-hidden rounded-[7px] bg-[#f7f8fa] md:m-[7px_7px_0] md:h-[205px]">
-        <PackageIcon
-          aria-label={product.name}
-          strokeWidth={1}
-          className="m-auto h-[95px] w-[75px] text-[#91a8be]"
-        />
+        {product.imageUrl ? (
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            className="size-full object-contain p-4 mix-blend-multiply"
+          />
+        ) : (
+          <PackageIcon
+            aria-label={product.name}
+            strokeWidth={1}
+            className="m-auto h-[95px] w-[75px] text-[#91a8be]"
+          />
+        )}
         <span className="absolute top-[9px] right-[9px] flex items-center gap-1 rounded-[5px] bg-white px-1.5 py-1 text-xs text-[#345d8b] md:top-3 md:right-3">
           <CheckIcon size={12} />
           {product.published ? 'Publicado' : 'Pausado'}

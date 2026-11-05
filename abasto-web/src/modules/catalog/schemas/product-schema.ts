@@ -10,6 +10,7 @@ const productFields = z.object({
   unit: z.string(),
   brand: z.string().optional(),
   description: z.string().optional(),
+  imageUrl: z.string().nullish(),
   supplierId: z.string().nullish(),
   published: z.boolean().optional(),
 })

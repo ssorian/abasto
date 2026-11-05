@@ -85,6 +85,16 @@ export function ProductFormDialog({
           onChange={(event) => patch({ description: event.target.value })}
         />
       </Field>
+      <Field label="URL de la imagen">
+        <TextInput
+          aria-label="URL de la imagen"
+          type="url"
+          inputMode="url"
+          value={draft.imageUrl}
+          placeholder="https://… (opcional)"
+          onChange={(event) => patch({ imageUrl: event.target.value })}
+        />
+      </Field>
       <div className="grid grid-cols-1 gap-[15px] md:grid-cols-2">
         <Field label="Unidad base de inventario">
           <SelectInput

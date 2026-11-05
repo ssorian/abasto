@@ -14,6 +14,7 @@ const stored: CatalogProduct = {
   name: 'Leche entera',
   brand: 'Lala',
   description: '1 L',
+  imageUrl: 'https://cdn.example.com/leche.png',
   category: 'Lácteos',
   unit: 'piezas',
   supplierId: 's1',
@@ -58,10 +59,27 @@ describe('product draft ↔ service input', () => {
       sku: 'LEC-001',
       brand: 'Lala',
       description: '1 L',
+      imageUrl: 'https://cdn.example.com/leche.png',
       category: 'Lácteos',
       supplierId: 's1',
       published: false,
     })
+  })
+
+  test('a product without photo edits as an empty field; blank saves as none', () => {
+    const draft = draftFromProduct({ ...stored, imageUrl: null })
+    expect(draft.imageUrl).toBe('')
+    expect(productPatchFromDraft(draft).imageUrl).toBeNull()
+    expect(
+      productInputFromDraft({ ...emptyProductDraft(), imageUrl: '   ' })
+        .imageUrl,
+    ).toBeNull()
+    expect(
+      productInputFromDraft({
+        ...emptyProductDraft(),
+        imageUrl: ' https://cdn.example.com/a.png ',
+      }).imageUrl,
+    ).toBe('https://cdn.example.com/a.png')
   })
 
   test('a product without supplier edits as an empty select value', () => {

@@ -17,6 +17,8 @@ export type ProductDraft = {
   /** Barcode of the first (base-unit) presentation; only used when creating. */
   barcode: string
   description: string
+  /** Photo URL as typed; blank means no photo. */
+  imageUrl: string
   unit: string
   category: string
   /** Supplier id; empty means no supplier. */

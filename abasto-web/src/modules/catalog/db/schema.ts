@@ -34,6 +34,8 @@ export const products = pgTable(
     name: text('name').notNull(),
     brand: text('brand').notNull().default(''),
     description: text('description').notNull().default(''),
+    /** Absolute http(s) URL of the product photo; null shows a placeholder. */
+    imageUrl: text('image_url'),
     category: text('category').notNull(),
     /** Name of the base unit; quantities are stored in this unit. */
     unit: text('unit').notNull(),

@@ -28,6 +28,8 @@ export type ProductFields = {
   unit: string
   brand?: string
   description?: string
+  /** Absolute http(s) URL of the product photo; blank or null removes it. */
+  imageUrl?: string | null
   supplierId?: string | null
   published?: boolean
 }
@@ -42,6 +44,20 @@ const required = () =>
 
 const requiredKeys = ['name', 'sku', 'unit', 'category'] as const
 
+/** Blank means no photo; anything else must be an absolute http(s) URL. */
+function cleanedImageUrl(value: string | null): string | null {
+  const trimmed = value?.trim() ?? ''
+  if (!trimmed) return null
+  if (URL.canParse(trimmed)) {
+    const { protocol } = new URL(trimmed)
+    if (protocol === 'http:' || protocol === 'https:') return trimmed
+  }
+  throw new AppError(
+    'invalid',
+    'La imagen debe ser una URL que empiece con http:// o https://.',
+  )
+}
+
 function cleaned(input: ProductPatch): ProductPatch {
   const values: ProductPatch = {}
   for (const key of requiredKeys) {
@@ -52,6 +68,9 @@ function cleaned(input: ProductPatch): ProductPatch {
   if (input.brand !== undefined) values.brand = input.brand.trim()
   if (input.description !== undefined) {
     values.description = input.description.trim()
+  }
+  if (input.imageUrl !== undefined) {
+    values.imageUrl = cleanedImageUrl(input.imageUrl)
   }
   if (input.supplierId !== undefined) values.supplierId = input.supplierId
   if (input.published !== undefined) values.published = input.published
