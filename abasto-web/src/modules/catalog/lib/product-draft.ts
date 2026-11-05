@@ -1,13 +1,11 @@
-import {
-  catalogPriceCents,
-  defaultPresentation,
-  derivedPriceCents,
-} from '#/modules/catalog/lib/catalog-presentations'
-
 import type {
   CatalogProduct,
   ProductDraft,
 } from '#/modules/catalog/lib/catalog-types'
+import type {
+  ProductInput,
+  ProductPatch,
+} from '#/modules/catalog/services/products'
 
 export const emptyProductDraft = (): ProductDraft => ({
   name: '',
@@ -17,83 +15,48 @@ export const emptyProductDraft = (): ProductDraft => ({
   description: '',
   unit: 'piezas',
   category: 'Abarrotes',
-  price: '',
-  min: '0',
-  image: '',
-  published: false,
+  supplierId: '',
+  published: true,
 })
 
 export const draftFromProduct = (product: CatalogProduct): ProductDraft => ({
   name: product.name,
   brand: product.brand,
   sku: product.sku,
-  barcode: product.barcode,
+  barcode: '',
   description: product.description,
-  unit: product.baseUnit,
+  unit: product.unit,
   category: product.category,
-  price: String(catalogPriceCents(product) / 100),
-  min: '0',
-  image: product.image,
+  supplierId: product.supplierId ?? '',
   published: product.published,
 })
 
-/** Applies validated draft values to an existing product or builds a new one. */
-export function productFromDraft(
-  draft: ProductDraft,
-  priceCents: number,
-  previous: CatalogProduct | undefined,
-  newId: () => string,
-): CatalogProduct {
-  const common = {
-    name: draft.name.trim(),
-    brand: draft.brand.trim(),
-    sku: draft.sku.trim(),
-    barcode: draft.barcode.trim(),
-    description: draft.description.trim(),
-    category: draft.category,
-    image: draft.image,
-    published: draft.published,
-  }
+/** Fields shared by creating and editing; the server trims and validates them. */
+const fieldsFromDraft = (draft: ProductDraft) => ({
+  name: draft.name,
+  sku: draft.sku,
+  brand: draft.brand,
+  description: draft.description,
+  category: draft.category,
+  supplierId: draft.supplierId || null,
+  published: draft.published,
+})
 
-  if (!previous)
-    return {
-      ...common,
-      id: newId(),
-      baseUnit: draft.unit,
-      costCents: 0,
-      defaultPresentationId: 'unit',
-      presentations: [
-        {
-          id: 'unit',
-          name: draft.unit,
-          factor: 1,
-          priceCents,
-          barcode: common.barcode,
-          active: true,
-        },
-      ],
-    }
+/** New product: one active base-unit presentation (factor 1) that is the default. */
+export const productInputFromDraft = (draft: ProductDraft): ProductInput => ({
+  ...fieldsFromDraft(draft),
+  unit: draft.unit,
+  presentations: [
+    {
+      name: draft.unit,
+      factor: 1,
+      barcode: draft.barcode.trim() || null,
+      active: true,
+    },
+  ],
+  defaultIndex: 0,
+})
 
-  const current = defaultPresentation(previous)
-  const repriced = previous.presentations.map((presentation) =>
-    presentation.id === current?.id
-      ? { ...presentation, priceCents, barcode: common.barcode }
-      : presentation,
-  )
-  const next = { ...previous, ...common, presentations: repriced }
-
-  return {
-    ...next,
-    presentations: repriced.map((presentation) =>
-      // Presentations without a fixed price follow the catalog price.
-      presentation.id !== current?.id &&
-      presentation.priceCents ===
-        derivedPriceCents(previous, presentation.factor)
-        ? {
-            ...presentation,
-            priceCents: derivedPriceCents(next, presentation.factor),
-          }
-        : presentation,
-    ),
-  }
-}
+/** Edit: identity fields only. Unit and presentations are fixed or edited elsewhere. */
+export const productPatchFromDraft = (draft: ProductDraft): ProductPatch =>
+  fieldsFromDraft(draft)

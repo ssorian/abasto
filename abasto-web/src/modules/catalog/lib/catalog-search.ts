@@ -6,7 +6,7 @@ const normalize = (text: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
 
-/** Accent-insensitive match over name, brand, SKU and barcode. */
+/** Accent-insensitive match over name, brand, SKU and presentation barcodes. */
 export function filterCatalog(
   products: ReadonlyArray<CatalogProduct>,
   query: string,
@@ -14,7 +14,12 @@ export function filterCatalog(
   const needle = normalize(query)
   return products.filter((product) =>
     normalize(
-      `${product.name} ${product.brand} ${product.sku} ${product.barcode}`,
+      [
+        product.name,
+        product.brand,
+        product.sku,
+        ...product.presentations.map(({ barcode }) => barcode ?? ''),
+      ].join(' '),
     ).includes(needle),
   )
 }

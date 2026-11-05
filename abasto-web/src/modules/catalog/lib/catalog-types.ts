@@ -1,27 +1,48 @@
-import type { Presentation, Product } from '#/shared/demo/types'
+import type {
+  Presentation,
+  Product,
+} from '#/modules/catalog/services/product-reads'
+import type { Supplier } from '#/modules/catalog/services/suppliers'
 
-/** Catalog entry: a demo product plus whether it accepts new orders. */
-export type CatalogProduct = Product & { published: boolean }
+/** Catalog entry as the server returns it: product plus its presentations. */
+export type CatalogProduct = Product
+export type CatalogPresentation = Presentation
+export type CatalogSupplier = Supplier
 
-/** Form state of the product dialog; numeric inputs stay as typed text. */
+/** Form state of the product dialog; every input stays as typed text. */
 export type ProductDraft = {
   name: string
   brand: string
   sku: string
+  /** Barcode of the first (base-unit) presentation; only used when creating. */
   barcode: string
   description: string
   unit: string
   category: string
-  price: string
-  min: string
-  image: string
+  /** Supplier id; empty means no supplier. */
+  supplierId: string
   published: boolean
 }
 
-/** Editable row of the presentations dialog; blank price means "calculate from the lot". */
-export type PresentationDraft = Omit<Presentation, 'priceCents'> & {
-  /** Fixed price typed by the user; blank derives it from the catalog price. */
-  price: string
+/** Editable row of the presentations dialog. */
+export type PresentationDraft = {
+  /** Stable key for the UI; equals `id` for stored rows. */
+  key: string
+  /** Present only for rows that already exist on the server. */
+  id?: string
+  name: string
+  factor: number
+  barcode: string
+  active: boolean
+}
+
+/** Form state of the supplier dialog. */
+export type SupplierDraft = {
+  name: string
+  contact: string
+  phone: string
+  notes: string
+  active: boolean
 }
 
 export const baseUnits = ['cajas', 'piezas', 'bultos', 'paquetes'] as const
@@ -31,7 +52,3 @@ export const categories = [
   'Botanas',
   'Lácteos',
 ] as const
-
-/** Failure raised by the validators; the message is shown as a toast. */
-export type Validation<T> =
-  { ok: true; value: T } | { ok: false; message: string }

@@ -1,4 +1,5 @@
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
+import type { ProductInput } from '#/modules/catalog/services/products'
 import type {
   CatalogImportProduct,
   ImportReferenceProduct,
@@ -12,74 +13,37 @@ export function importReferenceProducts(
     id: product.id,
     sku: product.sku,
     name: product.name,
-    unit: product.baseUnit,
-    barcodes: [
-      product.barcode,
-      ...product.presentations.map(({ barcode }) => barcode),
-    ].filter(Boolean),
+    unit: product.unit,
+    barcodes: product.presentations.flatMap(({ barcode }) =>
+      barcode ? [barcode] : [],
+    ),
     presentations: product.presentations,
   }))
 }
 
 /**
- * Builds a new catalog product from one validated CSV row. Catalog imports
- * only add products; the dialog already rejects existing SKUs and barcodes.
+ * Input for `createProduct` from one validated CSV row. Prices and minimum
+ * stock are per warehouse, so `precio_venta` and `stock_minimo` are ignored.
  */
-export function productFromImport(
+export function productInputFromImport(
   row: CatalogImportProduct,
-  id: string,
-): CatalogProduct {
-  const packCents = Math.round(row.price * 100)
-  const common = {
-    id,
+): ProductInput {
+  const main = {
+    name: row.presentation,
+    factor: row.factor,
+    barcode: row.barcode || null,
+    active: true,
+  }
+  const base = { name: row.unit, factor: 1, barcode: null, active: true }
+  return {
+    sku: row.sku,
     name: row.name,
     brand: row.brand,
     description: row.description,
     category: row.category,
-    sku: row.sku,
-    barcode: row.barcode,
-    image: '',
-    baseUnit: row.unit,
-    costCents: 0,
+    unit: row.unit,
     published: true,
-  }
-
-  if (row.factor === 1)
-    return {
-      ...common,
-      defaultPresentationId: 'unit',
-      presentations: [
-        {
-          id: 'unit',
-          name: row.presentation,
-          factor: 1,
-          priceCents: packCents,
-          barcode: row.barcode,
-          active: true,
-        },
-      ],
-    }
-
-  return {
-    ...common,
-    defaultPresentationId: 'pack',
-    presentations: [
-      {
-        id: 'unit',
-        name: 'Pieza',
-        factor: 1,
-        priceCents: Math.round(packCents / row.factor),
-        barcode: '',
-        active: true,
-      },
-      {
-        id: 'pack',
-        name: row.presentation,
-        factor: row.factor,
-        priceCents: packCents,
-        barcode: row.barcode,
-        active: true,
-      },
-    ],
+    presentations: row.factor === 1 ? [main] : [base, main],
+    defaultIndex: row.factor === 1 ? 0 : 1,
   }
 }

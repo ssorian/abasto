@@ -53,6 +53,8 @@ export type ImportCsvDialogProps = {
   onOpenChange: (open: boolean) => void
   /** Import type selected when the dialog opens; the user can switch it. */
   initialMode?: ImportMode
+  /** Import types the user can choose; defaults to all of them. */
+  modes?: ReadonlyArray<ImportMode>
   /** Products the file is validated against. Defaults to the shared demo products. */
   products?: ReadonlyArray<ImportReferenceProduct>
   /** Whether a product already has history in a warehouse (stock imports only load new ones). */
@@ -87,6 +89,7 @@ type ContentProps = Omit<ImportCsvDialogProps, 'open' | 'onOpenChange'> & {
 function ImportDialogContent({
   onClose,
   initialMode = 'catalog',
+  modes = ['catalog', 'stock'],
   products = defaultReferenceProducts,
   hasStockHistory = defaultHasStockHistory,
   categories = defaultCategories,
@@ -147,7 +150,9 @@ function ImportDialogContent({
   const apply = () => {
     if (!preview || blocked) return
     // Revalidate on confirm, like the reference, in case the text changed.
-    appliedFingerprints.add(preview.fingerprint)
+    // Catalog rows are created on the server, which rejects repeated SKUs row by
+    // row, so a partially failed file must stay importable.
+    if (mode !== 'catalog') appliedFingerprints.add(preview.fingerprint)
     const rows = preview.rows
     onApply?.(
       mode === 'catalog'
@@ -208,8 +213,12 @@ function ImportDialogContent({
               reset()
             }}
           >
-            <option value="catalog">Catálogo · productos nuevos</option>
-            <option value="stock">Existencias iniciales por lote</option>
+            {modes.includes('catalog') && (
+              <option value="catalog">Catálogo · productos nuevos</option>
+            )}
+            {modes.includes('stock') && (
+              <option value="stock">Existencias iniciales por lote</option>
+            )}
           </FieldSelect>
         </Field>
         <div className="flex items-end pb-2">

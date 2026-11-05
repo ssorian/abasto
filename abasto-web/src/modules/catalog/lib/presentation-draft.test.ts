@@ -1,0 +1,72 @@
+import { describe, expect, test } from 'bun:test'
+
+import {
+  draftsFromProduct,
+  newPresentationDraft,
+  presentationSetFromDrafts,
+} from '#/modules/catalog/lib/presentation-draft'
+import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
+
+const product: CatalogProduct = {
+  id: 'p1',
+  sku: 'A',
+  name: 'A',
+  brand: '',
+  description: '',
+  category: 'Bebidas',
+  unit: 'piezas',
+  supplierId: null,
+  published: true,
+  createdAt: new Date(0),
+  presentations: [
+    {
+      id: 'u',
+      productId: 'p1',
+      name: 'Pieza',
+      factor: 1,
+      barcode: null,
+      active: true,
+      isDefault: false,
+      createdAt: new Date(0),
+    },
+    {
+      id: 'c',
+      productId: 'p1',
+      name: 'Caja',
+      factor: 24,
+      barcode: '750',
+      active: false,
+      isDefault: true,
+      createdAt: new Date(0),
+    },
+  ],
+}
+
+describe('presentation drafts ↔ savePresentations set', () => {
+  test('rows come from the product with the default key selected', () => {
+    const rows = draftsFromProduct(product)
+    expect(
+      rows.map((row) => [row.id, row.name, row.factor, row.barcode]),
+    ).toEqual([
+      ['u', 'Pieza', 1, ''],
+      ['c', 'Caja', 24, '750'],
+    ])
+  })
+
+  test('existing rows keep their id; new rows have none; default index follows the key', () => {
+    const rows = [...draftsFromProduct(product), newPresentationDraft()]
+    rows[2] = { ...rows[2], name: 'Six', factor: 6, barcode: ' 751 ' }
+    const set = presentationSetFromDrafts(rows, rows[2].key)
+    expect(set.defaultIndex).toBe(2)
+    expect(set.presentations).toEqual([
+      { id: 'u', name: 'Pieza', factor: 1, barcode: null, active: true },
+      { id: 'c', name: 'Caja', factor: 24, barcode: '750', active: false },
+      { id: undefined, name: 'Six', factor: 6, barcode: '751', active: true },
+    ])
+  })
+
+  test('an unknown default key yields an out-of-range index for the server to reject', () => {
+    const set = presentationSetFromDrafts(draftsFromProduct(product), 'nope')
+    expect(set.defaultIndex).toBe(-1)
+  })
+})
