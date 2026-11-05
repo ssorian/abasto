@@ -2,3 +2,4 @@
 export * from './auth-schema.ts'
 export * from '../modules/warehouses/db/schema.ts'
 export * from '../modules/access/db/schema.ts'
+export * from '../modules/catalog/db/schema.ts'
