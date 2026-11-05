@@ -21,7 +21,7 @@ import {
 import { listWarehousePrices } from '#/modules/pricing/services/price-reads'
 import { transfers } from '#/modules/transfers/db/schema'
 import { warehouses } from '#/modules/warehouses/db/schema'
-import { demoPassword, seedDemo } from '#/db/seed/seed'
+import { defaultSeedPassword, seedDatabase } from '#/db/seed/seed'
 
 const SEED_TIMEOUT = 120_000
 
@@ -39,35 +39,48 @@ async function errorOf(run: () => Promise<unknown>) {
 
 beforeEach(() => resetDatabase(db))
 
-describe('seedDemo', () => {
+describe('seedDatabase', () => {
   test(
-    'fills an empty database with a coherent demo of the business',
+    'fills an empty database with a coherent sample of the business',
     async () => {
-      const summary = await seedDemo({ password: demoPassword })
+      const summary = await seedDatabase({ password: defaultSeedPassword })
 
       expect(await total(warehouses)).toBe(4)
-      expect(await total(suppliers)).toBe(4)
-      expect(await total(products)).toBe(12)
+      expect(await total(suppliers)).toBe(2)
+      expect(await total(products)).toBe(18)
       expect(await total(customers)).toBe(6)
       expect(summary.users.map((u) => u.email)).toContain('dueno@abasto.local')
       expect(summary.users).toHaveLength(7)
 
-      // Every seeded user can sign in with the demo password.
+      expect(
+        (await db.select({ name: warehouses.name }).from(warehouses))
+          .map((row) => row.name)
+          .sort(),
+      ).toEqual(['Amatepec', 'Arcelia', 'Luvianos', 'Tejupilco'])
+      const photos = await db
+        .select({ imageUrl: products.imageUrl })
+        .from(products)
+      expect(photos).toHaveLength(18)
+      expect(photos.every((row) => row.imageUrl?.startsWith('https://'))).toBe(
+        true,
+      )
+
+      // Every seeded user can sign in with the default password.
       for (const seeded of summary.users) {
         const actor = await requireActor(
-          await signIn(seeded.email, demoPassword),
+          await signIn(seeded.email, defaultSeedPassword),
         )
         expect(actor.role).toBe(seeded.role === 'Dueño' ? 'owner' : 'staff')
       }
 
       // Every product has a price in every warehouse.
       const owner = await requireActor(
-        await signIn('dueno@abasto.local', demoPassword),
+        await signIn('dueno@abasto.local', defaultSeedPassword),
       )
       for (const warehouse of await db.select().from(warehouses)) {
         const prices = await listWarehousePrices(owner, warehouse.id)
         const defaults = prices.filter((row) => row.isDefault)
-        expect(defaults).toHaveLength(12)
+        expect(defaults).toHaveLength(18)
         expect(defaults.every((row) => (row.priceCents ?? 0) > 0)).toBe(true)
       }
 
@@ -141,7 +154,7 @@ describe('seedDemo', () => {
         email: 'yo@negocio.mx',
         password: 'mi-clave-123',
       })
-      const summary = await seedDemo({ password: demoPassword })
+      const summary = await seedDatabase({ password: defaultSeedPassword })
       expect(summary.users.find((u) => u.role === 'Dueño')).toEqual({
         name: 'Mi dueño',
         email: 'yo@negocio.mx',
@@ -159,14 +172,16 @@ describe('seedDemo', () => {
   test(
     'refuses a database that already has data and changes nothing',
     async () => {
-      await seedDemo({ password: demoPassword })
+      await seedDatabase({ password: defaultSeedPassword })
       const before = {
         warehouses: await total(warehouses),
         products: await total(products),
         orders: await total(orders),
         movements: await total(stockMovements),
       }
-      const error = await errorOf(() => seedDemo({ password: demoPassword }))
+      const error = await errorOf(() =>
+        seedDatabase({ password: defaultSeedPassword }),
+      )
       expect(error).toBeInstanceOf(AppError)
       expect(error.code).toBe('conflict')
       expect(error.message).toBe(
@@ -186,11 +201,11 @@ describe('seedDemo', () => {
     const previous = process.env.NODE_ENV
     process.env.NODE_ENV = 'production'
     try {
-      const error = await errorOf(() => seedDemo({ password: demoPassword }))
-      expect(error.code).toBe('forbidden')
-      expect(error.message).toBe(
-        'La seed de demostración no corre en producción.',
+      const error = await errorOf(() =>
+        seedDatabase({ password: defaultSeedPassword }),
       )
+      expect(error.code).toBe('forbidden')
+      expect(error.message).toBe('La seed no corre en producción.')
     } finally {
       process.env.NODE_ENV = previous
     }

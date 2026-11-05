@@ -1,6 +1,6 @@
 /**
- * Demo seed for local development. It goes through the real services, so
- * every rule, lock and ledger the app enforces also holds for the demo data.
+ * Seed for local development. It goes through the real services, so
+ * every rule, lock and ledger the app enforces also holds for the seeded data.
  * It only runs on an empty database (an owner may already exist) and never
  * deletes anything.
  */
@@ -63,11 +63,11 @@ import {
   supplierSeed,
   warehouseNames,
   warehousePriceOffset,
-} from '#/db/seed/demo-data'
-import type { DemoProduct, WarehouseName } from '#/db/seed/demo-data'
+} from '#/db/seed/seed-data'
+import type { SeedProduct, WarehouseName } from '#/db/seed/seed-data'
 
 /** Default password of every seeded user (development only). */
-export const demoPassword = 'abasto-demo-2026'
+export const defaultSeedPassword = 'abasto-2026'
 
 export type SeededUser = {
   name: string
@@ -139,16 +139,13 @@ async function daysAgo<T>(days: number, run: () => Promise<T>) {
   }
 }
 
-export async function seedDemo({
+export async function seedDatabase({
   password,
 }: {
   password: string
 }): Promise<SeedSummary> {
   if (process.env.NODE_ENV === 'production') {
-    throw new AppError(
-      'forbidden',
-      'La seed de demostración no corre en producción.',
-    )
+    throw new AppError('forbidden', 'La seed no corre en producción.')
   }
   await assertEmpty()
   const today = businessDate()
@@ -203,7 +200,7 @@ export async function seedDemo({
     const { key, ...input } = supplier
     supplierId[key] = (await createSupplier(owner, input)).id
   }
-  const catalog = new Map<string, { seed: DemoProduct; product: Product }>()
+  const catalog = new Map<string, { seed: SeedProduct; product: Product }>()
   for (const seed of productSeed) {
     const product = await createProduct(owner, {
       sku: seed.sku,
@@ -211,6 +208,7 @@ export async function seedDemo({
       brand: seed.brand,
       description: seed.description,
       category: seed.category,
+      imageUrl: seed.imageUrl,
       unit: 'piezas',
       supplierId: supplierId[seed.supplier],
       presentations: [
@@ -245,9 +243,9 @@ export async function seedDemo({
     })
   }
   await setPrices(owner, {
-    warehouseId: warehouseId.Centro,
+    warehouseId: warehouseId.Tejupilco,
     reason: 'Precio por pieza suelta',
-    prices: [{ presentationId: pieceOf('COC-001'), priceCents: 2000 }],
+    prices: [{ presentationId: pieceOf('LAL-001'), priceCents: 2700 }],
   })
 
   // Purchases: one per warehouse and supplier, fresh lots.
@@ -281,25 +279,25 @@ export async function seedDemo({
       })
     }
   }
-  // An older Lala lot about to expire in Centro (FEFO sells it first).
-  await createPurchase(managerOf('Centro'), {
+  // An older Lala lot about to expire in Tejupilco (FEFO sells it first).
+  await createPurchase(managerOf('Tejupilco'), {
     supplierId: supplierId.lala,
-    warehouseId: warehouseId.Centro,
+    warehouseId: warehouseId.Tejupilco,
     reference: `F-${folio++}`,
     purchasedOn: addDays(today, -12),
     lines: [lineFor('LAL-001', 10, 3)],
   })
-  // Expired yogurt in Norte, written off as a loss.
-  const expired = await createPurchase(managerOf('Norte'), {
+  // Expired yoghurt in Luvianos, written off as a loss.
+  const expired = await createPurchase(managerOf('Luvianos'), {
     supplierId: supplierId.lala,
-    warehouseId: warehouseId.Norte,
+    warehouseId: warehouseId.Luvianos,
     reference: `F-${folio++}`,
     purchasedOn: addDays(today, -15),
-    lines: [lineFor('LAL-003', 1, -2)],
+    lines: [lineFor('LAL-005', 1, -2)],
   })
-  await registerLoss(managerOf('Norte'), {
+  await registerLoss(managerOf('Luvianos'), {
     lotId: expired.lots[0].id,
-    quantity: item('LAL-003').seed.boxFactor,
+    quantity: item('LAL-005').seed.boxFactor,
     category: 'caducado',
     reason: 'Lote vencido sin vender',
   })
@@ -375,14 +373,14 @@ export async function seedDemo({
     tenderedCents: Math.ceil(totalCents / 10_000) * 10_000,
   })
 
-  // Past credit sales in Centro, so receivables and reports have history.
+  // Past credit sales in Tejupilco, so receivables and reports have history.
   for (const [days, customer, lines] of [
     [
       40,
       'guero',
       [
         ['LAL-001', 6],
-        ['COC-001', 4],
+        ['ALP-001', 4],
       ],
     ],
     [
@@ -390,102 +388,107 @@ export async function seedDemo({
       'sanchez',
       [
         ['LAL-001', 20],
-        ['COC-002', 10],
+        ['LAL-007', 10],
       ],
     ],
     [
       10,
       'donPepe',
       [
-        ['COC-001', 12],
+        ['LAL-002', 12],
         ['ALP-001', 5],
       ],
     ],
-    [3, 'pinos', [['ALP-003', 6]]],
+    [3, 'pinos', [['ALP-005', 6]]],
   ] as const) {
     await daysAgo(days, async () => {
       const placed = await order(
-        'Centro',
+        'Tejupilco',
         customer,
         lines.map((l) => [...l]),
       )
-      await pickup('Centro', placed.id, { terms: 'credito' })
+      await pickup('Tejupilco', placed.id, { terms: 'credito' })
     })
   }
 
-  // Today in Centro: drawer, cash sale, withdrawal, abono and open orders.
-  await openCashSession(clerkOf('Centro'), {
-    warehouseId: warehouseId.Centro,
+  // Today in Tejupilco: drawer, cash sale, withdrawal, abono and open orders.
+  await openCashSession(clerkOf('Tejupilco'), {
+    warehouseId: warehouseId.Tejupilco,
     openingCents: 100_000,
   })
-  const counterSale = await order('Centro', 'esquinita', [
-    ['COC-001', 5],
-    ['COC-005', 3],
+  const counterSale = await order('Tejupilco', 'esquinita', [
+    ['LAL-001', 5],
+    ['LAL-005', 3],
   ])
-  await pickup('Centro', counterSale.id, cash(counterSale.totalCents))
-  await recordCashWithdrawal(clerkOf('Centro'), {
-    warehouseId: warehouseId.Centro,
+  await pickup('Tejupilco', counterSale.id, cash(counterSale.totalCents))
+  await recordCashWithdrawal(clerkOf('Tejupilco'), {
+    warehouseId: warehouseId.Tejupilco,
     amountCents: 15_000,
     reason: 'Compra de bolsas y hielo',
   })
-  await recordAbono(clerkOf('Centro'), {
-    warehouseId: warehouseId.Centro,
+  await recordAbono(clerkOf('Tejupilco'), {
+    warehouseId: warehouseId.Tejupilco,
     customerId: customerId.donPepe,
     amountCents: 300_000,
   })
   // El Güero owes an overdue charge: the credit pickup waits for the owner.
-  const blocked = await order('Centro', 'guero', [['LAL-002', 3]])
+  const blocked = await order('Tejupilco', 'guero', [['LAL-002', 3]])
   try {
-    await pickup('Centro', blocked.id, { terms: 'credito' })
+    await pickup('Tejupilco', blocked.id, { terms: 'credito' })
   } catch (error) {
     if (!(error instanceof AppError) || error.code !== 'conflict') throw error
   }
-  await order('Centro', 'sanchez', [['LAL-001', 25]], 'Pasa mañana temprano.')
-  const prepared = await order('Centro', 'donPepe', [
-    ['COC-003', 4],
+  await order(
+    'Tejupilco',
+    'sanchez',
+    [['LAL-001', 25]],
+    'Pasa mañana temprano.',
+  )
+  const prepared = await order('Tejupilco', 'donPepe', [
+    ['LAL-004', 4],
     ['ALP-002', 2],
   ])
-  await prepareOrder(clerkOf('Centro'), prepared.id)
-  const cancelled = await order('Centro', 'esquinita', [['PEN-001', 2]])
-  await cancelOrder(clerkOf('Centro'), cancelled.id)
+  await prepareOrder(clerkOf('Tejupilco'), prepared.id)
+  const cancelled = await order('Tejupilco', 'esquinita', [['ALP-007', 2]])
+  await cancelOrder(clerkOf('Tejupilco'), cancelled.id)
 
-  // Norte: open drawer, a cash sale, a damaged-goods loss and a reservation.
-  await openCashSession(clerkOf('Norte'), {
-    warehouseId: warehouseId.Norte,
+  // Luvianos: open drawer, a cash sale, a damaged-goods loss and a reservation.
+  await openCashSession(clerkOf('Luvianos'), {
+    warehouseId: warehouseId.Luvianos,
     openingCents: 50_000,
   })
-  const norteSale = await order('Norte', 'pinos', [['ALP-003', 2]])
-  await pickup('Norte', norteSale.id, cash(norteSale.totalCents))
-  await order('Norte', 'sanchez', [['COC-001', 10]])
+  const luviSale = await order('Luvianos', 'pinos', [['ALP-005', 2]])
+  await pickup('Luvianos', luviSale.id, cash(luviSale.totalCents))
+  await order('Luvianos', 'sanchez', [['LAL-001', 10]])
 
-  // Sur: a full day already closed with a 50-peso shortage.
-  await openCashSession(managerOf('Sur'), {
-    warehouseId: warehouseId.Sur,
+  // Amatepec: a full day already closed with a 50-peso shortage.
+  await openCashSession(managerOf('Amatepec'), {
+    warehouseId: warehouseId.Amatepec,
     openingCents: 50_000,
   })
-  const surSale = await order('Sur', 'esquinita', [
+  const amatepecSale = await order('Amatepec', 'esquinita', [
     ['LAL-001', 3],
-    ['COC-001', 2],
+    ['ALP-001', 2],
   ])
-  await pickup('Sur', surSale.id, cash(surSale.totalCents))
-  await closeCashSession(managerOf('Sur'), {
-    warehouseId: warehouseId.Sur,
-    countedCents: 50_000 + surSale.totalCents - 5_000,
+  await pickup('Amatepec', amatepecSale.id, cash(amatepecSale.totalCents))
+  await closeCashSession(managerOf('Amatepec'), {
+    warehouseId: warehouseId.Amatepec,
+    countedCents: 50_000 + amatepecSale.totalCents - 5_000,
   })
 
-  // Transfers: Centro → Sur received one piece short, Centro → Poniente in transit.
-  const toSur = await dispatchTransfer(managerOf('Centro'), {
-    fromWarehouseId: warehouseId.Centro,
-    toWarehouseId: warehouseId.Sur,
+  // Transfers: Tejupilco → Amatepec received one piece short, Tejupilco → Arcelia in transit.
+  const toAmatepec = await dispatchTransfer(managerOf('Tejupilco'), {
+    fromWarehouseId: warehouseId.Tejupilco,
+    toWarehouseId: warehouseId.Amatepec,
     notes: 'Reposición de lácteos',
     items: [
       { productId: item('ALP-001').product.id, quantity: 24 },
       { productId: item('LAL-002').product.id, quantity: 12 },
     ],
   })
-  const sent = await getTransfer(managerOf('Sur'), toSur.id)
-  await receiveTransfer(managerOf('Sur'), {
-    transferId: toSur.id,
+  const sent = await getTransfer(managerOf('Amatepec'), toAmatepec.id)
+  await receiveTransfer(managerOf('Amatepec'), {
+    transferId: toAmatepec.id,
     lines: sent.lines.map((line) => ({
       lineId: line.id,
       receivedQuantity:
@@ -494,11 +497,11 @@ export async function seedDemo({
           : line.quantity,
     })),
   })
-  await dispatchTransfer(managerOf('Centro'), {
-    fromWarehouseId: warehouseId.Centro,
-    toWarehouseId: warehouseId.Poniente,
-    notes: 'Refresco para el fin de semana',
-    items: [{ productId: item('COC-003').product.id, quantity: 48 }],
+  await dispatchTransfer(managerOf('Tejupilco'), {
+    fromWarehouseId: warehouseId.Tejupilco,
+    toWarehouseId: warehouseId.Arcelia,
+    notes: 'Leche saborizada para el fin de semana',
+    items: [{ productId: item('ALP-007').product.id, quantity: 48 }],
   })
 
   return { users }

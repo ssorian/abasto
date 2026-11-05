@@ -1,13 +1,13 @@
 /**
- * Loads the demo business into the development database.
+ * Loads the seed business into the development database.
  * Usage: bun run db:seed   (password from SEED_PASSWORD, default below)
  * Runs only on an empty database; an owner created with auth:create-owner is reused.
  */
-import { demoPassword, seedDemo } from '#/db/seed/seed'
+import { defaultSeedPassword, seedDatabase } from '#/db/seed/seed'
 import { minPasswordLength } from '#/lib/auth'
 import { AppError } from '#/lib/errors'
 
-const password = process.env.SEED_PASSWORD ?? demoPassword
+const password = process.env.SEED_PASSWORD ?? defaultSeedPassword
 if (password.length < minPasswordLength) {
   console.error(
     `SEED_PASSWORD debe tener al menos ${minPasswordLength} caracteres.`,
@@ -16,8 +16,8 @@ if (password.length < minPasswordLength) {
 }
 
 try {
-  const { users } = await seedDemo({ password })
-  console.log('Seed de demostración cargada. Usuarios:')
+  const { users } = await seedDatabase({ password })
+  console.log('Seed cargada. Usuarios:')
   console.table(
     users.map((u) => ({
       Nombre: u.name,
