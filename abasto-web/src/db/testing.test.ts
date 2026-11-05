@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import { sql } from 'drizzle-orm'
 import { db } from '#/db'
-import { assertTestDatabaseUrl } from '#/db/testing'
+import { assertTestDatabaseUrl, defaultTestDatabaseUrl } from '#/db/testing'
 
 describe('assertTestDatabaseUrl', () => {
   test('accepts a database whose name ends in _test', () => {
-    const url = 'postgresql://abasto:abasto@localhost:55450/abasto_test'
+    const url = 'postgresql://abasto:abasto@localhost:55451/abasto_test'
     expect(assertTestDatabaseUrl(url)).toBe(url)
   })
 
@@ -24,5 +24,8 @@ test('the shared client is connected to the test database', async () => {
   const result = await db.execute<{ name: string }>(
     sql`select current_database() as name`,
   )
-  expect(result.rows[0]?.name).toBe('abasto_test')
+  const expected = new URL(
+    process.env.TEST_DATABASE_URL ?? defaultTestDatabaseUrl,
+  ).pathname.slice(1)
+  expect(result.rows[0]?.name).toBe(expected)
 })

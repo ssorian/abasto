@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 export const defaultTestDatabaseUrl =
-  'postgresql://abasto:abasto@localhost:55450/abasto_test'
+  'postgresql://abasto:abasto@localhost:55451/abasto_test'
 
 /** Guards destructive test helpers: only databases named `*_test` are accepted. */
 export function assertTestDatabaseUrl(url: string) {

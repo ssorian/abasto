@@ -1,4 +1,5 @@
-# Local Postgres for development (`abasto`) and tests (`abasto_test`).
+# Local Postgres: `db` for development (durable volume) and `db-test` for
+# `bun test` (in memory, no fsync: the Docker volume's fsync stalled tests).
 name: abasto
 
 services:
@@ -12,9 +13,32 @@ services:
       - '127.0.0.1:55450:5432'
     volumes:
       - abasto-db:/var/lib/postgresql/data
-      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-test-database.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U abasto -d abasto']
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  db-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: abasto
+      POSTGRES_PASSWORD: abasto
+      POSTGRES_DB: abasto_test
+    command:
+      - postgres
+      - -c
+      - fsync=off
+      - -c
+      - synchronous_commit=off
+      - -c
+      - full_page_writes=off
+    ports:
+      - '127.0.0.1:55451:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U abasto -d abasto_test']
       interval: 2s
       timeout: 3s
       retries: 15
