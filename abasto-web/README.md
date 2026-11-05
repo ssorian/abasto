@@ -107,6 +107,14 @@ Better Auth stores users and sessions in Postgres (`src/db/auth-schema.ts`). Pub
 
    The password is read from `OWNER_PASSWORD` or asked interactively (at least 8 characters). A second run fails with `Ya existe un dueño registrado.`
 
+## Demo data
+
+`bun run db:seed` loads a demo business into the development database through the real services: four warehouses (Centro, Norte, Sur, Poniente) with managers and clerks, suppliers (Grupo Lala, Alpura, Coca-Cola FEMSA, Peñafiel), twelve products with per-warehouse prices, lots with expiry dates, customers with credit and commercial rules, orders in every state, open and closed cash drawers, an abono, a pending credit authorization, an overdue balance and transfers.
+
+- It only runs on an empty database. An owner created with `auth:create-owner` is reused; otherwise it creates `dueno@abasto.local`.
+- Every seeded user gets the password in `SEED_PASSWORD` (default `abasto-demo-2026`); the command prints the users.
+- It refuses to run when `NODE_ENV=production` and never deletes data. To start over, recreate the development database (for example `docker compose down -v`, `bun run db:up`, `bun run db:migrate`), which erases all of its data.
+
 ## Routing
 
 This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
