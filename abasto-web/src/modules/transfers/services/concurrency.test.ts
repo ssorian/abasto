@@ -41,6 +41,9 @@ test('dispatches racing orders and withdrawals keep stock non-negative and the l
         customerId: fx.customer.id,
         lines: [{ presentationId: fx.pieceId, quantity }],
       })
+    // One dispatch before the race, so the transfer path always runs: in the
+    // race itself every dispatch may legitimately lose to orders and the count.
+    await send(5)
     await Promise.allSettled([
       send(9),
       send(9),

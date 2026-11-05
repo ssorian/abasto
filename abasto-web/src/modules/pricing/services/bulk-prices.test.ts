@@ -299,7 +299,7 @@ describe('bulkChangePrices', () => {
     expect(await priceOf(fx, fx.a.id, fx.piece(fx.cola).id)).toBe(1210)
   })
 
-  test('a price saved while a bulk change waits for its lock is the base of that change', async () => {
+  test('a price committed after a bulk change began, before it got the lock, is its base', async () => {
     const fx = await priced()
     const blocker = new Client({ connectionString: process.env.DATABASE_URL })
     await blocker.connect()
@@ -316,16 +316,44 @@ describe('bulkChangePrices', () => {
         change: { kind: 'percent', bps: 1000 },
       })
       await waitForAdvisoryWaiter(blocker)
-      await setPrices(fx.owner, {
-        warehouseId: fx.a.id,
-        prices: [{ presentationId: fx.piece(fx.cola).id, priceCents: 2000 }],
-      })
+      // A price dated after the bulk transaction began (services cannot write
+      // here anymore: they wait for the same lock).
+      await blocker.query(
+        `insert into presentation_prices
+           (warehouse_id, presentation_id, price_cents, created_by, source, reason, effective_from)
+         values ($1, $2, 2000, $3, 'manual', '', clock_timestamp())`,
+        [fx.a.id, fx.piece(fx.cola).id, fx.owner.userId],
+      )
       await blocker.query('commit')
       await pending
     } finally {
       await blocker.end()
     }
     expect(await priceOf(fx, fx.a.id, fx.piece(fx.cola).id)).toBe(2200)
+  })
+
+  test('a manual price waits for a bulk change in progress in that warehouse', async () => {
+    const fx = await priced()
+    const blocker = new Client({ connectionString: process.env.DATABASE_URL })
+    await blocker.connect()
+    try {
+      await blocker.query('begin')
+      await blocker.query(
+        'select pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [`bulk-prices:${fx.a.id}`],
+      )
+      const manual = setPrices(fx.owner, {
+        warehouseId: fx.a.id,
+        prices: [{ presentationId: fx.piece(fx.cola).id, priceCents: 2000 }],
+      })
+      // Without the shared lock the manual write would not wait here.
+      await waitForAdvisoryWaiter(blocker)
+      await blocker.query('commit')
+      await manual
+    } finally {
+      await blocker.end()
+    }
+    expect(await priceOf(fx, fx.a.id, fx.piece(fx.cola).id)).toBe(2000)
   })
 
   test('concurrent changes over several warehouses in opposite order do not deadlock', async () => {

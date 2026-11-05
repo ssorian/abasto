@@ -88,7 +88,9 @@ export const cashMovements = pgTable(
     actorId: text('actor_id')
       .notNull()
       .references(() => user.id),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at')
+      .default(sql`clock_timestamp()`)
+      .notNull(),
   },
   (table) => [
     index('cash_movements_session_idx').on(table.sessionId, table.createdAt),

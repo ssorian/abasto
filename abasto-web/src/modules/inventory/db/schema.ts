@@ -85,7 +85,9 @@ export const lots = pgTable(
     sourceLotId: uuid('source_lot_id').references((): AnyPgColumn => lots.id),
     code: text('code').notNull().default(''),
     expiresOn: date('expires_on', { mode: 'string' }),
-    receivedAt: timestamp('received_at').defaultNow().notNull(),
+    receivedAt: timestamp('received_at')
+      .default(sql`clock_timestamp()`)
+      .notNull(),
     receivedQuantity: integer('received_quantity').notNull(),
     receivedCostCents: integer('received_cost_cents').notNull(),
     /** Cached sum of the lot's ledger movements; updated in the movement's transaction. */
@@ -127,7 +129,9 @@ export const stockMovements = pgTable(
     actorId: text('actor_id')
       .notNull()
       .references(() => user.id),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at')
+      .default(sql`clock_timestamp()`)
+      .notNull(),
   },
   (table) => [
     check('stock_movements_quantity_nonzero', sql`${table.quantity} <> 0`),

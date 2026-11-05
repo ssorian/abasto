@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import type { AppErrorCode } from '#/lib/errors'
-import { stockCounts, stockMovements } from '#/modules/inventory/db/schema'
+import {
+  lots,
+  stockCounts,
+  stockMovements,
+} from '#/modules/inventory/db/schema'
 import { createPurchase } from '#/modules/inventory/services/purchases'
 import { countStock } from '#/modules/inventory/services/stock-counts'
 import {
@@ -16,6 +20,12 @@ import {
 } from '#/modules/inventory/services/testing'
 
 beforeEach(() => resetDatabase(db))
+
+const tieReceivedAt = (ids: Array<string>) =>
+  db
+    .update(lots)
+    .set({ receivedAt: new Date('2026-11-01T12:00:00Z') })
+    .where(inArray(lots.id, ids))
 
 const forbidden = 'No tienes permiso para esta acción.'
 
@@ -113,7 +123,9 @@ describe('countStock', () => {
       ],
     })
     const [early, late, none] = purchase.lots
-    expect(late.receivedAt.getTime()).toBe(early.receivedAt.getTime())
+    // Lots of one purchase get distinct clock_timestamp() times; force the tie
+    // this rule is about (e.g. lots received in the same instant).
+    await tieReceivedAt(purchase.lots.map((lot) => lot.id))
     await count(fx, 20)
     // No expiry counts as the latest expiry; the other two are untouched.
     expect(await onHandOf(none.id)).toBe(10)
@@ -132,6 +144,7 @@ describe('countStock', () => {
         { productId: fx.milk.id, quantity: 5, totalCostCents: 100 },
       ],
     })
+    await tieReceivedAt(purchase.lots.map((lot) => lot.id))
     const expected = [...purchase.lots].sort((a, b) =>
       a.id < b.id ? 1 : -1,
     )[0]
