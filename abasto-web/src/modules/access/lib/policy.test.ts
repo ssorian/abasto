@@ -23,6 +23,7 @@ describe('can', () => {
       'warehouses.manage',
       'users.manage',
       'credit.authorize',
+      'customers.manage',
     ] as const) {
       expect(can(owner, permission)).toBe(true)
     }
@@ -60,6 +61,7 @@ describe('can', () => {
     expect(can(manager, 'warehouses.manage')).toBe(false)
     expect(can(manager, 'users.manage')).toBe(false)
     expect(can(manager, 'credit.authorize')).toBe(false)
+    expect(can(manager, 'customers.manage')).toBe(false)
   })
 
   test('a warehouse permission without a warehouse is denied to staff', () => {

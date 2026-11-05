@@ -12,7 +12,11 @@ export type Actor = {
 
 /** Company-wide permissions: owner only. */
 export type GlobalPermission =
-  'catalog.manage' | 'warehouses.manage' | 'users.manage' | 'credit.authorize'
+  | 'catalog.manage'
+  | 'warehouses.manage'
+  | 'users.manage'
+  | 'credit.authorize'
+  | 'customers.manage'
 
 /** Permissions scoped to one warehouse. */
 export type WarehousePermission =
