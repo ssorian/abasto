@@ -1,7 +1,10 @@
 import {
   HeadContent,
+  Outlet,
   Scripts,
   createRootRouteWithContext,
+  redirect,
+  useLocation,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
@@ -9,6 +12,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
 import { AppShell } from '#/components/layout/app-shell'
+import { getSessionUser } from '#/modules/access/server/session'
 import { Toaster } from '#/components/ui/sonner'
 import { TooltipProvider } from '#/components/ui/tooltip'
 
@@ -21,6 +25,15 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  beforeLoad: async ({ location }) => {
+    const user = await getSessionUser()
+    const onLogin = location.pathname === '/login'
+    if (!user && !onLogin) {
+      throw redirect({ to: '/login', search: { redirect: location.href } })
+    }
+    if (user && onLogin) throw redirect({ to: '/' })
+    return { user }
+  },
   head: () => ({
     meta: [
       {
@@ -47,7 +60,20 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     ],
   }),
   shellComponent: RootDocument,
+  component: RootLayout,
 })
+
+/** The login page renders bare; every other page sits inside the shell. */
+function RootLayout() {
+  const { user } = Route.useRouteContext()
+  const pathname = useLocation({ select: (location) => location.pathname })
+  if (!user || pathname === '/login') return <Outlet />
+  return (
+    <AppShell user={user}>
+      <Outlet />
+    </AppShell>
+  )
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
@@ -56,9 +82,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <TooltipProvider>
-          <AppShell>{children}</AppShell>
-        </TooltipProvider>
+        <TooltipProvider>{children}</TooltipProvider>
         <Toaster position="bottom-right" richColors />
         <TanStackDevtools
           config={{

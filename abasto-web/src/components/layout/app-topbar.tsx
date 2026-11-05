@@ -1,11 +1,14 @@
-import { useLocation } from '@tanstack/react-router'
-import { ChevronRight } from 'lucide-react'
+import { useLocation, useRouter } from '@tanstack/react-router'
+import { ChevronRight, LogOut } from 'lucide-react'
 
 import { SidebarTrigger } from '#/components/ui/sidebar'
 import { navItemForPath } from '#/config/navigation'
 import { workspace } from '#/config/workspace'
+import { authClient } from '#/lib/auth-client'
+import type { SessionUser } from '#/modules/access/lib/session-user'
 
-export function AppTopbar() {
+export function AppTopbar({ user }: { user: SessionUser }) {
+  const router = useRouter()
   const pathname = useLocation({ select: (location) => location.pathname })
   const current = navItemForPath(pathname)
 
@@ -26,19 +29,27 @@ export function AppTopbar() {
         </span>
         <span className="hidden h-7 w-px bg-[#e6eaf0] tablet:block" />
         <div className="hidden tablet:block">
-          <strong className="block text-xs font-[650]">
-            {workspace.user.name}
-          </strong>
+          <strong className="block text-xs font-[650]">{user.name}</strong>
           <span className="mt-1 block text-xs text-[#8a96a5]">
-            {workspace.user.role}
+            {user.roleLabel}
           </span>
         </div>
-        <button
-          type="button"
-          aria-label="Cambiar perfil de demo"
+        <span
+          aria-hidden
           className="grid size-[31px] place-items-center rounded-full border-[3px] border-white bg-avatar-bg text-xs font-[750] text-avatar shadow-[0_0_0_1px_#dbe3ed] md:size-9"
         >
-          {workspace.user.initials}
+          {user.initials}
+        </span>
+        <button
+          type="button"
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+          onClick={() => {
+            void authClient.signOut().then(() => router.invalidate())
+          }}
+          className="grid size-9 place-items-center rounded-full text-crumb hover:bg-[#f1f5fa]"
+        >
+          <LogOut size={17} />
         </button>
       </div>
     </header>

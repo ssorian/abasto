@@ -14,6 +14,7 @@ import { Route as AlmacenesRouteImport } from './routes/almacenes'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as InventarioRouteImport } from './routes/inventario'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as MostradorRouteImport } from './routes/mostrador'
 import { Route as ReportesRouteImport } from './routes/reportes'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -43,6 +44,11 @@ const InventarioRoute = InventarioRouteImport.update({
   path: '/inventario',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MostradorRoute = MostradorRouteImport.update({
   id: '/mostrador',
   path: '/mostrador',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/inventario': typeof InventarioRoute
+  '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
   '/reportes': typeof ReportesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/inventario': typeof InventarioRoute
+  '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
   '/reportes': typeof ReportesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/inventario': typeof InventarioRoute
+  '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
   '/reportes': typeof ReportesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/clientes'
     | '/inventario'
+    | '/login'
     | '/mostrador'
     | '/reportes'
     | '/api/auth/$'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/clientes'
     | '/inventario'
+    | '/login'
     | '/mostrador'
     | '/reportes'
     | '/api/auth/$'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/clientes'
     | '/inventario'
+    | '/login'
     | '/mostrador'
     | '/reportes'
     | '/api/auth/$'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   CatalogoRoute: typeof CatalogoRoute
   ClientesRoute: typeof ClientesRoute
   InventarioRoute: typeof InventarioRoute
+  LoginRoute: typeof LoginRoute
   MostradorRoute: typeof MostradorRoute
   ReportesRoute: typeof ReportesRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventarioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mostrador': {
       id: '/mostrador'
       path: '/mostrador'
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogoRoute: CatalogoRoute,
   ClientesRoute: ClientesRoute,
   InventarioRoute: InventarioRoute,
+  LoginRoute: LoginRoute,
   MostradorRoute: MostradorRoute,
   ReportesRoute: ReportesRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

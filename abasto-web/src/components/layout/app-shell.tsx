@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 
+import type { SessionUser } from '#/modules/access/lib/session-user'
 import { AppFooter } from '#/components/layout/app-footer'
 import { AppSidebar } from '#/components/layout/app-sidebar'
 import { AppTopbar } from '#/components/layout/app-topbar'
@@ -19,12 +20,18 @@ function SaveIndicator() {
   )
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  user,
+  children,
+}: {
+  user: SessionUser
+  children: ReactNode
+}) {
   return (
     <SidebarProvider style={sidebarWidth}>
       <AppSidebar />
       <SidebarInset className="min-w-0 bg-background">
-        <AppTopbar />
+        <AppTopbar user={user} />
         <div className="mx-auto w-full max-w-[1640px] flex-1 px-3.5 py-[23px] phone:px-5 phone:pt-[25px] phone:pb-5 md:px-[26px] md:pt-[29px] wide:px-[38px] wide:pt-9 wide:pb-[22px]">
           <SaveIndicator />
           {children}
