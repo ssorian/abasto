@@ -61,7 +61,8 @@ export async function currentOwnPrices(
         presentationIds
           ? inArray(presentationPrices.presentationId, presentationIds)
           : undefined,
-        lte(presentationPrices.effectiveFrom, sql`now()`),
+        // Prices committed after this transaction began are current too.
+        lte(presentationPrices.effectiveFrom, sql`clock_timestamp()`),
       ),
     )
     .orderBy(

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
+import { Client } from 'pg'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import { bulkChangePrices } from '#/modules/pricing/services/bulk-prices'
@@ -15,6 +16,18 @@ import {
 import type { PricingFixture } from '#/modules/pricing/services/testing'
 
 beforeEach(() => resetDatabase(db))
+
+/** Resolves once another backend is waiting on an advisory lock. */
+async function waitForAdvisoryWaiter(client: Client) {
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const { rows } = await client.query(
+      "select count(*)::int as n from pg_stat_activity where wait_event_type = 'Lock' and wait_event = 'advisory'",
+    )
+    if (rows[0].n > 0) return
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  throw new Error('no backend waited on the advisory lock')
+}
 
 const priceOf = async (fx: PricingFixture, warehouseId: string, id: string) =>
   (await listWarehousePrices(fx.owner, warehouseId)).find(
@@ -284,6 +297,35 @@ describe('bulkChangePrices', () => {
       })
     await Promise.all([raise(), raise()])
     expect(await priceOf(fx, fx.a.id, fx.piece(fx.cola).id)).toBe(1210)
+  })
+
+  test('a price saved while a bulk change waits for its lock is the base of that change', async () => {
+    const fx = await priced()
+    const blocker = new Client({ connectionString: process.env.DATABASE_URL })
+    await blocker.connect()
+    try {
+      await blocker.query('begin')
+      await blocker.query(
+        'select pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [`bulk-prices:${fx.a.id}`],
+      )
+      // The bulk change's transaction starts now and waits for the lock.
+      const pending = bulkChangePrices(fx.owner, {
+        warehouseIds: [fx.a.id],
+        supplierId: fx.cocaCola.id,
+        change: { kind: 'percent', bps: 1000 },
+      })
+      await waitForAdvisoryWaiter(blocker)
+      await setPrices(fx.owner, {
+        warehouseId: fx.a.id,
+        prices: [{ presentationId: fx.piece(fx.cola).id, priceCents: 2000 }],
+      })
+      await blocker.query('commit')
+      await pending
+    } finally {
+      await blocker.end()
+    }
+    expect(await priceOf(fx, fx.a.id, fx.piece(fx.cola).id)).toBe(2200)
   })
 
   test('concurrent changes over several warehouses in opposite order do not deadlock', async () => {

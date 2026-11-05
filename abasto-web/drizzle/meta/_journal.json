@@ -85,6 +85,13 @@
       "when": 1793845627410,
       "tag": "0011_transfers",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793847594293,
+      "tag": "0012_price_clock",
+      "breakpoints": true
     }
   ]
 }

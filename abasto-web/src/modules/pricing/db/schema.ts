@@ -28,7 +28,11 @@ export const presentationPrices = pgTable(
       .references(() => presentations.id),
     /** Integer cents, always above zero. */
     priceCents: integer('price_cents').notNull(),
-    effectiveFrom: timestamp('effective_from').defaultNow().notNull(),
+    // clock_timestamp(), not now(): now() is the transaction start, so a change
+    // that waited for a lock would be dated before prices saved meanwhile.
+    effectiveFrom: timestamp('effective_from')
+      .default(sql`clock_timestamp()`)
+      .notNull(),
     createdBy: text('created_by')
       .notNull()
       .references(() => user.id),

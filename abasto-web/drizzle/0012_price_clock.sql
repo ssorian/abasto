@@ -1,0 +1,1 @@
+ALTER TABLE "presentation_prices" ALTER COLUMN "effective_from" SET DEFAULT clock_timestamp();

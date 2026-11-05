@@ -1,4 +1,4 @@
-import { inArray } from 'drizzle-orm'
+import { inArray, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { authorize } from '#/modules/access/lib/policy'
@@ -39,6 +39,8 @@ export async function insertPrices(
   await tx.insert(presentationPrices).values(
     rows.map((row) => ({
       ...row,
+      // Real time of the write, after any lock was taken (see the schema).
+      effectiveFrom: sql`clock_timestamp()`,
       createdBy: actor.userId,
       source,
       reason: reason.trim(),
