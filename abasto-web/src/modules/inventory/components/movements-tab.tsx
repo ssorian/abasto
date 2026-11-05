@@ -17,6 +17,9 @@ const movementTypes: ReadonlyArray<MovementType> = [
   'loss',
   'count',
   'sale',
+  'transfer_out',
+  'transfer_in',
+  'transfer_return',
 ]
 
 const typeOptions = [
@@ -55,7 +58,7 @@ export function MovementsTab({
     <>
       <SectionRow
         title="El recorrido de tu inventario"
-        description="Cada entrada, ajuste, pérdida y conteo queda registrado y no se puede borrar."
+        description="Cada entrada, ajuste, pérdida, conteo y traslado queda registrado y no se puede borrar."
       />
       <div className="mb-[15px] flex flex-wrap items-center gap-2.5 md:mb-[18px] md:flex-nowrap md:gap-3">
         <SearchBox

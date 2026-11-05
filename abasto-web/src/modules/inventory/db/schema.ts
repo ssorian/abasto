@@ -10,6 +10,7 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core'
+import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import { user } from '#/db/auth-schema'
 import { products, suppliers } from '#/modules/catalog/db/schema'
 import { warehouses } from '#/modules/warehouses/db/schema'
@@ -23,6 +24,9 @@ export const movementTypes = [
   'loss',
   'count',
   'sale',
+  'transfer_out',
+  'transfer_in',
+  'transfer_return',
 ] as const
 export type MovementType = (typeof movementTypes)[number]
 
@@ -75,8 +79,10 @@ export const lots = pgTable(
     warehouseId: uuid('warehouse_id')
       .notNull()
       .references(() => warehouses.id),
-    /** Null for lots that do not come from a purchase (future transfers). */
+    /** Null for lots that do not come from a purchase (transfers). */
     purchaseLineId: uuid('purchase_line_id').references(() => purchaseLines.id),
+    /** Lot this one was split from when it arrived by transfer. */
+    sourceLotId: uuid('source_lot_id').references((): AnyPgColumn => lots.id),
     code: text('code').notNull().default(''),
     expiresOn: date('expires_on', { mode: 'string' }),
     receivedAt: timestamp('received_at').defaultNow().notNull(),
@@ -127,7 +133,7 @@ export const stockMovements = pgTable(
     check('stock_movements_quantity_nonzero', sql`${table.quantity} <> 0`),
     check(
       'stock_movements_type_check',
-      sql`${table.type} in ('purchase', 'adjustment', 'loss', 'count', 'sale')`,
+      sql`${table.type} in ('purchase', 'adjustment', 'loss', 'count', 'sale', 'transfer_out', 'transfer_in', 'transfer_return')`,
     ),
     index('stock_movements_lot_idx').on(table.lotId),
   ],

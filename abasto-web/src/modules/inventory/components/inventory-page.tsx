@@ -4,6 +4,7 @@ import {
   LayoutGridIcon,
   PlusIcon,
   RotateCcwIcon,
+  TruckIcon,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
@@ -35,6 +36,12 @@ import {
 } from '#/modules/inventory/lib/stock-metrics'
 import type { StatusFilter } from '#/modules/inventory/lib/stock-metrics'
 import type { InventoryOverview } from '#/modules/inventory/types/stock'
+import { TransfersTab } from '#/modules/transfers/components/transfers-tab'
+import { CancelTransferDialog } from '#/modules/transfers/forms/cancel-transfer-dialog'
+import { ReceiveDialog } from '#/modules/transfers/forms/receive-dialog'
+import { TransferDialog } from '#/modules/transfers/forms/transfer-dialog'
+import type { TransferListItem } from '#/modules/transfers/services/transfer-reads'
+import type { TransfersOverview } from '#/modules/transfers/types/transfers'
 import type {
   CatalogProduct,
   CatalogSupplier,
@@ -45,6 +52,7 @@ type InventoryPageProps = {
   overview: InventoryOverview
   products: Array<CatalogProduct>
   suppliers: Array<CatalogSupplier>
+  transfers: TransfersOverview
   /** Pre-filled product search, e.g. from Catálogo "Consultar inventario". */
   initialQuery: string
   onSelectWarehouse: (warehouseId: string) => void
@@ -55,6 +63,7 @@ const tabs: Array<{ name: string; icon: LucideIcon }> = [
   { name: 'Entradas', icon: ArrowDownToLineIcon },
   { name: 'Movimientos', icon: RotateCcwIcon },
   { name: 'Conteos', icon: ClipboardCheckIcon },
+  { name: 'Traslados', icon: TruckIcon },
 ]
 
 const headingButton =
@@ -63,6 +72,9 @@ const headingButton =
 type Dialog =
   | { kind: 'purchase' }
   | { kind: 'count' }
+  | { kind: 'transfer' }
+  | { kind: 'receive'; transfer: TransferListItem }
+  | { kind: 'cancel'; transfer: TransferListItem }
   | { kind: 'minimum'; productId: string }
   | { kind: 'lots'; productId: string }
 
@@ -70,6 +82,7 @@ export function InventoryPage({
   overview,
   products,
   suppliers,
+  transfers,
   initialQuery,
   onSelectWarehouse,
 }: InventoryPageProps) {
@@ -123,6 +136,7 @@ export function InventoryPage({
     (row) => productStatus(row) === 'Sin existencias',
   ).length
   const managed = overview.warehouses.filter((warehouse) => warehouse.canManage)
+  const manages = new Set(managed.map((warehouse) => warehouse.id))
   const lotsRow: ProductStock | undefined =
     dialog?.kind === 'lots'
       ? stock.find((row) => row.productId === dialog.productId)
@@ -264,6 +278,16 @@ export function InventoryPage({
             onNew={() => setDialog({ kind: 'count' })}
           />
         </TabsContent>
+        <TabsContent value="Traslados" className="text-base">
+          <TransfersTab
+            transfers={transfers.transfers}
+            manages={manages}
+            canSend={canManage && transfers.destinations.length > 0}
+            onNew={() => setDialog({ kind: 'transfer' })}
+            onReceive={(transfer) => setDialog({ kind: 'receive', transfer })}
+            onCancel={(transfer) => setDialog({ kind: 'cancel', transfer })}
+          />
+        </TabsContent>
       </Tabs>
 
       {dialog?.kind === 'purchase' && (
@@ -291,6 +315,27 @@ export function InventoryPage({
           products={products}
           stock={stock}
           initialProductId={dialog.productId}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'transfer' && (
+        <TransferDialog
+          from={selected}
+          destinations={transfers.destinations}
+          products={products}
+          stock={stock}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'receive' && (
+        <ReceiveDialog
+          transfer={dialog.transfer}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'cancel' && (
+        <CancelTransferDialog
+          transfer={dialog.transfer}
           onClose={() => setDialog(null)}
         />
       )}

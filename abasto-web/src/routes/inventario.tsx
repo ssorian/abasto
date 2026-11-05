@@ -7,6 +7,7 @@ import {
 } from '#/modules/catalog/server/catalog'
 import { InventoryPage } from '#/modules/inventory/components/inventory-page'
 import { inventoryOverviewFn } from '#/modules/inventory/server/inventory'
+import { transfersOverviewFn } from '#/modules/transfers/server/transfers'
 
 type InventorySearch = {
   /** Optional product query, e.g. from Catálogo "Consultar inventario". */
@@ -31,10 +32,19 @@ export const Route = createFileRoute('/inventario')({
       listProductsFn(),
       listSuppliersFn(),
     ])
+    const loaded = unwrap(overview)
+    const transfers = loaded.selectedId
+      ? unwrap(
+          await transfersOverviewFn({
+            data: { warehouseId: loaded.selectedId },
+          }),
+        )
+      : { transfers: [], destinations: [] }
     return {
-      overview: unwrap(overview),
+      overview: loaded,
       products: unwrap(products),
       suppliers: unwrap(suppliers),
+      transfers,
     }
   },
   component: InventoryRoute,
@@ -42,7 +52,7 @@ export const Route = createFileRoute('/inventario')({
 
 function InventoryRoute() {
   const { q } = Route.useSearch()
-  const { overview, products, suppliers } = Route.useLoaderData()
+  const { overview, products, suppliers, transfers } = Route.useLoaderData()
   const navigate = Route.useNavigate()
   return (
     <InventoryPage
@@ -51,6 +61,7 @@ function InventoryRoute() {
       overview={overview}
       products={products}
       suppliers={suppliers}
+      transfers={transfers}
       initialQuery={q ?? ''}
       onSelectWarehouse={(almacen) =>
         void navigate({ search: (current) => ({ ...current, almacen }) })

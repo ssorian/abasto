@@ -38,6 +38,9 @@ const movementLabels: Record<MovementType, string> = {
   loss: 'Pérdida',
   count: 'Conteo',
   sale: 'Venta',
+  transfer_out: 'Salida por traslado',
+  transfer_in: 'Entrada por traslado',
+  transfer_return: 'Traslado cancelado',
 }
 
 export const movementLabel = (type: MovementType) => movementLabels[type]

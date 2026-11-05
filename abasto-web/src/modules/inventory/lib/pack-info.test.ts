@@ -57,5 +57,8 @@ describe('movementLabel', () => {
     expect(movementLabel('loss')).toBe('Pérdida')
     expect(movementLabel('count')).toBe('Conteo')
     expect(movementLabel('sale')).toBe('Venta')
+    expect(movementLabel('transfer_out')).toBe('Salida por traslado')
+    expect(movementLabel('transfer_in')).toBe('Entrada por traslado')
+    expect(movementLabel('transfer_return')).toBe('Traslado cancelado')
   })
 })

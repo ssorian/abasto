@@ -78,6 +78,13 @@
       "when": 1793844942549,
       "tag": "0010_cash_sessions_immutable",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793845627410,
+      "tag": "0011_transfers",
+      "breakpoints": true
     }
   ]
 }
