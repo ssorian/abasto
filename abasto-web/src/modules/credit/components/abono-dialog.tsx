@@ -56,7 +56,7 @@ export function AbonoDialog({
       )}
       <Field
         label="Efectivo recibido (pesos)"
-        hint="Solo efectivo. No puede ser más que el saldo."
+        hint="Solo efectivo. No puede ser más que el saldo y salda primero los pedidos más antiguos."
       >
         <FieldInput
           inputMode="decimal"

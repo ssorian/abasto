@@ -1,10 +1,17 @@
+import { asc } from 'drizzle-orm'
+import { db } from '#/db'
 import { can } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { getOpenCashSession } from '#/modules/cash/services/cash-sessions'
+import { customerLedger } from '#/modules/credit/db/schema'
+import { allocateCharges } from '#/modules/credit/lib/collections'
+import type { AbonoRow, ChargeRow } from '#/modules/credit/lib/collections'
 import { sortReceivables } from '#/modules/credit/lib/statement'
+import { balanceOf, overdueOf } from '#/modules/credit/services/credit-balance'
 import { listPendingCreditAuthorizations } from '#/modules/credit/services/credit-authorizations'
-import { getCustomerBalance } from '#/modules/credit/services/customer-ledger'
+import type { LedgerEntry } from '#/modules/credit/services/customer-ledger'
 import { listCustomers } from '#/modules/customers/services/customers'
+import { businessDate } from '#/modules/orders/services/clock'
 import { listWarehouses } from '#/modules/warehouses/services/warehouses'
 
 export type ReceivableRow = {
@@ -35,9 +42,33 @@ export type ReceivablesOverview = {
   /** Only the owner approves or rejects; staff get false and an empty list. */
   canAuthorize: boolean
   pending: Array<PendingRequest>
+  /** Business day (YYYY-MM-DD) the overdue flags were computed for. */
+  today: string
+  /** Every credit order picked up by an active customer, paid or not. */
+  charges: Array<ChargeRow>
+  /** Abonos of active customers, newest first. */
+  abonos: Array<AbonoRow>
 }
 
-/** Cobros: who owes what, the selected warehouse's drawer, and the owner's pending requests. */
+/** Ledger entries per customer, each list in insertion order (oldest first). */
+async function entriesByCustomer() {
+  const grouped = new Map<string, Array<LedgerEntry>>()
+  const entries = await db
+    .select()
+    .from(customerLedger)
+    .orderBy(asc(customerLedger.seq))
+  for (const entry of entries) {
+    const list = grouped.get(entry.customerId) ?? []
+    list.push(entry)
+    grouped.set(entry.customerId, list)
+  }
+  return grouped
+}
+
+/**
+ * Cobros: who owes what and on which credit order, the abonos received, the
+ * selected warehouse's drawer, and the owner's pending requests.
+ */
 export async function getReceivables(
   actor: Actor,
   warehouseId?: string,
@@ -60,6 +91,8 @@ export async function getReceivables(
         requestedAt: request.requestedAt,
       }))
     : []
+  const today = businessDate()
+  // Without an operable warehouse the actor cannot receive abonos or read balances.
   if (!selected) {
     return {
       warehouses,
@@ -68,30 +101,62 @@ export async function getReceivables(
       customers: [],
       canAuthorize,
       pending,
+      today,
+      charges: [],
+      abonos: [],
     }
   }
-  const [active, session] = await Promise.all([
+  const [active, session, ledger] = await Promise.all([
     listCustomers(actor, { active: true }),
     getOpenCashSession(actor, selected.id),
+    entriesByCustomer(),
   ])
-  const balances = await Promise.all(
-    active.map((customer) => getCustomerBalance(actor, customer.id)),
-  )
+  // Staff only see the names of their own warehouses.
+  const placeOf = (id: string | undefined) =>
+    names.get(id ?? '') ?? 'Otro almacén'
+  const charges: Array<ChargeRow> = []
+  const abonos: Array<AbonoRow> = []
+  const rows = active.map((customer) => {
+    const entries = ledger.get(customer.id) ?? []
+    const owner = { customerId: customer.id, customerName: customer.name }
+    for (const charge of allocateCharges(entries, today)) {
+      const entry = entries.find(({ id }) => id === charge.id)
+      charges.push({
+        ...charge,
+        ...owner,
+        warehouseName: placeOf(entry?.warehouseId),
+      })
+    }
+    for (const entry of entries) {
+      if (entry.type !== 'abono') continue
+      abonos.push({
+        id: entry.id,
+        ...owner,
+        warehouseName: placeOf(entry.warehouseId),
+        amountCents: entry.amountCents,
+        createdAt: entry.createdAt,
+      })
+    }
+    return {
+      customerId: customer.id,
+      name: customer.name,
+      balanceCents: balanceOf(entries),
+      overdueCents: overdueOf(entries, today),
+      creditLimitCents: customer.creditLimitCents,
+      termsDays: customer.termsDays,
+    }
+  })
   return {
     warehouses,
     selectedId: selected.id,
     drawerOpen: session !== null,
-    customers: sortReceivables(
-      active.map((customer, index) => ({
-        customerId: customer.id,
-        name: customer.name,
-        balanceCents: balances[index].balanceCents,
-        overdueCents: balances[index].overdueCents,
-        creditLimitCents: customer.creditLimitCents,
-        termsDays: customer.termsDays,
-      })),
-    ),
+    customers: sortReceivables(rows),
     canAuthorize,
     pending,
+    today,
+    charges,
+    abonos: abonos.sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    ),
   }
 }

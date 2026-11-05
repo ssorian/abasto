@@ -2,22 +2,34 @@ import { useState } from 'react'
 
 import { PageHeading } from '#/components/page-heading'
 import { AbonoDialog } from '#/modules/credit/components/abono-dialog'
+import { AbonoHistory } from '#/modules/credit/components/abono-history'
 import { AuthorizationsList } from '#/modules/credit/components/authorizations-list'
+import { ChargesTable } from '#/modules/credit/components/charges-table'
+import { CollectionsBanner } from '#/modules/credit/components/collections-banner'
 import { StatementDialog } from '#/modules/credit/components/statement-dialog'
-import { ActionButton } from '#/modules/counter/components/action-button'
-import {
-  CellNote,
-  DataTable,
-  TableWrap,
-  Td,
-  Th,
-} from '#/modules/counter/components/data-table'
 import { EmptyState } from '#/modules/counter/components/empty-state'
-import { FieldSelect } from '#/modules/counter/components/form-controls'
+import { CompactSelect } from '#/modules/counter/components/form-controls'
+import {
+  collectionMetrics,
+  collectionViews,
+  filterCharges,
+} from '#/modules/credit/lib/collections'
+import type { CollectionView } from '#/modules/credit/lib/collections'
+import { SectionHelp } from '#/modules/inventory/components/info-blocks'
 import { formatCents } from '#/modules/pricing/lib/money'
+import { MetricStrip } from '#/modules/reports/components/metric-strip'
 import type { ReceivablesOverview } from '#/modules/credit/server/receivables'
 
 type Panel = { kind: 'abono' | 'statement'; customerId: string } | undefined
+
+const allCustomers = 'Todos'
+
+const emptyMessage: Record<CollectionView, string> = {
+  Pendientes: 'Ningún pedido a crédito tiene saldo pendiente.',
+  Vencidos: 'No hay pedidos a crédito vencidos.',
+  Pagados: 'Todavía no hay pedidos a crédito pagados.',
+  Todos: 'Todavía no hay pedidos a crédito recogidos.',
+}
 
 export function ReceivablesPage({
   overview,
@@ -27,19 +39,39 @@ export function ReceivablesPage({
   onSelectWarehouse: (warehouseId: string) => void
 }) {
   const [panel, setPanel] = useState<Panel>()
+  const [customerFilter, setCustomerFilter] = useState(allCustomers)
+  const [view, setView] = useState<CollectionView>('Pendientes')
   const selected = overview.warehouses.find(
     ({ id }) => id === overview.selectedId,
   )
   const customer = overview.customers.find(
     ({ customerId }) => customerId === panel?.customerId,
   )
+  const customerId =
+    customerFilter === allCustomers ? undefined : customerFilter
+  const ofCustomer = <T extends { customerId: string }>(rows: Array<T>) =>
+    rows.filter((row) => !customerId || row.customerId === customerId)
+  const charges = ofCustomer(overview.charges)
+  const abonos = ofCustomer(overview.abonos)
+  const metrics = collectionMetrics(charges, abonos, overview.today)
+  const rows = filterCharges(overview.charges, { view, customerId })
+  // Anyone who ever bought on credit, so a paid-up customer stays selectable.
+  const debtors = [
+    ...new Map(
+      overview.charges.map((row) => [row.customerId, row.customerName]),
+    ),
+  ].sort(([, a], [, b]) => a.localeCompare(b, 'es'))
+  const statementName =
+    customer?.name ??
+    debtors.find(([id]) => id === panel?.customerId)?.[1] ??
+    ''
 
   return (
     <>
       <PageHeading
         eyebrow="ABARROTEROS · ALMACÉN"
         title="Cobros"
-        description="Saldos de tus clientes, abonos y autorizaciones de crédito."
+        description="Dinero recibido, saldos pendientes y crédito vencido."
       />
       {overview.canAuthorize && (
         <AuthorizationsList requests={overview.pending} />
@@ -50,10 +82,59 @@ export function ReceivablesPage({
         </p>
       ) : (
         <>
-          <div className="mb-4 flex flex-wrap items-end gap-4">
-            <label className="flex min-w-[220px] flex-col gap-[7px] text-[13px] font-medium text-[#32455e]">
+          <CollectionsBanner />
+          <MetricStrip
+            columns={4}
+            items={[
+              {
+                label: 'Saldo por cobrar',
+                value: formatCents(metrics.balanceCents),
+              },
+              {
+                label: 'Crédito vencido',
+                value: formatCents(metrics.overdueCents),
+              },
+              {
+                label: 'Por vencer',
+                value: formatCents(metrics.currentCents),
+              },
+              {
+                label: 'Abonos de hoy',
+                value: formatCents(metrics.receivedTodayCents),
+              },
+            ]}
+          />
+          <div className="my-5 flex flex-wrap items-center gap-3">
+            <CompactSelect
+              aria-label="Filtrar cobros por cliente"
+              className="min-w-[160px] max-md:flex-1"
+              value={customerFilter}
+              onChange={(event) => setCustomerFilter(event.target.value)}
+            >
+              <option value={allCustomers}>Todos los clientes</option>
+              {debtors.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </CompactSelect>
+            <CompactSelect
+              aria-label="Filtrar cartera"
+              className="min-w-[160px] max-md:flex-1"
+              value={view}
+              onChange={(event) =>
+                setView(event.target.value as CollectionView)
+              }
+            >
+              {collectionViews.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </CompactSelect>
+            <label className="flex items-center gap-2 text-[13px] text-[#32455e] max-md:basis-full md:ml-auto">
               Recibir abonos en
-              <FieldSelect
+              <CompactSelect
+                aria-label="Caja que recibe los abonos"
+                className="min-w-[160px] max-md:flex-1"
                 value={selected.id}
                 onChange={(event) => onSelectWarehouse(event.target.value)}
               >
@@ -62,80 +143,37 @@ export function ReceivablesPage({
                     {warehouse.name}
                   </option>
                 ))}
-              </FieldSelect>
+              </CompactSelect>
             </label>
-            <p className="text-sm text-ink-muted">
-              {overview.drawerOpen
-                ? 'La caja está abierta.'
-                : 'La caja está cerrada: ábrela en Mostrador para recibir abonos.'}
-            </p>
           </div>
-          {overview.customers.length === 0 ? (
-            <EmptyState>Ningún cliente tiene saldo pendiente.</EmptyState>
-          ) : (
-            <TableWrap className="rounded-xl border border-[#e3e9f0] bg-white">
-              <DataTable>
-                <thead>
-                  <tr>
-                    <Th>Cliente</Th>
-                    <Th>Saldo</Th>
-                    <Th>Vencido</Th>
-                    <Th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {overview.customers.map((row) => (
-                    <tr key={row.customerId}>
-                      <Td>
-                        {row.name}
-                        <CellNote>
-                          Límite {formatCents(row.creditLimitCents)} ·{' '}
-                          {row.termsDays} días
-                        </CellNote>
-                      </Td>
-                      <Td>{formatCents(row.balanceCents)}</Td>
-                      <Td
-                        className={
-                          row.overdueCents > 0
-                            ? 'font-[650] text-[#a1372e]'
-                            : undefined
-                        }
-                      >
-                        {row.overdueCents > 0
-                          ? formatCents(row.overdueCents)
-                          : '—'}
-                      </Td>
-                      <Td>
-                        <div className="flex gap-2">
-                          <ActionButton
-                            tone="primary"
-                            onClick={() =>
-                              setPanel({
-                                kind: 'abono',
-                                customerId: row.customerId,
-                              })
-                            }
-                          >
-                            Registrar abono
-                          </ActionButton>
-                          <ActionButton
-                            onClick={() =>
-                              setPanel({
-                                kind: 'statement',
-                                customerId: row.customerId,
-                              })
-                            }
-                          >
-                            Estado de cuenta
-                          </ActionButton>
-                        </div>
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </DataTable>
-            </TableWrap>
+          {!overview.drawerOpen && (
+            <p className="mb-4 text-sm text-[#a1372e]">
+              La caja de {selected.name} está cerrada: ábrela en Mostrador para
+              recibir abonos.
+            </p>
           )}
+          {rows.length === 0 ? (
+            <EmptyState>{emptyMessage[view]}</EmptyState>
+          ) : (
+            <ChargesTable
+              rows={rows}
+              today={overview.today}
+              onAbono={(id) => setPanel({ kind: 'abono', customerId: id })}
+              onStatement={(id) =>
+                setPanel({ kind: 'statement', customerId: id })
+              }
+            />
+          )}
+          <h3 className="mt-6 mb-[14px] text-[17px] font-[650]">
+            Historial de abonos recibidos
+          </h3>
+          <AbonoHistory rows={abonos} />
+          <SectionHelp>
+            Solo se recibe efectivo. Un abono se registra al cliente y salda
+            primero sus pedidos más antiguos, aunque lo inicies desde otro
+            pedido. Las ventas de contado se cobran al entregar y aparecen en el
+            corte de caja.
+          </SectionHelp>
           {panel?.kind === 'abono' && customer && (
             <AbonoDialog
               key={customer.customerId}
@@ -148,11 +186,11 @@ export function ReceivablesPage({
               onClose={() => setPanel(undefined)}
             />
           )}
-          {panel?.kind === 'statement' && customer && (
+          {panel?.kind === 'statement' && panel.customerId && (
             <StatementDialog
-              key={customer.customerId}
-              customerId={customer.customerId}
-              customerName={customer.name}
+              key={panel.customerId}
+              customerId={panel.customerId}
+              customerName={statementName}
               onClose={() => setPanel(undefined)}
             />
           )}

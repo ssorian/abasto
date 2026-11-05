@@ -1,11 +1,27 @@
 import type { ReactNode } from 'react'
 
+import { cn } from '#/lib/utils/cn'
+
 type Metric = { label: string; value: string; note?: ReactNode }
 
-/** Row of labelled figures in one bordered card. */
-export function MetricStrip({ items }: { items: Array<Metric> }) {
+/** Row of labelled figures in one bordered card (`.ops-metrics`). */
+export function MetricStrip({
+  items,
+  columns = 3,
+}: {
+  items: Array<Metric>
+  /** Four columns become a two-by-two grid on phones. */
+  columns?: 3 | 4
+}) {
   return (
-    <div className="my-[18px] grid grid-cols-1 rounded-xl border border-[#e1e8f0] bg-white md:grid-cols-3">
+    <div
+      className={cn(
+        'my-[18px] grid rounded-xl border border-[#e1e8f0] bg-white',
+        columns === 3
+          ? 'grid-cols-1 md:grid-cols-3'
+          : 'grid-cols-2 md:grid-cols-4',
+      )}
+    >
       {items.map((item) => (
         <div
           key={item.label}
