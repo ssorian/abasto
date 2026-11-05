@@ -2,10 +2,10 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { unwrap } from '#/lib/boundary'
 import { WarehousesPage } from '#/modules/warehouses/components/warehouses-page'
-import { listWarehousesFn } from '#/modules/warehouses/server/warehouses'
+import { warehouseOverviewFn } from '#/modules/warehouses/server/warehouses'
 
 export const Route = createFileRoute('/almacenes')({
-  loader: async () => unwrap(await listWarehousesFn()),
+  loader: async () => unwrap(await warehouseOverviewFn()),
   component: function Warehouses() {
     const warehouses = Route.useLoaderData()
     const { user } = Route.useRouteContext()

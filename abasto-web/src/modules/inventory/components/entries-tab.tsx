@@ -1,97 +1,49 @@
-import { ArrowUpRightIcon, PlusIcon } from 'lucide-react'
+import { PlusIcon } from 'lucide-react'
 
-import {
-  ActionButton,
-  IconButton,
-  TextLink,
-} from '#/modules/inventory/components/action-button'
-import { EmptyPanel } from '#/modules/inventory/components/empty-panel'
-import {
-  ListBody,
-  ListCell,
-  ListHead,
-  ListPanel,
-  ListRow,
-  ListTable,
-} from '#/modules/inventory/components/list-panel'
+import { ActionButton } from '#/modules/inventory/components/action-button'
+import { MovementTable } from '#/modules/inventory/components/movement-table'
+import type { ProductLabel } from '#/modules/inventory/components/movement-table'
 import { SectionRow } from '#/modules/inventory/components/section-row'
-import { dateLabel, timeLabel } from '#/modules/inventory/lib/format'
-
-import type { Entry, WarehouseScope } from '#/modules/inventory/types/inventory'
+import type { MovementEntry } from '#/modules/inventory/types/stock'
 
 type EntriesTabProps = {
-  entries: ReadonlyArray<Entry>
-  warehouse: WarehouseScope
-  onSelect: (entry: Entry) => void
+  rows: ReadonlyArray<MovementEntry>
+  products: ReadonlyMap<string, ProductLabel>
+  canManage: boolean
   onNew: () => void
 }
 
+/** Recent purchase entries of the warehouse, taken from the ledger. */
 export function EntriesTab({
-  entries,
-  warehouse,
-  onSelect,
+  rows,
+  products,
+  canManage,
   onNew,
 }: EntriesTabProps) {
-  const rows = entries.filter(
-    (entry) => warehouse === 'Todos' || entry.warehouse === warehouse,
-  )
-
   return (
     <>
       <SectionRow
-        title="Mercancía recibida"
-        description={`Entradas registradas en ${warehouse === 'Todos' ? 'todos los almacenes' : `Almacén ${warehouse}`}.`}
-      />
-      <ListPanel>
-        {rows.length ? (
-          <ListTable>
-            <ListHead>
-              {['Entrada', 'Referencia', 'Almacén', 'Productos', 'Fecha', '']}
-            </ListHead>
-            <ListBody>
-              {rows.map((entry) => (
-                <ListRow key={entry.id}>
-                  <ListCell>
-                    <TextLink onClick={() => onSelect(entry)}>
-                      {entry.id}
-                    </TextLink>
-                  </ListCell>
-                  <ListCell>{entry.reference || 'Sin referencia'}</ListCell>
-                  <ListCell>{entry.warehouse}</ListCell>
-                  <ListCell>
-                    {entry.lines.length}{' '}
-                    {entry.lines.length === 1 ? 'producto' : 'productos'}
-                  </ListCell>
-                  <ListCell>
-                    {dateLabel(entry.date)}
-                    <small className="block text-[#788596]">
-                      {timeLabel(entry.date)}
-                    </small>
-                  </ListCell>
-                  <ListCell>
-                    <IconButton
-                      aria-label={`Ver entrada ${entry.id}`}
-                      onClick={() => onSelect(entry)}
-                    >
-                      <ArrowUpRightIcon size={18} />
-                    </IconButton>
-                  </ListCell>
-                </ListRow>
-              ))}
-            </ListBody>
-          </ListTable>
-        ) : (
-          <EmptyPanel
-            title="Todavía no hay entradas"
-            description="Registra la mercancía que recibas en este almacén."
-          >
+        title="Compras a proveedores"
+        description="Lo que has recibido recientemente. Cada compra crea sus lotes."
+        action={
+          canManage ? (
             <ActionButton tone="primary" onClick={onNew}>
-              <PlusIcon size={18} />
-              Registrar entrada
+              <PlusIcon size={19} />
+              Nueva compra
             </ActionButton>
-          </EmptyPanel>
-        )}
-      </ListPanel>
+          ) : undefined
+        }
+      />
+      <MovementTable
+        rows={rows.filter((row) => row.type === 'purchase')}
+        products={products}
+        emptyTitle="Aún no hay compras"
+        emptyDescription={
+          canManage
+            ? 'Registra tu primera compra para dar de alta existencias.'
+            : 'Las compras que registre el encargado aparecerán aquí.'
+        }
+      />
     </>
   )
 }

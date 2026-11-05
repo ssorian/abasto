@@ -1,12 +1,11 @@
-import { useState } from 'react'
 import {
   ArrowDownToLineIcon,
   ClipboardCheckIcon,
   LayoutGridIcon,
   PlusIcon,
   RotateCcwIcon,
-  TruckIcon,
 } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
 import { PageHeading } from '#/components/page-heading'
@@ -15,53 +14,40 @@ import { ActionButton } from '#/modules/inventory/components/action-button'
 import { CountsTab } from '#/modules/inventory/components/counts-tab'
 import { EntriesTab } from '#/modules/inventory/components/entries-tab'
 import { MovementsTab } from '#/modules/inventory/components/movements-tab'
-import { ProductDetailSheet } from '#/modules/inventory/components/product-detail-sheet'
+import type { ProductLabel } from '#/modules/inventory/components/movement-table'
 import { ProductsTab } from '#/modules/inventory/components/products-tab'
-import { TransfersTab } from '#/modules/inventory/components/transfers-tab'
 import { WarehouseSummary } from '#/modules/inventory/components/warehouse-summary'
 import { CountDialog } from '#/modules/inventory/forms/count-dialog'
-import { EntryDetailDialog } from '#/modules/inventory/forms/entry-detail-dialog'
-import { MovementDetailDialog } from '#/modules/inventory/forms/movement-detail-dialog'
-import { OperationDialog } from '#/modules/inventory/forms/operation-dialog'
-import { ReceiptDialog } from '#/modules/inventory/forms/receipt-dialog'
-import { TransferReceiveDialog } from '#/modules/inventory/forms/transfer-receive-dialog'
-import { useInventoryState } from '#/modules/inventory/hooks/use-inventory-state'
-import { inventoryProducts } from '#/modules/inventory/lib/catalog'
+import { LotsDialog } from '#/modules/inventory/forms/lots-dialog'
+import { MinimumDialog } from '#/modules/inventory/forms/minimum-dialog'
+import { PurchaseDialog } from '#/modules/inventory/forms/purchase-dialog'
+import type { SavedPurchase } from '#/modules/inventory/forms/purchase-dialog'
+import { PurchaseResultDialog } from '#/modules/inventory/forms/purchase-result-dialog'
+import type { PurchaseResult } from '#/modules/inventory/forms/purchase-result-dialog'
+import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import {
-  filterMovements,
-  filterProducts,
-  productRows,
-} from '#/modules/inventory/lib/filters'
+  packInfoOf,
+  quantityPresentations,
+} from '#/modules/inventory/lib/pack-info'
 import {
-  applyCount,
-  changeStock,
-  receive,
-  receiveTransfer,
-  saveCount,
-} from '#/modules/inventory/lib/operations'
-import { stockStatus } from '#/modules/inventory/lib/stock'
-import { ImportCsvDialog } from '#/modules/product-import/components/import-csv-dialog'
-import { warehouseNames } from '#/shared/demo/types'
-
-import type { WarehouseName } from '#/shared/demo/types'
-import type { OperationRequest } from '#/modules/inventory/forms/operation-dialog'
-import type { ProductSort, StatusFilter } from '#/modules/inventory/lib/filters'
-import type { ProductView } from '#/modules/inventory/components/product-toolbar'
-import type { ImportResult } from '#/modules/product-import/lib/import-types'
+  filterStock,
+  productStatus,
+} from '#/modules/inventory/lib/stock-metrics'
+import type { StatusFilter } from '#/modules/inventory/lib/stock-metrics'
+import type { InventoryOverview } from '#/modules/inventory/types/stock'
 import type {
-  Count,
-  Entry,
-  InventoryProduct,
-  Movement,
-  Transfer,
-  WarehouseScope,
-} from '#/modules/inventory/types/inventory'
+  CatalogProduct,
+  CatalogSupplier,
+} from '#/modules/catalog/lib/catalog-types'
+import type { ProductStock } from '#/modules/inventory/services/stock-reads'
 
 type InventoryPageProps = {
+  overview: InventoryOverview
+  products: Array<CatalogProduct>
+  suppliers: Array<CatalogSupplier>
   /** Pre-filled product search, e.g. from Catálogo "Consultar inventario". */
   initialQuery: string
-  /** Warehouse shown first, e.g. from Almacenes "Ver inventario". */
-  initialWarehouse: WarehouseName
+  onSelectWarehouse: (warehouseId: string) => void
 }
 
 const tabs: Array<{ name: string; icon: LucideIcon }> = [
@@ -69,127 +55,105 @@ const tabs: Array<{ name: string; icon: LucideIcon }> = [
   { name: 'Entradas', icon: ArrowDownToLineIcon },
   { name: 'Movimientos', icon: RotateCcwIcon },
   { name: 'Conteos', icon: ClipboardCheckIcon },
-  { name: 'Traslados', icon: TruckIcon },
 ]
 
 const headingButton =
   'max-md:min-h-[43px] max-md:px-[11px] max-md:py-[9px] max-md:text-[11px]'
 
+type Dialog =
+  | { kind: 'purchase' }
+  | { kind: 'count' }
+  | { kind: 'minimum'; productId: string }
+  | { kind: 'lots'; productId: string }
+
 export function InventoryPage({
+  overview,
+  products,
+  suppliers,
   initialQuery,
-  initialWarehouse,
+  onSelectWarehouse,
 }: InventoryPageProps) {
-  const { state, apply } = useInventoryState()
+  const actions = useInventoryActions()
   const [tab, setTab] = useState('Productos')
-  const [warehouse, setWarehouse] = useState<WarehouseScope>(initialWarehouse)
   const [query, setQuery] = useState(initialQuery)
   const [filter, setFilter] = useState<StatusFilter>('Todos')
-  const [category, setCategory] = useState('Todas')
-  const [sort, setSort] = useState<ProductSort>('Nombre')
-  const [view, setView] = useState<ProductView>('cards')
   const [moveType, setMoveType] = useState('Todos')
-  const [moveDay, setMoveDay] = useState('')
+  const [dialog, setDialog] = useState<Dialog | null>(null)
+  const [result, setResult] = useState<PurchaseResult | null>(null)
 
-  const [detailId, setDetailId] = useState<string | null>(null)
-  const [detailWarehouse, setDetailWarehouse] =
-    useState<WarehouseName>('Centro')
-  const [entryOpen, setEntryOpen] = useState(false)
-  const [entryProductId, setEntryProductId] = useState<string | null>(null)
-  const [operation, setOperation] = useState<OperationRequest | null>(null)
-  const [countOpen, setCountOpen] = useState(false)
-  const [activeCount, setActiveCount] = useState<Count | null>(null)
-  const [entryDetail, setEntryDetail] = useState<Entry | null>(null)
-  const [movementDetail, setMovementDetail] = useState<Movement | null>(null)
-  const [receiving, setReceiving] = useState<Transfer | null>(null)
-  const [importOpen, setImportOpen] = useState(false)
-
-  // Dialogs that need a concrete warehouse fall back to Centro for "Todos".
-  const specific: WarehouseName = warehouse === 'Todos' ? 'Centro' : warehouse
-  const rows = productRows(state, warehouse)
-  const filtered = filterProducts(rows, query, category, filter, sort)
-  const movements = filterMovements(
-    state.movements,
-    warehouse,
-    query,
-    moveType,
-    moveDay,
+  const labels = useMemo(
+    () =>
+      new Map<string, ProductLabel>(
+        products.map((product) => [
+          product.id,
+          { name: product.name, sku: product.sku, pack: packInfoOf(product) },
+        ]),
+      ),
+    [products],
   )
-  const lowCount = rows.filter(
-    (row) => stockStatus(row.stock) === 'Stock bajo',
-  ).length
-  const soldOutCount = rows.filter(
-    (row) => stockStatus(row.stock) === 'Agotado',
-  ).length
-  const detailProduct =
-    inventoryProducts.find((product) => product.id === detailId) ?? null
 
-  const hasHistory = (sku: string, target: WarehouseName) => {
-    const product = inventoryProducts.find(
-      (item) => item.sku.toLowerCase() === sku.toLowerCase(),
+  const packs = useMemo(
+    () => new Map([...labels].map(([id, label]) => [id, label.pack])),
+    [labels],
+  )
+
+  const selected = overview.warehouses.find(
+    ({ id }) => id === overview.selectedId,
+  )
+  if (!selected) {
+    return (
+      <div className="text-base">
+        <PageHeading
+          eyebrow="CADA PRODUCTO, EN SU LUGAR"
+          title="Inventario"
+          description="Ten a la mano lo que entra, lo que sale y lo que tienes."
+        />
+        <p className="text-sm text-ink-muted">
+          Aún no tienes almacenes asignados.
+        </p>
+      </div>
     )
-    const stock = state.stocks.find(
-      (item) => item.productId === product?.id && item.warehouse === target,
+  }
+
+  const { canManage } = selected
+  const stock = overview.stock
+  const rows = filterStock(stock, query, filter)
+  const low = stock.filter((row) => productStatus(row) === 'Stock bajo').length
+  const soldOut = stock.filter(
+    (row) => productStatus(row) === 'Sin existencias',
+  ).length
+  const managed = overview.warehouses.filter((warehouse) => warehouse.canManage)
+  const lotsRow: ProductStock | undefined =
+    dialog?.kind === 'lots'
+      ? stock.find((row) => row.productId === dialog.productId)
+      : undefined
+  const lotsProduct = products.find(({ id }) => id === lotsRow?.productId)
+
+  async function onSaved(purchase: SavedPurchase) {
+    setDialog(null)
+    const suggestions = await actions.loadSuggestions(purchase.purchaseId)
+    const canApply = overview.warehouses.some(
+      (warehouse) =>
+        warehouse.id === purchase.warehouseId && warehouse.canManage,
     )
-    return !!stock && (stock.received || stock.lots.length > 0)
-  }
-  const openEntry = (
-    productId: string | null,
-    target: WarehouseName = specific,
-  ) => {
-    setEntryProductId(productId)
-    setDetailWarehouse(target)
-    setDetailId(null)
-    setEntryOpen(true)
-  }
-  const openDetail = (product: InventoryProduct) => {
-    setDetailWarehouse(specific)
-    setDetailId(product.id)
-  }
-  const openOperation = (
-    type: 'out' | 'adjust',
-    productId: string,
-    transfer = false,
-  ) => {
-    setDetailId(null)
-    setOperation({
-      type,
-      productId,
-      transfer,
-      warehouse: transfer ? specific : detailWarehouse,
+    setResult({
+      purchaseId: purchase.purchaseId,
+      canApply,
+      suggestions,
+      lots: purchase.lots.map((lot) => {
+        const label = labels.get(lot.productId)
+        return {
+          name: label?.name ?? 'Producto',
+          code: lot.code,
+          quantity: lot.onHand,
+          pack: label?.pack ?? {
+            packName: 'piezas',
+            factor: 1,
+            unit: 'piezas',
+          },
+        }
+      }),
     })
-  }
-  const openCount = (count: Count | null) => {
-    setActiveCount(count)
-    setCountOpen(true)
-  }
-  const applyImport = (result: ImportResult) => {
-    if (result.mode !== 'stock') return
-    const targets = warehouseNames.filter((name) =>
-      result.entries.some((entry) => entry.warehouse === name),
-    )
-    apply((current) => {
-      let next = current
-      for (const target of targets) {
-        const lines = result.entries
-          .filter((entry) => entry.warehouse === target)
-          .map((entry) => ({
-            productId: entry.productId,
-            qty: entry.baseQuantity,
-            cost: entry.baseCost,
-            lot: entry.lot,
-            expiry: entry.expiry,
-            salePrice: entry.salePrice,
-          }))
-        next = receive(
-          next,
-          target,
-          `Carga inicial CSV · ${result.filename}`,
-          new Date().toISOString(),
-          lines,
-        )
-      }
-      return next
-    }, 'Importación CSV registrada.')
   }
 
   return (
@@ -199,42 +163,36 @@ export function InventoryPage({
         title="Inventario"
         description="Ten a la mano lo que entra, lo que sale y lo que tienes."
         actions={
-          <div className="grid w-full grid-cols-2 gap-2.5 md:contents">
-            <ActionButton
-              className={headingButton}
-              onClick={() => setImportOpen(true)}
-            >
-              Importar CSV
-            </ActionButton>
-            <ActionButton
-              className={headingButton}
-              onClick={() => openCount(null)}
-            >
-              <ClipboardCheckIcon size={18} />
-              Hacer conteo
-            </ActionButton>
-            <ActionButton
-              tone="primary"
-              className={`${headingButton} max-md:col-span-2`}
-              onClick={() => openEntry(null)}
-            >
-              <PlusIcon size={19} />
-              Nueva entrada
-            </ActionButton>
-          </div>
+          canManage ? (
+            <div className="grid w-full grid-cols-2 gap-2.5 md:contents">
+              <ActionButton
+                className={headingButton}
+                onClick={() => setDialog({ kind: 'count' })}
+              >
+                <ClipboardCheckIcon size={18} />
+                Hacer conteo
+              </ActionButton>
+              <ActionButton
+                tone="primary"
+                className={headingButton}
+                onClick={() => setDialog({ kind: 'purchase' })}
+              >
+                <PlusIcon size={19} />
+                Nueva compra
+              </ActionButton>
+            </div>
+          ) : undefined
         }
       />
       <WarehouseSummary
-        warehouse={warehouse}
-        onWarehouseChange={(next) => {
-          setWarehouse(next)
+        warehouses={overview.warehouses}
+        selectedId={selected.id}
+        onWarehouseChange={(id) => {
           setFilter('Todos')
+          onSelectWarehouse(id)
         }}
-        counts={{
-          products: inventoryProducts.length,
-          low: lowCount,
-          soldOut: soldOutCount,
-        }}
+        counts={{ products: stock.length, low, soldOut }}
+        canManage={canManage}
         onStat={(next) => {
           setTab('Productos')
           setFilter(next)
@@ -260,181 +218,101 @@ export function InventoryPage({
             >
               <Icon size={17} />
               {name}
-              {name === 'Productos' && (
-                <span className="rounded-[5px] bg-[#e8edf4] max-md:hidden px-1.5 py-px text-xs font-[650] text-[#36577c]">
-                  {inventoryProducts.length}
-                </span>
-              )}
             </TabsTrigger>
           ))}
         </TabsList>
         <TabsContent value="Productos" className="text-base">
           <ProductsTab
-            rows={filtered}
-            total={inventoryProducts.length}
-            lowCount={lowCount}
+            rows={rows}
+            total={stock.length}
+            packs={packs}
+            today={overview.today}
+            canManage={canManage}
             query={query}
             onQueryChange={setQuery}
-            category={category}
-            onCategoryChange={setCategory}
-            sort={sort}
-            onSortChange={setSort}
             filter={filter}
             onFilterChange={setFilter}
-            view={view}
-            onViewChange={setView}
-            onOpen={openDetail}
-            onRestock={(product) => openEntry(product.id)}
-            onClear={() => {
-              setQuery('')
-              setFilter('Todos')
-              setCategory('Todas')
-            }}
+            onLots={(row) =>
+              setDialog({ kind: 'lots', productId: row.productId })
+            }
+            onMinimum={(productId) => setDialog({ kind: 'minimum', productId })}
           />
         </TabsContent>
         <TabsContent value="Entradas" className="text-base">
           <EntriesTab
-            entries={state.entries}
-            warehouse={warehouse}
-            onSelect={setEntryDetail}
-            onNew={() => openEntry(null)}
+            rows={overview.movements}
+            products={labels}
+            canManage={canManage}
+            onNew={() => setDialog({ kind: 'purchase' })}
           />
         </TabsContent>
         <TabsContent value="Movimientos" className="text-base">
           <MovementsTab
-            rows={movements}
+            rows={overview.movements}
+            products={labels}
             query={query}
             onQueryChange={setQuery}
             type={moveType}
             onTypeChange={setMoveType}
-            day={moveDay}
-            onDayChange={setMoveDay}
-            onSelect={setMovementDetail}
           />
         </TabsContent>
         <TabsContent value="Conteos" className="text-base">
           <CountsTab
-            counts={state.counts}
-            warehouse={warehouse}
-            onOpen={openCount}
-          />
-        </TabsContent>
-        <TabsContent value="Traslados" className="text-base">
-          <TransfersTab
-            transfers={state.transfers}
-            warehouse={warehouse}
-            onNew={() => openOperation('out', inventoryProducts[0].id, true)}
-            onReceive={setReceiving}
+            rows={overview.movements}
+            products={labels}
+            canManage={canManage}
+            onNew={() => setDialog({ kind: 'count' })}
           />
         </TabsContent>
       </Tabs>
 
-      <ProductDetailSheet
-        state={state}
-        product={detailProduct}
-        warehouse={detailWarehouse}
-        onWarehouseChange={setDetailWarehouse}
-        apply={apply}
-        onClose={() => setDetailId(null)}
-        onEntry={() =>
-          detailProduct && openEntry(detailProduct.id, detailWarehouse)
-        }
-        onOperation={(type) =>
-          detailProduct && openOperation(type, detailProduct.id)
-        }
-        onMovement={setMovementDetail}
-      />
-      {entryOpen && (
-        <ReceiptDialog
-          state={state}
-          warehouse={detailWarehouse}
-          initialProductId={entryProductId}
-          onClose={() => setEntryOpen(false)}
-          onConfirm={(target, reference, date, lines) => {
-            const ok = apply(
-              (current) => receive(current, target, reference, date, lines),
-              'Entrada registrada. Tu inventario está actualizado.',
-            )
-            if (ok) {
-              setWarehouse(target)
-              setEntryOpen(false)
-            }
-            return ok
-          }}
+      {dialog?.kind === 'purchase' && (
+        <PurchaseDialog
+          warehouses={managed}
+          initialWarehouseId={selected.id}
+          suppliers={suppliers}
+          products={products}
+          today={overview.today}
+          onClose={() => setDialog(null)}
+          onSaved={(purchase) => void onSaved(purchase)}
         />
       )}
-      {operation && (
-        <OperationDialog
-          operation={operation}
-          state={state}
-          onClose={() => setOperation(null)}
-          onConfirm={(change) => {
-            const ok = apply(
-              (current) => changeStock(current, change),
-              operation.type === 'out'
-                ? 'Salida registrada correctamente.'
-                : 'Ajuste registrado correctamente.',
-            )
-            if (ok) setOperation(null)
-            return ok
-          }}
-        />
-      )}
-      {countOpen && (
+      {dialog?.kind === 'count' && (
         <CountDialog
-          warehouse={specific}
-          state={state}
-          initialCount={activeCount}
-          onClose={() => {
-            setCountOpen(false)
-            setActiveCount(null)
-          }}
-          onSave={(count) =>
-            apply(
-              (current) => saveCount(current, count),
-              'Conteo físico registrado.',
-            )
+          warehouseId={selected.id}
+          products={products}
+          stock={stock}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'minimum' && (
+        <MinimumDialog
+          warehouseId={selected.id}
+          products={products}
+          stock={stock}
+          initialProductId={dialog.productId}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {lotsRow && (
+        <LotsDialog
+          stock={lotsRow}
+          pack={
+            labels.get(lotsRow.productId)?.pack ?? {
+              packName: lotsRow.unit,
+              factor: 1,
+              unit: lotsRow.unit,
+            }
           }
-          onApply={(count, productIds) =>
-            apply(
-              (current) => applyCount(current, count, productIds),
-              'Diferencias de conteo ajustadas.',
-            )
-          }
+          presentations={lotsProduct ? quantityPresentations(lotsProduct) : []}
+          today={overview.today}
+          canManage={canManage}
+          onClose={() => setDialog(null)}
         />
       )}
-      {entryDetail && (
-        <EntryDetailDialog
-          entry={entryDetail}
-          onClose={() => setEntryDetail(null)}
-        />
+      {result && (
+        <PurchaseResultDialog result={result} onClose={() => setResult(null)} />
       )}
-      {movementDetail && (
-        <MovementDetailDialog
-          movement={movementDetail}
-          onClose={() => setMovementDetail(null)}
-        />
-      )}
-      {receiving && (
-        <TransferReceiveDialog
-          transfer={receiving}
-          onClose={() => setReceiving(null)}
-          onConfirm={(quantities, note) =>
-            apply(
-              (current) =>
-                receiveTransfer(current, receiving.id, quantities, note),
-              'Recepción registrada. Existencias actualizadas.',
-            )
-          }
-        />
-      )}
-      <ImportCsvDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        initialMode="stock"
-        hasStockHistory={hasHistory}
-        onApply={applyImport}
-      />
     </div>
   )
 }

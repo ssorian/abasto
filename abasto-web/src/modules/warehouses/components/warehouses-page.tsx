@@ -1,10 +1,10 @@
 import { PageHeading } from '#/components/page-heading'
 import { CreateWarehouseDialog } from '#/modules/warehouses/components/create-warehouse-dialog'
 import { WarehouseCard } from '#/modules/warehouses/components/warehouse-card'
-import type { Warehouse } from '#/modules/warehouses/services/warehouses'
+import type { WarehouseWithMetrics } from '#/modules/warehouses/server/warehouses'
 
 type WarehousesPageProps = {
-  warehouses: Array<Warehouse>
+  warehouses: Array<WarehouseWithMetrics>
   canCreate: boolean
 }
 

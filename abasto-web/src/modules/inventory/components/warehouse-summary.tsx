@@ -1,29 +1,16 @@
-import { MapPinIcon, WarehouseIcon } from 'lucide-react'
+import { WarehouseIcon } from 'lucide-react'
 
 import { Picker } from '#/modules/inventory/components/picker'
-import { warehouseNames } from '#/shared/demo/types'
-
-import type { WarehouseScope } from '#/modules/inventory/types/inventory'
-
-const locations: Record<WarehouseScope, string> = {
-  Todos: '3 almacenes',
-  Centro: 'Centro · Tejupilco',
-  Norte: 'Zona Norte · Tejupilco',
-  Sur: 'Zona Sur · Tejupilco',
-}
-
-const warehouseOptions = [
-  { value: 'Todos', label: 'Todos los almacenes' },
-  ...warehouseNames.map((name) => ({ value: name, label: `Almacén ${name}` })),
-]
-
-type Counts = { products: number; low: number; soldOut: number }
+import type { StatusFilter } from '#/modules/inventory/lib/stock-metrics'
+import type { WarehouseOption } from '#/modules/inventory/types/stock'
 
 type WarehouseSummaryProps = {
-  warehouse: WarehouseScope
-  onWarehouseChange: (warehouse: WarehouseScope) => void
-  counts: Counts
-  onStat: (filter: 'Todos' | 'Stock bajo' | 'Agotado') => void
+  warehouses: ReadonlyArray<WarehouseOption>
+  selectedId: string
+  onWarehouseChange: (id: string) => void
+  counts: { products: number; low: number; soldOut: number }
+  onStat: (filter: StatusFilter) => void
+  canManage: boolean
 }
 
 const pad = (value: number) => String(value).padStart(2, '0')
@@ -34,12 +21,14 @@ const statNumber =
   'text-[23px] leading-9 font-[650] tracking-[-0.7px] md:text-[22px] tablet:text-2xl'
 const statLabel = 'text-xs text-[#7f8b9b] tablet:text-sm'
 
-/** Warehouse switcher plus the three headline counters. */
+/** Warehouse switcher (only warehouses the user can see) plus the headline counters. */
 export function WarehouseSummary({
-  warehouse,
+  warehouses,
+  selectedId,
   onWarehouseChange,
   counts,
   onStat,
+  canManage,
 }: WarehouseSummaryProps) {
   return (
     <div className="mb-5 flex min-h-[92px] flex-wrap items-center gap-5 rounded-[12px] border border-[#e3e8ef] bg-white p-[17px] md:mb-[23px] md:flex-nowrap md:gap-[15px] tablet:gap-5">
@@ -53,9 +42,12 @@ export function WarehouseSummary({
           </span>
           <Picker
             label="Almacén"
-            value={warehouse}
-            onChange={(value) => onWarehouseChange(value as WarehouseScope)}
-            options={warehouseOptions}
+            value={selectedId}
+            onChange={onWarehouseChange}
+            options={warehouses.map(({ id, name }) => ({
+              value: id,
+              label: name,
+            }))}
             className="data-[size=default]:h-[27px] min-w-[150px] border-0 bg-transparent px-[9px] text-sm font-[650] text-[#243e60] md:min-w-[165px]"
           />
         </div>
@@ -84,18 +76,19 @@ export function WarehouseSummary({
         <button
           type="button"
           className={statButton}
-          onClick={() => onStat('Agotado')}
+          onClick={() => onStat('Sin existencias')}
         >
           <strong className={`${statNumber} text-[#c65956]`}>
             {pad(counts.soldOut)}
           </strong>
-          <span className={statLabel}>Agotados</span>
+          <span className={statLabel}>Sin existencias</span>
         </button>
       </div>
-      <div className="ml-auto hidden items-center gap-1.5 text-xs whitespace-nowrap text-[#8a96a7] wide:flex">
-        <MapPinIcon size={15} />
-        {locations[warehouse]}
-      </div>
+      {!canManage && (
+        <span className="ml-auto text-xs whitespace-nowrap text-[#8a96a7]">
+          Solo consulta en este almacén
+        </span>
+      )}
     </div>
   )
 }
