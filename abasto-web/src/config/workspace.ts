@@ -5,5 +5,4 @@ export const workspace = {
     name: 'Distribuidora del Sur',
     location: 'Tejupilco, Estado de México',
   },
-  demoVersion: 'Demo v7',
 } as const

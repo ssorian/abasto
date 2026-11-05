@@ -24,10 +24,6 @@ export function AppTopbar({ user }: { user: SessionUser }) {
       </div>
 
       <div className="flex items-center gap-2.5 tablet:gap-4">
-        <span className="rounded-[5px] border border-pill-border bg-pill-bg px-[9px] py-[5px] text-xs text-pill">
-          {workspace.demoVersion}
-        </span>
-        <span className="hidden h-7 w-px bg-[#e6eaf0] tablet:block" />
         <div className="hidden tablet:block">
           <strong className="block text-xs font-[650]">{user.name}</strong>
           <span className="mt-1 block text-xs text-[#8a96a5]">

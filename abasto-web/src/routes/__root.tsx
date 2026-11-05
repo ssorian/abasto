@@ -49,7 +49,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       {
         name: 'description',
         content:
-          'Demo Abarroteros: etiquetas por lote, promociones con margen, mostrador, caja, reportes de mermas e importación CSV',
+          'Distribuidora del Sur: etiquetas por lote, promociones con margen, mostrador, caja, reportes de mermas e importación CSV',
       },
     ],
     links: [
