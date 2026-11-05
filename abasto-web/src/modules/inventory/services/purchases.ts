@@ -1,0 +1,125 @@
+import { inArray } from 'drizzle-orm'
+import { db } from '#/db'
+import { AppError } from '#/lib/errors'
+import { authorize } from '#/modules/access/lib/policy'
+import type { Actor } from '#/modules/access/lib/policy'
+import { products } from '#/modules/catalog/db/schema'
+import { lots, purchaseLines, purchases } from '#/modules/inventory/db/schema'
+import {
+  appendMovement,
+  isIsoDate,
+  isWholeNumber,
+  requireSupplier,
+  requireWarehouse,
+} from '#/modules/inventory/services/stock-ledger'
+import type { Lot } from '#/modules/inventory/services/stock-ledger'
+
+export type PurchaseLineInput = {
+  productId: string
+  /** Base units. */
+  quantity: number
+  /** Whole line cost in integer cents. */
+  totalCostCents: number
+  lotCode?: string
+  /** YYYY-MM-DD */
+  expiresOn?: string
+}
+export type PurchaseInput = {
+  supplierId: string
+  warehouseId: string
+  reference?: string
+  /** YYYY-MM-DD */
+  purchasedOn: string
+  lines: Array<PurchaseLineInput>
+}
+
+function validate(input: PurchaseInput) {
+  if (!isIsoDate(input.purchasedOn)) {
+    throw new AppError('invalid', 'La fecha de la compra no es válida.')
+  }
+  if (!input.lines.length) {
+    throw new AppError('invalid', 'Agrega al menos un producto a la compra.')
+  }
+  for (const line of input.lines) {
+    if (!isWholeNumber(line.quantity) || line.quantity <= 0) {
+      throw new AppError('invalid', 'La cantidad debe ser mayor que cero.')
+    }
+    if (!isWholeNumber(line.totalCostCents) || line.totalCostCents < 0) {
+      throw new AppError(
+        'invalid',
+        'El costo debe ser un monto en centavos de cero o más.',
+      )
+    }
+    if (line.expiresOn && !isIsoDate(line.expiresOn)) {
+      throw new AppError('invalid', 'La fecha de caducidad no es válida.')
+    }
+  }
+}
+
+/** Records a purchase and creates one lot (plus its ledger entry) per line, atomically. */
+export async function createPurchase(
+  actor: Actor,
+  input: PurchaseInput,
+): Promise<{ id: string; lots: Array<Lot> }> {
+  authorize(actor, 'warehouse.manage', input.warehouseId)
+  validate(input)
+  return db.transaction(async (tx) => {
+    await requireSupplier(tx, input.supplierId)
+    await requireWarehouse(tx, input.warehouseId)
+    const productIds = [...new Set(input.lines.map((line) => line.productId))]
+    const found = await tx
+      .select({ id: products.id })
+      .from(products)
+      .where(inArray(products.id, productIds))
+    if (found.length !== productIds.length) {
+      throw new AppError('not_found', 'No encontramos ese producto.')
+    }
+    const [purchase] = await tx
+      .insert(purchases)
+      .values({
+        supplierId: input.supplierId,
+        warehouseId: input.warehouseId,
+        reference: input.reference?.trim() ?? '',
+        purchasedOn: input.purchasedOn,
+        createdBy: actor.userId,
+      })
+      .returning({ id: purchases.id })
+    const created: Array<Lot> = []
+    for (const line of input.lines) {
+      const [stored] = await tx
+        .insert(purchaseLines)
+        .values({
+          purchaseId: purchase.id,
+          productId: line.productId,
+          quantity: line.quantity,
+          totalCostCents: line.totalCostCents,
+          lotCode: line.lotCode?.trim() ?? '',
+          expiresOn: line.expiresOn || null,
+        })
+        .returning()
+      // The lot starts empty; the purchase movement brings it to `quantity`.
+      const [lot] = await tx
+        .insert(lots)
+        .values({
+          productId: line.productId,
+          warehouseId: input.warehouseId,
+          purchaseLineId: stored.id,
+          code: stored.lotCode,
+          expiresOn: stored.expiresOn,
+          receivedQuantity: line.quantity,
+          receivedCostCents: line.totalCostCents,
+          onHand: 0,
+        })
+        .returning()
+      await appendMovement(tx, lot, {
+        type: 'purchase',
+        quantity: line.quantity,
+        reason: 'Compra',
+        reference: purchase.id,
+        actorId: actor.userId,
+      })
+      created.push({ ...lot, onHand: line.quantity })
+    }
+    return { id: purchase.id, lots: created }
+  })
+}

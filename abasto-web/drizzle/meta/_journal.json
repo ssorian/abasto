@@ -15,6 +15,20 @@
       "when": 1793836212349,
       "tag": "0001_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793837572402,
+      "tag": "0002_inventory",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793837572861,
+      "tag": "0003_stock_movements_append_only",
+      "breakpoints": true
     }
   ]
 }

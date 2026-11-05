@@ -1,0 +1,113 @@
+import { and, eq, gte, sql } from 'drizzle-orm'
+import type { db } from '#/db'
+import { AppError } from '#/lib/errors'
+import { products, suppliers } from '#/modules/catalog/db/schema'
+import { lots, stockMovements } from '#/modules/inventory/db/schema'
+import type { MovementType } from '#/modules/inventory/db/schema'
+import { warehouses } from '#/modules/warehouses/db/schema'
+
+/** An open database transaction. */
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
+export type Lot = typeof lots.$inferSelect
+
+export const insufficientStock = () =>
+  new AppError('conflict', 'No hay suficiente existencia en ese lote.')
+
+/** Locks the lot row until the transaction ends; serialises concurrent movements. */
+export async function lockLot(tx: Tx, lotId: string): Promise<Lot> {
+  const lot = (
+    await tx.select().from(lots).where(eq(lots.id, lotId)).for('update')
+  ).at(0)
+  if (!lot) throw new AppError('not_found', 'No encontramos ese lote.')
+  return lot
+}
+
+/**
+ * Records a movement and applies it to the lot's cached `on_hand` in one
+ * statement pair; refuses to take the lot below zero.
+ */
+export async function appendMovement(
+  tx: Tx,
+  lot: Pick<Lot, 'id' | 'productId' | 'warehouseId'>,
+  movement: {
+    type: MovementType
+    quantity: number
+    reason: string
+    reference?: string
+    actorId: string
+  },
+) {
+  const updated = (
+    await tx
+      .update(lots)
+      .set({ onHand: sql`${lots.onHand} + ${movement.quantity}` })
+      .where(
+        and(
+          eq(lots.id, lot.id),
+          gte(sql`${lots.onHand} + ${movement.quantity}`, 0),
+        ),
+      )
+      .returning({ id: lots.id })
+  ).at(0)
+  if (!updated) throw insufficientStock()
+  await tx.insert(stockMovements).values({
+    lotId: lot.id,
+    productId: lot.productId,
+    warehouseId: lot.warehouseId,
+    ...movement,
+  })
+}
+
+export async function requireWarehouse(tx: Tx, id: string) {
+  const found = (
+    await tx
+      .select({ id: warehouses.id })
+      .from(warehouses)
+      .where(eq(warehouses.id, id))
+  ).at(0)
+  if (!found) throw new AppError('not_found', 'No encontramos ese almacén.')
+}
+
+export async function requireProduct(tx: Tx, id: string) {
+  const found = (
+    await tx
+      .select({ id: products.id })
+      .from(products)
+      .where(eq(products.id, id))
+  ).at(0)
+  if (!found) throw new AppError('not_found', 'No encontramos ese producto.')
+}
+
+export async function requireSupplier(tx: Tx, id: string) {
+  const found = (
+    await tx
+      .select({ id: suppliers.id })
+      .from(suppliers)
+      .where(eq(suppliers.id, id))
+  ).at(0)
+  if (!found) throw new AppError('not_found', 'No encontramos ese proveedor.')
+}
+
+export const isWholeNumber = (value: number) => Number.isSafeInteger(value)
+
+/** True for a real calendar date written as YYYY-MM-DD. */
+export function isIsoDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const parsed = new Date(`${value}T00:00:00Z`)
+  return (
+    !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value)
+  )
+}
+
+/** Earliest expiry first; lots without expiry last; ties by oldest received. */
+export function byFefo(
+  a: { expiresOn: string | null; receivedAt: Date },
+  b: { expiresOn: string | null; receivedAt: Date },
+) {
+  if (a.expiresOn !== b.expiresOn) {
+    if (!a.expiresOn) return 1
+    if (!b.expiresOn) return -1
+    return a.expiresOn < b.expiresOn ? -1 : 1
+  }
+  return a.receivedAt.getTime() - b.receivedAt.getTime()
+}

@@ -1,0 +1,76 @@
+import { db } from '#/db'
+import { AppError } from '#/lib/errors'
+import { authorize } from '#/modules/access/lib/policy'
+import type { Actor } from '#/modules/access/lib/policy'
+import { lossCategories } from '#/modules/inventory/db/schema'
+import type { LossCategory } from '#/modules/inventory/db/schema'
+import {
+  appendMovement,
+  insufficientStock,
+  isWholeNumber,
+  lockLot,
+} from '#/modules/inventory/services/stock-ledger'
+
+/** Locks the lot, checks the actor manages its warehouse and applies the movement. */
+function moveLot(
+  actor: Actor,
+  lotId: string,
+  type: 'adjustment' | 'loss',
+  quantity: number,
+  reason: string,
+) {
+  return db.transaction(async (tx) => {
+    const lot = await lockLot(tx, lotId)
+    authorize(actor, 'warehouse.manage', lot.warehouseId)
+    if (lot.onHand + quantity < 0) throw insufficientStock()
+    await appendMovement(tx, lot, {
+      type,
+      quantity,
+      reason,
+      actorId: actor.userId,
+    })
+  })
+}
+
+/** Adds (positive) or removes (negative) base units from one lot, with a required reason. */
+export async function adjustLot(
+  actor: Actor,
+  input: { lotId: string; quantity: number; reason: string },
+) {
+  const reason = input.reason.trim()
+  if (!isWholeNumber(input.quantity) || input.quantity === 0) {
+    throw new AppError(
+      'invalid',
+      'La cantidad del ajuste debe ser un entero distinto de cero.',
+    )
+  }
+  if (!reason) throw new AppError('invalid', 'Escribe el motivo del ajuste.')
+  await moveLot(actor, input.lotId, 'adjustment', input.quantity, reason)
+}
+
+/** Removes base units from one lot as a loss (expired, damaged, other). */
+export async function registerLoss(
+  actor: Actor,
+  input: {
+    lotId: string
+    quantity: number
+    category: LossCategory
+    reason: string
+  },
+) {
+  if (!lossCategories.includes(input.category)) {
+    throw new AppError('invalid', 'Selecciona el tipo de pérdida.')
+  }
+  if (!isWholeNumber(input.quantity) || input.quantity <= 0) {
+    throw new AppError('invalid', 'La cantidad debe ser mayor que cero.')
+  }
+  const reason = input.reason.trim()
+  if (!reason) throw new AppError('invalid', 'Escribe el motivo de la pérdida.')
+  await moveLot(
+    actor,
+    input.lotId,
+    'loss',
+    -input.quantity,
+    `${input.category}: ${reason}`,
+  )
+}
