@@ -3,37 +3,38 @@
 
 /*
  * Abarroteros design system.
- * Values mirror docs/design/abarroteros-demo-actualizada(4).html.
+ * Palette: raspberry primary (#c81d4e), plum secondary (#5b2a86) on cream (#fff8f0).
+ * Layout values mirror docs/design/abarroteros-demo-actualizada(4).html.
  * shadcn/ui semantic variables live in :root; design-specific tokens in @theme.
  */
 :root {
   --radius: 0.7rem;
-  --background: #f6f8fb;
-  --foreground: #172c48;
+  --background: #fff8f0;
+  --foreground: #1a1a1a;
   --card: #ffffff;
-  --card-foreground: #172c48;
+  --card-foreground: #1a1a1a;
   --popover: #ffffff;
-  --popover-foreground: #172c48;
-  --primary: #ffd03d;
-  --primary-foreground: #152a47;
-  --secondary: #edf1f6;
-  --secondary-foreground: #172c48;
-  --muted: #f0f3f7;
-  --muted-foreground: #737f90;
-  --accent: #edf3fa;
-  --accent-foreground: #142d50;
-  --destructive: #c94b49;
-  --border: #e2e7ee;
-  --input: #dce3eb;
-  --ring: #446f9b;
-  --sidebar: #112c4c;
-  --sidebar-foreground: #eaf0f7;
-  --sidebar-primary: #ffcf3f;
-  --sidebar-primary-foreground: #112c4c;
-  --sidebar-accent: #203c5b;
+  --popover-foreground: #1a1a1a;
+  --primary: #c81d4e;
+  --primary-foreground: #ffffff;
+  --secondary: #f1eaf6;
+  --secondary-foreground: #5b2a86;
+  --muted: #f6efe6;
+  --muted-foreground: #74686a;
+  --accent: #f8e8ee;
+  --accent-foreground: #8e1438;
+  --destructive: #b3261e;
+  --border: #ede3d6;
+  --input: #e4d8ca;
+  --ring: #5b2a86;
+  --sidebar: #4a2270;
+  --sidebar-foreground: #f3ecf8;
+  --sidebar-primary: #c81d4e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #5b2a86;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #2a4260;
-  --sidebar-ring: #f5cc4a;
+  --sidebar-border: #63388c;
+  --sidebar-ring: #f08aa6;
 }
 
 @theme inline {
@@ -87,59 +88,59 @@
   --text-xl--line-height: 1.5;
   --text-2xl--line-height: 1.5;
 
-  --color-focus: #5a87bd;
+  --color-focus: #5b2a86;
 
   /* Text */
-  --color-ink-heading: #284f79;
-  --color-ink-link: #244e7b;
-  --color-ink-row: #3a597c;
-  --color-ink-figure: #173963;
-  --color-ink-muted: #7b8798;
-  --color-ink-subtle: #8b99aa;
-  --color-ink-faint: #8a9aaf;
-  --color-ink-eyebrow: #758396;
-  --color-ink-footnote: #8291a4;
+  --color-ink-heading: #5b2a86;
+  --color-ink-link: #a3173f;
+  --color-ink-row: #3d3438;
+  --color-ink-figure: #3b1d59;
+  --color-ink-muted: #7a6f72;
+  --color-ink-subtle: #887c7f;
+  --color-ink-faint: #938789;
+  --color-ink-eyebrow: #85797c;
+  --color-ink-footnote: #8f8386;
 
   /* Brand */
-  --color-brand-hover: #f4c22c;
-  --color-brand-ink: #142d4c;
-  --color-hero: #173963;
-  --color-hero-eyebrow: #a6bdd9;
-  --color-hero-copy: #c0d0e4;
+  --color-brand-hover: #a8173f;
+  --color-brand-ink: #ffffff;
+  --color-hero: #4a2270;
+  --color-hero-eyebrow: #d9c3ec;
+  --color-hero-copy: #e6d9f1;
 
   /* Panels */
-  --color-panel-border: #e1e8f1;
-  --color-row-border: #edf1f6;
-  --color-metric-label: #6c8199;
+  --color-panel-border: #efe5d8;
+  --color-row-border: #f5ede3;
+  --color-metric-label: #85797c;
 
   /* Topbar and footer */
-  --color-topbar-border: #e5eaf0;
-  --color-crumb: #8c96a5;
-  --color-crumb-strong: #354a63;
-  --color-pill: #75879d;
-  --color-pill-bg: #f8fafc;
-  --color-pill-border: #dfe6ef;
-  --color-avatar: #385577;
-  --color-avatar-bg: #dce6f2;
-  --color-footer: #a0aab8;
-  --color-footer-border: #e7ecf2;
-  --color-footer-brand: #8493a6;
-  --color-footer-dot: #c3a648;
+  --color-topbar-border: #eee4d7;
+  --color-crumb: #94888a;
+  --color-crumb-strong: #3d3438;
+  --color-pill: #85797c;
+  --color-pill-bg: #fffcf8;
+  --color-pill-border: #eadfd1;
+  --color-avatar: #5b2a86;
+  --color-avatar-bg: #ede3f5;
+  --color-footer: #a89c9e;
+  --color-footer-border: #efe6da;
+  --color-footer-brand: #8f8386;
+  --color-footer-dot: #c81d4e;
 
   /* Sidebar details */
-  --color-sidebar-surface: #1c3858;
-  --color-sidebar-surface-border: #304966;
-  --color-sidebar-callout: #1a3657;
-  --color-sidebar-callout-border: #2e4968;
-  --color-sidebar-hover: #203d5d;
-  --color-sidebar-divider: #294260;
-  --color-sidebar-text: #afc0d4;
-  --color-sidebar-label: #7f95af;
-  --color-sidebar-caption: #8ba0b9;
-  --color-sidebar-muted: #94aac2;
-  --color-sidebar-strong: #eff4fa;
-  --color-sidebar-tag: #f1d175;
-  --color-sidebar-active: #172e4a;
+  --color-sidebar-surface: #56297f;
+  --color-sidebar-surface-border: #6a3d93;
+  --color-sidebar-callout: #522678;
+  --color-sidebar-callout-border: #673a90;
+  --color-sidebar-hover: #5a2c84;
+  --color-sidebar-divider: #61368b;
+  --color-sidebar-text: #d6c6e4;
+  --color-sidebar-label: #b39dca;
+  --color-sidebar-caption: #bba8d0;
+  --color-sidebar-muted: #c4b3d6;
+  --color-sidebar-strong: #faf5fd;
+  --color-sidebar-tag: #f7a8be;
+  --color-sidebar-active: #3a1858;
 
   /* Status tones */
   --color-status-green: #39816e;
