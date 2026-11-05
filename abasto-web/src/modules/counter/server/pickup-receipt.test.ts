@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
-import { pickupWithReceipt } from '#/modules/counter/server/pickup'
+import { pickupWithReceipt } from '#/modules/counter/server/pickup-receipt'
 import {
   errorOf,
   setupCredit,
