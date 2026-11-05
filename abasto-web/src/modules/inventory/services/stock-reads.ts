@@ -25,7 +25,7 @@ export type ProductStock = {
   sku: string
   unit: string
   onHand: number
-  /** Held by orders; always 0 until reservations exist. */
+  /** Held by open orders (Reservado or Preparado). */
   reserved: number
   available: number
   minimum: number
@@ -49,6 +49,7 @@ export async function getWarehouseStock(
         expiresOn: lots.expiresOn,
         receivedAt: lots.receivedAt,
         onHand: lots.onHand,
+        reserved: lots.reserved,
       })
       .from(lots)
       .where(and(eq(lots.warehouseId, warehouseId), gt(lots.onHand, 0))),
@@ -73,14 +74,14 @@ export async function getWarehouseStock(
   return catalog
     .filter((product) => productIds.has(product.id))
     .map((product) => {
-      const productLots = lotRows
-        .filter((row) => row.productId === product.id)
-        .map(({ productId: _productId, ...lot }) => lot)
+      const productRows = lotRows.filter((row) => row.productId === product.id)
+      const productLots = productRows
+        .map(({ productId: _productId, reserved: _reserved, ...lot }) => lot)
         .sort(byFefo)
       const onHand = productLots.reduce((sum, lot) => sum + lot.onHand, 0)
       const minimum =
         minimumRows.find((row) => row.productId === product.id)?.minimum ?? 0
-      const reserved = 0
+      const reserved = productRows.reduce((sum, row) => sum + row.reserved, 0)
       const available = onHand - reserved
       return {
         productId: product.id,

@@ -1,8 +1,9 @@
+import { eq } from 'drizzle-orm'
 import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
-import { lossCategories } from '#/modules/inventory/db/schema'
+import { lossCategories, lots } from '#/modules/inventory/db/schema'
 import type { LossCategory } from '#/modules/inventory/db/schema'
 import {
   appendMovement,
@@ -12,6 +13,7 @@ import {
   lockLot,
   MAX_INT4,
 } from '#/modules/inventory/services/stock-ledger'
+import { expireOverdueOrders } from '#/modules/orders/services/expiry'
 
 /** Locks the lot, checks the actor manages its warehouse and applies the movement. */
 function moveLot(
@@ -22,8 +24,17 @@ function moveLot(
   reason: string,
 ) {
   return db.transaction(async (tx) => {
+    const found = (
+      await tx
+        .select({ warehouseId: lots.warehouseId })
+        .from(lots)
+        .where(eq(lots.id, lotId))
+    ).at(0)
+    if (!found) throw new AppError('not_found', 'No encontramos ese lote.')
+    authorize(actor, 'warehouse.manage', found.warehouseId)
+    // Overdue orders release their units before the lot is locked.
+    await expireOverdueOrders(tx, found.warehouseId)
     const lot = await lockLot(tx, lotId)
-    authorize(actor, 'warehouse.manage', lot.warehouseId)
     if (lot.onHand + quantity < 0) throw insufficientStock()
     await appendMovement(tx, lot, {
       type,

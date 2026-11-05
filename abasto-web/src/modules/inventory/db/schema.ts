@@ -22,6 +22,7 @@ export const movementTypes = [
   'adjustment',
   'loss',
   'count',
+  'sale',
 ] as const
 export type MovementType = (typeof movementTypes)[number]
 
@@ -83,9 +84,15 @@ export const lots = pgTable(
     receivedCostCents: integer('received_cost_cents').notNull(),
     /** Cached sum of the lot's ledger movements; updated in the movement's transaction. */
     onHand: integer('on_hand').notNull(),
+    /** Cached units held by open orders; never above `on_hand`. Available = on_hand − reserved. */
+    reserved: integer('reserved').notNull().default(0),
   },
   (table) => [
     check('lots_on_hand_min', sql`${table.onHand} >= 0`),
+    check(
+      'lots_reserved_range',
+      sql`${table.reserved} >= 0 and ${table.reserved} <= ${table.onHand}`,
+    ),
     check('lots_received_quantity_min', sql`${table.receivedQuantity} > 0`),
     index('lots_product_warehouse_idx').on(table.productId, table.warehouseId),
   ],
@@ -120,7 +127,7 @@ export const stockMovements = pgTable(
     check('stock_movements_quantity_nonzero', sql`${table.quantity} <> 0`),
     check(
       'stock_movements_type_check',
-      sql`${table.type} in ('purchase', 'adjustment', 'loss', 'count')`,
+      sql`${table.type} in ('purchase', 'adjustment', 'loss', 'count', 'sale')`,
     ),
     index('stock_movements_lot_idx').on(table.lotId),
   ],

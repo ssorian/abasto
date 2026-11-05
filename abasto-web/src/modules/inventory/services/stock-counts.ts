@@ -13,7 +13,9 @@ import {
   MAX_INT4,
   requireProduct,
   requireWarehouse,
+  reservedUnits,
 } from '#/modules/inventory/services/stock-ledger'
+import { expireOverdueOrders } from '#/modules/orders/services/expiry'
 
 export type CountInput = {
   productId: string
@@ -40,6 +42,7 @@ export async function countStock(actor: Actor, input: CountInput) {
   return db.transaction(async (tx) => {
     await requireWarehouse(tx, input.warehouseId)
     await requireProduct(tx, input.productId)
+    await expireOverdueOrders(tx, input.warehouseId)
     // Locked in id order so concurrent counts cannot deadlock.
     const locked = await tx
       .select()
@@ -84,11 +87,13 @@ export async function countStock(actor: Actor, input: CountInput) {
       let remaining = -difference
       for (const lot of [...locked].sort(byFefo)) {
         if (!remaining) break
-        const take = Math.min(lot.onHand, remaining)
+        // Units held by orders cannot be counted away.
+        const take = Math.min(lot.onHand - lot.reserved, remaining)
         if (!take) continue
         await appendMovement(tx, lot, { ...movement, quantity: -take })
         remaining -= take
       }
+      if (remaining) throw reservedUnits()
     }
     return {
       id: count.id,

@@ -20,6 +20,9 @@ export type Lot = typeof lots.$inferSelect
 export const insufficientStock = () =>
   new AppError('conflict', 'No hay suficiente existencia en ese lote.')
 
+export const reservedUnits = () =>
+  new AppError('conflict', 'Ese lote tiene unidades apartadas para pedidos.')
+
 /** Locks the lot row until the transaction ends; serialises concurrent movements. */
 export async function lockLot(tx: Tx, lotId: string): Promise<Lot> {
   const lot = (
@@ -31,7 +34,9 @@ export async function lockLot(tx: Tx, lotId: string): Promise<Lot> {
 
 /**
  * Records a movement and applies it to the lot's cached `on_hand` in one
- * statement pair; refuses to take the lot below zero.
+ * statement pair; refuses to take the lot below zero. A withdrawal may not
+ * take units held by orders (`reserved`) unless it is the sale of that very
+ * reservation (`fromReserved`), which lowers `on_hand` and `reserved` together.
  */
 export async function appendMovement(
   tx: Tx,
@@ -43,14 +48,28 @@ export async function appendMovement(
     reference?: string
     actorId: string
   },
+  options: { fromReserved?: boolean } = {},
 ) {
   // bigint arithmetic so an overflow is a refusal, not a raw database error.
   const next = sql`${lots.onHand}::bigint + ${movement.quantity}::bigint`
+  const nextReserved = options.fromReserved
+    ? sql`${lots.reserved}::bigint + ${movement.quantity}::bigint`
+    : sql`${lots.reserved}::bigint`
   const updated = (
     await tx
       .update(lots)
-      .set({ onHand: sql`${next}` })
-      .where(and(eq(lots.id, lot.id), gte(next, 0), lte(next, MAX_INT4)))
+      .set({
+        onHand: sql`${next}`,
+        reserved: sql`${nextReserved}`,
+      })
+      .where(
+        and(
+          eq(lots.id, lot.id),
+          gte(sql`${nextReserved}`, 0),
+          gte(next, sql`${nextReserved}`),
+          lte(next, MAX_INT4),
+        ),
+      )
       .returning({ id: lots.id })
   ).at(0)
   if (!updated) {
@@ -59,6 +78,19 @@ export async function appendMovement(
         'invalid',
         `La existencia del lote no puede ser mayor que ${MAX_INT4}.`,
       )
+    }
+    const current = (
+      await tx
+        .select({ onHand: lots.onHand })
+        .from(lots)
+        .where(eq(lots.id, lot.id))
+    ).at(0)
+    if (
+      !options.fromReserved &&
+      current &&
+      current.onHand + movement.quantity >= 0
+    ) {
+      throw reservedUnits()
     }
     throw insufficientStock()
   }
