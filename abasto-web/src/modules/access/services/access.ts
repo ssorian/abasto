@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, asc, eq, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { account, user } from '#/db/auth-schema'
 import type { UserRole } from '#/db/auth-schema'
@@ -9,6 +9,7 @@ import { warehouseAssignments } from '#/modules/access/db/schema'
 import type { WarehouseRole } from '#/modules/access/db/schema'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
+import { warehouses } from '#/modules/warehouses/db/schema'
 
 type Executor = Pick<typeof db, 'select' | 'insert'>
 
@@ -119,12 +120,30 @@ export async function createStaffUser(actor: Actor, input: NewUserInput) {
   return db.transaction((tx) => insertUser(tx, prepared))
 }
 
+const notFoundMessage = 'No encontramos ese usuario o almacén.'
+
+/** Owners reach every warehouse, so an assignment would be meaningless. */
+export const ownerAssignmentMessage =
+  'El dueño ya tiene acceso a todos los almacenes.'
+
+/** Throws unless `userId` is an existing staff user. */
+async function requireStaffTarget(userId: string) {
+  const target = (
+    await db.select({ role: user.role }).from(user).where(eq(user.id, userId))
+  ).at(0)
+  if (!target) throw new AppError('not_found', notFoundMessage)
+  if (target.role === 'owner') {
+    throw new AppError('invalid', ownerAssignmentMessage)
+  }
+}
+
 /** Grants (or changes) a user's role in one warehouse. */
 export async function assignWarehouse(
   actor: Actor,
   input: { userId: string; warehouseId: string; role: WarehouseRole },
 ) {
   authorize(actor, 'users.manage')
+  await requireStaffTarget(input.userId)
   try {
     await db
       .insert(warehouseAssignments)
@@ -135,8 +154,84 @@ export async function assignWarehouse(
       })
   } catch (error) {
     if (isForeignKeyViolation(error)) {
-      throw new AppError('not_found', 'No encontramos ese usuario o almacén.')
+      throw new AppError('not_found', notFoundMessage)
     }
     throw error
   }
+}
+
+/** Removes a user's access to one warehouse. */
+export async function unassignWarehouse(
+  actor: Actor,
+  input: { userId: string; warehouseId: string },
+) {
+  authorize(actor, 'users.manage')
+  await requireStaffTarget(input.userId)
+  const removed = await db
+    .delete(warehouseAssignments)
+    .where(
+      and(
+        eq(warehouseAssignments.userId, input.userId),
+        eq(warehouseAssignments.warehouseId, input.warehouseId),
+      ),
+    )
+    .returning({ userId: warehouseAssignments.userId })
+  if (!removed.length) throw new AppError('not_found', notFoundMessage)
+}
+
+export type UserAssignment = {
+  warehouseId: string
+  warehouseName: string
+  role: WarehouseRole
+}
+
+export type ManagedUser = {
+  id: string
+  name: string
+  email: string
+  role: UserRole
+  assignments: Array<UserAssignment>
+}
+
+/** Every user with their warehouse assignments: owners first, then by name. */
+export async function listUsers(actor: Actor): Promise<Array<ManagedUser>> {
+  authorize(actor, 'users.manage')
+  const [users, rows] = await Promise.all([
+    db
+      .select({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      })
+      .from(user),
+    db
+      .select({
+        userId: warehouseAssignments.userId,
+        warehouseId: warehouseAssignments.warehouseId,
+        warehouseName: warehouses.name,
+        role: warehouseAssignments.role,
+      })
+      .from(warehouseAssignments)
+      .innerJoin(
+        warehouses,
+        eq(warehouses.id, warehouseAssignments.warehouseId),
+      )
+      .orderBy(asc(warehouses.name)),
+  ])
+  const byName = (a: { name: string }, b: { name: string }) =>
+    a.name.localeCompare(b.name, 'es')
+  const rank = (role: UserRole) => (role === 'owner' ? 0 : 1)
+  return users
+    .sort((a, b) => rank(a.role) - rank(b.role) || byName(a, b))
+    .map((row) => ({
+      ...row,
+      assignments: rows
+        .filter((a) => a.userId === row.id)
+        .map(({ warehouseId, warehouseName, role }) => ({
+          warehouseId,
+          warehouseName,
+          role,
+        })),
+    }))
 }

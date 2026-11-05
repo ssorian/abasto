@@ -15,6 +15,8 @@ import type { LucideIcon } from 'lucide-react'
 
 export type NavItem = {
   label: string
+  /** Hide for staff; the route enforces the permission regardless. */
+  ownerOnly?: boolean
   icon: LucideIcon
   /** Route path. Sections without a route yet render as inert items. */
   to?:
@@ -24,6 +26,7 @@ export type NavItem = {
     | '/catalogo'
     | '/inventario'
     | '/almacenes'
+    | '/configuracion'
     | '/reportes'
 }
 
@@ -40,7 +43,12 @@ export const primaryNav: Array<NavItem> = [
 ]
 
 export const secondaryNav: Array<NavItem> = [
-  { label: 'Configuración', icon: Settings2 },
+  {
+    label: 'Configuración',
+    icon: Settings2,
+    to: '/configuracion',
+    ownerOnly: true,
+  },
   { label: 'Guía rápida', icon: CircleQuestionMark },
 ]
 

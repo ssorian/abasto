@@ -9,6 +9,8 @@ import {
   SidebarHeader,
 } from '#/components/ui/sidebar'
 import { primaryNav, secondaryNav } from '#/config/navigation'
+import type { NavItem } from '#/config/navigation'
+import type { SessionUser } from '#/modules/access/lib/session-user'
 import { workspace } from '#/config/workspace'
 
 function Brand() {
@@ -67,7 +69,8 @@ function DemoCallout() {
   )
 }
 
-export function AppSidebar() {
+export function AppSidebar({ user }: { user: SessionUser }) {
+  const visible = (item: NavItem) => !item.ownerOnly || user.role === 'owner'
   return (
     <Sidebar>
       <Brand />
@@ -81,7 +84,7 @@ export function AppSidebar() {
           aria-label="Navegación principal"
           className="flex flex-col gap-[3px]"
         >
-          {primaryNav.map((item) => (
+          {primaryNav.filter(visible).map((item) => (
             <SidebarNavItem key={item.label} item={item} />
           ))}
         </nav>
@@ -89,7 +92,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="px-4 pt-5 pb-0">
         <DemoCallout />
-        {secondaryNav.map((item) => (
+        {secondaryNav.filter(visible).map((item) => (
           <SidebarNavItem
             key={item.label}
             item={item}
