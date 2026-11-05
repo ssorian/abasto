@@ -4,6 +4,7 @@ import { AppError } from '#/lib/errors'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { products } from '#/modules/catalog/db/schema'
+import { expireOverdueOrders } from '#/modules/orders/services/expiry'
 import { lots, purchaseLines, purchases } from '#/modules/inventory/db/schema'
 import {
   appendMovement,
@@ -76,6 +77,7 @@ export async function createPurchase(
   return db.transaction(async (tx) => {
     await requireSupplier(tx, input.supplierId)
     await requireWarehouse(tx, input.warehouseId)
+    await expireOverdueOrders(tx, input.warehouseId)
     const productIds = [...new Set(input.lines.map((line) => line.productId))]
     const found = await tx
       .select({ id: products.id })

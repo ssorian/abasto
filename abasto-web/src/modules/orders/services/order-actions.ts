@@ -14,6 +14,7 @@ import type { OrderDetail } from '#/modules/orders/services/order-reads'
 import { assertPickupAllowed } from '#/modules/orders/services/pickup-gate'
 import {
   allocationsOf,
+  hasExpiredLot,
   lockLotsInOrder,
   releaseReserved,
 } from '#/modules/orders/services/reservations'
@@ -103,6 +104,12 @@ export const pickupOrder = (actor: Actor, orderId: string) =>
     ['Reservado', 'Preparado'],
     'Solo se puede entregar un pedido reservado o preparado.',
     async (tx, order) => {
+      if (await hasExpiredLot(tx, orderId)) {
+        throw new AppError(
+          'conflict',
+          'Un lote de este pedido ya caducó. Cancélalo y crea un pedido nuevo.',
+        )
+      }
       await assertPickupAllowed(tx, order)
       const allocations = await allocationsOf(tx, orderId)
       const locked = await lockLotsInOrder(

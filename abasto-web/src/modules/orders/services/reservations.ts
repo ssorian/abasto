@@ -1,6 +1,7 @@
-import { asc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm'
 import { lots } from '#/modules/inventory/db/schema'
 import type { Lot, Tx } from '#/modules/inventory/services/stock-ledger'
+import { businessDate } from '#/modules/orders/services/clock'
 import { orderAllocations, orderLines } from '#/modules/orders/db/schema'
 
 /** Locks the given lots in id order, the same order every order operation uses. */
@@ -46,4 +47,18 @@ export async function releaseReserved(tx: Tx, orderIds: Array<string>) {
       .set({ reserved: sql`${lots.reserved} - ${quantity}` })
       .where(eq(lots.id, lotId))
   }
+}
+
+/** Whether any lot allocated to the order is past its expiry day (business calendar). */
+export async function hasExpiredLot(tx: Tx, orderId: string) {
+  const rows = await tx
+    .select({ id: lots.id })
+    .from(orderAllocations)
+    .innerJoin(orderLines, eq(orderLines.id, orderAllocations.orderLineId))
+    .innerJoin(lots, eq(lots.id, orderAllocations.lotId))
+    .where(
+      and(eq(orderLines.orderId, orderId), lt(lots.expiresOn, businessDate())),
+    )
+    .limit(1)
+  return rows.length > 0
 }

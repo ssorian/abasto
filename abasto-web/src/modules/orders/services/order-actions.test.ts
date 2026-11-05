@@ -300,3 +300,50 @@ describe('listOrders and getOrder', () => {
     expect(read.lines[0].allocations[0]).toMatchObject({ quantity: 3 })
   })
 })
+
+describe('pickup of a lot that expired meanwhile', () => {
+  const caducado =
+    'Un lote de este pedido ya caducó. Cancélalo y crea un pedido nuevo.'
+
+  async function reserveOnExpiringLot() {
+    const fx = await setupOrders()
+    await receive(fx, {
+      productId: fx.milkBox.id,
+      quantity: 10,
+      expiresOn: '2098-12-01',
+    })
+    useClock(() => new Date('2098-12-01T18:00:00Z'))
+    const order = await createOrder(fx.clerkA, {
+      warehouseId: fx.a.id,
+      customerId: fx.customer.id,
+      lines: [{ presentationId: fx.pieceId, quantity: 4 }],
+    })
+    return { fx, order }
+  }
+
+  test('is rejected once the lot is past its expiry day, leaving everything unchanged', async () => {
+    const { fx, order } = await reserveOnExpiringLot()
+    // 2098-12-02 06:00 in Mexico City: the order (24 h) is still open.
+    useClock(() => new Date('2098-12-02T12:00:00Z'))
+    const before = await orderState()
+    for (const status of ['Reservado', 'Preparado'] as const) {
+      if (status === 'Preparado') await prepareOrder(fx.clerkA, order.id)
+      const error = await errorOf(() => pickupOrder(fx.clerkA, order.id))
+      expect(error.code).toBe('conflict')
+      expect(error.message).toBe(caducado)
+    }
+    expect((await orderState()).movements).toBe(before.movements)
+    expect((await orderState()).lots).toEqual(before.lots)
+    expect(await statusOf(fx, order.id)).toBe('Preparado')
+    // Cancelling is the way out and releases the units.
+    await cancelOrder(fx.clerkA, order.id)
+    expect((await orderState()).lots[0].reserved).toBe(0)
+  })
+
+  test('a lot expiring today can still be picked up', async () => {
+    const { fx, order } = await reserveOnExpiringLot()
+    useClock(() => new Date('2098-12-02T04:00:00Z')) // 22:00 on 12-01 in Mexico City
+    const picked = await pickupOrder(fx.clerkA, order.id)
+    expect(picked.status).toBe('Recogido')
+  })
+})

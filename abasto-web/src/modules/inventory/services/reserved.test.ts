@@ -1,9 +1,16 @@
-import { beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { eq } from 'drizzle-orm'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import { cancelOrder } from '#/modules/orders/services/order-actions'
 import { createOrder } from '#/modules/orders/services/orders'
-import { setupOrders } from '#/modules/orders/services/testing'
+import { orders } from '#/modules/orders/db/schema'
+import { getOrder } from '#/modules/orders/services/order-reads'
+import {
+  advance,
+  setupOrders,
+  useClock,
+} from '#/modules/orders/services/testing'
 import {
   adjustLot,
   registerLoss,
@@ -106,5 +113,72 @@ describe('reserved stock', () => {
     await cancelOrder(fx.clerkA, order.id)
     await adjustLot(fx.owner, { lotId: lot.id, quantity: -10, reason: 'merma' })
     expect(await onHandOf(lot.id)).toBe(0)
+  })
+})
+
+describe('stock read with expiry', () => {
+  afterEach(() => useClock(null))
+
+  test('reports past-expiry units apart and keeps them out of available', async () => {
+    const { fx } = await setup()
+    await receive(fx, {
+      productId: fx.milkBox.id,
+      quantity: 3,
+      expiresOn: '2020-01-01',
+    })
+    const [row] = await getWarehouseStock(fx.clerkA, fx.a.id)
+    expect(row).toMatchObject({
+      onHand: 13,
+      reserved: 6,
+      expired: 3,
+      available: 4,
+    })
+  })
+
+  test('units reserved on a past-expiry lot are not subtracted twice', async () => {
+    const fx = await setupOrders()
+    const lot = await receive(fx, {
+      productId: fx.milkBox.id,
+      quantity: 5,
+      expiresOn: '2098-12-01',
+    })
+    await receive(fx, { productId: fx.milkBox.id, quantity: 4 })
+    useClock(() => new Date('2098-12-01T18:00:00Z'))
+    await createOrder(fx.clerkA, {
+      warehouseId: fx.a.id,
+      customerId: fx.customer.id,
+      lines: [{ presentationId: fx.pieceId, quantity: 2 }],
+    })
+    useClock(() => new Date('2098-12-02T12:00:00Z'))
+    const [row] = await getWarehouseStock(fx.clerkA, fx.a.id)
+    expect(lot.id).toBeDefined()
+    expect(row).toMatchObject({
+      onHand: 9,
+      reserved: 2,
+      expired: 5,
+      available: 4,
+    })
+  })
+
+  test('overdue orders expire before the read, giving their units back', async () => {
+    const { fx, order } = await setup()
+    advance(25)
+    const [row] = await getWarehouseStock(fx.clerkA, fx.a.id)
+    expect(row).toMatchObject({ onHand: 10, reserved: 0, available: 10 })
+    expect((await getOrder(fx.clerkA, order.id)).status).toBe('Vencido')
+  })
+})
+
+describe('createPurchase and expiry', () => {
+  afterEach(() => useClock(null))
+
+  test('a purchase expires overdue orders of the warehouse first', async () => {
+    const { fx, order } = await setup()
+    advance(25)
+    await receive(fx, { productId: fx.milkBox.id, quantity: 5 })
+    const [row] = await getWarehouseStock(fx.clerkA, fx.a.id)
+    expect(row).toMatchObject({ onHand: 15, reserved: 0 })
+    const stored = await db.select().from(orders).where(eq(orders.id, order.id))
+    expect(stored[0].status).toBe('Vencido')
   })
 })

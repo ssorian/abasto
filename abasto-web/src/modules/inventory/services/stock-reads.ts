@@ -10,6 +10,8 @@ import {
   stockMovements,
 } from '#/modules/inventory/db/schema'
 import type { MovementType } from '#/modules/inventory/db/schema'
+import { businessDate } from '#/modules/orders/services/clock'
+import { expireOverdueOrders } from '#/modules/orders/services/expiry'
 import { byFefo } from '#/modules/inventory/services/stock-ledger'
 
 export type StockLot = {
@@ -27,6 +29,8 @@ export type ProductStock = {
   onHand: number
   /** Held by open orders (Reservado or Preparado). */
   reserved: number
+  /** Units in lots past their expiry day; never sold, not in `available`. */
+  expired: number
   available: number
   minimum: number
   belowMinimum: boolean
@@ -34,30 +38,38 @@ export type ProductStock = {
   lots: Array<StockLot>
 }
 
-/** Stock per product in one warehouse, including products that only have a minimum. */
+/**
+ * Stock per product in one warehouse, including products that only have a
+ * minimum. Overdue orders expire first (so their units are not counted as
+ * reserved); `available` leaves out reserved and past-expiry units.
+ */
 export async function getWarehouseStock(
   actor: Actor,
   warehouseId: string,
 ): Promise<Array<ProductStock>> {
   authorize(actor, 'warehouse.view', warehouseId)
-  const [lotRows, minimumRows] = await Promise.all([
-    db
-      .select({
-        productId: lots.productId,
-        id: lots.id,
-        code: lots.code,
-        expiresOn: lots.expiresOn,
-        receivedAt: lots.receivedAt,
-        onHand: lots.onHand,
-        reserved: lots.reserved,
-      })
-      .from(lots)
-      .where(and(eq(lots.warehouseId, warehouseId), gt(lots.onHand, 0))),
-    db
-      .select()
-      .from(stockMinimums)
-      .where(eq(stockMinimums.warehouseId, warehouseId)),
-  ])
+  const today = businessDate()
+  const [lotRows, minimumRows] = await db.transaction(async (tx) => {
+    await expireOverdueOrders(tx, warehouseId)
+    return Promise.all([
+      tx
+        .select({
+          productId: lots.productId,
+          id: lots.id,
+          code: lots.code,
+          expiresOn: lots.expiresOn,
+          receivedAt: lots.receivedAt,
+          onHand: lots.onHand,
+          reserved: lots.reserved,
+        })
+        .from(lots)
+        .where(and(eq(lots.warehouseId, warehouseId), gt(lots.onHand, 0))),
+      tx
+        .select()
+        .from(stockMinimums)
+        .where(eq(stockMinimums.warehouseId, warehouseId)),
+    ])
+  })
   const productIds = new Set([
     ...lotRows.map((row) => row.productId),
     ...minimumRows.map((row) => row.productId),
@@ -82,7 +94,14 @@ export async function getWarehouseStock(
       const minimum =
         minimumRows.find((row) => row.productId === product.id)?.minimum ?? 0
       const reserved = productRows.reduce((sum, row) => sum + row.reserved, 0)
-      const available = onHand - reserved
+      const isExpired = (row: (typeof productRows)[number]) =>
+        row.expiresOn !== null && row.expiresOn < today
+      const expired = productRows
+        .filter(isExpired)
+        .reduce((sum, row) => sum + row.onHand, 0)
+      const available = productRows
+        .filter((row) => !isExpired(row))
+        .reduce((sum, row) => sum + row.onHand - row.reserved, 0)
       return {
         productId: product.id,
         name: product.name,
@@ -90,6 +109,7 @@ export async function getWarehouseStock(
         unit: product.unit,
         onHand,
         reserved,
+        expired,
         available,
         minimum,
         belowMinimum: minimum > 0 && available < minimum,

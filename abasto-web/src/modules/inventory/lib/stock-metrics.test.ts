@@ -25,6 +25,7 @@ function row(
     onHand,
     reserved: 0,
     available: onHand,
+    expired: 0,
     minimum,
     belowMinimum: minimum > 0 && onHand < minimum,
     lots: expiries.map((expiresOn, index) => ({
