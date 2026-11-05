@@ -12,10 +12,16 @@ import { workspace } from '#/config/workspace'
 const fallbackError = 'No pudimos iniciar sesión. Intenta de nuevo.'
 
 /** Better Auth answers in English; its credential failure gets Spanish copy. */
-const messageFor = (error: { code?: string; message?: string }) =>
-  error.code === 'INVALID_EMAIL_OR_PASSWORD'
-    ? 'Correo o contraseña incorrectos.'
-    : error.message || fallbackError
+/** Better Auth answers in English: show Spanish copy for known failures only. */
+const messageFor = (error: { code?: string; status?: number }) => {
+  if (error.code === 'INVALID_EMAIL_OR_PASSWORD') {
+    return 'Correo o contraseña incorrectos.'
+  }
+  if (error.status === 429) {
+    return 'Demasiados intentos. Espera un momento e intenta de nuevo.'
+  }
+  return fallbackError
+}
 
 export function LoginPage({ redirectTo }: { redirectTo: string }) {
   const router = useRouter()

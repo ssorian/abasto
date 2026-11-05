@@ -10,3 +10,17 @@ test('keeps internal paths, rejects everything else', () => {
   expect(safeRedirect('/login')).toBe('/')
   expect(safeRedirect(undefined)).toBe('/')
 })
+
+test('rejects paths with control characters or whitespace that browsers strip', () => {
+  for (const value of [
+    '/\t/evil.com',
+    '/\n/evil.com',
+    '/\r//evil.com',
+    '/ /evil.com',
+    '/\x00x',
+  ]) {
+    expect(safeRedirect(value)).toBe('/')
+  }
+  expect(safeRedirect('/login?redirect=/x')).toBe('/')
+  expect(safeRedirect('/almacenes?x=1')).toBe('/almacenes?x=1')
+})

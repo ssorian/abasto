@@ -75,6 +75,21 @@ describe('createWarehouse', () => {
     expect(await warehouseCount()).toBe(0)
   })
 
+  test('rejects a name longer than 80 characters', async () => {
+    const { owner } = await setup()
+    const error = await errorOf(() =>
+      createWarehouse(owner, { name: 'A'.repeat(81) }),
+    )
+    expect(error.code).toBe('invalid')
+    expect(error.message).toBe(
+      'El nombre del almacén no puede tener más de 80 caracteres.',
+    )
+    expect(await warehouseCount()).toBe(0)
+    expect((await createWarehouse(owner, { name: 'B'.repeat(80) })).name).toBe(
+      'B'.repeat(80),
+    )
+  })
+
   test('staff cannot create warehouses', async () => {
     await setup()
     const clerk = await requireActor(

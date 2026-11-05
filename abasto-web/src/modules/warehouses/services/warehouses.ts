@@ -9,6 +9,8 @@ import { warehouses } from '#/modules/warehouses/db/schema'
 
 export type Warehouse = { id: string; name: string }
 
+const maxNameLength = 80
+
 const columns = { id: warehouses.id, name: warehouses.name }
 
 export async function createWarehouse(
@@ -18,6 +20,12 @@ export async function createWarehouse(
   authorize(actor, 'warehouses.manage')
   const name = input.name.trim()
   if (!name) throw new AppError('invalid', 'Escribe el nombre del almacén.')
+  if (name.length > maxNameLength) {
+    throw new AppError(
+      'invalid',
+      `El nombre del almacén no puede tener más de ${maxNameLength} caracteres.`,
+    )
+  }
   try {
     const [created] = await db
       .insert(warehouses)
