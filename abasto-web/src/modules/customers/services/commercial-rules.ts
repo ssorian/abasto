@@ -83,7 +83,7 @@ export async function saveCommercialRules(
         .select({ id: customers.id })
         .from(customers)
         .where(eq(customers.id, customerId))
-        .for('update')
+        .for('no key update')
     ).at(0)
     if (!customer) throw customerNotFound()
     const ids = [...new Set(rules.map((r) => r.presentationId))]

@@ -10,9 +10,11 @@ import {
 import {
   equipWarehouseB,
   paymentState,
+  receive,
   setupCredit,
 } from '#/modules/credit/services/testing'
 import { cashMovements } from '#/modules/cash/db/schema'
+import { setCustomerCredit } from '#/modules/customers/services/customers'
 import { pickupOrder } from '#/modules/orders/services/order-actions'
 
 beforeEach(() => resetDatabase(db))
@@ -111,5 +113,40 @@ describe('payment concurrency', () => {
     const { balanceCents } = await getCustomerBalance(fx.owner, fx.customer.id)
     expect(balanceCents).toBeLessThanOrEqual(5000)
     expect(settled(results)).toBeGreaterThanOrEqual(1)
+  })
+
+  test('an abono and a cash pickup of the same customer in one warehouse never deadlock', async () => {
+    const fx = await setupCredit()
+    await setCustomerCredit(fx.owner, fx.customer.id, {
+      enabled: true,
+      limitCents: 1_000_000,
+      termsDays: 7,
+    })
+    await pickupOrder(fx.clerkA, (await fx.place(30)).id, credit)
+    await receive(fx, { productId: fx.milkBox.id, quantity: 100 })
+    const rounds = 30
+    const orders = []
+    for (let i = 0; i < rounds * 3; i++) orders.push(await fx.place(1))
+    const pay = { terms: 'contado' as const, tenderedCents: 1000 }
+    const abono = () =>
+      recordAbono(fx.clerkA, {
+        warehouseId: fx.a.id,
+        customerId: fx.customer.id,
+        amountCents: 100,
+      })
+    for (let round = 0; round < rounds; round++) {
+      const batch = orders.slice(round * 3, round * 3 + 3)
+      const results = await Promise.allSettled([
+        abono(),
+        abono(),
+        ...batch.map((order) => pickupOrder(fx.managerA, order.id, pay)),
+      ])
+      const failures = results.flatMap((r) =>
+        r.status === 'rejected'
+          ? [String(r.reason?.cause?.code ?? r.reason)]
+          : [],
+      )
+      expect(failures).toEqual([])
+    }
   })
 })

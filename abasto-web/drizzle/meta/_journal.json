@@ -71,6 +71,13 @@
       "when": 1793843586402,
       "tag": "0009_cash_credit_append_only",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793844942549,
+      "tag": "0010_cash_sessions_immutable",
+      "breakpoints": true
     }
   ]
 }

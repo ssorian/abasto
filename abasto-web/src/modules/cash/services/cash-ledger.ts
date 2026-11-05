@@ -57,11 +57,11 @@ export async function expectedCash(
 ): Promise<number> {
   const [row] = await tx
     .select({
-      total: sql<number>`coalesce(sum(${cashMovements.amountCents}), 0)::int`,
+      total: sql<string>`coalesce(sum(${cashMovements.amountCents}), 0)::bigint`,
     })
     .from(cashMovements)
     .where(eq(cashMovements.sessionId, session.id))
-  return session.openingCents + row.total
+  return session.openingCents + Number(row.total)
 }
 
 export async function sessionMovements(

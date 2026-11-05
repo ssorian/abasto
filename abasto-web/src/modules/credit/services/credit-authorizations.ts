@@ -97,6 +97,23 @@ async function decide(
 ): Promise<CreditAuthorization> {
   authorize(actor, 'credit.authorize')
   return db.transaction(async (tx) => {
+    // Same order as a pickup (order, then authorization) so they cannot deadlock.
+    const found = (
+      await tx
+        .select({ orderId: creditAuthorizations.orderId })
+        .from(creditAuthorizations)
+        .where(eq(creditAuthorizations.id, id))
+    ).at(0)
+    if (!found) {
+      throw new AppError('not_found', 'No encontramos esa autorización.')
+    }
+    const order = (
+      await tx
+        .select({ status: orders.status })
+        .from(orders)
+        .where(eq(orders.id, found.orderId))
+        .for('share')
+    ).at(0)
     const current = (
       await tx
         .select()
@@ -109,6 +126,12 @@ async function decide(
     }
     if (current.status !== 'pending') {
       throw new AppError('conflict', 'Esa autorización ya fue resuelta.')
+    }
+    if (order?.status !== 'Reservado' && order?.status !== 'Preparado') {
+      throw new AppError(
+        'conflict',
+        'El pedido de esta autorización ya no está abierto.',
+      )
     }
     const [decided] = await tx
       .update(creditAuthorizations)

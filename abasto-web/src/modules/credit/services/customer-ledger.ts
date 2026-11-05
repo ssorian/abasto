@@ -21,11 +21,18 @@ type Customer = typeof customers.$inferSelect
 
 /**
  * Locks the customer row until the transaction ends: charges and abonos of one
- * customer (from any warehouse) are applied one at a time.
+ * customer (from any warehouse) are applied one at a time. FOR NO KEY UPDATE
+ * (not FOR UPDATE) so the FOR KEY SHARE that cash_movements and the ledger
+ * take through their customer foreign key does not wait on it, which
+ * deadlocked an abono against a cash pickup.
  */
 export async function lockCustomer(tx: Tx, id: string): Promise<Customer> {
   const customer = (
-    await tx.select().from(customers).where(eq(customers.id, id)).for('update')
+    await tx
+      .select()
+      .from(customers)
+      .where(eq(customers.id, id))
+      .for('no key update')
   ).at(0)
   if (!customer) throw customerNotFound()
   return customer
