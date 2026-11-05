@@ -25,6 +25,7 @@ export type NavItem = {
     | '/clientes'
     | '/catalogo'
     | '/inventario'
+    | '/precios'
     | '/almacenes'
     | '/configuracion'
     | '/reportes'
@@ -36,7 +37,7 @@ export const primaryNav: Array<NavItem> = [
   { label: 'Clientes', icon: Users, to: '/clientes' },
   { label: 'Cobros', icon: Wallet },
   { label: 'Catálogo', icon: LayoutGrid, to: '/catalogo' },
-  { label: 'Promociones', icon: Tags },
+  { label: 'Precios', icon: Tags, to: '/precios' },
   { label: 'Inventario', icon: Boxes, to: '/inventario' },
   { label: 'Almacenes', icon: Warehouse, to: '/almacenes' },
   { label: 'Reportes', icon: ChartColumn, to: '/reportes' },
