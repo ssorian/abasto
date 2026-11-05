@@ -18,7 +18,6 @@ import { Route as ConfiguracionRouteImport } from './routes/configuracion'
 import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MostradorRouteImport } from './routes/mostrador'
-import { Route as PreciosRouteImport } from './routes/precios'
 import { Route as ReportesRouteImport } from './routes/reportes'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -67,11 +66,6 @@ const MostradorRoute = MostradorRouteImport.update({
   path: '/mostrador',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PreciosRoute = PreciosRouteImport.update({
-  id: '/precios',
-  path: '/precios',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ReportesRoute = ReportesRouteImport.update({
   id: '/reportes',
   path: '/reportes',
@@ -93,7 +87,6 @@ export interface FileRoutesByFullPath {
   '/inventario': typeof InventarioRoute
   '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
-  '/precios': typeof PreciosRoute
   '/reportes': typeof ReportesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -107,7 +100,6 @@ export interface FileRoutesByTo {
   '/inventario': typeof InventarioRoute
   '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
-  '/precios': typeof PreciosRoute
   '/reportes': typeof ReportesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -122,7 +114,6 @@ export interface FileRoutesById {
   '/inventario': typeof InventarioRoute
   '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
-  '/precios': typeof PreciosRoute
   '/reportes': typeof ReportesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -138,7 +129,6 @@ export interface FileRouteTypes {
     | '/inventario'
     | '/login'
     | '/mostrador'
-    | '/precios'
     | '/reportes'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -152,7 +142,6 @@ export interface FileRouteTypes {
     | '/inventario'
     | '/login'
     | '/mostrador'
-    | '/precios'
     | '/reportes'
     | '/api/auth/$'
   id:
@@ -166,7 +155,6 @@ export interface FileRouteTypes {
     | '/inventario'
     | '/login'
     | '/mostrador'
-    | '/precios'
     | '/reportes'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -181,7 +169,6 @@ export interface RootRouteChildren {
   InventarioRoute: typeof InventarioRoute
   LoginRoute: typeof LoginRoute
   MostradorRoute: typeof MostradorRoute
-  PreciosRoute: typeof PreciosRoute
   ReportesRoute: typeof ReportesRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -251,13 +238,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MostradorRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/precios': {
-      id: '/precios'
-      path: '/precios'
-      fullPath: '/precios'
-      preLoaderRoute: typeof PreciosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reportes': {
       id: '/reportes'
       path: '/reportes'
@@ -285,7 +265,6 @@ const rootRouteChildren: RootRouteChildren = {
   InventarioRoute: InventarioRoute,
   LoginRoute: LoginRoute,
   MostradorRoute: MostradorRoute,
-  PreciosRoute: PreciosRoute,
   ReportesRoute: ReportesRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

@@ -10,12 +10,15 @@ import { CatalogButton } from '#/modules/catalog/components/catalog-button'
 import { presentationLabel } from '#/modules/catalog/lib/catalog-presentations'
 
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
+import type { ReactNode } from 'react'
 
 type CatalogCardProps = {
   product: CatalogProduct
   supplierName?: string
   /** Owner-only write actions; staff only browse. */
   canManage: boolean
+  /** Prices of the selected warehouse; omitted when the actor sees none. */
+  prices?: ReactNode
   onPresentations: () => void
   onEdit: () => void
   onTogglePublished: () => void
@@ -25,6 +28,7 @@ export function CatalogCard({
   product,
   supplierName,
   canManage,
+  prices,
   onPresentations,
   onEdit,
   onTogglePublished,
@@ -63,6 +67,7 @@ export function CatalogCard({
             </span>
           ) : null}
         </div>
+        {prices}
         <p className="mt-1 text-[11px] leading-[1.4] text-[#8a95a4]">
           El inventario se lleva en {product.unit}.
         </p>

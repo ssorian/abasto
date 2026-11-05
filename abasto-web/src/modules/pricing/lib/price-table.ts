@@ -3,29 +3,26 @@ import type { PriceRow } from '#/modules/pricing/services/price-reads'
 
 export type PriceTableRow = PriceRow & { supplierId: string | null }
 
+/** Prices of the selected warehouse plus the warehouses the actor may switch to. */
+export type PricingOverview = {
+  warehouses: Array<{ id: string; name: string; canManage: boolean }>
+  selectedId: string | null
+  rows: Array<PriceRow>
+  /** Target margins per product; null for everyone but the owner. */
+  margins: Record<string, number> | null
+}
+
 export const originLabels = {
   own: 'Propio',
   derived: 'Derivado',
   none: 'Sin precio',
 } as const
 
-export type PriceFilters = {
-  query: string
-  supplierId: string
-  category: string
-}
-
 export type BulkScope = {
   supplierId?: string
   category?: string
   productIds?: ReadonlyArray<string>
 }
-
-const normalize = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
 
 export function joinProducts(
   rows: ReadonlyArray<PriceRow>,
@@ -36,20 +33,6 @@ export function joinProducts(
     ...row,
     supplierId: suppliers.get(row.productId) ?? null,
   }))
-}
-
-/** Matches product name or SKU (accent-insensitive), supplier and category. */
-export function filterPriceRows(
-  rows: ReadonlyArray<PriceTableRow>,
-  { query, supplierId, category }: PriceFilters,
-) {
-  const needle = normalize(query.trim())
-  return rows.filter(
-    (row) =>
-      normalize(`${row.productName} ${row.sku}`).includes(needle) &&
-      (!supplierId || row.supplierId === supplierId) &&
-      (!category || row.category === category),
-  )
 }
 
 export type ProductGroup = {
@@ -75,6 +58,11 @@ export function groupByProduct(rows: ReadonlyArray<PriceTableRow>) {
     groups.set(row.productId, group)
   }
   return [...groups.values()]
+}
+
+/** Product id → its presentation prices, so each catalog card finds its own. */
+export function pricesByProduct(rows: ReadonlyArray<PriceTableRow>) {
+  return new Map(groupByProduct(rows).map((group) => [group.productId, group]))
 }
 
 /** Typed prices that differ from the current one, plus per-row parse errors. */

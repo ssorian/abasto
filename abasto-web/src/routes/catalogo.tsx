@@ -6,23 +6,35 @@ import {
   listProductsFn,
   listSuppliersFn,
 } from '#/modules/catalog/server/catalog'
+import { pricingOverviewFn } from '#/modules/pricing/server/pricing'
 
 export const Route = createFileRoute('/catalogo')({
-  loader: async () => {
-    const [products, suppliers] = await Promise.all([
+  validateSearch: (search: Record<string, unknown>): { almacen?: string } =>
+    typeof search.almacen === 'string' ? { almacen: search.almacen } : {},
+  loaderDeps: ({ search }) => ({ almacen: search.almacen }),
+  loader: async ({ deps }) => {
+    const [products, suppliers, pricing] = await Promise.all([
       listProductsFn(),
       listSuppliersFn(),
+      pricingOverviewFn({ data: { warehouseId: deps.almacen } }),
     ])
-    return { products: unwrap(products), suppliers: unwrap(suppliers) }
+    return {
+      products: unwrap(products),
+      suppliers: unwrap(suppliers),
+      pricing: unwrap(pricing),
+    }
   },
   component: function Catalog() {
-    const { products, suppliers } = Route.useLoaderData()
+    const { products, suppliers, pricing } = Route.useLoaderData()
     const { user } = Route.useRouteContext()
+    const navigate = Route.useNavigate()
     return (
       <CatalogPage
         products={products}
         suppliers={suppliers}
         canManage={user?.role === 'owner'}
+        pricing={pricing}
+        onSelectWarehouse={(almacen) => void navigate({ search: { almacen } })}
       />
     )
   },

@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import {
   countAffected,
-  filterPriceRows,
   groupByProduct,
   joinProducts,
   originLabels,
   pendingPrices,
+  pricesByProduct,
 } from '#/modules/pricing/lib/price-table'
 import type { PriceTableRow } from '#/modules/pricing/lib/price-table'
 
@@ -60,14 +60,14 @@ describe('price table', () => {
     expect(joined[0].supplierId).toBe('s9')
   })
 
-  test('filters by accent-insensitive text, supplier and category', () => {
-    const none = { query: '', supplierId: '', category: '' }
-    expect(filterPriceRows(rows, { ...none, query: 'lacteos' })).toHaveLength(0)
-    expect(filterPriceRows(rows, { ...none, query: 'col-1' })).toHaveLength(1)
-    expect(filterPriceRows(rows, { ...none, supplierId: 's1' })).toHaveLength(2)
-    expect(
-      filterPriceRows(rows, { ...none, category: 'Refrescos' }),
-    ).toHaveLength(1)
+  test('indexes each product with its presentation prices for the cards', () => {
+    const index = pricesByProduct(rows)
+    expect(index.get('p1')?.rows.map((r) => r.presentationId)).toEqual([
+      'a',
+      'b',
+    ])
+    expect(index.get('p2')?.rows.map((r) => r.priceCents)).toEqual([null])
+    expect(index.get('missing')).toBeUndefined()
   })
 
   test('groups presentations under their product', () => {

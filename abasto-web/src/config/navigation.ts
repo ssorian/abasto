@@ -6,7 +6,6 @@ import {
   LayoutGrid,
   ScanLine,
   Settings2,
-  Tags,
   Users,
   Wallet,
   Warehouse,
@@ -26,7 +25,6 @@ export type NavItem = {
     | '/cobros'
     | '/catalogo'
     | '/inventario'
-    | '/precios'
     | '/almacenes'
     | '/configuracion'
     | '/reportes'
@@ -38,7 +36,6 @@ export const primaryNav: Array<NavItem> = [
   { label: 'Clientes', icon: Users, to: '/clientes' },
   { label: 'Cobros', icon: Wallet, to: '/cobros' },
   { label: 'Catálogo', icon: LayoutGrid, to: '/catalogo' },
-  { label: 'Precios', icon: Tags, to: '/precios' },
   { label: 'Inventario', icon: Boxes, to: '/inventario' },
   { label: 'Almacenes', icon: Warehouse, to: '/almacenes' },
   { label: 'Reportes', icon: ChartColumn, to: '/reportes' },
