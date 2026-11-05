@@ -13,3 +13,7 @@ export const isUniqueViolation = (error: unknown) => sqlState(error) === '23505'
 
 export const isForeignKeyViolation = (error: unknown) =>
   sqlState(error) === '23503'
+
+/** Malformed literal such as a non-UUID id (`invalid_text_representation`). */
+export const isInvalidTextRepresentation = (error: unknown) =>
+  sqlState(error) === '22P02'

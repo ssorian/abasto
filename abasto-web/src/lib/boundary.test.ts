@@ -11,6 +11,25 @@ import {
 import { AppError } from '#/lib/errors'
 
 describe('runBoundary', () => {
+  test('reports a malformed id from Postgres (22P02) as invalid input, not unexpected', async () => {
+    const driverError = Object.assign(
+      new Error('invalid input syntax for type uuid: "nope"'),
+      { code: '22P02' },
+    )
+    const wrapped = Object.assign(new Error('Failed query'), {
+      cause: driverError,
+    })
+    expect(
+      await runBoundary(async () => {
+        throw wrapped
+      }),
+    ).toEqual({
+      ok: false,
+      code: 'invalid',
+      message: 'Revisa los datos e intenta de nuevo.',
+    })
+  })
+
   test('wraps a returned value', async () => {
     expect(await runBoundary(async () => 42)).toEqual({ ok: true, data: 42 })
   })

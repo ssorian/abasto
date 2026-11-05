@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isInvalidTextRepresentation } from '#/db/errors'
 import { AppError } from '#/lib/errors'
 import type { AppErrorCode } from '#/lib/errors'
 
@@ -23,6 +24,10 @@ export async function runBoundary<T>(
   } catch (error) {
     if (error instanceof AppError) {
       return { ok: false, code: error.code, message: error.message }
+    }
+    // A malformed id that slipped past validation is bad input, not a crash.
+    if (isInvalidTextRepresentation(error)) {
+      return { ok: false, code: 'invalid', message: invalidInputMessage }
     }
     console.error('Unexpected server function error', error)
     return { ok: false, code: 'unexpected', message: genericErrorMessage }
