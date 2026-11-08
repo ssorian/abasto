@@ -52,7 +52,6 @@ export type CashCutRow = {
   closedByName: string | null
   openingCents: number
   salesCents: number
-  abonosCents: number
   entriesCents: number
   /** Cash taken out, as a positive amount. */
   withdrawalsCents: number
@@ -118,25 +117,4 @@ export type StockAlerts = {
   expired: Array<LotAlertRow>
 }
 
-export type AgingRow = {
-  customerId: string
-  name: string
-  /** Not yet due. */
-  currentCents: number
-  days1to30Cents: number
-  days31to60Cents: number
-  over60Cents: number
-  totalCents: number
-}
-
-export type AgingTotals = Omit<AgingRow, 'customerId' | 'name'> & {
-  customers: number
-}
-
-export type ReceivablesAging = {
-  asOf: string
-  rows: Array<AgingRow>
-  totals: AgingTotals
-}
-
-export type ReportTab = 'ventas' | 'cajas' | 'inventario' | 'cartera'
+export type ReportTab = 'ventas' | 'cajas' | 'inventario'

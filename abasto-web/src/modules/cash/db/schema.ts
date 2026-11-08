@@ -57,6 +57,7 @@ export const cashSessions = pgTable(
   ],
 )
 
+// 'abono' is kept for legacy immutable rows; nothing creates it anymore.
 export const cashMovementTypes = [
   'sale',
   'abono',

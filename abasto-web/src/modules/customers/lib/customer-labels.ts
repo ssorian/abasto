@@ -5,16 +5,6 @@ import type {
   RuleView,
 } from '#/modules/customers/lib/customer-view'
 
-type Credit = Pick<
-  CustomerView,
-  'creditEnabled' | 'creditLimitCents' | 'termsDays'
->
-
-export const termsLabel = (customer: Credit) =>
-  customer.creditEnabled
-    ? `${customer.termsDays} días · ${formatCents(customer.creditLimitCents)}`
-    : 'Contado'
-
 export const statusLabel = (customer: Pick<CustomerView, 'active'>) =>
   customer.active ? 'Activo' : 'Inactivo'
 
@@ -22,15 +12,6 @@ export const contactLine = (
   customer: Pick<CustomerView, 'contact' | 'phone'>,
 ) =>
   `${customer.contact || 'Sin contacto'} · ${customer.phone || 'Sin teléfono'}`
-
-export const creditSummary = (
-  customer: Credit & Pick<CustomerView, 'active'>,
-) =>
-  `${
-    customer.creditEnabled
-      ? `Crédito: ${formatCents(customer.creditLimitCents)} · ${customer.termsDays} días`
-      : 'Venta de contado'
-  } · ${statusLabel(customer)}`
 
 /** "Leche · Caja: 12.5% desde 5" or "…: $438.50 desde 1". */
 export function ruleLabel(

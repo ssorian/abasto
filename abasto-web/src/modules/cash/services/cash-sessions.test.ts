@@ -14,7 +14,7 @@ import {
   recordCashWithdrawal,
 } from '#/modules/cash/services/cash-movements'
 import { errorOf, setupInventory } from '#/modules/inventory/services/testing'
-import { paymentState } from '#/modules/credit/services/testing'
+import { paymentState } from '#/modules/cash/services/testing'
 
 beforeEach(() => resetDatabase(db))
 

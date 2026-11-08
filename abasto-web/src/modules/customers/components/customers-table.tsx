@@ -7,10 +7,7 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { CustomerButton } from '#/modules/customers/components/customer-button'
-import {
-  statusLabel,
-  termsLabel,
-} from '#/modules/customers/lib/customer-labels'
+import { statusLabel } from '#/modules/customers/lib/customer-labels'
 
 import type {
   CustomerView,
@@ -71,12 +68,9 @@ export function CustomersTable({
                   <small className={note}>{customer.phone}</small>
                 </TableCell>
                 <TableCell className={cell}>
-                  {termsLabel(customer)}
-                  {count > 0 && (
-                    <small className={note}>
-                      {count} condiciones comerciales
-                    </small>
-                  )}
+                  {count > 0
+                    ? `${count} condiciones comerciales`
+                    : 'Precio de lista'}
                 </TableCell>
                 <TableCell className={cell}>
                   <CustomerButton onClick={() => onView(customer.id)}>

@@ -7,10 +7,6 @@ export type CustomerView = {
   addresses: Array<string>
   notes: string
   active: boolean
-  creditEnabled: boolean
-  /** Integer cents. */
-  creditLimitCents: number
-  termsDays: number
 }
 
 /** A commercial rule as stored: exactly one of discount or fixed price is set. */

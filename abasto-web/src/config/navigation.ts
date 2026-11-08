@@ -7,7 +7,6 @@ import {
   ScanLine,
   Settings2,
   Users,
-  Wallet,
   Warehouse,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -22,7 +21,6 @@ export type NavItem = {
     | '/'
     | '/mostrador'
     | '/clientes'
-    | '/cobros'
     | '/catalogo'
     | '/inventario'
     | '/almacenes'
@@ -34,7 +32,6 @@ export const primaryNav: Array<NavItem> = [
   { label: 'Inicio', icon: House, to: '/' },
   { label: 'Mostrador', icon: ScanLine, to: '/mostrador' },
   { label: 'Clientes', icon: Users, to: '/clientes' },
-  { label: 'Cobros', icon: Wallet, to: '/cobros' },
   { label: 'Catálogo', icon: LayoutGrid, to: '/catalogo' },
   { label: 'Inventario', icon: Boxes, to: '/inventario' },
   { label: 'Almacenes', icon: Warehouse, to: '/almacenes' },

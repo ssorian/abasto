@@ -1,43 +1,22 @@
 import { describe, expect, test } from 'bun:test'
 import {
   contactLine,
-  creditSummary,
   formatOrderDate,
   presentationOptions,
   ruleLabel,
-  termsLabel,
+  statusLabel,
 } from '#/modules/customers/lib/customer-labels'
 
 const base = {
   contact: '',
   phone: '',
-  creditEnabled: false,
-  creditLimitCents: 0,
-  termsDays: 0,
   active: true,
 }
 
 describe('customer labels', () => {
-  test('cash customers and credit customers', () => {
-    expect(termsLabel(base)).toBe('Contado')
-    expect(
-      termsLabel({
-        ...base,
-        creditEnabled: true,
-        creditLimitCents: 150000,
-        termsDays: 15,
-      }),
-    ).toBe('15 días · $1,500.00')
-    expect(creditSummary(base)).toBe('Venta de contado · Activo')
-    expect(
-      creditSummary({
-        ...base,
-        active: false,
-        creditEnabled: true,
-        creditLimitCents: 5000,
-        termsDays: 7,
-      }),
-    ).toBe('Crédito: $50.00 · 7 días · Inactivo')
+  test('status label', () => {
+    expect(statusLabel(base)).toBe('Activo')
+    expect(statusLabel({ ...base, active: false })).toBe('Inactivo')
   })
 
   test('contact line has fallbacks', () => {

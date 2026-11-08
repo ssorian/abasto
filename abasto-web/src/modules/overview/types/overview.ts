@@ -50,10 +50,6 @@ export type Overview = {
   today: string
   warehouses: Array<WarehouseOverview>
   totals: OverviewTotals
-  /** Owner only; null for everyone else. */
-  pendingAuthorizations: number | null
-  /** Overdue credit across the company; owner and managers only. */
-  overdueCents: number | null
   lowStock: Array<LowStockItem>
   expiring: Array<ExpiringItem>
 }

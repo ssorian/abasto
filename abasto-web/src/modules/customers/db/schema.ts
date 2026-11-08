@@ -12,7 +12,7 @@ import {
 import { user } from '#/db/auth-schema'
 import { presentations } from '#/modules/catalog/db/schema'
 
-/** Company-wide customers (authorized distributors); one credit balance each. */
+/** Company-wide customers (authorized distributors); they always pay cash. */
 export const customers = pgTable(
   'customers',
   {
@@ -26,10 +26,6 @@ export const customers = pgTable(
       .default(sql`'{}'`),
     notes: text('notes').notNull().default(''),
     active: boolean('active').notNull().default(true),
-    creditEnabled: boolean('credit_enabled').notNull().default(false),
-    /** Integer cents. */
-    creditLimitCents: integer('credit_limit_cents').notNull().default(0),
-    termsDays: integer('terms_days').notNull().default(0),
     /** Store sign-in account (role `customer`) the owner created, if any. */
     userId: text('user_id')
       .unique('customers_user_id_unique')
@@ -38,8 +34,6 @@ export const customers = pgTable(
   },
   (table) => [
     uniqueIndex('customers_name_unique').on(sql`lower(${table.name})`),
-    check('customers_credit_limit_min', sql`${table.creditLimitCents} >= 0`),
-    check('customers_terms_days_min', sql`${table.termsDays} >= 0`),
   ],
 )
 

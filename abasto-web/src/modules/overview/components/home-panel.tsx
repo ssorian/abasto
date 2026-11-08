@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-export type PanelTarget = '/mostrador' | '/inventario' | '/cobros' | '/reportes'
+export type PanelTarget = '/mostrador' | '/inventario' | '/reportes'
 
 type HomePanelProps = {
   title: string

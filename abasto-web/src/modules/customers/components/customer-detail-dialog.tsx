@@ -1,12 +1,11 @@
-import { CustomerBalance } from '#/modules/customers/components/customer-balance'
 import { CustomerButton } from '#/modules/customers/components/customer-button'
 import { CustomerModal } from '#/modules/customers/components/customer-modal'
 import { CustomerOrderHistory } from '#/modules/customers/components/customer-order-history'
 import { StoreAccessSection } from '#/modules/store/components/store-access-section'
 import {
   contactLine,
-  creditSummary,
   ruleLabel,
+  statusLabel,
 } from '#/modules/customers/lib/customer-labels'
 
 import type {
@@ -44,8 +43,7 @@ export function CustomerDetailDialog({
       <div className="rounded-[10px] bg-[#fbf9f6] px-[18px] py-4 text-[13px] leading-[1.8] whitespace-pre-line text-[#8d6f79]">
         <p>{customer.addresses.join(' · ') || 'Sin domicilios registrados'}</p>
         {customer.notes && <p>{customer.notes}</p>}
-        <p>{creditSummary(customer)}</p>
-        <CustomerBalance customerId={customer.id} />
+        <p>{statusLabel(customer)}</p>
       </div>
       <h3 className="text-[17px] font-[650]">Condiciones comerciales</h3>
       {rules.length === 0 ? (

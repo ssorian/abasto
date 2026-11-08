@@ -24,25 +24,18 @@ const base: SaveCustomerInput = {
   notes: '',
   addresses: ['Calle 1'],
   active: true,
-  credit: { enabled: false, limitCents: 0, termsDays: 0 },
   rules: [],
 }
 
 describe('saveCustomer', () => {
-  test('the owner creates a customer with credit and rules in one call', async () => {
+  test('the owner creates a customer with rules in one call', async () => {
     const { owner } = await setupActors()
     const { box } = await createPresentations(owner)
     const saved = await saveCustomer(owner, {
       ...base,
-      credit: { enabled: true, limitCents: 150000, termsDays: 15 },
       rules: [{ presentationId: box, minQuantity: 5, discountBps: 1000 }],
     })
-    expect(saved.customer).toMatchObject({
-      name: 'Distribuidora Norte',
-      creditEnabled: true,
-      creditLimitCents: 150000,
-      termsDays: 15,
-    })
+    expect(saved.customer).toMatchObject({ name: 'Distribuidora Norte' })
     expect(saved.rules).toEqual([
       expect.objectContaining({ presentationId: box, discountBps: 1000 }),
     ])
@@ -60,14 +53,11 @@ describe('saveCustomer', () => {
       id: first.customer.id,
       name: 'Norte SA',
       active: false,
-      credit: { enabled: true, limitCents: 5000, termsDays: 7 },
       rules: [{ presentationId: piece, minQuantity: 1, priceCents: 900 }],
     })
     expect(edited.customer).toMatchObject({
       name: 'Norte SA',
       active: false,
-      creditEnabled: true,
-      creditLimitCents: 5000,
     })
     expect(await listCommercialRules(owner, first.customer.id)).toEqual([
       expect.objectContaining({

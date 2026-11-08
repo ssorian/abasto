@@ -2,7 +2,7 @@ import { formatCents } from '#/modules/pricing/lib/money'
 import type { OverviewMetric } from '#/modules/overview/components/overview-metrics'
 import type { Overview } from '#/modules/overview/types/overview'
 
-/** The four headline figures; money only for those who manage a warehouse. */
+/** The headline figures; money only for those who manage a warehouse. */
 export function metricsOf(overview: Overview): Array<OverviewMetric> {
   const { totals, warehouses } = overview
   const open = { label: 'Pedidos abiertos', value: String(totals.openOrders) }
@@ -14,10 +14,6 @@ export function metricsOf(overview: Overview): Array<OverviewMetric> {
         value: formatCents(totals.marginCents),
       },
       open,
-      {
-        label: 'Crédito vencido',
-        value: formatCents(overview.overdueCents ?? 0),
-      },
     ]
   }
   return [

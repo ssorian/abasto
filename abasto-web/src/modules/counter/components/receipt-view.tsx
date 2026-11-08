@@ -3,7 +3,7 @@ import { orderCode } from '#/modules/counter/lib/order-format'
 import { receiptLines } from '#/modules/counter/lib/payment'
 import type { PickupWithReceipt } from '#/modules/counter/server/pickup'
 
-/** What the clerk hands over after a pickup: total, cash and change, or the credit charge. */
+/** What the clerk hands over after a pickup: total, cash received and change. */
 export function ReceiptView({
   result,
   customerName,
@@ -19,7 +19,7 @@ export function ReceiptView({
         {orderCode(result.id)} · {customerName} · entregado
       </p>
       <dl className="grid grid-cols-2 gap-2 rounded-xl border border-[#f0eae3] bg-[#fcfaf8] p-4 text-sm">
-        {receiptLines(result.totalCents, result.payment, result.dueOn).map(
+        {receiptLines(result.totalCents, result.payment).map(
           ([label, value]) => (
             <div key={label} className="contents">
               <dt>{label}</dt>

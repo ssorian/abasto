@@ -47,7 +47,6 @@ describe('draftToInput basics', () => {
       notes: '',
       addresses: ['Calle 1', 'Calle 2'],
       active: true,
-      credit: { enabled: false, limitCents: 0, termsDays: 0 },
       rules: [],
     })
   })
@@ -58,95 +57,8 @@ describe('draftToInput basics', () => {
 
   test('a blank name is rejected', () => {
     expect(message(draft({ name: '  ' }))).toBe(
-      'Revisa nombre, límite y plazo.',
+      'Escribe el nombre del cliente.',
     )
-  })
-})
-
-describe('draftToInput credit', () => {
-  test('pesos become integer cents without float drift', () => {
-    const credit = ok(
-      draft({ credit: true, creditLimit: '1500.10', termsDays: '15' }),
-    ).credit
-    expect(credit).toEqual({ enabled: true, limitCents: 150010, termsDays: 15 })
-    expect(
-      ok(draft({ credit: true, creditLimit: '0.29', termsDays: '1' })).credit
-        .limitCents,
-    ).toBe(29)
-  })
-
-  test('a blank limit means zero', () => {
-    expect(
-      ok(draft({ credit: true, creditLimit: '', termsDays: '7' })).credit,
-    ).toEqual({ enabled: true, limitCents: 0, termsDays: 7 })
-  })
-
-  test('invalid limit or terms are rejected', () => {
-    const basics = 'Revisa nombre, límite y plazo.'
-    expect(message(draft({ credit: true, creditLimit: '1.234' }))).toBe(basics)
-    expect(message(draft({ credit: true, creditLimit: '-5' }))).toBe(basics)
-    expect(message(draft({ credit: true, creditLimit: 'abc' }))).toBe(basics)
-    expect(message(draft({ credit: true, termsDays: '2.5' }))).toBe(basics)
-    expect(message(draft({ credit: true, termsDays: '-1' }))).toBe(basics)
-    expect(message(draft({ credit: true, termsDays: '3651' }))).toBe(basics)
-  })
-
-  test('credit off ignores the typed limit and terms', () => {
-    expect(
-      ok(draft({ credit: false, creditLimit: 'basura', termsDays: 'x' }))
-        .credit,
-    ).toEqual({ enabled: false, limitCents: 0, termsDays: 0 })
-  })
-})
-
-describe('draftToInput turning credit off', () => {
-  const stored = {
-    id: 'c1',
-    credit: false,
-    creditLimit: '1500.50',
-    termsDays: '15',
-  }
-
-  test('an existing customer keeps the stored limit and terms', () => {
-    expect(ok(draft(stored)).credit).toEqual({
-      enabled: false,
-      limitCents: 150050,
-      termsDays: 15,
-    })
-  })
-
-  test('a stored zero limit stays zero', () => {
-    expect(ok(draft({ ...stored, creditLimit: '' })).credit).toEqual({
-      enabled: false,
-      limitCents: 0,
-      termsDays: 15,
-    })
-  })
-
-  test('unreadable leftovers fall back to zero instead of blocking the save', () => {
-    expect(
-      ok(draft({ ...stored, creditLimit: 'basura', termsDays: 'x' })).credit,
-    ).toEqual({ enabled: false, limitCents: 0, termsDays: 0 })
-  })
-
-  test('a draft built from a customer with credit off round-trips its values', () => {
-    const customer = {
-      id: 'c1',
-      name: 'Don Pepe',
-      contact: '',
-      phone: '',
-      addresses: [],
-      notes: '',
-      active: true,
-      creditEnabled: false,
-      creditLimitCents: 250000,
-      termsDays: 30,
-    }
-    expect(ok(draftFromCustomer(customer, [])).credit).toEqual({
-      enabled: false,
-      limitCents: 250000,
-      termsDays: 30,
-    })
   })
 })
 
@@ -205,9 +117,6 @@ describe('draftFromCustomer', () => {
     addresses: ['Calle 1', 'Calle 2'],
     notes: 'Paga los viernes',
     active: false,
-    creditEnabled: true,
-    creditLimitCents: 150050,
-    termsDays: 15,
   }
 
   test('shows pesos, percents and one address per line', () => {
@@ -228,9 +137,6 @@ describe('draftFromCustomer', () => {
     expect(result).toMatchObject({
       id: 'c1',
       active: false,
-      credit: true,
-      creditLimit: '1500.50',
-      termsDays: '15',
       addresses: 'Calle 1\nCalle 2',
     })
     expect(result.rules).toEqual([
@@ -265,7 +171,7 @@ describe('draftFromCustomer', () => {
       },
     ]
     const input = ok(draftFromCustomer(customer, rules))
-    expect(input.credit.limitCents).toBe(150050)
+    expect(input.active).toBe(false)
     expect(input.rules).toEqual([
       { presentationId: 'p1', minQuantity: 5, discountBps: 1250 },
       { presentationId: 'p2', minQuantity: 1, priceCents: 43805 },

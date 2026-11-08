@@ -7,7 +7,7 @@ import {
 } from '#/modules/cash/lib/cash-summary'
 
 describe('summarizeSession', () => {
-  test('groups the drawer movements and adds up the expected cash', () => {
+  test('groups the drawer movements (legacy abonos count as cash in) and adds up the expected cash', () => {
     const summary = summarizeSession(50000, [
       { type: 'sale', amountCents: 12000 },
       { type: 'sale', amountCents: 3000 },
@@ -18,8 +18,7 @@ describe('summarizeSession', () => {
     expect(summary).toEqual({
       openingCents: 50000,
       salesCents: 15000,
-      abonosCents: 5000,
-      entriesCents: 10000,
+      entriesCents: 15000,
       withdrawalsCents: 4000,
       expectedCents: 76000,
     })
@@ -60,7 +59,7 @@ describe('closePreview', () => {
 describe('movementLabel', () => {
   test('names every movement type in Spanish', () => {
     expect(movementLabel('sale')).toBe('Venta')
-    expect(movementLabel('abono')).toBe('Abono')
+    expect(movementLabel('abono')).toBe('Entrada')
     expect(movementLabel('entry')).toBe('Entrada')
     expect(movementLabel('withdrawal')).toBe('Retiro')
   })

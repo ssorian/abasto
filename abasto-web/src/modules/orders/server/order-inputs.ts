@@ -14,13 +14,10 @@ export const orderIdInput = z.object({ orderId: id })
 /** Payment is optional here so the service answers with its own message. */
 export const pickupOrderInput = orderIdInput.extend({
   payment: z
-    .discriminatedUnion('terms', [
-      z.object({
-        terms: z.literal('contado'),
-        tenderedCents: z.number().int(),
-      }),
-      z.object({ terms: z.literal('credito') }),
-    ])
+    .object({
+      terms: z.literal('contado'),
+      tenderedCents: z.number().int(),
+    })
     .optional(),
 })
 

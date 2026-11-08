@@ -15,12 +15,7 @@ export type ReportSearch = {
   dias?: number
 }
 
-const tabs: ReadonlyArray<ReportTab> = [
-  'ventas',
-  'cajas',
-  'inventario',
-  'cartera',
-]
+const tabs: ReadonlyArray<ReportTab> = ['ventas', 'cajas', 'inventario']
 const presets: ReadonlyArray<PeriodPreset> = ['today', '7', '30', 'custom']
 
 export const defaultPreset: PeriodPreset = '7'

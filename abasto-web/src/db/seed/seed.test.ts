@@ -9,8 +9,6 @@ import { bootstrapOwner, requireActor } from '#/modules/access/services/access'
 import { signIn } from '#/modules/access/lib/testing'
 import { cashSessions } from '#/modules/cash/db/schema'
 import { presentations, suppliers, products } from '#/modules/catalog/db/schema'
-import { creditAuthorizations } from '#/modules/credit/db/schema'
-import { getCustomerBalance } from '#/modules/credit/services/customer-ledger'
 import { customers } from '#/modules/customers/db/schema'
 import {
   lots,
@@ -141,19 +139,6 @@ describe('seedDatabase', () => {
       )
       for (const status of ['Reservado', 'Preparado', 'Recogido', 'Cancelado'])
         expect(statuses.has(status as never)).toBe(true)
-
-      // A pending credit authorization for the owner, and an overdue balance.
-      const pending = await db
-        .select()
-        .from(creditAuthorizations)
-        .where(eq(creditAuthorizations.status, 'pending'))
-      expect(pending).toHaveLength(1)
-      const [overdueCustomer] = await db
-        .select()
-        .from(customers)
-        .where(eq(customers.id, pending[0].customerId))
-      const balance = await getCustomerBalance(owner, overdueCustomer.id)
-      expect(balance.overdueCents).toBeGreaterThan(0)
 
       // Open drawers, one closed cut, and transfers both received and in transit.
       const sessionStatuses = (

@@ -162,6 +162,13 @@
       "when": 1794117595471,
       "tag": "0022_order_source",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794121452968,
+      "tag": "0023_drop_customer_credit",
+      "breakpoints": true
     }
   ]
 }

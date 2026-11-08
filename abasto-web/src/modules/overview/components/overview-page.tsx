@@ -24,8 +24,6 @@ const daysText = (days: number) =>
 export function OverviewPage({ overview }: { overview: Overview }) {
   const { warehouses, totals } = overview
   const managesMoney = totals.salesCents !== undefined
-  const showsCredit =
-    overview.overdueCents !== null || overview.pendingAuthorizations !== null
 
   return (
     <>
@@ -170,45 +168,12 @@ export function OverviewPage({ overview }: { overview: Overview }) {
                 ))}
             </HomePanel>
           )}
-
-          {showsCredit && (
-            <HomePanel
-              title="Crédito"
-              icon={Wallet}
-              actionLabel="Ver cobros"
-              to="/cobros"
-              emptyMessage="No hay crédito vencido ni autorizaciones pendientes."
-            >
-              {overview.pendingAuthorizations !== null && (
-                <HomeRow
-                  title="Autorizaciones pendientes"
-                  detail="Pedidos a crédito que esperan tu decisión"
-                  aside={
-                    <HomeRowFigure>
-                      {overview.pendingAuthorizations}
-                    </HomeRowFigure>
-                  }
-                />
-              )}
-              {overview.overdueCents !== null && (
-                <HomeRow
-                  title="Crédito vencido"
-                  detail="Saldo atrasado de todos los clientes"
-                  aside={
-                    <HomeRowFigure>
-                      {formatCents(overview.overdueCents)}
-                    </HomeRowFigure>
-                  }
-                />
-              )}
-            </HomePanel>
-          )}
         </div>
       )}
 
       <p className="mt-[25px] max-w-[950px] text-[11px] leading-[1.8] text-ink-footnote">
         Hoy se calcula con la fecha de Ciudad de México. Las ventas cuentan los
-        pedidos entregados hoy; una venta a crédito se cobra después.
+        pedidos entregados hoy.
       </p>
     </>
   )

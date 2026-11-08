@@ -15,14 +15,6 @@ export type CustomerInput = {
   notes?: string
 }
 export type CustomerPatch = Partial<CustomerInput> & { active?: boolean }
-export type CustomerCredit = {
-  enabled: boolean
-  /** Integer cents, 0 to int4 max. */
-  limitCents: number
-  termsDays: number
-}
-
-const INT4_MAX = 2147483647
 
 const duplicate = () =>
   new AppError('conflict', 'Ya existe un cliente con ese nombre.')
@@ -47,9 +39,6 @@ function cleaned(input: CustomerPatch): CustomerPatch {
   if (input.active !== undefined) values.active = input.active
   return values
 }
-
-const isCount = (value: number, max = INT4_MAX) =>
-  Number.isInteger(value) && value >= 0 && value <= max
 
 export async function createCustomer(
   actor: Actor,
@@ -84,31 +73,6 @@ export async function updateCustomer(
     if (isUniqueViolation(error)) throw duplicate()
     throw error
   }
-}
-
-/** Credit settings: enabled flag, limit in cents and payment terms in days. */
-export async function setCustomerCredit(
-  actor: Actor,
-  id: string,
-  credit: CustomerCredit,
-): Promise<Customer> {
-  authorize(actor, 'customers.manage')
-  if (!isCount(credit.limitCents) || !isCount(credit.termsDays, 3650)) {
-    throw new AppError('invalid', 'Revisa nombre, límite y plazo.')
-  }
-  const updated = (
-    await db
-      .update(customers)
-      .set({
-        creditEnabled: credit.enabled,
-        creditLimitCents: credit.limitCents,
-        termsDays: credit.termsDays,
-      })
-      .where(eq(customers.id, id))
-      .returning()
-  ).at(0)
-  if (!updated) throw customerNotFound()
-  return updated
 }
 
 /**

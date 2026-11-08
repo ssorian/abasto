@@ -1,10 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import {
-  agingCsv,
-  buildCsv,
-  centsToDecimal,
-  salesCsv,
-} from '#/modules/reports/lib/csv'
+import { buildCsv, centsToDecimal, salesCsv } from '#/modules/reports/lib/csv'
 
 describe('csv output', () => {
   test('starts with a BOM, joins rows with CRLF and quotes every cell', () => {
@@ -57,23 +52,5 @@ describe('csv output', () => {
     expect(row).toBe(
       `"'=Distribuidora, Norte","2","20","195.00","30.05","164.95","84.59"`,
     )
-  })
-
-  test('an aging table exports every bucket', () => {
-    const csv = agingCsv([
-      {
-        customerId: 'c1',
-        name: 'Norte',
-        currentCents: 100,
-        days1to30Cents: 200,
-        days31to60Cents: 300,
-        over60Cents: 400,
-        totalCents: 1000,
-      },
-    ])
-    expect(csv.replace('\uFEFF', '').split('\r\n')).toEqual([
-      '"Cliente","Al corriente","1-30 días","31-60 días","Más de 60 días","Saldo total"',
-      '"Norte","1.00","2.00","3.00","4.00","10.00"',
-    ])
   })
 })

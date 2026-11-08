@@ -69,8 +69,8 @@ export function CashPanel({
           </h2>
           <p className="mt-1 text-xs text-[#9c898f]">
             {cash
-              ? 'Todo el efectivo de los pedidos y abonos entra a esta caja.'
-              : 'Ábrela para poder cobrar pedidos de contado y recibir abonos.'}
+              ? 'Todo el efectivo de los pedidos entra a esta caja.'
+              : 'Ábrela para poder cobrar pedidos.'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -107,7 +107,6 @@ export function CashPanel({
           />
           <Figure label="APERTURA" value={formatCents(summary.openingCents)} />
           <Figure label="VENTAS" value={formatCents(summary.salesCents)} />
-          <Figure label="ABONOS" value={formatCents(summary.abonosCents)} />
           <Figure label="ENTRADAS" value={formatCents(summary.entriesCents)} />
           <Figure
             label="RETIROS"

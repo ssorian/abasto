@@ -49,17 +49,10 @@ export function ReportFilters({
 }: ReportFiltersProps) {
   const preset = search.periodo ?? defaultPreset
   const usesPeriod = tab === 'ventas' || tab === 'cajas'
-  const usesWarehouse = tab !== 'cartera'
   const usesSupplier = tab === 'ventas' || tab === 'inventario'
 
   return (
     <div className="mb-[22px] rounded-[13px] border border-[#f0e9e1] bg-white p-[15px] md:px-[23px] md:py-5">
-      {tab === 'cartera' && (
-        <p className="text-xs leading-[1.7] text-[#948087]">
-          La cartera es de toda la empresa: un cliente tiene un solo saldo en
-          todos los almacenes.
-        </p>
-      )}
       {usesPeriod && (
         <div className="flex flex-col gap-3.5 md:flex-row md:items-center md:justify-between">
           <div
@@ -116,66 +109,64 @@ export function ReportFilters({
           </Field>
         </div>
       )}
-      {usesWarehouse && (
-        <div
-          className={cn(
-            'grid grid-cols-1 gap-[13px] md:grid-cols-2 md:gap-4',
-            usesPeriod && 'mt-4',
-          )}
-        >
-          <Field label="Almacén">
+      <div
+        className={cn(
+          'grid grid-cols-1 gap-[13px] md:grid-cols-2 md:gap-4',
+          usesPeriod && 'mt-4',
+        )}
+      >
+        <Field label="Almacén">
+          <FieldSelect
+            aria-label="Almacén del reporte"
+            value={search.almacen ?? ''}
+            onChange={(event) =>
+              onChange({ almacen: event.target.value || undefined })
+            }
+          >
+            <option value="">Todos mis almacenes</option>
+            {warehouses.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </FieldSelect>
+        </Field>
+        {usesSupplier && (
+          <Field label="Proveedor">
             <FieldSelect
-              aria-label="Almacén del reporte"
-              value={search.almacen ?? ''}
+              aria-label="Proveedor del reporte"
+              value={search.proveedor ?? ''}
               onChange={(event) =>
-                onChange({ almacen: event.target.value || undefined })
+                onChange({ proveedor: event.target.value || undefined })
               }
             >
-              <option value="">Todos mis almacenes</option>
-              {warehouses.map((item) => (
+              <option value="">Todos los proveedores</option>
+              {suppliers.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name}
+                  {item.active ? item.name : `${item.name} (inactivo)`}
                 </option>
               ))}
             </FieldSelect>
           </Field>
-          {usesSupplier && (
-            <Field label="Proveedor">
-              <FieldSelect
-                aria-label="Proveedor del reporte"
-                value={search.proveedor ?? ''}
-                onChange={(event) =>
-                  onChange({ proveedor: event.target.value || undefined })
-                }
-              >
-                <option value="">Todos los proveedores</option>
-                {suppliers.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.active ? item.name : `${item.name} (inactivo)`}
-                  </option>
-                ))}
-              </FieldSelect>
-            </Field>
-          )}
-          {tab === 'inventario' && (
-            <Field label="Por vencer en los próximos">
-              <FieldSelect
-                aria-label="Días por vencer"
-                value={search.dias ?? defaultExpiringDays}
-                onChange={(event) =>
-                  onChange({ dias: Number(event.target.value) })
-                }
-              >
-                {expiringOptions.map((days) => (
-                  <option key={days} value={days}>
-                    {days} días
-                  </option>
-                ))}
-              </FieldSelect>
-            </Field>
-          )}
-        </div>
-      )}
+        )}
+        {tab === 'inventario' && (
+          <Field label="Por vencer en los próximos">
+            <FieldSelect
+              aria-label="Días por vencer"
+              value={search.dias ?? defaultExpiringDays}
+              onChange={(event) =>
+                onChange({ dias: Number(event.target.value) })
+              }
+            >
+              {expiringOptions.map((days) => (
+                <option key={days} value={days}>
+                  {days} días
+                </option>
+              ))}
+            </FieldSelect>
+          </Field>
+        )}
+      </div>
     </div>
   )
 }

@@ -40,7 +40,7 @@ export const prepareOrderFn = createServerFn({ method: 'POST' })
     ),
   )
 
-/** Pickup settles the payment (cash or credit); without one the service refuses. */
+/** Pickup settles the payment (cash); without one the service refuses. */
 export const pickupOrderFn = createServerFn({ method: 'POST' })
   .validator((data: unknown) => data)
   .handler(({ data }) =>

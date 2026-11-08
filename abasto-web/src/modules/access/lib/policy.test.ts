@@ -22,7 +22,6 @@ describe('can', () => {
       'catalog.manage',
       'warehouses.manage',
       'users.manage',
-      'credit.authorize',
       'customers.manage',
     ] as const) {
       expect(can(owner, permission)).toBe(true)
@@ -60,7 +59,6 @@ describe('can', () => {
     expect(can(manager, 'catalog.manage')).toBe(false)
     expect(can(manager, 'warehouses.manage')).toBe(false)
     expect(can(manager, 'users.manage')).toBe(false)
-    expect(can(manager, 'credit.authorize')).toBe(false)
     expect(can(manager, 'customers.manage')).toBe(false)
   })
 

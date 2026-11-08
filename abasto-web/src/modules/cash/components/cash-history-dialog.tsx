@@ -57,7 +57,6 @@ export function CashHistoryDialog({
                 <Th>Apertura</Th>
                 <Th>Cierre</Th>
                 <Th>Ventas</Th>
-                <Th>Abonos</Th>
                 <Th>Esperado</Th>
                 <Th>Contado</Th>
                 <Th>Diferencia</Th>
@@ -78,7 +77,6 @@ export function CashHistoryDialog({
                         : 'Abierta'}
                     </Td>
                     <Td>{formatCents(summary.salesCents)}</Td>
-                    <Td>{formatCents(summary.abonosCents)}</Td>
                     <Td>{formatCents(expectedCents)}</Td>
                     <Td>
                       {session.countedCents === null
