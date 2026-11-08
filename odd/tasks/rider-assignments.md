@@ -17,7 +17,7 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 
 ## Tasks
 
-- T1 [S1-S6, S8, S9] worker — schema + migration, rider/assignment services (assign, settle, cancel, riders CRUD) with tests through the public service interface. Risk: item 4 (concurrent reservations and double settlement on shared lots/cash). Status: done. Commit: cfbcdf0 (schema, migration 0025, riders catalog), assignment commit hash recorded below.
+- T1 [S1-S6, S8, S9] worker — schema + migration, rider/assignment services (assign, settle, cancel, riders CRUD) with tests through the public service interface. Risk: item 4 (concurrent reservations and double settlement on shared lots/cash). Status: done. Commit: cfbcdf0 (schema, migration 0025, riders catalog), assignment commit 44a7d6a (assign, settle, cancel).
 - T2 [S6, S7, S9] worker — server functions, route `/repartos`, navigation entry, components. Status: pending. Commit: —
 
 ## Log
