@@ -6,12 +6,11 @@
  */
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { db } from '#/db'
-import { AppError } from '#/lib/errors'
 import { products } from '#/modules/catalog/db/schema'
 import { computeQuotePreview } from '#/modules/counter/server/quote-preview'
 import type { QuotePreview } from '#/modules/counter/server/quote-preview'
 import { orders } from '#/modules/orders/db/schema'
-import type { OrderStatus } from '#/modules/orders/db/schema'
+import type { OrderSource, OrderStatus } from '#/modules/orders/db/schema'
 import { now } from '#/modules/orders/services/clock'
 import {
   fifoPlanner,
@@ -156,16 +155,41 @@ export async function getStoreCatalog(
 }
 
 /** Read-only price of a cart with the customer's own commercial rules. */
+export type StoreQuotePreview = {
+  lines: Array<
+    Omit<QuotePreview['lines'][number], 'rule'> & {
+      rule: {
+        minQuantity: number
+        discountBps: number | null
+        priceCents: number | null
+      } | null
+    }
+  >
+  totalCents: number
+}
+
 export async function previewStoreCart(
   customer: StoreCustomer,
   input: StoreCartInput,
-): Promise<QuotePreview> {
+): Promise<StoreQuotePreview> {
   await requirePublished(db, input.lines)
-  return computeQuotePreview({
+  const preview = await computeQuotePreview({
     warehouseId: input.warehouseId,
     customerId: customer.customerId,
     lines: input.lines,
   })
+  return {
+    totalCents: preview.totalCents,
+    lines: preview.lines.map(({ rule, ...line }) => ({
+      ...line,
+      // The stored rule row carries internal ids the store must not see.
+      rule: rule && {
+        minQuantity: rule.minQuantity,
+        discountBps: rule.discountBps,
+        priceCents: rule.priceCents,
+      },
+    })),
+  }
 }
 
 /** Reserves the cart (apartado) for the signed-in customer. No payment. */
@@ -177,7 +201,7 @@ export async function placeStoreOrder(
     { createdBy: customer.userId, source: 'store' },
     { ...input, customerId: customer.customerId },
   )
-  return toStoreOrder(detail, await warehouseNameOf(detail.warehouseId))
+  return toStoreOrder(detail, await headOf(detail.id))
 }
 
 /** The customer's own orders, newest first. */
@@ -185,14 +209,18 @@ export async function listMyOrders(
   customer: StoreCustomer,
 ): Promise<Array<StoreOrder>> {
   const heads = await db
-    .select({ id: orders.id })
+    .select({
+      id: orders.id,
+      source: orders.source,
+      warehouseName: warehouses.name,
+    })
     .from(orders)
+    .innerJoin(warehouses, eq(warehouses.id, orders.warehouseId))
     .where(eq(orders.customerId, customer.customerId))
     .orderBy(desc(orders.createdAt), desc(orders.id))
   const result: Array<StoreOrder> = []
-  for (const { id } of heads) {
-    const detail = await readOrder(db, id)
-    result.push(toStoreOrder(detail, await warehouseNameOf(detail.warehouseId)))
+  for (const head of heads) {
+    result.push(toStoreOrder(await readOrder(db, head.id), head))
   }
   return result
 }
@@ -210,32 +238,36 @@ export async function cancelMyOrder(
     ['Reservado'],
     'Tu pedido ya se está preparando. Comunícate con el almacén para cancelarlo.',
   )
-  return toStoreOrder(detail, await warehouseNameOf(detail.warehouseId))
+  return toStoreOrder(detail, await headOf(detail.id))
 }
 
-async function warehouseNameOf(warehouseId: string): Promise<string> {
+type OrderHead = { source: OrderSource; warehouseName: string }
+
+async function headOf(orderId: string): Promise<OrderHead> {
   const row = (
     await db
-      .select({ name: warehouses.name })
-      .from(warehouses)
-      .where(eq(warehouses.id, warehouseId))
+      .select({ source: orders.source, warehouseName: warehouses.name })
+      .from(orders)
+      .innerJoin(warehouses, eq(warehouses.id, orders.warehouseId))
+      .where(eq(orders.id, orderId))
   ).at(0)
-  if (!row) throw new AppError('not_found', 'No encontramos ese almacén.')
-  return row.name
+  if (!row) throw orderNotFound()
+  return row
 }
 
 /** Customer projection of an order; an overdue reservation reads as Vencido. */
-function toStoreOrder(detail: OrderDetail, warehouseName: string): StoreOrder {
+function toStoreOrder(detail: OrderDetail, head: OrderHead): StoreOrder {
   const overdue =
     (detail.status === 'Reservado' || detail.status === 'Preparado') &&
     detail.expiresAt.getTime() <= now().getTime()
   return {
     id: detail.id,
     warehouseId: detail.warehouseId,
-    warehouseName,
+    warehouseName: head.warehouseName,
     status: overdue ? 'Vencido' : detail.status,
     totalCents: detail.totalCents,
-    notes: detail.notes,
+    // Notes on counter orders are written by staff and stay internal.
+    notes: head.source === 'store' ? detail.notes : '',
     createdAt: detail.createdAt,
     expiresAt: detail.expiresAt,
     lines: [...detail.lines]

@@ -181,10 +181,14 @@ describe('previewStoreCart', () => {
       lines: [{ presentationId: fx.pieceId, quantity: 10 }],
     })
     expect(preview.totalCents).toBe(9000)
-    expect(preview.lines[0]).toMatchObject({
+    expect(preview.lines[0]).toEqual({
+      presentationId: fx.pieceId,
+      quantity: 10,
       listPriceCents: 1000,
       unitPriceCents: 900,
       lineTotalCents: 9000,
+      // Only what the customer needs: no rule ids or customer ids.
+      rule: { minQuantity: 10, discountBps: 1000, priceCents: null },
     })
   })
 })
@@ -345,17 +349,19 @@ describe('my orders', () => {
     const counter = await createOrder(fx.clerkA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
+      notes: 'Nota interna del mostrador',
       lines: [{ presentationId: fx.pieceId, quantity: 1 }],
     })
     advance(1)
     const online = await placeStoreOrder(fx.shopper, {
       warehouseId: fx.a.id,
+      notes: 'Paso temprano',
       lines: [{ presentationId: fx.pieceId, quantity: 2 }],
     })
-    expect((await listMyOrders(fx.shopper)).map((o) => o.id)).toEqual([
-      online.id,
-      counter.id,
-    ])
+    const mine = await listMyOrders(fx.shopper)
+    expect(mine.map((o) => o.id)).toEqual([online.id, counter.id])
+    // Staff notes on counter orders stay internal.
+    expect(mine.map((o) => o.notes)).toEqual(['Paso temprano', ''])
   })
 
   test('an overdue reservation shows as Vencido', async () => {
