@@ -12,6 +12,7 @@ import {
   defaultPreset,
 } from '#/modules/reports/lib/search'
 import type { ReportSearch } from '#/modules/reports/lib/search'
+import { hasWarehouseChoice } from '#/modules/warehouses/lib/warehouse-choice'
 import type {
   DateRange,
   PeriodPreset,
@@ -115,22 +116,24 @@ export function ReportFilters({
           usesPeriod && 'mt-4',
         )}
       >
-        <Field label="Almacén">
-          <FieldSelect
-            aria-label="Almacén del reporte"
-            value={search.almacen ?? ''}
-            onChange={(event) =>
-              onChange({ almacen: event.target.value || undefined })
-            }
-          >
-            <option value="">Todos mis almacenes</option>
-            {warehouses.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </FieldSelect>
-        </Field>
+        {hasWarehouseChoice(warehouses) && (
+          <Field label="Almacén">
+            <FieldSelect
+              aria-label="Almacén del reporte"
+              value={search.almacen ?? ''}
+              onChange={(event) =>
+                onChange({ almacen: event.target.value || undefined })
+              }
+            >
+              <option value="">Todos mis almacenes</option>
+              {warehouses.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </FieldSelect>
+          </Field>
+        )}
         {usesSupplier && (
           <Field label="Proveedor">
             <FieldSelect

@@ -33,6 +33,7 @@ import type {
   CatalogSupplier,
 } from '#/modules/catalog/lib/catalog-types'
 import type { PricingOverview } from '#/modules/pricing/lib/price-table'
+import { hasWarehouseChoice } from '#/modules/warehouses/lib/warehouse-choice'
 
 type CatalogPageProps = {
   products: Array<CatalogProduct>
@@ -146,7 +147,7 @@ export function CatalogPage({
         published={published}
         paused={paused}
       >
-        {warehouse && pricing.warehouses.length > 1 && (
+        {warehouse && hasWarehouseChoice(pricing.warehouses) && (
           <WarehouseSelect
             warehouses={pricing.warehouses}
             value={warehouse.id}
