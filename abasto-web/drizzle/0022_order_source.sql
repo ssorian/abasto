@@ -1,0 +1,2 @@
+ALTER TABLE "orders" ADD COLUMN "source" text DEFAULT 'counter' NOT NULL;--> statement-breakpoint
+ALTER TABLE "orders" ADD CONSTRAINT "orders_source_check" CHECK ("orders"."source" in ('counter', 'store'));

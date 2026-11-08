@@ -89,6 +89,14 @@ export async function listWarehousePrices(
   executor: Executor = db,
 ): Promise<Array<PriceRow>> {
   authorize(actor, 'warehouse.view', warehouseId)
+  return readWarehousePrices(executor, warehouseId)
+}
+
+/** Same as `listWarehousePrices` without authorization; callers authorize first. */
+export async function readWarehousePrices(
+  executor: Executor,
+  warehouseId: string,
+): Promise<Array<PriceRow>> {
   await requireWarehouse(executor, warehouseId)
   const items = await executor
     .select({
