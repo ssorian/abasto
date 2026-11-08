@@ -23,6 +23,10 @@ export const orderStatuses = [
 ] as const
 export type OrderStatus = (typeof orderStatuses)[number]
 
+/** Where an order was placed: at the counter by staff or in the online store. */
+export const orderSources = ['counter', 'store'] as const
+export type OrderSource = (typeof orderSources)[number]
+
 /** Single-row table (id = 1) with the owner's order settings. */
 export const orderSettings = pgTable(
   'order_settings',
@@ -53,6 +57,7 @@ export const orders = pgTable(
       .notNull()
       .references(() => customers.id),
     status: text('status', { enum: orderStatuses }).notNull(),
+    source: text('source', { enum: orderSources }).notNull().default('counter'),
     notes: text('notes').notNull().default(''),
     /** Sum of the frozen line totals, integer cents. */
     totalCents: integer('total_cents').notNull(),
@@ -71,6 +76,7 @@ export const orders = pgTable(
       'orders_status_check',
       sql`${table.status} in ('Reservado', 'Preparado', 'Recogido', 'Cancelado', 'Vencido')`,
     ),
+    check('orders_source_check', sql`${table.source} in ('counter', 'store')`),
     index('orders_warehouse_status_idx').on(
       table.warehouseId,
       table.status,

@@ -1,16 +1,19 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
+import { presentations, products } from '#/modules/catalog/db/schema'
 import { customers } from '#/modules/customers/db/schema'
 import { customerNotFound } from '#/modules/customers/services/customers'
 import { requireWarehouse } from '#/modules/inventory/services/stock-ledger'
+import type { Tx } from '#/modules/inventory/services/stock-ledger'
 import {
   orderAllocations,
   orderLines,
   orders,
 } from '#/modules/orders/db/schema'
+import type { OrderSource } from '#/modules/orders/db/schema'
 import { now } from '#/modules/orders/services/clock'
 import { expireOverdueOrders } from '#/modules/orders/services/expiry'
 import { reserveAllocations } from '#/modules/orders/services/order-allocation'
@@ -40,6 +43,18 @@ export async function createOrder(
   input: CreateOrderInput,
 ): Promise<OrderDetail> {
   authorize(actor, 'warehouse.operate', input.warehouseId)
+  return reserveOrder({ createdBy: actor.userId, source: 'counter' }, input)
+}
+
+/**
+ * The reservation itself, shared by the counter and the online store. It does
+ * not authorize: callers do first. Store reservations refuse unpublished
+ * products.
+ */
+export async function reserveOrder(
+  origin: { createdBy: string; source: OrderSource },
+  input: CreateOrderInput,
+): Promise<OrderDetail> {
   validateLines(input.lines)
   return db.transaction(async (tx) => {
     await requireWarehouse(tx, input.warehouseId)
@@ -54,7 +69,10 @@ export async function createOrder(
     if (!customer.active) {
       throw new AppError('conflict', 'Este cliente está inactivo.')
     }
-    const quotes = await quoteLines(tx, actor, input, input.lines)
+    if (origin.source === 'store') {
+      await requirePublished(tx, input.lines)
+    }
+    const quotes = await quoteLines(tx, input, input.lines)
     const allocations = await reserveAllocations(tx, quotes)
     const createdAt = now()
     const hours = await readReservationHours(tx)
@@ -66,7 +84,8 @@ export async function createOrder(
         status: 'Reservado',
         notes: input.notes?.trim() ?? '',
         totalCents: quotes.reduce((sum, q) => sum + q.lineTotalCents, 0),
-        createdBy: actor.userId,
+        source: origin.source,
+        createdBy: origin.createdBy,
         createdAt,
         expiresAt: new Date(createdAt.getTime() + hours * 3_600_000),
       })
@@ -104,4 +123,31 @@ export async function createOrder(
     )
     return readOrder(tx, order.id)
   })
+}
+
+/** Store lines may only name presentations of published products. */
+export async function requirePublished(
+  executor: Pick<Tx, 'select'>,
+  lines: Array<OrderLineInput>,
+) {
+  if (!lines.length) return
+  const hidden = await executor
+    .select({ id: products.id })
+    .from(presentations)
+    .innerJoin(products, eq(products.id, presentations.productId))
+    .where(
+      and(
+        inArray(
+          presentations.id,
+          lines.map((line) => line.presentationId),
+        ),
+        eq(products.published, false),
+      ),
+    )
+  if (hidden.length) {
+    throw new AppError(
+      'conflict',
+      'Ese producto no está disponible en la tienda.',
+    )
+  }
 }

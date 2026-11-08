@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, ne, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { account, user } from '#/db/auth-schema'
 import type { UserRole } from '#/db/auth-schema'
@@ -11,9 +11,11 @@ import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { warehouses } from '#/modules/warehouses/db/schema'
 
-type Executor = Pick<typeof db, 'select' | 'insert'>
+export type Executor = Pick<typeof db, 'select' | 'insert'>
 
 export type NewUserInput = { name: string; email: string; password: string }
+
+export const customerOnlyMessage = 'Esta cuenta solo tiene acceso a la tienda.'
 
 /** Loads the actor behind the request's session cookie. */
 export async function requireActor(headers: Headers): Promise<Actor> {
@@ -28,6 +30,10 @@ export async function requireActor(headers: Headers): Promise<Actor> {
       .where(eq(user.id, current.user.id))
   ).at(0)
   if (!row) throw new AppError('unauthorized', 'Inicia sesión para continuar.')
+  // Store customers sign in with the same auth but never act as staff.
+  if (row.role === 'customer') {
+    throw new AppError('forbidden', customerOnlyMessage)
+  }
   const assignments = await db
     .select({
       warehouseId: warehouseAssignments.warehouseId,
@@ -42,15 +48,27 @@ export async function requireActor(headers: Headers): Promise<Actor> {
   }
 }
 
-type PreparedUser = {
+export type PreparedUser = {
   name: string
   email: string
   role: UserRole
   passwordHash: string
 }
 
+/** Hashes a password the way Better Auth verifies it. Slow: keep it out of transactions. */
+export async function hashPassword(password: string) {
+  if (password.length < minPasswordLength) {
+    throw new AppError(
+      'invalid',
+      `La contraseña debe tener al menos ${minPasswordLength} caracteres.`,
+    )
+  }
+  const context = await auth.$context
+  return context.password.hash(password)
+}
+
 /** Validates and hashes outside any transaction: hashing is slow CPU work. */
-async function prepareUser(
+export async function prepareUser(
   input: NewUserInput,
   role: UserRole,
 ): Promise<PreparedUser> {
@@ -59,18 +77,11 @@ async function prepareUser(
   if (!name || !email.includes('@')) {
     throw new AppError('invalid', 'Escribe el nombre y un correo válido.')
   }
-  if (input.password.length < minPasswordLength) {
-    throw new AppError(
-      'invalid',
-      `La contraseña debe tener al menos ${minPasswordLength} caracteres.`,
-    )
-  }
-  const context = await auth.$context
-  const passwordHash = await context.password.hash(input.password)
+  const passwordHash = await hashPassword(input.password)
   return { name, email, role, passwordHash }
 }
 
-async function insertUser(executor: Executor, prepared: PreparedUser) {
+export async function insertUser(executor: Executor, prepared: PreparedUser) {
   const { name, email, role, passwordHash } = prepared
   const id = crypto.randomUUID()
   try {
@@ -131,7 +142,10 @@ async function requireStaffTarget(userId: string) {
   const target = (
     await db.select({ role: user.role }).from(user).where(eq(user.id, userId))
   ).at(0)
-  if (!target) throw new AppError('not_found', notFoundMessage)
+  // Store customers are not staff: to this screen they do not exist.
+  if (!target || target.role === 'customer') {
+    throw new AppError('not_found', notFoundMessage)
+  }
   if (target.role === 'owner') {
     throw new AppError('invalid', ownerAssignmentMessage)
   }
@@ -204,7 +218,8 @@ export async function listUsers(actor: Actor): Promise<Array<ManagedUser>> {
         email: user.email,
         role: user.role,
       })
-      .from(user),
+      .from(user)
+      .where(ne(user.role, 'customer')),
     db
       .select({
         userId: warehouseAssignments.userId,

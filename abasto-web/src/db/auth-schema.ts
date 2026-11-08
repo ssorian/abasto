@@ -10,7 +10,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
-export const userRoles = ['owner', 'staff'] as const
+export const userRoles = ['owner', 'staff', 'customer'] as const
 export type UserRole = (typeof userRoles)[number]
 
 const timestamps = {
@@ -29,12 +29,18 @@ export const user = pgTable(
     email: text('email').notNull().unique(),
     emailVerified: boolean('email_verified').default(false).notNull(),
     image: text('image'),
-    /** `owner` operates every warehouse; `staff` only their assignments. */
+    /**
+     * `owner` operates every warehouse; `staff` only their assignments;
+     * `customer` only signs in to the store (linked from `customers.user_id`).
+     */
     role: text('role', { enum: userRoles }).default('staff').notNull(),
     ...timestamps,
   },
   (table) => [
-    check('user_role_check', sql`${table.role} in ('owner', 'staff')`),
+    check(
+      'user_role_check',
+      sql`${table.role} in ('owner', 'staff', 'customer')`,
+    ),
     // A single owner for now (odd/tasks/backend-core.md L8).
     uniqueIndex('user_single_owner')
       .on(table.role)

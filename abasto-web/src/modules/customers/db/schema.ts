@@ -9,6 +9,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
+import { user } from '#/db/auth-schema'
 import { presentations } from '#/modules/catalog/db/schema'
 
 /** Company-wide customers (authorized distributors); one credit balance each. */
@@ -29,6 +30,10 @@ export const customers = pgTable(
     /** Integer cents. */
     creditLimitCents: integer('credit_limit_cents').notNull().default(0),
     termsDays: integer('terms_days').notNull().default(0),
+    /** Store sign-in account (role `customer`) the owner created, if any. */
+    userId: text('user_id')
+      .unique('customers_user_id_unique')
+      .references(() => user.id),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [

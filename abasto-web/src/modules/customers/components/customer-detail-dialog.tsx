@@ -2,6 +2,7 @@ import { CustomerBalance } from '#/modules/customers/components/customer-balance
 import { CustomerButton } from '#/modules/customers/components/customer-button'
 import { CustomerModal } from '#/modules/customers/components/customer-modal'
 import { CustomerOrderHistory } from '#/modules/customers/components/customer-order-history'
+import { StoreAccessSection } from '#/modules/store/components/store-access-section'
 import {
   contactLine,
   creditSummary,
@@ -64,6 +65,12 @@ export function CustomerDetailDialog({
         <CustomerButton onClick={onEdit}>
           Editar cliente y condiciones
         </CustomerButton>
+      )}
+      {canManage && (
+        <>
+          <h3 className="mt-2 text-[17px] font-[650]">Acceso a la tienda</h3>
+          <StoreAccessSection customerId={customer.id} />
+        </>
       )}
       <h3 className="mt-2 text-[17px] font-[650]">Historial de pedidos</h3>
       <CustomerOrderHistory customerId={customer.id} />

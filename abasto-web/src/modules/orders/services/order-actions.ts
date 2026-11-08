@@ -26,6 +26,7 @@ import {
 } from '#/modules/orders/services/reservations'
 
 type Order = typeof orders.$inferSelect
+type Guard = (head: { warehouseId: string; customerId: string }) => void
 
 const expiredOrder = () =>
   new AppError(
@@ -34,12 +35,13 @@ const expiredOrder = () =>
   )
 
 /**
- * Runs one status change: authorizes on the order's warehouse, expires
- * overdue orders first (committed even when this order turns out expired),
- * locks the order and checks the transition.
+ * Runs one status change: `guard` authorizes it from the order's warehouse
+ * and owner (throwing when refused), overdue orders expire first (committed
+ * even when this order turns out expired), then the order is locked and the
+ * transition checked.
  */
-async function transition(
-  actor: Actor,
+export async function transition(
+  guard: Guard,
   orderId: string,
   from: ReadonlyArray<OrderStatus>,
   notAllowed: string,
@@ -47,12 +49,15 @@ async function transition(
 ): Promise<OrderDetail> {
   const head = (
     await db
-      .select({ warehouseId: orders.warehouseId })
+      .select({
+        warehouseId: orders.warehouseId,
+        customerId: orders.customerId,
+      })
       .from(orders)
       .where(eq(orders.id, orderId))
   ).at(0)
   if (!head) throw orderNotFound()
-  authorize(actor, 'warehouse.operate', head.warehouseId)
+  guard(head)
   const outcome = await db.transaction(async (tx) => {
     await expireOverdueOrders(tx, head.warehouseId)
     const order = (
@@ -68,10 +73,13 @@ async function transition(
   return outcome
 }
 
+const operate = (actor: Actor) => (head: { warehouseId: string }) =>
+  authorize(actor, 'warehouse.operate', head.warehouseId)
+
 /** Reservado → Preparado; the reservation stays. */
 export const prepareOrder = (actor: Actor, orderId: string) =>
   transition(
-    actor,
+    operate(actor),
     orderId,
     ['Reservado'],
     'Solo se puede preparar un pedido reservado.',
@@ -83,20 +91,28 @@ export const prepareOrder = (actor: Actor, orderId: string) =>
     },
   )
 
+/** Cancels from the given statuses and releases the reserved units. */
+export const cancelOrderWith = (
+  guard: Guard,
+  orderId: string,
+  from: ReadonlyArray<OrderStatus>,
+  notAllowed: string,
+) =>
+  transition(guard, orderId, from, notAllowed, async (tx) => {
+    await releaseReserved(tx, [orderId])
+    await tx
+      .update(orders)
+      .set({ status: 'Cancelado', closedAt: now() })
+      .where(eq(orders.id, orderId))
+  })
+
 /** Reservado/Preparado → Cancelado; releases the reserved units. */
 export const cancelOrder = (actor: Actor, orderId: string) =>
-  transition(
-    actor,
+  cancelOrderWith(
+    operate(actor),
     orderId,
     ['Reservado', 'Preparado'],
     'Solo se puede cancelar un pedido reservado o preparado.',
-    async (tx) => {
-      await releaseReserved(tx, [orderId])
-      await tx
-        .update(orders)
-        .set({ status: 'Cancelado', closedAt: now() })
-        .where(eq(orders.id, orderId))
-    },
   )
 
 export type PickupResult = OrderDetail & { payment: PickupReceipt }
@@ -116,7 +132,7 @@ export async function pickupOrder(
   let receipt: PickupReceipt | undefined
   try {
     const detail = await transition(
-      actor,
+      operate(actor),
       orderId,
       ['Reservado', 'Preparado'],
       'Solo se puede entregar un pedido reservado o preparado.',

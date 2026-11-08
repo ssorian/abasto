@@ -13,7 +13,7 @@ import {
 } from '#/modules/orders/services/order-allocation'
 import { validateLines } from '#/modules/orders/services/order-quotes'
 import type { OrderLineInput } from '#/modules/orders/services/order-quotes'
-import { listWarehousePrices } from '#/modules/pricing/services/price-reads'
+import { readWarehousePrices } from '#/modules/pricing/services/price-reads'
 
 export type QuotePreviewLine = {
   presentationId: string
@@ -46,10 +46,19 @@ export async function previewQuote(
   },
 ): Promise<QuotePreview> {
   authorize(actor, 'warehouse.operate', input.warehouseId)
+  return computeQuotePreview(input)
+}
+
+/** The read-only quote without authorization; callers authorize first. */
+export async function computeQuotePreview(input: {
+  warehouseId: string
+  customerId: string
+  lines: Array<OrderLineInput>
+}): Promise<QuotePreview> {
   if (!input.lines.length) return { lines: [], totalCents: 0 }
   validateLines(input.lines)
   const prices = new Map(
-    (await listWarehousePrices(actor, input.warehouseId)).map((row) => [
+    (await readWarehousePrices(db, input.warehouseId)).map((row) => [
       row.presentationId,
       row.priceCents,
     ]),

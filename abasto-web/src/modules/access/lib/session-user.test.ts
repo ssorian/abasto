@@ -25,6 +25,16 @@ describe('toSessionUser', () => {
     expect(user.initials).toBe('C')
   })
 
+  test('a store customer is labeled Cliente', () => {
+    const user = toSessionUser({
+      name: 'Abarrotes Luna',
+      email: 'l@x.co',
+      role: 'customer',
+    })
+    expect(user.role).toBe('customer')
+    expect(user.roleLabel).toBe('Cliente')
+  })
+
   test('uses the first two words only', () => {
     expect(
       toSessionUser({ name: 'Ana Maria Lopez', email: 'a@x.co', role: 'staff' })

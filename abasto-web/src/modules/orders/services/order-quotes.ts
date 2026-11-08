@@ -1,6 +1,5 @@
 import { eq, inArray } from 'drizzle-orm'
 import { AppError } from '#/lib/errors'
-import type { Actor } from '#/modules/access/lib/policy'
 import { presentations, products } from '#/modules/catalog/db/schema'
 import { resolveCustomerPrice } from '#/modules/customers/services/commercial-rules'
 import type { CommercialRule } from '#/modules/customers/services/commercial-rules'
@@ -12,7 +11,7 @@ import {
   readSellableLots,
 } from '#/modules/orders/services/order-allocation'
 import type { LinePlan } from '#/modules/orders/services/order-allocation'
-import { listWarehousePrices } from '#/modules/pricing/services/price-reads'
+import { readWarehousePrices } from '#/modules/pricing/services/price-reads'
 
 export type OrderLineInput = {
   presentationId: string
@@ -61,11 +60,10 @@ const tooLarge = () =>
  * sellable lots are locked first and taken FIFO; a default-presentation line
  * is listed at the sale price of the oldest lot it takes (whole line), other
  * lines or lots without their own price at the standard warehouse price.
- * The customer's commercial rule applies on top.
+ * The customer's commercial rule applies on top. Callers authorize first.
  */
 export async function quoteLines(
   tx: Tx,
-  actor: Actor,
   input: { warehouseId: string; customerId: string },
   lines: Array<OrderLineInput>,
 ): Promise<Array<LineQuote>> {
@@ -88,7 +86,7 @@ export async function quoteLines(
     )
   const byId = new Map(found.map((row) => [row.id, row]))
   const prices = new Map(
-    (await listWarehousePrices(actor, input.warehouseId, tx)).map((row) => [
+    (await readWarehousePrices(tx, input.warehouseId)).map((row) => [
       row.presentationId,
       row.priceCents,
     ]),
