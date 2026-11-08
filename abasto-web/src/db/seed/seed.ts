@@ -216,17 +216,19 @@ export async function seedDatabase({
       imageUrl: seed.imageUrl,
       unit: 'piezas',
       supplierId: supplierId[seed.supplier],
-      presentations: [
-        { name: 'Pieza', factor: 1 },
-        { name: seed.boxName, factor: seed.boxFactor },
-      ],
-      defaultIndex: 1,
+      supplierCode: seed.supplierCode,
+      fixedDiscountPerPiece: seed.fixedDiscountPerPiece,
+      promotionPerPiece: seed.promotionPerPiece,
+      presentations: seed.presentations,
+      defaultIndex: seed.presentations.findIndex(
+        (p) => p.factor === seed.boxFactor,
+      ),
     })
     catalog.set(seed.sku, { seed, product })
   }
   const item = (sku: string) => catalog.get(sku)!
-  // Cost typed in the orders before discounts (cents): the seed's box cost × boxes. The seed
-  // products carry no fixed discount or promotion, so the net cost equals it.
+  // Cost typed in the orders before discounts (cents): the list cost per box × boxes. The
+  // order applies each product's fixed discount and promotion on top.
   const grossCostOf = (seed: SeedProduct, boxes: number) =>
     seed.boxCostCents * boxes
   const boxOf = (sku: string) =>
@@ -250,7 +252,7 @@ export async function seedDatabase({
   await setPrices(owner, {
     warehouseId: warehouseId.Tejupilco,
     reason: 'Precio por pieza suelta',
-    prices: [{ presentationId: pieceOf('LAL-001'), priceCents: 2700 }],
+    prices: [{ presentationId: pieceOf('13455'), priceCents: 2400 }],
   })
 
   // Orders go through the real flow: created as Pedido, then verified on arrival.
@@ -331,15 +333,15 @@ export async function seedDatabase({
   }
   // An older Lala lot about to expire in Tejupilco (FEFO sells it first).
   await orderAndReceive('Tejupilco', 'lala', `F-${folio++}`, [
-    lineFor('LAL-001', 'Tejupilco', 10, 3),
+    lineFor('13455', 'Tejupilco', 10, 3),
   ])
   // Expired yoghurt in Luvianos, written off as a loss.
   const expired = await orderAndReceive('Luvianos', 'lala', `F-${folio++}`, [
-    lineFor('LAL-005', 'Luvianos', 1, -2),
+    lineFor('23431', 'Luvianos', 1, -2),
   ])
   await registerLoss(managerOf('Luvianos'), {
     lotId: expired.lots[0].id,
-    quantity: item('LAL-005').seed.boxFactor,
+    quantity: item('23431').seed.boxFactor,
     category: 'caducado',
     reason: 'Lote vencido sin vender',
   })
@@ -434,27 +436,27 @@ export async function seedDatabase({
       40,
       'guero',
       [
-        ['LAL-001', 6],
-        ['ALP-001', 4],
+        ['13455', 6],
+        ['LU53', 4],
       ],
     ],
     [
       20,
       'sanchez',
       [
-        ['LAL-001', 20],
-        ['LAL-007', 10],
+        ['13455', 20],
+        ['1271', 10],
       ],
     ],
     [
       10,
       'donPepe',
       [
-        ['LAL-002', 12],
-        ['ALP-001', 5],
+        ['25023', 12],
+        ['LU53', 5],
       ],
     ],
-    [3, 'pinos', [['ALP-005', 6]]],
+    [3, 'pinos', [['CA10', 6]]],
   ] as const) {
     await daysAgo(days, async () => {
       const placed = await order(
@@ -472,8 +474,8 @@ export async function seedDatabase({
     openingCents: 100_000,
   })
   const counterSale = await order('Tejupilco', 'esquinita', [
-    ['LAL-001', 5],
-    ['LAL-005', 3],
+    ['13455', 5],
+    ['23431', 3],
   ])
   await pickup('Tejupilco', counterSale.id, cash(counterSale.totalCents))
   await recordCashWithdrawal(clerkOf('Tejupilco'), {
@@ -487,24 +489,19 @@ export async function seedDatabase({
     amountCents: 300_000,
   })
   // El Güero owes an overdue charge: the credit pickup waits for the owner.
-  const blocked = await order('Tejupilco', 'guero', [['LAL-002', 3]])
+  const blocked = await order('Tejupilco', 'guero', [['25023', 3]])
   try {
     await pickup('Tejupilco', blocked.id, { terms: 'credito' })
   } catch (error) {
     if (!(error instanceof AppError) || error.code !== 'conflict') throw error
   }
-  await order(
-    'Tejupilco',
-    'sanchez',
-    [['LAL-001', 25]],
-    'Pasa mañana temprano.',
-  )
+  await order('Tejupilco', 'sanchez', [['13455', 25]], 'Pasa mañana temprano.')
   const prepared = await order('Tejupilco', 'donPepe', [
-    ['LAL-004', 4],
-    ['ALP-002', 2],
+    ['25018', 4],
+    ['LU11', 2],
   ])
   await prepareOrder(clerkOf('Tejupilco'), prepared.id)
-  const cancelled = await order('Tejupilco', 'esquinita', [['ALP-007', 2]])
+  const cancelled = await order('Tejupilco', 'esquinita', [['SA80', 2]])
   await cancelOrder(clerkOf('Tejupilco'), cancelled.id)
 
   // Luvianos: open drawer, a cash sale, a damaged-goods loss and a reservation.
@@ -512,9 +509,9 @@ export async function seedDatabase({
     warehouseId: warehouseId.Luvianos,
     openingCents: 50_000,
   })
-  const luviSale = await order('Luvianos', 'pinos', [['ALP-005', 2]])
+  const luviSale = await order('Luvianos', 'pinos', [['CA10', 2]])
   await pickup('Luvianos', luviSale.id, cash(luviSale.totalCents))
-  await order('Luvianos', 'sanchez', [['LAL-001', 10]])
+  await order('Luvianos', 'sanchez', [['13455', 10]])
 
   // Amatepec: a full day already closed with a 50-peso shortage.
   await openCashSession(managerOf('Amatepec'), {
@@ -522,8 +519,8 @@ export async function seedDatabase({
     openingCents: 50_000,
   })
   const amatepecSale = await order('Amatepec', 'esquinita', [
-    ['LAL-001', 3],
-    ['ALP-001', 2],
+    ['13455', 3],
+    ['LU53', 2],
   ])
   await pickup('Amatepec', amatepecSale.id, cash(amatepecSale.totalCents))
   await closeCashSession(managerOf('Amatepec'), {
@@ -537,8 +534,8 @@ export async function seedDatabase({
     toWarehouseId: warehouseId.Amatepec,
     notes: 'Reposición de lácteos',
     items: [
-      { productId: item('ALP-001').product.id, quantity: 24 },
-      { productId: item('LAL-002').product.id, quantity: 12 },
+      { productId: item('LU53').product.id, quantity: 24 },
+      { productId: item('25023').product.id, quantity: 12 },
     ],
   })
   const sent = await getTransfer(managerOf('Amatepec'), toAmatepec.id)
@@ -547,7 +544,7 @@ export async function seedDatabase({
     lines: sent.lines.map((line) => ({
       lineId: line.id,
       receivedQuantity:
-        line.productId === item('LAL-002').product.id
+        line.productId === item('25023').product.id
           ? line.quantity - 1
           : line.quantity,
     })),
@@ -556,7 +553,7 @@ export async function seedDatabase({
     fromWarehouseId: warehouseId.Tejupilco,
     toWarehouseId: warehouseId.Arcelia,
     notes: 'Leche saborizada para el fin de semana',
-    items: [{ productId: item('ALP-007').product.id, quantity: 48 }],
+    items: [{ productId: item('SA80').product.id, quantity: 48 }],
   })
 
   return { users }

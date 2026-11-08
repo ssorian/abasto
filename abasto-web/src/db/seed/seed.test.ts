@@ -52,7 +52,7 @@ describe('seedDatabase', () => {
 
       expect(await total(warehouses)).toBe(4)
       expect(await total(suppliers)).toBe(2)
-      expect(await total(products)).toBe(18)
+      expect(await total(products)).toBe(73)
       expect(await total(customers)).toBe(6)
       expect(summary.users.map((u) => u.email)).toContain('dueno@abasto.local')
       expect(summary.users).toHaveLength(7)
@@ -65,10 +65,47 @@ describe('seedDatabase', () => {
       const photos = await db
         .select({ imageUrl: products.imageUrl })
         .from(products)
-      expect(photos).toHaveLength(18)
+      expect(photos).toHaveLength(73)
       expect(photos.every((row) => row.imageUrl?.startsWith('https://'))).toBe(
         true,
       )
+
+      // Supplier identifiers, discounts and presentations come from the spreadsheets.
+      const productBySku = async (sku: string) => {
+        const [row] = await db
+          .select()
+          .from(products)
+          .where(eq(products.sku, sku))
+        const rows = await db
+          .select()
+          .from(presentations)
+          .where(eq(presentations.productId, row.id))
+        return { row, presentations: rows }
+      }
+      const crema = await productBySku('CR93')
+      expect(crema.row).toMatchObject({
+        brand: 'Alpura',
+        supplierCode: 'CRAC215',
+        fixedDiscountPerPiece: 840,
+        promotionPerPiece: 12055,
+      })
+      expect(
+        crema.presentations
+          .map((p) => [p.name, p.factor, p.barcode, p.isDefault])
+          .sort(),
+      ).toEqual([
+        ['Charola', 24, null, true],
+        ['Pieza', 1, '7501055919390', false],
+        ['Tarima', 2304, null, false],
+      ])
+      const nutri = await productBySku('13455')
+      expect(nutri.row).toMatchObject({
+        supplierCode: '13455',
+        fixedDiscountPerPiece: 0,
+        promotionPerPiece: 0,
+      })
+      const nutriBox = nutri.presentations.find((p) => p.isDefault)!
+      expect(nutriBox.factor).toBe(12)
 
       // Every seeded user can sign in with the default password.
       for (const seeded of summary.users) {
@@ -85,8 +122,15 @@ describe('seedDatabase', () => {
       for (const warehouse of await db.select().from(warehouses)) {
         const prices = await listWarehousePrices(owner, warehouse.id)
         const defaults = prices.filter((row) => row.isDefault)
-        expect(defaults).toHaveLength(18)
+        expect(defaults).toHaveLength(73)
         expect(defaults.every((row) => (row.priceCents ?? 0) > 0)).toBe(true)
+        if (warehouse.name === 'Tejupilco') {
+          // Route price 22.78 per piece × 12 pieces.
+          expect(
+            defaults.find((row) => row.presentationId === nutriBox.id)
+              ?.priceCents,
+          ).toBe(27336)
+        }
       }
 
       // Orders in every state the counter works with.
