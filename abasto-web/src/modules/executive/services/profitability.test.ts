@@ -62,12 +62,12 @@ describe('margin report', () => {
     })
     await fx.sell({ at: '2026-11-02T18:00:00Z', quantity: 4 }) // 4000 / 402
     useClock(() => new Date('2026-11-03T18:00:00Z'))
-    const waterOrder = await createOrder(fx.clerkA, {
+    const waterOrder = await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.piece(fx.water).id, quantity: 5 }],
     })
-    await pickupOrder(fx.clerkA, waterOrder.id, payCash) // 2000 / 250
+    await pickupOrder(fx.staffA, waterOrder.id, payCash) // 2000 / 250
 
     const report = await getMarginReport(fx.owner, wide)
     expect(report.summary).toEqual({

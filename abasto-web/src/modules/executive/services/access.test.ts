@@ -32,9 +32,9 @@ const entryPoints = {
 }
 
 describe('executive console is owner only', () => {
-  test('a manager, a clerk and a customer are refused by every entry point', async () => {
+  test('managers of either warehouse and a customer are refused by every entry point', async () => {
     const fx = await setupReports()
-    for (const actor of [fx.managerB, fx.clerkA, customer]) {
+    for (const actor of [fx.managerB, fx.staffA, customer]) {
       for (const [name, run] of Object.entries(entryPoints)) {
         const error = await errorOf(() => run(actor))
         expect({ name, role: actor.role, code: error.code }).toEqual({
