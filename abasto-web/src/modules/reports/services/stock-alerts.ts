@@ -19,6 +19,9 @@ import type {
 export const DEFAULT_EXPIRING_DAYS = 7
 const MAX_EXPIRING_DAYS = 365
 
+/** Value at cost of a lot's stock: on hand × its unit cost, rounded to whole cents. */
+export const lotValueCents = sql`round(l.on_hand::numeric * l.received_cost_cents / l.received_quantity)::bigint`
+
 type LotRaw = {
   lot_id: string
   warehouse_id: string
@@ -55,7 +58,7 @@ export async function queryExpiringLots(
       l.expires_on::text as expires_on,
       (l.expires_on - ${today}::date) as days_left,
       l.on_hand, l.reserved,
-      round(l.on_hand::numeric * l.received_cost_cents / l.received_quantity)::bigint as value
+      ${lotValueCents} as value
     from lots l
     join warehouses w on w.id = l.warehouse_id
     join products p on p.id = l.product_id
