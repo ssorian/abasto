@@ -14,6 +14,7 @@ import { Route as AlmacenesRouteImport } from './routes/almacenes'
 import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ConfiguracionRouteImport } from './routes/configuracion'
+import { Route as DireccionRouteImport } from './routes/direccion'
 import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MostradorRouteImport } from './routes/mostrador'
@@ -47,6 +48,11 @@ const ClientesRoute = ClientesRouteImport.update({
 const ConfiguracionRoute = ConfiguracionRouteImport.update({
   id: '/configuracion',
   path: '/configuracion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DireccionRoute = DireccionRouteImport.update({
+  id: '/direccion',
+  path: '/direccion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventarioRoute = InventarioRouteImport.update({
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/configuracion': typeof ConfiguracionRoute
+  '/direccion': typeof DireccionRoute
   '/inventario': typeof InventarioRoute
   '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/configuracion': typeof ConfiguracionRoute
+  '/direccion': typeof DireccionRoute
   '/inventario': typeof InventarioRoute
   '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/configuracion': typeof ConfiguracionRoute
+  '/direccion': typeof DireccionRoute
   '/inventario': typeof InventarioRoute
   '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/clientes'
     | '/configuracion'
+    | '/direccion'
     | '/inventario'
     | '/login'
     | '/mostrador'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/clientes'
     | '/configuracion'
+    | '/direccion'
     | '/inventario'
     | '/login'
     | '/mostrador'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/clientes'
     | '/configuracion'
+    | '/direccion'
     | '/inventario'
     | '/login'
     | '/mostrador'
@@ -199,6 +211,7 @@ export interface RootRouteChildren {
   CatalogoRoute: typeof CatalogoRoute
   ClientesRoute: typeof ClientesRoute
   ConfiguracionRoute: typeof ConfiguracionRoute
+  DireccionRoute: typeof DireccionRoute
   InventarioRoute: typeof InventarioRoute
   LoginRoute: typeof LoginRoute
   MostradorRoute: typeof MostradorRoute
@@ -242,6 +255,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracion'
       fullPath: '/configuracion'
       preLoaderRoute: typeof ConfiguracionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/direccion': {
+      id: '/direccion'
+      path: '/direccion'
+      fullPath: '/direccion'
+      preLoaderRoute: typeof DireccionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventario': {
@@ -331,6 +351,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogoRoute: CatalogoRoute,
   ClientesRoute: ClientesRoute,
   ConfiguracionRoute: ConfiguracionRoute,
+  DireccionRoute: DireccionRoute,
   InventarioRoute: InventarioRoute,
   LoginRoute: LoginRoute,
   MostradorRoute: MostradorRoute,

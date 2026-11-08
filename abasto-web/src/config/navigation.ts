@@ -2,6 +2,7 @@ import {
   Boxes,
   ChartColumn,
   CircleQuestionMark,
+  Crown,
   House,
   LayoutGrid,
   ScanLine,
@@ -26,9 +27,11 @@ export type NavItem = {
     | '/almacenes'
     | '/configuracion'
     | '/reportes'
+    | '/direccion'
 }
 
 export const primaryNav: Array<NavItem> = [
+  { label: 'Dirección', icon: Crown, ownerOnly: true, to: '/direccion' },
   { label: 'Inicio', icon: House, to: '/' },
   { label: 'Mostrador', icon: ScanLine, to: '/mostrador' },
   { label: 'Clientes', icon: Users, to: '/clientes' },

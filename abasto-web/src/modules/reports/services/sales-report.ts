@@ -47,7 +47,7 @@ const totalsOf = (row: RawRow): SalesTotals => {
  * (received cost ÷ received quantity), kept as an exact fraction. Rows of any
  * grouping sum these fractions and round once.
  */
-function pickedUpLines(
+export function pickedUpLines(
   range: DateRange,
   warehouseIds: ReadonlyArray<string>,
   supplierId?: string,
