@@ -6,7 +6,6 @@ import {
   createCustomer,
   getCustomer,
   listCustomers,
-  setCustomerCredit,
   updateCustomer,
 } from '#/modules/customers/services/customers'
 import {
@@ -19,7 +18,6 @@ beforeEach(() => resetDatabase(db))
 
 const forbidden = 'No tienes permiso para esta acción.'
 const notFound = 'No encontramos ese cliente.'
-const creditInvalid = 'Revisa nombre, límite y plazo.'
 
 describe('createCustomer', () => {
   test('the owner creates a customer with trimmed fields; staff can read it', async () => {
@@ -34,10 +32,8 @@ describe('createCustomer', () => {
       phone: '555',
       addresses: ['Calle 1', 'Calle 2'],
       active: true,
-      creditEnabled: false,
-      creditLimitCents: 0,
-      termsDays: 0,
     })
+    expect(created).not.toHaveProperty('creditLimitCents')
     expect(await getCustomer(staff, created.id)).toEqual(created)
     expect(await listCustomers(staff)).toEqual([created])
   })
@@ -137,54 +133,5 @@ describe('listCustomers and getCustomer', () => {
     expect(error.code).toBe('not_found')
     expect(error.message).toBe(notFound)
     expect(await getCustomer(owner, sur.id)).toEqual(off)
-  })
-})
-
-describe('setCustomerCredit', () => {
-  const credit = { enabled: true, limitCents: 150000, termsDays: 15 }
-
-  test('the owner sets the credit settings', async () => {
-    const { owner, staff } = await setupActors()
-    const created = await createCustomer(owner, { name: 'Norte' })
-    const updated = await setCustomerCredit(owner, created.id, credit)
-    expect(updated).toMatchObject({
-      creditEnabled: true,
-      creditLimitCents: 150000,
-      termsDays: 15,
-    })
-    expect(await getCustomer(staff, created.id)).toEqual(updated)
-  })
-
-  test.each([
-    ['negative limit', { ...credit, limitCents: -1 }],
-    ['fractional limit', { ...credit, limitCents: 10.5 }],
-    ['limit above int4', { ...credit, limitCents: 2147483648 }],
-    ['negative terms', { ...credit, termsDays: -1 }],
-    ['fractional terms', { ...credit, termsDays: 1.5 }],
-  ])('rejects %s and changes nothing', async (_name, input) => {
-    const { owner } = await setupActors()
-    const created = await createCustomer(owner, { name: 'Norte' })
-    const error = await errorOf(() =>
-      setCustomerCredit(owner, created.id, input),
-    )
-    expect(error.code).toBe('invalid')
-    expect(error.message).toBe(creditInvalid)
-    expect(await getCustomer(owner, created.id)).toEqual(created)
-  })
-
-  test('unknown customer is not found; staff is forbidden', async () => {
-    const { owner, staff } = await setupActors()
-    const created = await createCustomer(owner, { name: 'Norte' })
-    const missing = await errorOf(() =>
-      setCustomerCredit(owner, crypto.randomUUID(), credit),
-    )
-    expect(missing.code).toBe('not_found')
-    expect(missing.message).toBe(notFound)
-    const denied = await errorOf(() =>
-      setCustomerCredit(staff, created.id, credit),
-    )
-    expect(denied.code).toBe('forbidden')
-    expect(denied.message).toBe(forbidden)
-    expect(await getCustomer(owner, created.id)).toEqual(created)
   })
 })

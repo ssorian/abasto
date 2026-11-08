@@ -24,7 +24,6 @@ type RawRow = {
   closed_by: string | null
   opening_cents: number
   sales: string
-  abonos: string
   entries: string
   withdrawals: string
   counted_cents: number | null
@@ -48,8 +47,8 @@ export async function getCashCuts(
       ou.name as opened_by, cu.name as closed_by,
       s.opening_cents, s.counted_cents, s.expected_cents as stored_expected,
       coalesce(sum(m.amount_cents) filter (where m.type = 'sale'), 0)::bigint as sales,
-      coalesce(sum(m.amount_cents) filter (where m.type = 'abono'), 0)::bigint as abonos,
-      coalesce(sum(m.amount_cents) filter (where m.type = 'entry'), 0)::bigint as entries,
+      -- Legacy 'abono' rows are immutable history: they count as cash in.
+      coalesce(sum(m.amount_cents) filter (where m.type in ('entry', 'abono')), 0)::bigint as entries,
       coalesce(-sum(m.amount_cents) filter (where m.type = 'withdrawal'), 0)::bigint as withdrawals
     from cash_sessions s
     join warehouses w on w.id = s.warehouse_id
@@ -62,12 +61,10 @@ export async function getCashCuts(
     order by s.opened_at, s.id`)
   const rows = result.rows.map((row): CashCutRow => {
     const sales = Number(row.sales)
-    const abonos = Number(row.abonos)
     const entries = Number(row.entries)
     const withdrawals = Number(row.withdrawals)
     const expected =
-      row.stored_expected ??
-      row.opening_cents + sales + abonos + entries - withdrawals
+      row.stored_expected ?? row.opening_cents + sales + entries - withdrawals
     const counted = row.counted_cents
     return {
       sessionId: row.session_id,
@@ -80,7 +77,6 @@ export async function getCashCuts(
       closedByName: row.closed_by,
       openingCents: row.opening_cents,
       salesCents: sales,
-      abonosCents: abonos,
       entriesCents: entries,
       withdrawalsCents: withdrawals,
       expectedCents: expected,

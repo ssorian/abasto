@@ -8,7 +8,6 @@ type MovementLike = { type: CashMovementType; amountCents: number }
 export type SessionSummary = {
   openingCents: number
   salesCents: number
-  abonosCents: number
   entriesCents: number
   /** Positive cents taken out of the drawer. */
   withdrawalsCents: number
@@ -25,17 +24,15 @@ export function summarizeSession(
       .filter((movement) => movement.type === type)
       .reduce((total, movement) => total + movement.amountCents, 0)
   const salesCents = sum('sale')
-  const abonosCents = sum('abono')
-  const entriesCents = sum('entry')
+  // Legacy 'abono' rows are immutable history: they count as cash in.
+  const entriesCents = sum('entry') + sum('abono')
   const withdrawalsCents = -sum('withdrawal')
   return {
     openingCents,
     salesCents,
-    abonosCents,
     entriesCents,
     withdrawalsCents,
-    expectedCents:
-      openingCents + salesCents + abonosCents + entriesCents - withdrawalsCents,
+    expectedCents: openingCents + salesCents + entriesCents - withdrawalsCents,
   }
 }
 
@@ -64,7 +61,7 @@ export function closePreview(
 
 const labels: Record<CashMovementType, string> = {
   sale: 'Venta',
-  abono: 'Abono',
+  abono: 'Entrada', // legacy rows only; nothing creates them anymore
   entry: 'Entrada',
   withdrawal: 'Retiro',
 }

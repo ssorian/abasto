@@ -10,7 +10,7 @@ const ruleInput = z.object({
   priceCents: whole.optional(),
 })
 
-/** Create (no id) or edit a customer with its credit settings and rules. */
+/** Create (no id) or edit a customer with its commercial rules. */
 export const saveCustomerInput = z.object({
   id: id.optional(),
   name: z.string(),
@@ -19,11 +19,6 @@ export const saveCustomerInput = z.object({
   notes: z.string(),
   addresses: z.array(z.string()),
   active: z.boolean(),
-  credit: z.object({
-    enabled: z.boolean(),
-    limitCents: whole,
-    termsDays: whole,
-  }),
   rules: z.array(ruleInput),
 })
 

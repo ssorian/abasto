@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { db } from '#/db'
+import { cashMovements } from '#/modules/cash/db/schema'
 import { resetDatabase } from '#/db/testing'
 import {
   recordCashEntry,
@@ -60,7 +61,6 @@ describe('cash cuts', () => {
       status: 'closed',
       openingCents: 0,
       salesCents: 3000,
-      abonosCents: 0,
       entriesCents: 500,
       withdrawalsCents: 200,
       expectedCents: 3300,
@@ -93,6 +93,25 @@ describe('cash cuts', () => {
     // Open sessions have no difference yet, so they stay out of the totals.
     expect(report.totals.differenceCents).toBe(-50)
     expect(report.totals.sessions).toBe(2)
+  })
+
+  test('a legacy abono row still counts toward the running expected cash', async () => {
+    const fx = await scenario()
+    const open = (await getCashCuts(fx.owner, today)).rows.find(
+      (row) => row.warehouseId === fx.b.id,
+    )!
+    // No service creates abonos anymore; old rows stay immutable history.
+    await db.insert(cashMovements).values({
+      sessionId: open.sessionId,
+      warehouseId: fx.b.id,
+      type: 'abono',
+      amountCents: 700,
+      actorId: fx.owner.userId,
+    })
+    const after = (await getCashCuts(fx.owner, today)).rows.find(
+      (row) => row.sessionId === open.sessionId,
+    )
+    expect(after).toMatchObject({ entriesCents: 700, expectedCents: 700 })
   })
 
   test('sessions outside the period or warehouse scope are left out', async () => {

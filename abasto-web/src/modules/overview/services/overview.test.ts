@@ -1,14 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
-import { setCustomerCredit } from '#/modules/customers/services/customers'
 import { setMinimumStock } from '#/modules/inventory/services/stock-minimums'
-import { pickupOrder } from '#/modules/orders/services/order-actions'
 import { createOrder } from '#/modules/orders/services/orders'
 import { setReservationHours } from '#/modules/orders/services/reservation-settings'
 import { getOverview } from '#/modules/overview/services/overview'
 import {
-  errorOf,
   farFuture,
   receive,
   setupReports,
@@ -50,18 +47,12 @@ async function scenario() {
   await setReservationHours(fx.owner, 1)
   await place() // expires 13:00 today
   await setReservationHours(fx.owner, 24)
-  const blocked = await place() // expires tomorrow
-  await setCustomerCredit(fx.owner, fx.customer.id, {
-    enabled: true,
-    limitCents: 500,
-    termsDays: 7,
-  })
-  await errorOf(() => pickupOrder(fx.clerkA, blocked.id, { terms: 'credito' }))
+  await place() // expires tomorrow
   return fx
 }
 
 describe('Inicio per role', () => {
-  test('the owner sees every warehouse with money and pending authorizations', async () => {
+  test('the owner sees every warehouse with money', async () => {
     const fx = await scenario()
     const overview = await getOverview(fx.owner)
     expect(overview.today).toBe('2026-11-04')
@@ -99,15 +90,13 @@ describe('Inicio per role', () => {
       marginCents: 3600,
       drawersOpen: 2,
     })
-    expect(overview.pendingAuthorizations).toBe(1)
-    expect(overview.overdueCents).toBe(0)
     expect(overview.lowStock.map((row) => row.name)).toEqual([
       'Leche entera 1L',
     ])
     expect(overview.expiring.map((row) => row.name)).toEqual(['Refresco 600ml'])
   })
 
-  test('a manager sees only their warehouse, with money but no authorizations', async () => {
+  test('a manager sees only their warehouse, with money', async () => {
     const fx = await scenario()
     const overview = await getOverview(fx.managerA)
     expect(overview.warehouses.map((item) => item.id)).toEqual([fx.a.id])
@@ -115,14 +104,12 @@ describe('Inicio per role', () => {
       salesCents: 4000,
       marginCents: 3600,
     })
-    expect(overview.pendingAuthorizations).toBeNull()
-    expect(overview.overdueCents).toBe(0)
     const other = await getOverview(fx.managerB)
     expect(other.warehouses.map((item) => item.id)).toEqual([fx.b.id])
     expect(other.totals.openOrders).toBe(0)
   })
 
-  test('a clerk sees operational counts only: no sales, margin or receivables', async () => {
+  test('a clerk sees operational counts only: no sales or margin', async () => {
     const fx = await scenario()
     const overview = await getOverview(fx.clerkA)
     expect(overview.warehouses).toHaveLength(1)
@@ -139,7 +126,5 @@ describe('Inicio per role', () => {
     expect(a).not.toHaveProperty('marginCents')
     expect(overview.totals).not.toHaveProperty('salesCents')
     expect(overview.totals).not.toHaveProperty('marginCents')
-    expect(overview.pendingAuthorizations).toBeNull()
-    expect(overview.overdueCents).toBeNull()
   })
 })

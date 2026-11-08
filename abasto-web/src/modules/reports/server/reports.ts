@@ -6,7 +6,6 @@ import {
   stockAlertsInput,
 } from '#/modules/reports/server/report-inputs'
 import { getCashCuts } from '#/modules/reports/services/cash-cuts'
-import { getReceivablesAging } from '#/modules/reports/services/receivables-aging'
 import { managedWarehouses } from '#/modules/reports/services/report-scope'
 import { listReportSuppliers } from '#/modules/reports/services/report-suppliers'
 import { getSalesReport } from '#/modules/reports/services/sales-report'
@@ -64,7 +63,3 @@ export const stockAlertsFn = createServerFn({ method: 'GET' })
       })
     }),
   )
-
-export const receivablesAgingFn = createServerFn({ method: 'GET' }).handler(
-  () => runWithActor((actor) => getReceivablesAging(actor)),
-)

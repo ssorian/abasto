@@ -64,7 +64,6 @@ export function CashTab({ report }: { report: CashCuts }) {
                 <Th>Turno</Th>
                 <Th className={num}>Fondo</Th>
                 <Th className={num}>Ventas</Th>
-                <Th className={num}>Abonos</Th>
                 <Th className={num}>Entradas</Th>
                 <Th className={num}>Retiros</Th>
                 <Th className={num}>Esperado</Th>
@@ -89,7 +88,6 @@ export function CashTab({ report }: { report: CashCuts }) {
                   </Td>
                   <Td className={num}>{formatCents(row.openingCents)}</Td>
                   <Td className={num}>{formatCents(row.salesCents)}</Td>
-                  <Td className={num}>{formatCents(row.abonosCents)}</Td>
                   <Td className={num}>{formatCents(row.entriesCents)}</Td>
                   <Td className={num}>{formatCents(row.withdrawalsCents)}</Td>
                   <Td className={num}>{formatCents(row.expectedCents)}</Td>
@@ -111,7 +109,7 @@ export function CashTab({ report }: { report: CashCuts }) {
                 <Td>Total</Td>
                 <Td />
                 <Td className={num}>{formatCents(totals.salesCents)}</Td>
-                <Td colSpan={3} />
+                <Td colSpan={2} />
                 <Td className={num}>{formatCents(totals.expectedCents)}</Td>
                 <Td className={num}>{formatCents(totals.countedCents)}</Td>
                 <Td className={num}>{formatCents(totals.differenceCents)}</Td>
@@ -121,9 +119,9 @@ export function CashTab({ report }: { report: CashCuts }) {
         </TableWrap>
       </TableSection>
       <ReportFootnote>
-        Esperado = fondo + ventas en efectivo + abonos + entradas − retiros. Los
-        turnos abiertos muestran el esperado hasta ahora y no tienen diferencia.
-        Los totales de contado y diferencia suman solo turnos cerrados.
+        Esperado = fondo + ventas en efectivo + entradas − retiros. Los turnos
+        abiertos muestran el esperado hasta ahora y no tienen diferencia. Los
+        totales de contado y diferencia suman solo turnos cerrados.
       </ReportFootnote>
     </div>
   )

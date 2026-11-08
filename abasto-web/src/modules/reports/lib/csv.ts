@@ -1,5 +1,4 @@
 import type {
-  AgingRow,
   CashCutRow,
   LotAlertRow,
   LowStockRow,
@@ -85,7 +84,6 @@ export function cashCutsCsv(rows: ReadonlyArray<CashCutRow>) {
       'Cerró',
       'Fondo inicial',
       'Ventas en efectivo',
-      'Abonos',
       'Entradas',
       'Retiros',
       'Esperado',
@@ -101,7 +99,6 @@ export function cashCutsCsv(rows: ReadonlyArray<CashCutRow>) {
       row.closedByName,
       centsToDecimal(row.openingCents),
       centsToDecimal(row.salesCents),
-      centsToDecimal(row.abonosCents),
       centsToDecimal(row.entriesCents),
       centsToDecimal(row.withdrawalsCents),
       centsToDecimal(row.expectedCents),
@@ -151,27 +148,6 @@ export function lotsCsv(rows: ReadonlyArray<LotAlertRow>) {
       row.reserved,
       row.unit,
       centsToDecimal(row.valueCents),
-    ]),
-  )
-}
-
-export function agingCsv(rows: ReadonlyArray<AgingRow>) {
-  return buildCsv(
-    [
-      'Cliente',
-      'Al corriente',
-      '1-30 días',
-      '31-60 días',
-      'Más de 60 días',
-      'Saldo total',
-    ],
-    rows.map((row) => [
-      row.name,
-      centsToDecimal(row.currentCents),
-      centsToDecimal(row.days1to30Cents),
-      centsToDecimal(row.days31to60Cents),
-      centsToDecimal(row.over60Cents),
-      centsToDecimal(row.totalCents),
     ]),
   )
 }

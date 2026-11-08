@@ -1,5 +1,4 @@
 import { PageHeading } from '#/components/page-heading'
-import { AgingTab } from '#/modules/reports/components/aging-tab'
 import { CashTab } from '#/modules/reports/components/cash-tab'
 import { PillTabs } from '#/modules/reports/components/pill-tabs'
 import { ReportEmpty } from '#/modules/reports/components/report-empty'
@@ -14,7 +13,6 @@ const tabs: Array<{ value: ReportTab; label: string }> = [
   { value: 'ventas', label: 'Ventas y utilidad' },
   { value: 'cajas', label: 'Cortes de caja' },
   { value: 'inventario', label: 'Inventario' },
-  { value: 'cartera', label: 'Cartera' },
 ]
 
 type ReportsPageProps = {
@@ -36,7 +34,7 @@ export function ReportsPage({
     <>
       <PageHeading
         title="Reportes"
-        description="Ventas y utilidad, cortes de caja, inventario por atender y cartera."
+        description="Ventas y utilidad, cortes de caja, e inventario por atender."
       />
       {!load.allowed ? (
         <ReportEmpty>
@@ -64,9 +62,6 @@ export function ReportsPage({
           {load.data?.tab === 'cajas' && <CashTab report={load.data.report} />}
           {load.data?.tab === 'inventario' && (
             <StockTab report={load.data.report} />
-          )}
-          {load.data?.tab === 'cartera' && (
-            <AgingTab report={load.data.report} />
           )}
         </>
       )}

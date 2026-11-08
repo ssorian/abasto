@@ -68,10 +68,6 @@ export type Customer = {
   addresses: Array<string>
   notes: string
   active: boolean
-  credit: boolean
-  /** Integer MXN cents. */
-  creditLimitCents: number
-  termsDays: number
 }
 
 export type OrderLine = {

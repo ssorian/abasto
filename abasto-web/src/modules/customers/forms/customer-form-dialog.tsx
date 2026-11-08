@@ -111,37 +111,6 @@ export function CustomerFormDialog({
           onChange={(event) => patch({ notes: event.target.value })}
         />
       </Field>
-      <label className="flex cursor-pointer items-center gap-[9px] text-[13px] leading-[1.6] text-[#3b4f41]">
-        <input
-          type="checkbox"
-          className="size-[17px] flex-none accent-[#326447]"
-          checked={draft.credit}
-          onChange={(event) => patch({ credit: event.target.checked })}
-        />
-        Permitir ventas a crédito
-      </label>
-      {draft.credit && (
-        <div className="grid grid-cols-1 gap-[15px] md:grid-cols-2">
-          <Field label="Límite de crédito MXN">
-            <TextInput
-              type="number"
-              min="0"
-              step="0.01"
-              value={draft.creditLimit}
-              onChange={(event) => patch({ creditLimit: event.target.value })}
-            />
-          </Field>
-          <Field label="Plazo en días desde el pedido">
-            <TextInput
-              type="number"
-              min="0"
-              step="1"
-              value={draft.termsDays}
-              onChange={(event) => patch({ termsDays: event.target.value })}
-            />
-          </Field>
-        </div>
-      )}
       <CommercialRulesFields
         rules={draft.rules}
         presentations={presentations}

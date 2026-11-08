@@ -16,7 +16,7 @@ import type {
 } from '#/modules/customers/lib/customer-view'
 
 export type CustomersOverview = {
-  /** Only the owner edits customers, credit and rules. */
+  /** Only the owner edits customers and their rules. */
   canManage: boolean
   customers: Array<CustomerView>
   rules: Record<string, Array<RuleView>>

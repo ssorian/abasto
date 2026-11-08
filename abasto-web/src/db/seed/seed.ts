@@ -24,12 +24,10 @@ import { products, suppliers } from '#/modules/catalog/db/schema'
 import { createProduct } from '#/modules/catalog/services/products'
 import type { Product } from '#/modules/catalog/services/product-reads'
 import { createSupplier } from '#/modules/catalog/services/suppliers'
-import { recordAbono } from '#/modules/credit/services/customer-ledger'
 import { customers } from '#/modules/customers/db/schema'
 import { saveCommercialRules } from '#/modules/customers/services/commercial-rules'
 import {
   createCustomer,
-  setCustomerCredit,
   updateCustomer,
 } from '#/modules/customers/services/customers'
 import {
@@ -39,7 +37,7 @@ import {
 } from '#/modules/inventory/services/supplier-orders'
 import { registerLoss } from '#/modules/inventory/services/stock-adjustments'
 import { setMinimumStock } from '#/modules/inventory/services/stock-minimums'
-import { businessDate, useClock } from '#/modules/orders/services/clock'
+import { businessDate } from '#/modules/orders/services/clock'
 import {
   cancelOrder,
   pickupOrder,
@@ -85,8 +83,6 @@ export type SeededUser = {
 
 export type SeedSummary = { users: Array<SeededUser> }
 
-const DAY = 86_400_000
-
 /** YYYY-MM-DD plus `days` (calendar arithmetic, time zone free). */
 function addDays(date: string, days: number) {
   const next = new Date(`${date}T12:00:00Z`)
@@ -131,17 +127,6 @@ async function ownerActor(password: string) {
     password: existing ? null : password,
   }
   return { actor, seeded }
-}
-
-/** Runs `run` with the order clock set `days` back, then restores it. */
-async function daysAgo<T>(days: number, run: () => Promise<T>) {
-  const at = new Date(Date.now() - days * DAY)
-  useClock(() => at)
-  try {
-    return await run()
-  } finally {
-    useClock(null)
-  }
 }
 
 export async function seedDatabase({
@@ -370,7 +355,7 @@ export async function seedDatabase({
     }
   }
 
-  // Customers, credit and commercial rules.
+  // Customers and commercial rules.
   const customerId = {} as Record<string, string>
   for (const seed of customerSeed) {
     const created = await createCustomer(owner, {
@@ -381,12 +366,6 @@ export async function seedDatabase({
       notes: seed.notes,
     })
     customerId[seed.key] = created.id
-    if (seed.credit) {
-      await setCustomerCredit(owner, created.id, {
-        enabled: true,
-        ...seed.credit,
-      })
-    }
     if (seed.rules) {
       await saveCommercialRules(
         owner,
@@ -430,45 +409,7 @@ export async function seedDatabase({
     tenderedCents: Math.ceil(totalCents / 10_000) * 10_000,
   })
 
-  // Past credit sales in Tejupilco, so receivables and reports have history.
-  for (const [days, customer, lines] of [
-    [
-      40,
-      'guero',
-      [
-        ['13455', 6],
-        ['LU53', 4],
-      ],
-    ],
-    [
-      20,
-      'sanchez',
-      [
-        ['13455', 20],
-        ['1271', 10],
-      ],
-    ],
-    [
-      10,
-      'donPepe',
-      [
-        ['25023', 12],
-        ['LU53', 5],
-      ],
-    ],
-    [3, 'pinos', [['CA10', 6]]],
-  ] as const) {
-    await daysAgo(days, async () => {
-      const placed = await order(
-        'Tejupilco',
-        customer,
-        lines.map((l) => [...l]),
-      )
-      await pickup('Tejupilco', placed.id, { terms: 'credito' })
-    })
-  }
-
-  // Today in Tejupilco: drawer, cash sale, withdrawal, abono and open orders.
+  // Today in Tejupilco: drawer, cash sale, withdrawal and open orders.
   await openCashSession(clerkOf('Tejupilco'), {
     warehouseId: warehouseId.Tejupilco,
     openingCents: 100_000,
@@ -483,18 +424,6 @@ export async function seedDatabase({
     amountCents: 15_000,
     reason: 'Compra de bolsas y hielo',
   })
-  await recordAbono(clerkOf('Tejupilco'), {
-    warehouseId: warehouseId.Tejupilco,
-    customerId: customerId.donPepe,
-    amountCents: 300_000,
-  })
-  // El Güero owes an overdue charge: the credit pickup waits for the owner.
-  const blocked = await order('Tejupilco', 'guero', [['25023', 3]])
-  try {
-    await pickup('Tejupilco', blocked.id, { terms: 'credito' })
-  } catch (error) {
-    if (!(error instanceof AppError) || error.code !== 'conflict') throw error
-  }
   await order('Tejupilco', 'sanchez', [['13455', 25]], 'Pasa mañana temprano.')
   const prepared = await order('Tejupilco', 'donPepe', [
     ['25018', 4],

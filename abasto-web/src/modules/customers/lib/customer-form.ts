@@ -26,14 +26,11 @@ export type CustomerDraft = {
   /** One address per line. */
   addresses: string
   notes: string
-  credit: boolean
-  creditLimit: string
-  termsDays: string
   rules: Array<RuleDraft>
 }
 
 const MESSAGES = {
-  basics: 'Revisa nombre, límite y plazo.',
+  basics: 'Escribe el nombre del cliente.',
   rules: 'Revisa las condiciones comerciales.',
   duplicate: 'No repitas producto y cantidad mínima.',
 }
@@ -46,9 +43,6 @@ export const emptyDraft = (): CustomerDraft => ({
   active: true,
   addresses: '',
   notes: '',
-  credit: false,
-  creditLimit: '',
-  termsDays: '15',
   rules: [],
 })
 
@@ -78,9 +72,6 @@ export const draftFromCustomer = (
   active: customer.active,
   addresses: customer.addresses.join('\n'),
   notes: customer.notes,
-  credit: customer.creditEnabled,
-  creditLimit: centsToPesos(customer.creditLimitCents),
-  termsDays: String(customer.termsDays),
   rules: rules.map((rule) => ({
     presentationId: rule.presentationId,
     minQuantity: String(rule.minQuantity),
@@ -133,32 +124,6 @@ export function draftToInput(draft: CustomerDraft): Parsed<SaveCustomerInput> {
   const name = draft.name.trim()
   if (!name) return fail(MESSAGES.basics)
 
-  let credit: SaveCustomerInput['credit'] = {
-    enabled: false,
-    limitCents: 0,
-    termsDays: 0,
-  }
-  if (draft.credit) {
-    const limit = draft.creditLimit.trim()
-      ? parsePesosToCents(draft.creditLimit, { allowZero: true })
-      : ({ ok: true, value: 0 } as const)
-    const termsDays = wholeNumber(draft.termsDays, 0)
-    if (!limit.ok || termsDays === null || termsDays > 3650) {
-      return fail(MESSAGES.basics)
-    }
-    credit = { enabled: true, limitCents: limit.value, termsDays }
-  } else if (draft.id) {
-    // Turning credit off must not erase the agreed limit and terms: send the
-    // stored values back (anything unreadable counts as zero).
-    const limit = parsePesosToCents(draft.creditLimit, { allowZero: true })
-    const termsDays = wholeNumber(draft.termsDays, 0)
-    credit = {
-      enabled: false,
-      limitCents: limit.ok ? limit.value : 0,
-      termsDays: termsDays !== null && termsDays <= 3650 ? termsDays : 0,
-    }
-  }
-
   const rules: SaveCustomerInput['rules'] = []
   const seen = new Set<string>()
   for (const rule of draft.rules) {
@@ -183,7 +148,6 @@ export function draftToInput(draft: CustomerDraft): Parsed<SaveCustomerInput> {
         .map((line) => line.trim())
         .filter(Boolean),
       active: draft.active,
-      credit,
       rules,
     },
   }

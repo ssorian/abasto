@@ -2,7 +2,6 @@ import { sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { can } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
-import { listPendingCreditAuthorizations } from '#/modules/credit/services/credit-authorizations'
 import {
   businessDate,
   businessTimeZone,
@@ -17,10 +16,6 @@ import type {
 } from '#/modules/overview/types/overview'
 import { addDays } from '#/modules/reports/lib/period'
 import { uuidList } from '#/modules/reports/services/report-scope'
-import {
-  canReadReceivables,
-  getReceivablesAging,
-} from '#/modules/reports/services/receivables-aging'
 import { getSalesReport } from '#/modules/reports/services/sales-report'
 import {
   queryExpiringLots,
@@ -72,8 +67,7 @@ const countBy = (rows: ReadonlyArray<{ warehouseId: string }>, id: string) =>
 /**
  * Inicio for the warehouses the actor sees (the owner: all). Everyone gets
  * the operational counts; sales and margin of today come only for the
- * warehouses the actor manages, and receivables and pending credit
- * authorizations only for the owner and managers.
+ * warehouses the actor manages.
  */
 export async function getOverview(actor: Actor): Promise<Overview> {
   const today = businessDate()
@@ -82,25 +76,20 @@ export async function getOverview(actor: Actor): Promise<Overview> {
   )
   const ids = visible.map((item) => item.id)
   const managed = visible.filter(({ id }) => can(actor, 'warehouse.manage', id))
-  const [counts, lowStockRows, expiringRows, sales, aging, pending] =
-    await Promise.all([
-      operationalCounts(ids, today),
-      queryLowStock(actor, visible),
-      queryExpiringLots(ids, {
-        from: today,
-        to: addDays(today, EXPIRING_DAYS),
-      }),
-      managed.length
-        ? getSalesReport(actor, {
-            period: { preset: 'today' },
-            warehouseIds: managed.map((item) => item.id),
-          })
-        : null,
-      canReadReceivables(actor) ? getReceivablesAging(actor) : null,
-      can(actor, 'credit.authorize')
-        ? listPendingCreditAuthorizations(actor)
-        : null,
-    ])
+  const [counts, lowStockRows, expiringRows, sales] = await Promise.all([
+    operationalCounts(ids, today),
+    queryLowStock(actor, visible),
+    queryExpiringLots(ids, {
+      from: today,
+      to: addDays(today, EXPIRING_DAYS),
+    }),
+    managed.length
+      ? getSalesReport(actor, {
+          period: { preset: 'today' },
+          warehouseIds: managed.map((item) => item.id),
+        })
+      : null,
+  ])
 
   const warehouses = visible.map((item): WarehouseOverview => {
     const row = counts.get(item.id)
@@ -162,12 +151,6 @@ export async function getOverview(actor: Actor): Promise<Overview> {
     today,
     warehouses,
     totals,
-    pendingAuthorizations: pending ? pending.length : null,
-    overdueCents: aging
-      ? aging.totals.days1to30Cents +
-        aging.totals.days31to60Cents +
-        aging.totals.over60Cents
-      : null,
     lowStock,
     expiring,
   }

@@ -13,24 +13,20 @@ const base: Overview = {
     belowMinimum: 0,
     expiringLots: 0,
   },
-  pendingAuthorizations: null,
-  overdueCents: null,
   lowStock: [],
   expiring: [],
 }
 
 describe('Inicio headline figures', () => {
-  test('managers see sales, margin and overdue credit', () => {
+  test('managers see sales, margin and open orders', () => {
     const labels = metricsOf({
       ...base,
       totals: { ...base.totals, salesCents: 450_000, marginCents: 90_050 },
-      overdueCents: 12_000,
     })
     expect(labels).toEqual([
       { label: 'Ventas de hoy', value: '$4,500.00' },
       { label: 'Utilidad bruta de hoy', value: '$900.50' },
       { label: 'Pedidos abiertos', value: '3' },
-      { label: 'Crédito vencido', value: '$120.00' },
     ])
   })
 

@@ -13,7 +13,6 @@ const valid = {
   notes: '',
   addresses: [],
   active: true,
-  credit: { enabled: false, limitCents: 0, termsDays: 0 },
   rules: [{ presentationId: 'p1', minQuantity: 5, discountBps: 1000 }],
 }
 const fails = (schema: Parameters<typeof parseInput>[0], data: unknown) => {
@@ -29,17 +28,17 @@ describe('customer server function inputs', () => {
   test('accepts a create and an edit', () => {
     expect(parseInput(saveCustomerInput, valid)).toEqual(valid)
     expect(parseInput(saveCustomerInput, { ...valid, id: 'c1' }).id).toBe('c1')
+    // Customers have no credit: a stray credit field never reaches the service.
+    expect(
+      parseInput(saveCustomerInput, {
+        ...valid,
+        credit: { enabled: true, limitCents: 5000, termsDays: 7 },
+      }),
+    ).toEqual(valid)
   })
 
   test('rejects malformed shapes', () => {
     expect(fails(saveCustomerInput, { ...valid, name: 5 })).toBe(true)
-    expect(fails(saveCustomerInput, { ...valid, credit: undefined })).toBe(true)
-    expect(
-      fails(saveCustomerInput, {
-        ...valid,
-        credit: { enabled: 'sí', limitCents: 0, termsDays: 0 },
-      }),
-    ).toBe(true)
     expect(
       fails(saveCustomerInput, {
         ...valid,

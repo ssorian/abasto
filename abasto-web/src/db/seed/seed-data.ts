@@ -258,7 +258,6 @@ export type SeedCustomer = {
   address: string
   notes?: string
   active?: boolean
-  credit?: { limitCents: number; termsDays: number }
   /** Commercial rules on the sale presentation (box) of a SKU. */
   rules?: Array<{
     sku: string
@@ -275,7 +274,6 @@ export const customerSeed: Array<SeedCustomer> = [
     contact: 'José Pérez',
     phone: '724 267 1234',
     address: 'Av. Juárez 120, Centro, Tejupilco de Hidalgo, Méx.',
-    credit: { limitCents: 1_500_000, termsDays: 5 },
     rules: [{ sku: '13455', minBoxes: 10, discountBps: 500 }],
   },
   {
@@ -292,7 +290,6 @@ export const customerSeed: Array<SeedCustomer> = [
     contact: 'Ricardo Sánchez',
     phone: '724 269 3456',
     address: 'Carretera Tejupilco–Amatepec km 4, Bodega 3, Tejupilco, Méx.',
-    credit: { limitCents: 5_000_000, termsDays: 30 },
     rules: [{ sku: '13455', minBoxes: 20, priceCents: 26500 }],
   },
   {
@@ -301,8 +298,6 @@ export const customerSeed: Array<SeedCustomer> = [
     contact: 'Luis Ortega',
     phone: '724 267 4567',
     address: 'Av. Cristóbal Hidalgo 300, Tejupilco de Hidalgo, Méx.',
-    notes: 'Paga tarde: revisar saldo antes de fiar.',
-    credit: { limitCents: 800_000, termsDays: 7 },
   },
   {
     key: 'pinos',
@@ -310,7 +305,6 @@ export const customerSeed: Array<SeedCustomer> = [
     contact: 'Elena Vargas',
     phone: '724 266 5678',
     address: 'Mercado Municipal local 18, Luvianos, Méx.',
-    credit: { limitCents: 2_000_000, termsDays: 15 },
     rules: [{ sku: 'CA10', minBoxes: 5, discountBps: 400 }],
   },
   {

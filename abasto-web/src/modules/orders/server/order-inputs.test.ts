@@ -73,7 +73,7 @@ describe('order server function inputs', () => {
     expect(fails(quoteOrderInput, { warehouseId: 'w1' })).toBe(true)
   })
 
-  test('pickup takes an order id and an optional cash or credit payment', () => {
+  test('pickup takes an order id and an optional cash payment', () => {
     expect(parseInput(pickupOrderInput, { orderId: 'o1' })).toEqual({
       orderId: 'o1',
     })
@@ -81,13 +81,8 @@ describe('order server function inputs', () => {
     expect(
       parseInput(pickupOrderInput, { orderId: 'o1', payment: cash }).payment,
     ).toEqual(cash)
-    expect(
-      parseInput(pickupOrderInput, {
-        orderId: 'o1',
-        payment: { terms: 'credito' },
-      }).payment,
-    ).toEqual({ terms: 'credito' })
     for (const payment of [
+      { terms: 'credito' },
       { terms: 'tarjeta' },
       { terms: 'contado' },
       { terms: 'contado', tenderedCents: 1.5 },

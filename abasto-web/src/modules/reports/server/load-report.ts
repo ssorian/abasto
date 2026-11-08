@@ -3,7 +3,6 @@ import { defaultExpiringDays, periodOf } from '#/modules/reports/lib/search'
 import type { ReportSearch } from '#/modules/reports/lib/search'
 import {
   cashCutsFn,
-  receivablesAgingFn,
   reportScopeFn,
   reportSuppliersFn,
   salesReportFn,
@@ -11,7 +10,6 @@ import {
 } from '#/modules/reports/server/reports'
 import type {
   CashCuts,
-  ReceivablesAging,
   ReportSupplier,
   ReportTab,
   ReportWarehouse,
@@ -23,7 +21,6 @@ export type ReportData =
   | { tab: 'ventas'; report: SalesReport }
   | { tab: 'cajas'; report: CashCuts }
   | { tab: 'inventario'; report: StockAlerts }
-  | { tab: 'cartera'; report: ReceivablesAging }
 
 export type ReportsLoad =
   | { allowed: false }
@@ -92,7 +89,5 @@ async function fetchTab(
           }),
         ),
       }
-    case 'cartera':
-      return { tab, report: unwrap(await receivablesAgingFn()) }
   }
 }
