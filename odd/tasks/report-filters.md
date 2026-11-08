@@ -14,7 +14,9 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 
 ## Tasks
 
-- T1 [S1-S6] worker — service inputs + tests, server input schemas, loaders, search parsing, filter UI for both dashboards. Risk: item 2 (owner-guarded services and warehouse scoping gain new inputs). Status: in progress. Commit: —
+- T1 [S1-S6] worker — service inputs + tests, server input schemas, loaders, search parsing, filter UI for both dashboards. Risk: item 2 (owner-guarded services and warehouse scoping gain new inputs). Status: done. Commit: 4117787 (worker ended without a report; parent checks: tsc clean, eslint 0 errors (3 pre-existing warnings), prettier clean, build OK, bun test 804/804 after restarting the stopped test DB)
+
+Verification (independent, Risk item 2): S1-S5 pass, no blockers; S6 tests 140/140 focused + tsc. Gaps: no loader tests for filter wiring; supplier `exists` predicate for lots duplicated in inventory.ts; server-fn input parsing still runs before requireOwner (invalid vs forbidden, no leak). Not checked in a browser.
 
 ## Log
 
