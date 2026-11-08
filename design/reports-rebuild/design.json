@@ -1,0 +1,42 @@
+{
+  "title": "Reportes: vista del dueño y vista del encargado",
+  "brief": "Rebuild Reportes as two role-specific dashboards with charts: three owner directions (whole business, 4 warehouses) and two manager directions (one warehouse). Replaces tabbed tables and the separate /direccion console.",
+  "feature": "odd/tasks/reports-rebuild.md",
+  "artboards": [
+    {
+      "file": "01-kpi-hero-breakdown.html",
+      "title": "A · Dueño: KPI, gráfica principal y desglose",
+      "tradeoff": "Familiar and quick to read (KPI cards with sparklines, one hero chart, ventas-to-utilidad breakdown); the most complete in charts but long, and the insight is left to the reader.",
+      "width": 1440,
+      "height": 2511
+    },
+    {
+      "file": "02-narrative-snapshot.html",
+      "title": "B · Dueño: resumen en palabras",
+      "tradeoff": "Each number comes with a plain sentence and a supporting chart, so the owner knows what to do; less scannable for comparing exact figures and wording must be generated from data.",
+      "width": 1440,
+      "height": 2032
+    },
+    {
+      "file": "03-warehouse-comparison-grid.html",
+      "title": "C · Dueño: cuadrícula de comparación",
+      "tradeoff": "Dense, accountant-like grid with warehouses as columns and everything side by side; the best for comparing, but heavier to read and with fewer charts.",
+      "width": 1440,
+      "height": 2782
+    },
+    {
+      "file": "04-manager-operational.html",
+      "title": "D · Encargado: operación del día",
+      "tradeoff": "Alerts first (stock, caducidades, caja, pedidos) and a week view; strong for daily action, sales trend and top products sit lower.",
+      "width": 1440,
+      "height": 1993
+    },
+    {
+      "file": "05-manager-sales-first.html",
+      "title": "E · Encargado: ventas primero (con selector)",
+      "tradeoff": "Sales chart, totals and product table lead, with the warehouse selector for a manager covering two warehouses and an explicit empty state; alerts are compact links, so urgency is lower.",
+      "width": 1440,
+      "height": 1908
+    }
+  ]
+}

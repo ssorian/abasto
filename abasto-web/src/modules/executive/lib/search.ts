@@ -3,7 +3,7 @@ import type { ReportSearch } from '#/modules/reports/lib/search'
 import { NON_MOVING_DAYS } from '#/modules/executive/types/inventory'
 import type { NonMovingDays } from '#/modules/executive/types/inventory'
 
-/** URL state of /direccion: the report period plus the non-moving window. */
+/** URL state of the owner dashboard: the report period plus the non-moving window. */
 export type ExecutiveSearch = Pick<
   ReportSearch,
   'periodo' | 'desde' | 'hasta'

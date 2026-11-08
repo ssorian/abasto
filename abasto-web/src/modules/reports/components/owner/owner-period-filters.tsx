@@ -17,17 +17,25 @@ const presets: Array<{ value: PeriodPreset; label: string }> = [
 type PeriodFiltersProps = {
   search: ExecutiveSearch
   range?: DateRange
+  /** Period of equal length right before `range`, the comparison base. */
+  previousRange?: DateRange
   onChange: (patch: Partial<ExecutiveSearch>) => void
 }
 
 /** Period presets and custom dates, kept in the URL like the reports page. */
-export function PeriodFilters({ search, range, onChange }: PeriodFiltersProps) {
+export function OwnerPeriodFilters({
+  search,
+  range,
+  previousRange,
+  onChange,
+}: PeriodFiltersProps) {
   const preset = search.periodo ?? defaultPreset
   return (
     <div className="mb-[22px] rounded-[13px] border border-[#f0e9e1] bg-white p-[15px] md:px-[23px] md:py-5">
       <div className="flex flex-col gap-3.5 md:flex-row md:items-center md:justify-between">
         <div
           role="group"
+          aria-label="Periodo"
           className="flex rounded-lg border border-[#e6dfeb] bg-[#fbf9f6] p-[3px]"
         >
           {presets.map((option) => (
@@ -53,7 +61,14 @@ export function PeriodFilters({ search, range, onChange }: PeriodFiltersProps) {
         {range && (
           <span className="flex items-center gap-[9px] text-xs text-[#5d387e]">
             <CalendarDaysIcon size={15} />
-            {rangeLabel(range)} · Ciudad de México
+            {rangeLabel(range)}
+            {previousRange && (
+              <em className="not-italic text-muted-foreground">
+                {' '}
+                · comparado con {rangeLabel(previousRange)}
+              </em>
+            )}{' '}
+            · Ciudad de México
           </span>
         )}
       </div>
