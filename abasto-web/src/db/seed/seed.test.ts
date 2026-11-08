@@ -53,7 +53,7 @@ describe('seedDatabase', () => {
       expect(await total(products)).toBe(73)
       expect(await total(customers)).toBe(6)
       expect(summary.users.map((u) => u.email)).toContain('dueno@abasto.local')
-      expect(summary.users).toHaveLength(7)
+      expect(summary.users).toHaveLength(5)
 
       expect(
         (await db.select({ name: warehouses.name }).from(warehouses))
@@ -92,10 +92,11 @@ describe('seedDatabase', () => {
           .map((p) => [p.name, p.factor, p.barcode, p.isDefault])
           .sort(),
       ).toEqual([
-        ['Charola', 24, null, true],
+        ['Caja', 24, null, true],
         ['Pieza', 1, '7501055919390', false],
-        ['Tarima', 2304, null, false],
       ])
+      expect(crema.row.description).toContain('Caja con 24 piezas')
+      expect(crema.row.description).not.toContain('Charola')
       const nutri = await productBySku('13455')
       expect(nutri.row).toMatchObject({
         supplierCode: '13455',
