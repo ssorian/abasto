@@ -141,6 +141,13 @@
       "when": 1794109124824,
       "tag": "0019_order_line_list_price",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794110124824,
+      "tag": "0020_order_line_gross_cost",
+      "breakpoints": true
     }
   ]
 }

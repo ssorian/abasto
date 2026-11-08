@@ -44,27 +44,27 @@ const boxedProduct = (
   defaultIndex: 1,
 })
 
-/** List price per piece typed in the order, by product SKU (ten-thousandths of a peso). */
-export const listPriceBySku: Record<string, number> = {
-  'ALP-1': 12000,
-  'ALP-2': 8400,
+/** Gross cost of one box typed in the order, by product SKU (cents, before discounts). */
+export const grossPerBoxBySku: Record<string, number> = {
+  'ALP-1': 1440,
+  'ALP-2': 2016,
   'ALP-3': 0,
-  'COL-1': 10000,
+  'COL-1': 2400,
 }
 
-/** An order line for a fixture product, at its usual list price unless overridden. */
+/** An order line for a fixture product, at its usual gross cost per box unless overridden. */
 export const lineFor = (
   product: { id: string; sku: string },
   boxes: number,
-  listPricePerPiece = listPriceBySku[product.sku],
-) => ({ productId: product.id, boxes, listPricePerPiece })
+  grossCostCents = grossPerBoxBySku[product.sku] * boxes,
+) => ({ productId: product.id, boxes, grossCostCents })
 
 /**
  * Inventory fixture plus products sold by boxes:
- * - milk (Alpura, box of 12; discount 0.0500 and promotion 0.0300 on the product): ordered at list 1.2000,
- *   net 1.1200 per piece → 1344 cents per box; standard price 2000 in A.
- * - soda (Alpura, box of 24): ordered at list 0.8400 → 2016 cents per box; standard price 1500 in A (below cost).
- * - free (Alpura, box of 6): ordered at list 0.
+ * - milk (Alpura, box of 12; discount 0.0500 and promotion 0.0300 on the product): ordered at 14.40 a box
+ *   before discounts, net 13.44 a box (96 cents of discount); standard price 2000 in A.
+ * - soda (Alpura, box of 24): ordered at 20.16 a box, no discounts; standard price 1500 in A (below cost).
+ * - free (Alpura, box of 6): ordered at 0.
  * - cola (Coca-Cola, box of 24): another supplier's product.
  */
 export async function setupSupplierOrders() {

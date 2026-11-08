@@ -4,11 +4,7 @@ import { AppError } from '#/lib/errors'
 import { businessDate } from '#/lib/utils/format'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
-import {
-  maxTenThousandths,
-  netCostPerBoxCents,
-  netCostPerPiece,
-} from '#/lib/utils/supplier-cost'
+import { netLineCents } from '#/lib/utils/supplier-cost'
 import { purchaseLines, purchases } from '#/modules/inventory/db/schema'
 import { loadBoxProducts } from '#/modules/inventory/services/box-products'
 import { orderNotFound } from '#/modules/inventory/services/supplier-order-reads'
@@ -22,11 +18,9 @@ import {
 
 export {
   getSupplierOrder,
-  lastSupplierCosts,
   listSupplierOrders,
 } from '#/modules/inventory/services/supplier-order-reads'
 export type {
-  LastSupplierCost,
   SupplierOrder,
   SupplierOrderLine,
   SupplierOrderSummary,
@@ -42,15 +36,15 @@ export type SupplierOrderInput = {
   lines: Array<{
     productId: string
     boxes: number
-    /** Typed in the order, in ten-thousandths of a peso. */
-    listPricePerPiece: number
+    /** Cost typed in the order in cents, before the fixed discount and promotion. */
+    grossCostCents: number
   }>
 }
 
 const tooBig = () => new AppError('invalid', 'El pedido es demasiado grande.')
 
 const isAmount = (value: number) =>
-  Number.isSafeInteger(value) && value >= 0 && value <= maxTenThousandths
+  isWholeNumber(value) && value >= 0 && fitsInt4(value)
 
 function validate(input: SupplierOrderInput) {
   if (input.expectedOn && !isIsoDate(input.expectedOn)) {
@@ -73,10 +67,10 @@ function validate(input: SupplierOrderInput) {
         'Cada producto solo puede aparecer una vez en el pedido.',
       )
     }
-    if (!isAmount(line.listPricePerPiece)) {
+    if (!isAmount(line.grossCostCents)) {
       throw new AppError(
         'invalid',
-        'Los montos del proveedor deben ser enteros en diezmilésimas, de cero o más.',
+        'El costo antes de descuentos debe ser un entero en centavos, de cero o más.',
       )
     }
     seen.add(line.productId)
@@ -85,10 +79,10 @@ function validate(input: SupplierOrderInput) {
 
 /**
  * Queues an order with status Pedido: no lots, no movements. Each line carries
- * the typed list price per piece; the product's fixed discount and promotion
- * are copied into the line, so later catalog changes never alter the order.
- * Cost per box = net per piece (list − discount − promotion) × pieces per
- * box, rounded half up to cents; line cost = cost per box × boxes.
+ * the typed gross cost (before discounts); the product's fixed discount and
+ * promotion are copied into the line, so later catalog changes never alter the
+ * order. The lot cost is the net line cost: gross − pieces × (discount +
+ * promotion), rounded half up to cents once.
  */
 export async function createSupplierOrder(
   actor: Actor,
@@ -114,27 +108,26 @@ export async function createSupplierOrder(
           'Ese producto no pertenece a este proveedor.',
         )
       }
-      const net = netCostPerPiece(
-        line.listPricePerPiece,
+      const quantity = line.boxes * product.factor
+      if (!fitsInt4(quantity)) throw tooBig()
+      const totalCostCents = netLineCents(
+        line.grossCostCents,
+        quantity,
         product.fixedDiscountPerPiece,
         product.promotionPerPiece,
       )
-      if (net < 0) {
+      if (totalCostCents < 0) {
         throw new AppError(
           'invalid',
-          'El descuento y la promoción no pueden superar el precio de lista.',
+          'El descuento y la promoción no pueden superar el costo antes de descuentos.',
         )
       }
-      const costPerBox = netCostPerBoxCents(net, product.factor)
-      const quantity = line.boxes * product.factor
-      const totalCostCents = costPerBox * line.boxes
-      if (!fitsInt4(quantity) || !fitsInt4(totalCostCents)) throw tooBig()
       return {
         productId: line.productId,
         quantity,
         totalCostCents,
         boxFactor: product.factor,
-        listPricePerPiece: line.listPricePerPiece,
+        grossCostCents: line.grossCostCents,
         fixedDiscountPerPiece: product.fixedDiscountPerPiece,
         promotionPerPiece: product.promotionPerPiece,
       }

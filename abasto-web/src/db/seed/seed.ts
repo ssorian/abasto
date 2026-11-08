@@ -225,9 +225,10 @@ export async function seedDatabase({
     catalog.set(seed.sku, { seed, product })
   }
   const item = (sku: string) => catalog.get(sku)!
-  // List price per piece typed in the orders (ten-thousandths of a peso), from the seed's box cost.
-  const listPriceOf = (seed: SeedProduct) =>
-    Math.round((seed.boxCostCents * 100) / seed.boxFactor)
+  // Cost typed in the orders before discounts (cents): the seed's box cost × boxes. The seed
+  // products carry no fixed discount or promotion, so the net cost equals it.
+  const grossCostOf = (seed: SeedProduct, boxes: number) =>
+    seed.boxCostCents * boxes
   const boxOf = (sku: string) =>
     item(sku).product.presentations.find(
       (p) => p.factor === item(sku).seed.boxFactor,
@@ -284,11 +285,14 @@ export async function seedDatabase({
       supplierId: supplierId[supplierKey],
       warehouseId: warehouseId[warehouse],
       reference,
-      lines: lines.map((line) => ({
-        productId: line.productId,
-        boxes: line.boxes + (damaged[line.seed.sku] ?? 0),
-        listPricePerPiece: listPriceOf(line.seed),
-      })),
+      lines: lines.map((line) => {
+        const boxes = line.boxes + (damaged[line.seed.sku] ?? 0)
+        return {
+          productId: line.productId,
+          boxes,
+          grossCostCents: grossCostOf(line.seed, boxes),
+        }
+      }),
     })
     const stored = await getSupplierOrder(actor, order.id)
     return receiveSupplierOrder(actor, {
@@ -349,7 +353,7 @@ export async function seedDatabase({
     lines: waiting.slice(0, 2).map((seed) => ({
       productId: item(seed.sku).product.id,
       boxes: 4,
-      listPricePerPiece: listPriceOf(seed),
+      grossCostCents: grossCostOf(seed, 4),
     })),
   })
 

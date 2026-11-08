@@ -1,5 +1,6 @@
-import { AlertTriangleIcon } from 'lucide-react'
+import { AlertTriangleIcon, PencilIcon } from 'lucide-react'
 
+import { formatTenThousandths } from '#/lib/utils/supplier-cost'
 import { FieldInput } from '#/modules/inventory/components/form-controls'
 import {
   ListBody,
@@ -11,8 +12,8 @@ import {
 } from '#/modules/inventory/components/list-panel'
 import { formatCents } from '#/modules/inventory/lib/cents'
 import { packInfoOf } from '#/modules/inventory/lib/pack-info'
-import { formatTenThousandths } from '#/modules/inventory/lib/supplier-cost'
 import {
+  NET_ABOVE_GROSS_MESSAGE,
   rowOf,
   rowWarnings,
 } from '#/modules/inventory/lib/supplier-order-draft'
@@ -23,11 +24,13 @@ type OrderTableProps = {
   /** Products of the chosen supplier, already filtered by the search. */
   products: ReadonlyArray<CatalogProduct>
   boxes: OrderDraft['boxes']
-  prices: OrderDraft['prices']
-  /** Standard price per box by product id for the receiving warehouse. */
+  costs: OrderDraft['costs']
+  /** Standard price per box by product id; only drives the warning, it is never shown. */
   standardByProductId: Readonly<Partial<Record<string, number>>>
   onBoxes: (productId: string, boxes: string) => void
-  onPrice: (productId: string, price: string) => void
+  onCost: (productId: string, cost: string) => void
+  /** Opens the catalog editor of a product; absent for users who cannot edit products. */
+  onEdit?: (productId: string) => void
 }
 
 const compact = 'min-h-[38px] px-2 py-1.5'
@@ -38,14 +41,15 @@ function boxLabel(product: CatalogProduct) {
   return factor === 1 ? packName : `${packName} · ${factor} ${unit}`
 }
 
-/** One row per supplier product: boxes and list price typed; discounts, cost and sale price read-only. */
+/** One row per supplier product: boxes and the cost before discounts typed; the rest is derived. */
 export function OrderTable({
   products,
   boxes,
-  prices,
+  costs,
   standardByProductId,
   onBoxes,
-  onPrice,
+  onCost,
+  onEdit,
 }: OrderTableProps) {
   if (!products.length) {
     return (
@@ -56,31 +60,46 @@ export function OrderTable({
   }
   return (
     <ListPanel className="max-h-[420px] overflow-auto">
-      <ListTable className="min-w-[1040px]">
+      <ListTable className="min-w-[1080px]">
         <ListHead>
           {[
             'Producto',
             'Cajas',
+            'Costo antes de descuentos',
             'Precio x pieza',
-            'Desc. fijo x pieza',
-            'Promo x pieza',
+            'Desc. fijo',
+            'Promo',
             'Costo neto x caja',
-            'Total',
-            'Precio de salida',
+            'Costo total',
           ]}
         </ListHead>
         <ListBody>
           {products.map((product) => {
             const standard = standardByProductId[product.id]
-            const row = rowOf(product, boxes[product.id], prices[product.id])
+            const row = rowOf(product, boxes[product.id], costs[product.id])
             const warnings = rowWarnings(row, standard)
             return (
               <ListRow key={product.id} className="align-top">
                 <ListCell>
-                  <strong>{product.name}</strong>
-                  <small className="block text-[#907e84]">
-                    {boxLabel(product)}
-                  </small>
+                  <span className="flex items-start justify-between gap-2">
+                    <span>
+                      <strong>{product.name}</strong>
+                      <small className="block text-[#907e84]">
+                        {boxLabel(product)}
+                      </small>
+                    </span>
+                    {onEdit && (
+                      <button
+                        type="button"
+                        aria-label={`Editar ${product.name}`}
+                        title="Editar producto"
+                        className="shrink-0 rounded-md p-1.5 text-[#907e84] hover:bg-[#f4eef0] hover:text-[#5f4a51]"
+                        onClick={() => onEdit(product.id)}
+                      >
+                        <PencilIcon size={15} />
+                      </button>
+                    )}
+                  </span>
                   {warnings.map((warning) => (
                     <small
                       key={warning}
@@ -109,14 +128,21 @@ export function OrderTable({
                 <ListCell>
                   <FieldInput
                     inputMode="decimal"
-                    aria-label={`Precio por pieza de ${product.name}`}
-                    className={`${compact} w-[100px]`}
-                    placeholder="0.0000"
-                    value={prices[product.id] ?? ''}
-                    onChange={(event) =>
-                      onPrice(product.id, event.target.value)
-                    }
+                    aria-label={`Costo antes de descuentos de ${product.name}`}
+                    aria-invalid={row.exceedsGross || undefined}
+                    className={`${compact} w-[120px]`}
+                    placeholder="0.00"
+                    value={costs[product.id] ?? ''}
+                    onChange={(event) => onCost(product.id, event.target.value)}
                   />
+                  {row.exceedsGross && (
+                    <small className="mt-1 block max-w-[200px] text-[#b3414b]">
+                      {NET_ABOVE_GROSS_MESSAGE}
+                    </small>
+                  )}
+                </ListCell>
+                <ListCell className="whitespace-nowrap">
+                  {formatTenThousandths(row.listPrice)}
                 </ListCell>
                 <ListCell className="whitespace-nowrap">
                   {formatTenThousandths(product.fixedDiscountPerPiece)}
@@ -125,13 +151,10 @@ export function OrderTable({
                   {formatTenThousandths(product.promotionPerPiece)}
                 </ListCell>
                 <ListCell className="whitespace-nowrap">
-                  {formatCents(row.costPerBoxCents)}
+                  {formatCents(row.netPerBoxCents)}
                 </ListCell>
                 <ListCell className="whitespace-nowrap">
-                  {formatCents(row.totalCents)}
-                </ListCell>
-                <ListCell className="whitespace-nowrap">
-                  {standard === undefined ? '—' : formatCents(standard)}
+                  {formatCents(row.netLineCents)}
                 </ListCell>
               </ListRow>
             )

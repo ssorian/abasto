@@ -6,9 +6,8 @@ import type { Actor } from '#/modules/access/lib/policy'
 import { products, suppliers } from '#/modules/catalog/db/schema'
 import { purchaseLines, purchases } from '#/modules/inventory/db/schema'
 import type { PurchaseStatus } from '#/modules/inventory/db/schema'
+import { listPricePerPieceOf } from '#/lib/utils/supplier-cost'
 import { divideHalfUp } from '#/modules/inventory/lib/pending-value'
-import { authorizeSupplierBalance } from '#/modules/inventory/services/supplier-balance'
-import { requireSupplier } from '#/modules/inventory/services/stock-ledger'
 import { requireWarehouse } from '#/modules/pricing/services/price-reads'
 
 export const orderNotFound = () =>
@@ -74,8 +73,11 @@ export type SupplierOrderLine = {
   boxes: number
   /** Ordered base units. */
   quantity: number
-  /** Cost breakdown per piece (ten-thousandths of a peso) frozen with the order. */
+  /** Cost typed in the order in cents, before the fixed discount and promotion. */
+  grossCostCents: number
+  /** Gross ÷ pieces in ten-thousandths of a peso; derived, never stored. */
   listPricePerPiece: number
+  /** Discount and promotion per piece (ten-thousandths) frozen with the order. */
   fixedDiscountPerPiece: number
   promotionPerPiece: number
   totalCostCents: number
@@ -132,7 +134,7 @@ export async function getSupplierOrder(
       sku: products.sku,
       boxFactor: purchaseLines.boxFactor,
       quantity: purchaseLines.quantity,
-      listPricePerPiece: purchaseLines.listPricePerPiece,
+      grossCostCents: purchaseLines.grossCostCents,
       fixedDiscountPerPiece: purchaseLines.fixedDiscountPerPiece,
       promotionPerPiece: purchaseLines.promotionPerPiece,
       totalCostCents: purchaseLines.totalCostCents,
@@ -150,6 +152,7 @@ export async function getSupplierOrder(
     const received = row.goodQuantity !== null && row.damagedQuantity !== null
     return {
       ...row,
+      listPricePerPiece: listPricePerPieceOf(row.grossCostCents, row.quantity),
       boxes,
       costPerBoxCents: divideHalfUp(
         BigInt(row.totalCostCents),
@@ -161,39 +164,4 @@ export async function getSupplierOrder(
     }
   })
   return { ...order, lines }
-}
-
-export type LastSupplierCost = {
-  productId: string
-  /** Ten-thousandths of a peso. */
-  listPricePerPiece: number
-}
-
-/**
- * The list price per piece of the most recent order line (by order creation)
- * of each product of a supplier, to prefill the next order. Products never
- * ordered are absent.
- */
-export async function lastSupplierCosts(
-  actor: Actor,
-  supplierId: string,
-): Promise<Array<LastSupplierCost>> {
-  authorizeSupplierBalance(actor)
-  return db.transaction(async (tx) => {
-    await requireSupplier(tx, supplierId)
-    return tx
-      .selectDistinctOn([purchaseLines.productId], {
-        productId: purchaseLines.productId,
-        listPricePerPiece: purchaseLines.listPricePerPiece,
-      })
-      .from(purchaseLines)
-      .innerJoin(purchases, eq(purchases.id, purchaseLines.purchaseId))
-      .innerJoin(products, eq(products.id, purchaseLines.productId))
-      .where(eq(products.supplierId, supplierId))
-      .orderBy(
-        asc(purchaseLines.productId),
-        desc(purchases.createdAt),
-        desc(purchaseLines.id),
-      )
-  })
 }

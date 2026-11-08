@@ -71,6 +71,7 @@ function InventoryRoute() {
   const { q } = Route.useSearch()
   const { overview, products, suppliers, transfers, supplierOrders, pendings } =
     Route.useLoaderData()
+  const { user } = Route.useRouteContext()
   const navigate = Route.useNavigate()
   return (
     <InventoryPage
@@ -79,6 +80,7 @@ function InventoryRoute() {
       overview={overview}
       products={products}
       suppliers={suppliers}
+      canEditProducts={user?.role === 'owner'}
       transfers={transfers}
       supplierOrders={[...supplierOrders]}
       pendings={{ owed: [...pendings.owed], history: [...pendings.history] }}

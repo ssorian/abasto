@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { ProductFormDialog } from '#/modules/catalog/forms/product-form-dialog'
+import { useCatalogActions } from '#/modules/catalog/hooks/use-catalog'
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import {
   Field,
@@ -34,26 +36,31 @@ type OrderDialogProps = {
   initialWarehouseId: string
   suppliers: ReadonlyArray<CatalogSupplier>
   products: ReadonlyArray<CatalogProduct>
+  /** Whether the actor may edit catalog products (owner). */
+  canEditProducts: boolean
   onClose: () => void
 }
 
-/** Order to a supplier: its products, boxes and list price per product; discounts and the sale price come from the catalog. */
+/** Order to a supplier: its products, boxes and the cost before discounts per product; discounts and promotions come from the catalog. */
 export function OrderDialog({
   warehouses,
   initialWarehouseId,
   suppliers,
   products,
+  canEditProducts,
   onClose,
 }: OrderDialogProps) {
   const actions = useInventoryActions()
+  const catalogActions = useCatalogActions()
   const [draft, setDraft] = useState<OrderDraft>(() => ({
     supplierId: '',
     warehouseId: initialWarehouseId,
     expectedOn: '',
     reference: '',
     boxes: {},
-    prices: {},
+    costs: {},
   }))
+  const [editingId, setEditingId] = useState<string>()
   const [query, setQuery] = useState('')
   const [standard, setStandard] = useState<Record<string, number>>({})
   const [error, setError] = useState<string | null>(null)
@@ -69,18 +76,6 @@ export function OrderDialog({
       current = false
     }
   }, [draft.warehouseId])
-
-  // Prefill the list prices from the last order of each product of the supplier.
-  useEffect(() => {
-    if (!draft.supplierId) return
-    let current = true
-    void actions.loadLastPrices(draft.supplierId).then((prices) => {
-      if (current) setDraft((state) => ({ ...state, prices }))
-    })
-    return () => {
-      current = false
-    }
-  }, [draft.supplierId])
 
   const own = useMemo(
     () => supplierProducts(products, draft.supplierId, ''),
@@ -102,130 +97,145 @@ export function OrderDialog({
     if (saved) onClose()
   }
 
+  const editing = products.find(({ id }) => id === editingId)
+
   return (
-    <InventoryDialog
-      title="Nuevo pedido al proveedor"
-      eyebrow="POR RECIBIR"
-      description="Elige el proveedor y escribe las cajas y el precio por pieza. El pedido no mueve existencias: espera en «Por recibir» hasta que llegue y lo verifiques. El descuento, la promoción y el precio de salida vienen del catálogo."
-      size="wide"
-      onClose={onClose}
-    >
-      <form
-        className="grid gap-4"
-        onSubmit={(event) => {
-          event.preventDefault()
-          void submit()
-        }}
+    <>
+      <InventoryDialog
+        title="Nuevo pedido al proveedor"
+        eyebrow="POR RECIBIR"
+        description="Elige el proveedor y escribe las cajas y el costo antes de descuentos de cada producto. El descuento y la promoción vienen del catálogo y se descuentan para obtener el costo neto. El pedido no mueve existencias: espera en «Por recibir» hasta que llegue y lo verifiques."
+        size="wide"
+        onClose={onClose}
       >
-        <FormGrid>
-          <Field label="Proveedor">
-            <FieldSelect
-              value={draft.supplierId}
-              onChange={(event) => {
-                setQuery('')
-                setDraft({
-                  ...draft,
-                  supplierId: event.target.value,
-                  boxes: {},
-                  prices: {},
-                })
-              }}
-            >
-              <option value="">Selecciona un proveedor</option>
-              {suppliers
-                .filter((supplier) => supplier.active)
-                .map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.name}
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void submit()
+          }}
+        >
+          <FormGrid>
+            <Field label="Proveedor">
+              <FieldSelect
+                value={draft.supplierId}
+                onChange={(event) => {
+                  setQuery('')
+                  setDraft({
+                    ...draft,
+                    supplierId: event.target.value,
+                    boxes: {},
+                    costs: {},
+                  })
+                }}
+              >
+                <option value="">Selecciona un proveedor</option>
+                {suppliers
+                  .filter((supplier) => supplier.active)
+                  .map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </option>
+                  ))}
+              </FieldSelect>
+            </Field>
+            <Field label="Almacén que recibe">
+              <FieldSelect
+                value={draft.warehouseId}
+                onChange={(event) =>
+                  setDraft({ ...draft, warehouseId: event.target.value })
+                }
+              >
+                {warehouses.map((warehouse) => (
+                  <option key={warehouse.id} value={warehouse.id}>
+                    {warehouse.name}
                   </option>
                 ))}
-            </FieldSelect>
-          </Field>
-          <Field label="Almacén que recibe">
-            <FieldSelect
-              value={draft.warehouseId}
-              onChange={(event) =>
-                setDraft({ ...draft, warehouseId: event.target.value })
-              }
-            >
-              {warehouses.map((warehouse) => (
-                <option key={warehouse.id} value={warehouse.id}>
-                  {warehouse.name}
-                </option>
-              ))}
-            </FieldSelect>
-          </Field>
-          <Field label="Fecha esperada de entrega (opcional)">
-            <FieldInput
-              type="date"
-              value={draft.expectedOn}
-              onChange={(event) =>
-                setDraft({ ...draft, expectedOn: event.target.value })
-              }
-            />
-          </Field>
-        </FormGrid>
-        <Field label="Folio o referencia (opcional)">
-          <FieldInput
-            value={draft.reference}
-            onChange={(event) =>
-              setDraft({ ...draft, reference: event.target.value })
-            }
-          />
-        </Field>
-        {draft.supplierId ? (
-          <>
-            <SearchBox
-              label="Buscar producto"
-              placeholder="Buscar por nombre o SKU"
-              value={query}
-              onChange={setQuery}
-            />
-            {own.length ? (
-              <OrderTable
-                products={visible}
-                boxes={draft.boxes}
-                prices={draft.prices}
-                standardByProductId={standard}
-                onBoxes={(productId, boxes) =>
-                  setDraft((current) => ({
-                    ...current,
-                    boxes: { ...current.boxes, [productId]: boxes },
-                  }))
-                }
-                onPrice={(productId, price) =>
-                  setDraft((current) => ({
-                    ...current,
-                    prices: { ...current.prices, [productId]: price },
-                  }))
+              </FieldSelect>
+            </Field>
+            <Field label="Fecha esperada de entrega (opcional)">
+              <FieldInput
+                type="date"
+                value={draft.expectedOn}
+                onChange={(event) =>
+                  setDraft({ ...draft, expectedOn: event.target.value })
                 }
               />
-            ) : (
-              <p className="py-6 text-center text-sm text-[#907e84]">
-                Este proveedor aún no tiene productos en el catálogo.
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="py-6 text-center text-sm text-[#907e84]">
-            Selecciona un proveedor para ver sus productos.
-          </p>
-        )}
-        {error && <FormError>{error}</FormError>}
-        <DialogActions>
-          <strong className="text-base text-[#5f4a51]">
-            Total del pedido: {formatCents(total)}
-          </strong>
-          <span className="flex gap-3">
-            <ActionButton type="button" onClick={onClose}>
-              Cancelar
-            </ActionButton>
-            <ActionButton tone="primary" type="submit" disabled={pending}>
-              {pending ? 'Guardando…' : 'Registrar pedido'}
-            </ActionButton>
-          </span>
-        </DialogActions>
-      </form>
-    </InventoryDialog>
+            </Field>
+          </FormGrid>
+          <Field label="Folio o referencia (opcional)">
+            <FieldInput
+              value={draft.reference}
+              onChange={(event) =>
+                setDraft({ ...draft, reference: event.target.value })
+              }
+            />
+          </Field>
+          {draft.supplierId ? (
+            <>
+              <SearchBox
+                label="Buscar producto"
+                placeholder="Buscar por nombre o SKU"
+                value={query}
+                onChange={setQuery}
+              />
+              {own.length ? (
+                <OrderTable
+                  products={visible}
+                  boxes={draft.boxes}
+                  costs={draft.costs}
+                  standardByProductId={standard}
+                  onBoxes={(productId, boxes) =>
+                    setDraft((current) => ({
+                      ...current,
+                      boxes: { ...current.boxes, [productId]: boxes },
+                    }))
+                  }
+                  onCost={(productId, cost) =>
+                    setDraft((current) => ({
+                      ...current,
+                      costs: { ...current.costs, [productId]: cost },
+                    }))
+                  }
+                  onEdit={canEditProducts ? setEditingId : undefined}
+                />
+              ) : (
+                <p className="py-6 text-center text-sm text-[#907e84]">
+                  Este proveedor aún no tiene productos en el catálogo.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="py-6 text-center text-sm text-[#907e84]">
+              Selecciona un proveedor para ver sus productos.
+            </p>
+          )}
+          {error && <FormError>{error}</FormError>}
+          <DialogActions>
+            <strong className="text-base text-[#5f4a51]">
+              Total del pedido (neto): {formatCents(total)}
+            </strong>
+            <span className="flex gap-3">
+              <ActionButton type="button" onClick={onClose}>
+                Cancelar
+              </ActionButton>
+              <ActionButton tone="primary" type="submit" disabled={pending}>
+                {pending ? 'Guardando…' : 'Registrar pedido'}
+              </ActionButton>
+            </span>
+          </DialogActions>
+        </form>
+      </InventoryDialog>
+      {canEditProducts && editing && (
+        // Saving reloads the products, so the rows recalculate with the new discount and promotion.
+        <ProductFormDialog
+          key={editing.id}
+          product={editing}
+          suppliers={suppliers}
+          onSubmit={(edited) => catalogActions.saveProduct(editing.id, edited)}
+          onClose={() => setEditingId(undefined)}
+        />
+      )}
+    </>
   )
 }

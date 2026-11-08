@@ -48,3 +48,33 @@ export function netCostPerBoxCents(netPerPiece: number, factor: number) {
   const total = BigInt(netPerPiece) * BigInt(factor)
   return Number((total + 50n) / 100n)
 }
+
+const divideHalfUp = (numerator: bigint, divisor: bigint) =>
+  Number((numerator * 2n + divisor) / (divisor * 2n))
+
+/** List price per piece in ten-thousandths from the gross line cost in cents, half up. */
+export function listPricePerPieceOf(grossCents: number, quantity: number) {
+  if (quantity <= 0) return 0
+  return divideHalfUp(BigInt(grossCents) * 100n, BigInt(quantity))
+}
+
+/**
+ * Net line cost in cents: gross − pieces × (discount + promotion), the discount
+ * (ten-thousandths per piece) rounded half up to cents once. Negative when the
+ * discounts exceed the gross; callers reject that.
+ */
+export function netLineCents(
+  grossCents: number,
+  quantity: number,
+  fixedDiscount: number,
+  promotion: number,
+) {
+  const discount = BigInt(quantity) * BigInt(fixedDiscount + promotion)
+  return grossCents - divideHalfUp(discount, 100n)
+}
+
+/** Net cost per box for display: net line cost ÷ boxes in cents, half up. */
+export function netPerBoxOfLineCents(netLine: number, boxes: number) {
+  if (boxes <= 0) return 0
+  return divideHalfUp(BigInt(netLine), BigInt(boxes))
+}

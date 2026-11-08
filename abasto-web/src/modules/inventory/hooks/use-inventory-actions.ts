@@ -13,13 +13,11 @@ import {
 import {
   cancelSupplierOrderFn,
   createSupplierOrderFn,
-  lastSupplierCostsFn,
   receiveSupplierOrderFn,
   supplierOrderFn,
   writeOffPendingsFn,
 } from '#/modules/inventory/server/supplier-orders'
 import { formatCents } from '#/modules/inventory/lib/cents'
-import { prefilledPrices } from '#/modules/inventory/lib/supplier-order-draft'
 import type { ReceptionInput } from '#/modules/inventory/services/supplier-reception'
 import type {
   SupplierOrder,
@@ -85,17 +83,6 @@ export function useInventoryActions() {
       } catch (failure) {
         toast.error(messageOf(failure))
         return undefined
-      }
-    },
-    /** Last list price per product of a supplier; a failure just leaves the fields empty. */
-    async loadLastPrices(supplierId: string): Promise<Record<string, string>> {
-      try {
-        return prefilledPrices(
-          unwrap(await lastSupplierCostsFn({ data: { supplierId } })),
-        )
-      } catch (failure) {
-        toast.error(messageOf(failure))
-        return {}
       }
     },
     /** Standard prices are shown read-only: a failure must not block the order. */

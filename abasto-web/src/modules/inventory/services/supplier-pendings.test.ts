@@ -37,12 +37,12 @@ async function receiveMilk(
   good: number,
   damaged: number,
   replacements?: Array<{ productId: string; boxes: number }>,
-  listPricePerPiece?: number,
+  grossCostCents?: number,
 ) {
   const created = await createSupplierOrder(fx.owner, {
     supplierId: fx.supplier.id,
     warehouseId: fx.a.id,
-    lines: [lineFor(fx.milk, boxes, listPricePerPiece)],
+    lines: [lineFor(fx.milk, boxes, grossCostCents)],
   })
   const order = await getSupplierOrder(fx.owner, created.id)
   return receiveSupplierOrder(fx.owner, {
@@ -103,7 +103,7 @@ describe('replacements', () => {
       4,
       0,
       [{ productId: fx.milk.id, boxes: 2 }],
-      20000,
+      9600,
     )
     expect(result.lots[0]).toMatchObject({
       receivedCostCents: 9216,
@@ -146,7 +146,7 @@ describe('replacements', () => {
   test('values replacements with the oldest owed entries first', async () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 6, 1, 0) // 5 boxes missing at 1344
-    await receiveMilk(fx, 4, 0, 2, undefined, 20000) // 2 damaged + 2 missing at 2304
+    await receiveMilk(fx, 4, 0, 2, undefined, 9600) // 2 damaged + 2 missing at 2304
     expect(await owedMilk(fx)).toMatchObject({
       owedBoxes: 9,
       owedValueCents: 6720 + 4 * 2304,

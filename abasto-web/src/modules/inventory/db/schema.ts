@@ -95,11 +95,12 @@ export const purchaseLines = pgTable(
     /** Ordered base units. */
     quantity: integer('quantity').notNull(),
     /**
-     * Supplier cost breakdown per piece in ten-thousandths of a peso, as of the
-     * order: the list price typed in the line, and the product's discount and
-     * promotion copied then. Net per piece = list − discount − promotion.
+     * Cost typed in the order line, in integer cents before the fixed discount
+     * and promotion. The discount and promotion are the product's, copied per
+     * piece (ten-thousandths of a peso) when the order was made; the net line
+     * cost (total_cost_cents) = gross − pieces × (discount + promotion).
      */
-    listPricePerPiece: integer('list_price_per_piece').notNull().default(0),
+    grossCostCents: integer('gross_cost_cents').notNull().default(0),
     fixedDiscountPerPiece: integer('fixed_discount_per_piece')
       .notNull()
       .default(0),
@@ -121,7 +122,7 @@ export const purchaseLines = pgTable(
     check('purchase_lines_box_factor_min', sql`${table.boxFactor} > 0`),
     check(
       'purchase_lines_supplier_amounts_min',
-      sql`${table.listPricePerPiece} >= 0 and ${table.fixedDiscountPerPiece} >= 0 and ${table.promotionPerPiece} >= 0`,
+      sql`${table.grossCostCents} >= 0 and ${table.fixedDiscountPerPiece} >= 0 and ${table.promotionPerPiece} >= 0`,
     ),
     check(
       'purchase_lines_reception_range',

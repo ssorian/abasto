@@ -17,7 +17,6 @@ import {
   cancelSupplierOrder,
   createSupplierOrder,
   getSupplierOrder,
-  lastSupplierCosts,
   listSupplierOrders,
   receiveSupplierOrder,
 } from '#/modules/inventory/services/supplier-orders'
@@ -61,7 +60,7 @@ async function rejectsCreate(
 }
 
 describe('createSupplierOrder', () => {
-  test('stores a Pedido priced from the typed list price and moves no stock', async () => {
+  test('stores a Pedido at the typed gross cost, netting the discounts, and moves no stock', async () => {
     const fx = await setupSupplierOrders()
     const created = await createSupplierOrder(fx.managerA, orderOf(fx))
     expect(created).toEqual({ id: expect.any(String) })
@@ -81,6 +80,7 @@ describe('createSupplierOrder', () => {
       boxes: 10,
       quantity: 120,
       totalCostCents: 13440,
+      grossCostCents: 14400,
       listPricePerPiece: 12000,
       fixedDiscountPerPiece: 500,
       promotionPerPiece: 300,
@@ -91,6 +91,8 @@ describe('createSupplierOrder', () => {
       productId: fx.soda.id,
       quantity: 48,
       totalCostCents: 4032,
+      grossCostCents: 4032,
+      listPricePerPiece: 8400,
     })
     const state = await supplierState()
     expect(state.inventory.lots).toEqual([])
@@ -98,7 +100,7 @@ describe('createSupplierOrder', () => {
     expect(state.pendings).toEqual([])
   })
 
-  test('accepts a zero list price at no cost', async () => {
+  test('accepts a zero gross cost at no cost', async () => {
     const fx = await setupSupplierOrders()
     const created = await createSupplierOrder(
       fx.owner,
@@ -108,61 +110,88 @@ describe('createSupplierOrder', () => {
     expect(order.lines[0]).toMatchObject({
       quantity: 18,
       totalCostCents: 0,
+      grossCostCents: 0,
       listPricePerPiece: 0,
     })
   })
 
-  test('net cost per box is rounded half up before multiplying by the boxes', async () => {
+  test('the discount is rounded once on the whole line, half up', async () => {
     const fx = await setupSupplierOrders()
-    // 0.0025 × 6 pieces = 0.0150 → 1.5 cents → 2 cents per box; 3 boxes = 6 cents.
+    await updateProduct(fx.owner, fx.free.id, {
+      fixedDiscountPerPiece: 25,
+      promotionPerPiece: 0,
+    })
+    // 18 pieces × 0.0025 = 0.0450 → 4.5 cents → 5; per box (2.5 → 3) × 3 would be 9.
     const created = await createSupplierOrder(
       fx.owner,
-      orderOf(fx, { lines: [lineFor(fx.free, 3, 25)] }),
+      orderOf(fx, { lines: [lineFor(fx.free, 3, 10)] }),
     )
     const order = await getSupplierOrder(fx.owner, created.id)
     expect(order.lines[0]).toMatchObject({
-      totalCostCents: 6,
+      totalCostCents: 5,
+      grossCostCents: 10,
       costPerBoxCents: 2,
     })
   })
 
-  test('a discount and promotion equal to the list price cost nothing', async () => {
+  test('the worked example: 192 boxes of 12 for 77000.00 net 71562.56', async () => {
     const fx = await setupSupplierOrders()
+    await updateProduct(fx.owner, fx.milk.id, {
+      fixedDiscountPerPiece: 800,
+      promotionPerPiece: 22800,
+    })
     const created = await createSupplierOrder(
       fx.owner,
-      orderOf(fx, { lines: [lineFor(fx.milk, 2, 800)] }),
+      orderOf(fx, { lines: [lineFor(fx.milk, 192, 7_700_000)] }),
+    )
+    const order = await getSupplierOrder(fx.owner, created.id)
+    expect(order.lines[0]).toMatchObject({
+      quantity: 2304,
+      grossCostCents: 7_700_000,
+      totalCostCents: 7_156_256,
+      listPricePerPiece: 334201,
+      costPerBoxCents: 37272,
+    })
+  })
+
+  test('a discount and promotion equal to the gross cost cost nothing', async () => {
+    const fx = await setupSupplierOrders()
+    // 24 pieces × 0.0800 = 1.92.
+    const created = await createSupplierOrder(
+      fx.owner,
+      orderOf(fx, { lines: [lineFor(fx.milk, 2, 192)] }),
     )
     const order = await getSupplierOrder(fx.owner, created.id)
     expect(order.lines[0].totalCostCents).toBe(0)
   })
 
-  test('rejects discount plus promotion above the list price and bad amounts', async () => {
+  test('rejects discount plus promotion above the gross cost and bad amounts', async () => {
     const fx = await setupSupplierOrders()
     const net =
-      'El descuento y la promoción no pueden superar el precio de lista.'
+      'El descuento y la promoción no pueden superar el costo antes de descuentos.'
     const bad =
-      'Los montos del proveedor deben ser enteros en diezmilésimas, de cero o más.'
-    // Milk carries 0.0500 + 0.0300 per piece on the product.
+      'El costo antes de descuentos debe ser un entero en centavos, de cero o más.'
+    // Milk carries 0.0500 + 0.0300 per piece on the product: 1.92 for 2 boxes.
     await rejectsCreate(
       fx,
-      orderOf(fx, { lines: [lineFor(fx.milk, 1, 799)] }),
+      orderOf(fx, { lines: [lineFor(fx.milk, 2, 191)] }),
       'invalid',
       net,
     )
-    for (const price of [-1, 1.5, Number.NaN, 2 ** 53, 2_147_483_648]) {
+    await rejectsCreate(
+      fx,
+      orderOf(fx, { lines: [lineFor(fx.milk, 1, 0)] }),
+      'invalid',
+      net,
+    )
+    for (const gross of [-1, 1.5, Number.NaN, 2 ** 53, 2_147_483_648]) {
       await rejectsCreate(
         fx,
-        orderOf(fx, { lines: [lineFor(fx.milk, 1, price)] }),
+        orderOf(fx, { lines: [lineFor(fx.milk, 1, gross)] }),
         'invalid',
         bad,
       )
     }
-    await rejectsCreate(
-      fx,
-      orderOf(fx, { lines: [lineFor(fx.milk, 10, 2_147_483_647)] }),
-      'invalid',
-      'El pedido es demasiado grande.',
-    )
   })
 
   test('rejects invalid orders and leaves everything unchanged', async () => {
@@ -192,7 +221,7 @@ describe('createSupplierOrder', () => {
         'Las cajas deben ser un número entero mayor que cero.',
       ],
       [
-        { lines: [lineFor(fx.milk, 999_999_999)] },
+        { lines: [lineFor(fx.milk, 999_999_999, 100_000)] },
         'invalid',
         'El pedido es demasiado grande.',
       ],
@@ -665,6 +694,7 @@ describe('legacy and listing', () => {
         (line) => line.productId === fx.milk.id,
       ),
     ).toMatchObject({
+      grossCostCents: 14400,
       listPricePerPiece: 12000,
       fixedDiscountPerPiece: 500,
       promotionPerPiece: 300,
@@ -757,6 +787,72 @@ describe('migration 0019: legacy lines get the box factor of their product', () 
   })
 })
 
+describe('migration 0020: legacy lines get a gross cost', () => {
+  /** The data statement of the migration file, run as shipped on the pre-migration column. */
+  const convert = () => {
+    const file = readFileSync(
+      new URL(
+        '../../../../drizzle/0020_order_line_gross_cost.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    )
+    return file
+      .split('--> statement-breakpoint')
+      .find((part) => part.includes('UPDATE "purchase_lines"'))!
+  }
+
+  test('derives the gross cost from the list price, else from the net cost plus discounts', async () => {
+    const fx = await setupSupplierOrders()
+    await createSupplierOrder(fx.owner, orderOf(fx))
+    await createPurchase(fx.owner, {
+      supplierId: fx.supplier.id,
+      warehouseId: fx.a.id,
+      purchasedOn: '2026-11-01',
+      lines: [{ productId: fx.free.id, quantity: 18, totalCostCents: 1000 }],
+    })
+    const rollback = new Error('rollback')
+    const gross = await db
+      .transaction(async (tx) => {
+        await tx.execute(
+          sql`ALTER TABLE purchase_lines ADD COLUMN list_price_per_piece integer NOT NULL DEFAULT 0`,
+        )
+        // Pre-migration shape: milk was ordered at list 1.2000; soda and the direct purchase had none.
+        await tx.execute(
+          sql`UPDATE purchase_lines SET gross_cost_cents = 0, list_price_per_piece = 0`,
+        )
+        await tx
+          .update(purchaseLines)
+          .set({ fixedDiscountPerPiece: 25 })
+          .where(eq(purchaseLines.productId, fx.free.id))
+        await tx.execute(
+          sql`UPDATE purchase_lines SET list_price_per_piece = 12000 WHERE product_id = ${fx.milk.id}`,
+        )
+        await tx.execute(sql.raw(convert()))
+        const rows = await tx
+          .select({
+            productId: purchaseLines.productId,
+            gross: purchaseLines.grossCostCents,
+          })
+          .from(purchaseLines)
+        throw Object.assign(rollback, {
+          gross: Object.fromEntries(
+            rows.map((row) => [row.productId, row.gross]),
+          ),
+        })
+      })
+      .catch((failure: Error & { gross?: Record<string, number> }) => {
+        if (failure !== rollback) throw failure
+        return failure.gross
+      })
+    expect(gross).toEqual({
+      [fx.milk.id]: 14400, // 120 pieces × 1.2000
+      [fx.soda.id]: 4032, // net cost, no discounts
+      [fx.free.id]: 1005, // 1000 + round(18 × 0.0025 = 4.5 cents) → 5
+    })
+  })
+})
+
 describe('box factor of an order line', () => {
   test('is the default presentation even when it is inactive', async () => {
     const fx = await setupSupplierOrders()
@@ -769,69 +865,5 @@ describe('box factor of an order line', () => {
     expect(
       detail.lines.find((line) => line.productId === fx.milk.id)?.boxFactor,
     ).toBe(boxOf(fx.milk).factor)
-  })
-})
-
-describe('lastSupplierCosts', () => {
-  const place = (fx: SupplierFixture, milk: number, soda?: number) =>
-    createSupplierOrder(
-      fx.owner,
-      orderOf(fx, {
-        lines: [
-          lineFor(fx.milk, 1, milk),
-          ...(soda === undefined ? [] : [lineFor(fx.soda, 1, soda)]),
-        ],
-      }),
-    )
-
-  test('is empty before any order', async () => {
-    const fx = await setupSupplierOrders()
-    expect(await lastSupplierCosts(fx.managerA, fx.supplier.id)).toEqual([])
-  })
-
-  test('returns the list price of the most recent order line of each product', async () => {
-    const fx = await setupSupplierOrders()
-    await place(fx, 12000, 8400)
-    await place(fx, 13000)
-    const costs = await lastSupplierCosts(fx.managerA, fx.supplier.id)
-    expect(
-      Object.fromEntries(
-        costs.map((row) => [row.productId, row.listPricePerPiece]),
-      ),
-    ).toEqual({ [fx.milk.id]: 13000, [fx.soda.id]: 8400 })
-    expect(costs).toHaveLength(2)
-    expect(Object.keys(costs[0]).sort()).toEqual([
-      'listPricePerPiece',
-      'productId',
-    ])
-  })
-
-  test('only covers the products of that supplier', async () => {
-    const fx = await setupSupplierOrders()
-    await place(fx, 12000)
-    await createSupplierOrder(fx.owner, {
-      supplierId: fx.cocaCola.id,
-      warehouseId: fx.a.id,
-      lines: [lineFor(fx.cola, 2, 9000)],
-    })
-    const costs = await lastSupplierCosts(fx.owner, fx.cocaCola.id)
-    expect(costs).toEqual([{ productId: fx.cola.id, listPricePerPiece: 9000 }])
-  })
-
-  test('refuses unknown suppliers and staff without a manager role', async () => {
-    const fx = await setupSupplierOrders()
-    const before = await supplierState()
-    const missing = await errorOf(() =>
-      lastSupplierCosts(fx.owner, crypto.randomUUID()),
-    )
-    expect([missing.code, missing.message]).toEqual([
-      'not_found',
-      'No encontramos ese proveedor.',
-    ])
-    const denied = await errorOf(() =>
-      lastSupplierCosts(fx.clerkA, fx.supplier.id),
-    )
-    expect([denied.code, denied.message]).toEqual(['forbidden', forbidden])
-    expect(await supplierState()).toEqual(before)
   })
 })

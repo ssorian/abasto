@@ -60,6 +60,8 @@ type InventoryPageProps = {
   overview: InventoryOverview
   products: Array<CatalogProduct>
   suppliers: Array<CatalogSupplier>
+  /** Whether the actor may edit catalog products (owner). */
+  canEditProducts: boolean
   transfers: TransfersOverview
   /** Supplier orders of the selected warehouse, newest first. */
   supplierOrders: Array<SupplierOrderSummary>
@@ -99,6 +101,7 @@ export function InventoryPage({
   overview,
   products,
   suppliers,
+  canEditProducts,
   transfers,
   supplierOrders,
   pendings,
@@ -306,6 +309,7 @@ export function InventoryPage({
           initialWarehouseId={selected.id}
           suppliers={suppliers}
           products={products}
+          canEditProducts={canEditProducts}
           onClose={() => setDialog(null)}
         />
       )}

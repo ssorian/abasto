@@ -10,7 +10,6 @@ import {
   overviewInput,
   pendingsInput,
   receiveOrderInput,
-  supplierCostsInput,
   supplierOrderInput,
   supplierOrdersInput,
   writeOffInput,
@@ -87,13 +86,13 @@ describe('supplier order input shapes', () => {
       supplierId: 's1',
       warehouseId: 'w1',
       expectedOn: '2026-11-10',
-      lines: [{ productId: 'p1', boxes: 3, listPricePerPiece: 12055 }],
+      lines: [{ productId: 'p1', boxes: 3, grossCostCents: 12055 }],
     }
     expect(parseInput(supplierOrderInput, valid)).toEqual(valid)
     expect(
       fails(supplierOrderInput, {
         ...valid,
-        lines: [{ productId: 'p1', boxes: 1.5, listPricePerPiece: 1 }],
+        lines: [{ productId: 'p1', boxes: 1.5, grossCostCents: 1 }],
       }),
     ).toBe(true)
     expect(
@@ -105,17 +104,10 @@ describe('supplier order input shapes', () => {
     expect(
       fails(supplierOrderInput, {
         ...valid,
-        lines: [{ productId: 'p1', boxes: 1, listPricePerPiece: '1.2' }],
+        lines: [{ productId: 'p1', boxes: 1, grossCostCents: '1.2' }],
       }),
     ).toBe(true)
     expect(fails(supplierOrderInput, { ...valid, supplierId: '' })).toBe(true)
-  })
-
-  test('the last costs read takes a supplier id', () => {
-    expect(parseInput(supplierCostsInput, { supplierId: 's1' })).toEqual({
-      supplierId: 's1',
-    })
-    expect(fails(supplierCostsInput, { supplierId: '' })).toBe(true)
   })
 
   test('reception takes boxes per line and optional replacements', () => {
