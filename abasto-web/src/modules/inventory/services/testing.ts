@@ -90,6 +90,7 @@ export async function receive(
     warehouseId?: string
     quantity: number
     totalCostCents?: number
+    salePriceCents?: number
     lotCode?: string
     expiresOn?: string
   },

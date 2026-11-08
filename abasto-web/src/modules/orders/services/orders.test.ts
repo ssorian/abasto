@@ -177,7 +177,7 @@ describe('createOrder', () => {
     )
   })
 
-  test('allocates FEFO across lots, earliest expiry first', async () => {
+  test('allocates FIFO across lots, oldest received first', async () => {
     const fx = await setupOrders()
     const late = await receive(fx, {
       productId: fx.milkBox.id,
@@ -194,11 +194,11 @@ describe('createOrder', () => {
     const taken = Object.fromEntries(
       order.lines[0].allocations.map((a) => [a.lotId, a.quantity]),
     )
-    expect(taken).toEqual({ [early.id]: 6, [late.id]: 10, [none.id]: 4 })
+    expect(taken).toEqual({ [late.id]: 10, [early.id]: 6, [none.id]: 4 })
     const state = Object.fromEntries(
       (await orderState()).lots.map((l) => [l.id, l.reserved]),
     )
-    expect(state).toEqual({ [early.id]: 6, [late.id]: 10, [none.id]: 4 })
+    expect(state).toEqual({ [late.id]: 10, [early.id]: 6, [none.id]: 4 })
   })
 
   test('lots past their expiry date are never sold; a lot expiring today still is', async () => {

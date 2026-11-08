@@ -6,6 +6,12 @@ import { resolveCustomerPrice } from '#/modules/customers/services/commercial-ru
 import type { CommercialRule } from '#/modules/customers/services/commercial-rules'
 import { fitsInt4, MAX_INT4 } from '#/modules/inventory/services/stock-ledger'
 import type { Tx } from '#/modules/inventory/services/stock-ledger'
+import {
+  fifoPlanner,
+  lineListPrice,
+  readSellableLots,
+} from '#/modules/orders/services/order-allocation'
+import type { LinePlan } from '#/modules/orders/services/order-allocation'
 import { listWarehousePrices } from '#/modules/pricing/services/price-reads'
 
 export type OrderLineInput = {
@@ -23,7 +29,7 @@ export type LineQuote = {
   unitPriceCents: number
   lineTotalCents: number
   rule: CommercialRule | null
-}
+} & LinePlan
 
 /** Checks quantities and duplicates before touching the database. */
 export function validateLines(lines: Array<OrderLineInput>) {
@@ -51,8 +57,11 @@ const tooLarge = () =>
   new AppError('invalid', 'La cantidad del pedido es demasiado grande.')
 
 /**
- * Prices every line inside the order's transaction: current own/derived
- * warehouse price first, then the customer's commercial rule.
+ * Prices and plans every line inside the order's transaction. The product's
+ * sellable lots are locked first and taken FIFO; a default-presentation line
+ * is listed at the sale price of the oldest lot it takes (whole line), other
+ * lines or lots without their own price at the standard warehouse price.
+ * The customer's commercial rule applies on top.
  */
 export async function quoteLines(
   tx: Tx,
@@ -67,6 +76,7 @@ export async function quoteLines(
       productName: products.name,
       factor: presentations.factor,
       active: presentations.active,
+      isDefault: presentations.isDefault,
     })
     .from(presentations)
     .innerJoin(products, eq(products.id, presentations.productId))
@@ -82,6 +92,14 @@ export async function quoteLines(
       row.presentationId,
       row.priceCents,
     ]),
+  )
+  const plan = fifoPlanner(
+    await readSellableLots(
+      tx,
+      input.warehouseId,
+      found.map((row) => row.productId),
+      { lock: true },
+    ),
   )
   const quotes: Array<LineQuote> = []
   let total = 0
@@ -99,7 +117,13 @@ export async function quoteLines(
     if (line.quantity > Math.floor(MAX_INT4 / presentation.factor)) {
       throw tooLarge()
     }
-    const listPriceCents = prices.get(line.presentationId)
+    const baseQuantity = line.quantity * presentation.factor
+    const linePlan = plan(presentation.productId, baseQuantity)
+    const listPriceCents = lineListPrice({
+      isDefault: presentation.isDefault,
+      firstLot: linePlan.firstLot,
+      standardPriceCents: prices.get(line.presentationId),
+    })
     if (listPriceCents == null) {
       throw new AppError(
         'conflict',
@@ -131,11 +155,12 @@ export async function quoteLines(
       productName: presentation.productName,
       presentationId: line.presentationId,
       quantity: line.quantity,
-      baseQuantity: line.quantity * presentation.factor,
+      baseQuantity,
       listPriceCents,
       unitPriceCents,
       lineTotalCents,
       rule,
+      ...linePlan,
     })
   }
   return quotes

@@ -1,8 +1,16 @@
+import { inArray } from 'drizzle-orm'
+import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { resolveCustomerPrice } from '#/modules/customers/services/commercial-rules'
 import type { CommercialRule } from '#/modules/customers/services/commercial-rules'
+import { presentations } from '#/modules/catalog/db/schema'
+import {
+  fifoPlanner,
+  lineListPrice,
+  readSellableLots,
+} from '#/modules/orders/services/order-allocation'
 import { validateLines } from '#/modules/orders/services/order-quotes'
 import type { OrderLineInput } from '#/modules/orders/services/order-quotes'
 import { listWarehousePrices } from '#/modules/pricing/services/price-reads'
@@ -23,9 +31,11 @@ export type QuotePreview = {
 }
 
 /**
- * Read-only mirror of the order quote: current warehouse price, then the
- * customer's rule through the same `resolveCustomerPrice` the order uses.
- * Writes nothing and does not check stock; `createOrder` stays the authority.
+ * Read-only mirror of the order quote: the oldest sellable lot's price (FIFO,
+ * default presentation) or the standard warehouse price, then the customer's
+ * rule through the same `resolveCustomerPrice` the order uses. Writes and
+ * locks nothing and does not reject missing stock; `createOrder` stays the
+ * authority.
  */
 export async function previewQuote(
   actor: Actor,
@@ -44,9 +54,42 @@ export async function previewQuote(
       row.priceCents,
     ]),
   )
+  const found = await db
+    .select({
+      id: presentations.id,
+      productId: presentations.productId,
+      factor: presentations.factor,
+      isDefault: presentations.isDefault,
+    })
+    .from(presentations)
+    .where(
+      inArray(
+        presentations.id,
+        input.lines.map((line) => line.presentationId),
+      ),
+    )
+  const byId = new Map(found.map((row) => [row.id, row]))
+  const plan = fifoPlanner(
+    await readSellableLots(
+      db,
+      input.warehouseId,
+      found.map((row) => row.productId),
+      { lock: false },
+    ),
+  )
   const lines: Array<QuotePreviewLine> = []
   for (const line of input.lines) {
-    const listPriceCents = prices.get(line.presentationId) ?? null
+    const presentation = byId.get(line.presentationId)
+    const listPriceCents = presentation
+      ? lineListPrice({
+          isDefault: presentation.isDefault,
+          firstLot: plan(
+            presentation.productId,
+            line.quantity * presentation.factor,
+          ).firstLot,
+          standardPriceCents: prices.get(line.presentationId),
+        })
+      : null
     if (listPriceCents === null) {
       lines.push({
         ...line,

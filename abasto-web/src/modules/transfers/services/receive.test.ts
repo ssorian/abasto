@@ -55,6 +55,35 @@ async function rejects(
 }
 
 describe('receiveTransfer', () => {
+  test('the destination lot keeps the source lot sale price', async () => {
+    const fx = await setupTransfers()
+    const source = await receive(fx, {
+      productId: fx.milkBox.id,
+      quantity: 10,
+      totalCostCents: 1000,
+      salePriceCents: 150,
+    })
+    const { id } = await dispatchTransfer(fx.managerA, {
+      fromWarehouseId: fx.a.id,
+      toWarehouseId: fx.b.id,
+      items: [{ productId: fx.milkBox.id, quantity: 4 }],
+    })
+    const [line] = await db
+      .select()
+      .from(transferLines)
+      .where(eq(transferLines.transferId, id))
+    await receiveTransfer(fx.managerB, {
+      transferId: id,
+      lines: [{ lineId: line.id, receivedQuantity: 4 }],
+    })
+    const [created] = await db
+      .select()
+      .from(lots)
+      .where(eq(lots.warehouseId, fx.b.id))
+    expect(source.salePriceCents).toBe(150)
+    expect(created.salePriceCents).toBe(150)
+  })
+
   test('full receipt creates a lot in B with the same code, expiry and prorated cost', async () => {
     const fx = await setupTransfers()
     const { lot, id, line } = await inTransit(fx, 6, 10)

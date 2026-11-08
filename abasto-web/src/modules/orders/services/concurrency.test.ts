@@ -30,7 +30,7 @@ const place = (fx: Fx, quantity: number) =>
   })
 
 /**
- * Two lots (`lo` < `hi` by id; `hi` expires first so FEFO fills it first).
+ * Two lots (`lo` < `hi` by id; `hi` was received first so FIFO fills it first).
  * Order Y holds 1 unit of `hi`; order P (placed later) holds 1 of `lo`.
  */
 async function setupCrossing() {
@@ -42,22 +42,25 @@ async function setupCrossing() {
   const [lo, hi] = one.id < two.id ? [one, two] : [two, one]
   await db
     .update(lots)
-    .set({ expiresOn: '2098-01-01' })
+    .set({ receivedAt: new Date('2026-01-01T00:00:00Z') })
     .where(eq(lots.id, hi.id))
   await db
     .update(lots)
-    .set({ expiresOn: '2099-01-01' })
+    .set({ receivedAt: new Date('2026-02-01T00:00:00Z') })
     .where(eq(lots.id, lo.id))
   const y = await place(fx, 1)
-  // FEFO now prefers `lo`, so P lands there.
+  // FIFO now prefers `lo`, so P lands there.
   await db
     .update(lots)
-    .set({ expiresOn: '2097-01-01' })
+    .set({ receivedAt: new Date('2025-12-01T00:00:00Z') })
     .where(eq(lots.id, lo.id))
   // P is placed 2 h later, so it outlives Y.
   useClock(() => new Date(Date.now() + 2 * HOUR))
   const p = await place(fx, 1)
   useClock(null)
+  // The crossing only exists if each order holds a different lot.
+  expect(y.lines[0].allocations.map((a) => a.lotId)).toEqual([hi.id])
+  expect(p.lines[0].allocations.map((a) => a.lotId)).toEqual([lo.id])
   return { fx, y, p, lo }
 }
 

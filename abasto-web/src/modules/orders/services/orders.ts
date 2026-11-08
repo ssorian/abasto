@@ -13,7 +13,7 @@ import {
 } from '#/modules/orders/db/schema'
 import { now } from '#/modules/orders/services/clock'
 import { expireOverdueOrders } from '#/modules/orders/services/expiry'
-import { allocateFefo } from '#/modules/orders/services/order-allocation'
+import { reserveAllocations } from '#/modules/orders/services/order-allocation'
 import {
   quoteLines,
   validateLines,
@@ -32,7 +32,7 @@ export type CreateOrderInput = {
 
 /**
  * Reserves stock for a customer: prices each line (warehouse price, then the
- * customer's rule), allocates lots FEFO and freezes everything in one
+ * customer's rule), allocates lots FIFO and freezes everything in one
  * transaction. The reservation lasts the owner's configured hours.
  */
 export async function createOrder(
@@ -55,7 +55,7 @@ export async function createOrder(
       throw new AppError('conflict', 'Este cliente está inactivo.')
     }
     const quotes = await quoteLines(tx, actor, input, input.lines)
-    const allocations = await allocateFefo(tx, input.warehouseId, quotes)
+    const allocations = await reserveAllocations(tx, quotes)
     const createdAt = now()
     const hours = await readReservationHours(tx)
     const [order] = await tx

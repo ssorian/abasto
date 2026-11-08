@@ -18,9 +18,9 @@ Assumptions (parent): the lot price applies to the default (box) presentation; o
 
 ## Tasks
 
-- T1 [S2,S3,S8] inline — `lots.sale_price_cents` (nullable, > 0) + migration; `createPurchase` accepts an optional per-line `salePriceCents` and rejects one below the cost per box. Status: pending. Commit: —
+- T1 [S2,S3,S8] inline — `lots.sale_price_cents` (nullable, > 0) + migration; `createPurchase` accepts an optional per-line `salePriceCents` and rejects one below the cost per box. Status: done. Commit: bee36c4 (RED 7 new tests; GREEN 605/605; migration 0015 applied to dev; slice counter includes generated drizzle snapshot)
 - T2 [S1,S4,S8] worker — Bulk entry UI (all-products list, cost per box, sale price prefill/validation), remove the price-suggestion step, catalog "precio estándar" labels, seed lots with sale prices. Status: pending. Commit: —
-- T3 [S5,S6,S8] worker — FIFO order allocation, line price from the oldest allocated lot (quote preview matches), transfers inherit the lot price. Status: pending. Commit: —
+- T3 [S5,S6,S8] worker — FIFO order allocation, line price from the oldest allocated lot (quote preview matches), transfers inherit the lot price. Status: done. Commit: see git log (RED 7 tests; GREEN 614/614; concurrency fixture now steers by receivedAt and asserts the lock crossing)
 
 ## Log
 

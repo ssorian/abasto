@@ -98,6 +98,7 @@ export async function receiveTransfer(
             sourceLotId: source.id,
             code: source.code,
             expiresOn: source.expiresOn,
+            salePriceCents: source.salePriceCents,
             receivedQuantity: arrived,
             receivedCostCents: transferredCostCents(
               source.receivedCostCents,
