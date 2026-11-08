@@ -19,6 +19,10 @@ import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MostradorRouteImport } from './routes/mostrador'
 import { Route as ReportesRouteImport } from './routes/reportes'
+import { Route as TiendaRouteImport } from './routes/tienda'
+import { Route as TiendaIndexRouteImport } from './routes/tienda/index'
+import { Route as TiendaEntrarRouteImport } from './routes/tienda/entrar'
+import { Route as TiendaPedidosRouteImport } from './routes/tienda/pedidos'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -71,6 +75,26 @@ const ReportesRoute = ReportesRouteImport.update({
   path: '/reportes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TiendaRoute = TiendaRouteImport.update({
+  id: '/tienda',
+  path: '/tienda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TiendaIndexRoute = TiendaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TiendaRoute,
+} as any)
+const TiendaEntrarRoute = TiendaEntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => TiendaRoute,
+} as any)
+const TiendaPedidosRoute = TiendaPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => TiendaRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -88,6 +112,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
   '/reportes': typeof ReportesRoute
+  '/tienda': typeof TiendaRouteWithChildren
+  '/tienda/entrar': typeof TiendaEntrarRoute
+  '/tienda/pedidos': typeof TiendaPedidosRoute
+  '/tienda/': typeof TiendaIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -101,6 +129,9 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
   '/reportes': typeof ReportesRoute
+  '/tienda/entrar': typeof TiendaEntrarRoute
+  '/tienda/pedidos': typeof TiendaPedidosRoute
+  '/tienda': typeof TiendaIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -115,6 +146,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/mostrador': typeof MostradorRoute
   '/reportes': typeof ReportesRoute
+  '/tienda': typeof TiendaRouteWithChildren
+  '/tienda/entrar': typeof TiendaEntrarRoute
+  '/tienda/pedidos': typeof TiendaPedidosRoute
+  '/tienda/': typeof TiendaIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -130,6 +165,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/mostrador'
     | '/reportes'
+    | '/tienda'
+    | '/tienda/entrar'
+    | '/tienda/pedidos'
+    | '/tienda/'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -143,6 +182,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/mostrador'
     | '/reportes'
+    | '/tienda/entrar'
+    | '/tienda/pedidos'
+    | '/tienda'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -156,6 +198,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/mostrador'
     | '/reportes'
+    | '/tienda'
+    | '/tienda/entrar'
+    | '/tienda/pedidos'
+    | '/tienda/'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -170,6 +216,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MostradorRoute: typeof MostradorRoute
   ReportesRoute: typeof ReportesRoute
+  TiendaRoute: typeof TiendaRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -245,6 +292,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tienda': {
+      id: '/tienda'
+      path: '/tienda'
+      fullPath: '/tienda'
+      preLoaderRoute: typeof TiendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tienda/': {
+      id: '/tienda/'
+      path: '/'
+      fullPath: '/tienda/'
+      preLoaderRoute: typeof TiendaIndexRouteImport
+      parentRoute: typeof TiendaRoute
+    }
+    '/tienda/entrar': {
+      id: '/tienda/entrar'
+      path: '/entrar'
+      fullPath: '/tienda/entrar'
+      preLoaderRoute: typeof TiendaEntrarRouteImport
+      parentRoute: typeof TiendaRoute
+    }
+    '/tienda/pedidos': {
+      id: '/tienda/pedidos'
+      path: '/pedidos'
+      fullPath: '/tienda/pedidos'
+      preLoaderRoute: typeof TiendaPedidosRouteImport
+      parentRoute: typeof TiendaRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -254,6 +329,21 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface TiendaRouteChildren {
+  TiendaEntrarRoute: typeof TiendaEntrarRoute
+  TiendaPedidosRoute: typeof TiendaPedidosRoute
+  TiendaIndexRoute: typeof TiendaIndexRoute
+}
+
+const TiendaRouteChildren: TiendaRouteChildren = {
+  TiendaEntrarRoute: TiendaEntrarRoute,
+  TiendaPedidosRoute: TiendaPedidosRoute,
+  TiendaIndexRoute: TiendaIndexRoute,
+}
+
+const TiendaRouteWithChildren =
+  TiendaRoute._addFileChildren(TiendaRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -266,6 +356,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MostradorRoute: MostradorRoute,
   ReportesRoute: ReportesRoute,
+  TiendaRoute: TiendaRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

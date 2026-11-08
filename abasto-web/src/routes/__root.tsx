@@ -12,6 +12,10 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
 import { AppShell } from '#/components/layout/app-shell'
+import {
+  decideRouteAccess,
+  isStorePath,
+} from '#/modules/access/lib/route-access'
 import { getSessionUser } from '#/modules/access/server/session'
 import { Toaster } from '#/components/ui/sonner'
 import { TooltipProvider } from '#/components/ui/tooltip'
@@ -27,11 +31,16 @@ interface MyRouterContext {
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   beforeLoad: async ({ location }) => {
     const user = await getSessionUser()
-    const onLogin = location.pathname === '/login'
-    if (!user && !onLogin) {
-      throw redirect({ to: '/login', search: { redirect: location.href } })
+    const access = decideRouteAccess(user?.role ?? null, location.pathname)
+    if (access.kind === 'redirect') {
+      if (access.to === '/login') {
+        throw redirect({
+          to: '/login',
+          search: { redirect: access.keepTarget ? location.href : undefined },
+        })
+      }
+      throw redirect({ to: access.to })
     }
-    if (user && onLogin) throw redirect({ to: '/' })
     return { user }
   },
   head: () => ({
@@ -63,11 +72,13 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: RootLayout,
 })
 
-/** The login page renders bare; every other page sits inside the shell. */
+/** Login and the customer store render bare; staff pages sit inside the shell. */
 function RootLayout() {
   const { user } = Route.useRouteContext()
   const pathname = useLocation({ select: (location) => location.pathname })
-  if (!user || pathname === '/login') return <Outlet />
+  if (!user || pathname === '/login' || isStorePath(pathname)) {
+    return <Outlet />
+  }
   return (
     <AppShell user={user}>
       <Outlet />
