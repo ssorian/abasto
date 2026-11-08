@@ -12,8 +12,8 @@ import { NON_MOVING_DAYS } from '#/modules/executive/types/inventory'
 import { businessDate } from '#/modules/orders/services/clock'
 import {
   localDay,
-  notAllowed,
   reportWarehouses,
+  requireOwner,
   uuidList,
 } from '#/modules/reports/services/report-scope'
 import { lotValueCents } from '#/modules/reports/services/stock-alerts'
@@ -22,7 +22,7 @@ export const DEFAULT_NON_MOVING_DAYS: NonMovingDays = 30
 
 /** Owner-only: the executive console shows the whole business. */
 async function ownerWarehouses(actor: Actor) {
-  if (actor.role !== 'owner') throw notAllowed()
+  requireOwner(actor)
   return reportWarehouses(actor)
 }
 
@@ -80,11 +80,11 @@ export async function getNonMovingCapital(
   actor: Actor,
   input: { days?: number } = {},
 ): Promise<NonMovingCapital> {
+  const warehouses = await ownerWarehouses(actor)
   const days = input.days ?? DEFAULT_NON_MOVING_DAYS
   if (!NON_MOVING_DAYS.some((allowed) => allowed === days)) {
     throw new AppError('invalid', 'Los días sin venta deben ser 30, 60 o 90.')
   }
-  const warehouses = await ownerWarehouses(actor)
   const today = businessDate()
   const result = await db.execute<NonMovingRaw>(sql`
     with stock as (
