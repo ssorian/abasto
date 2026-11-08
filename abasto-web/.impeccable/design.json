@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-08T12:00:00.000Z",
+  "title": "Design System: Rack-Bay Labels (customer store only)",
+  "extensions": {
+    "colorMeta": {
+      "signal-yellow": { "role": "primary", "displayName": "Signal Yellow", "canonical": "#f4c20d" },
+      "upright-cobalt": { "role": "secondary", "displayName": "Upright Cobalt", "canonical": "#1f4aa8" },
+      "concrete": { "role": "neutral", "displayName": "Concrete", "canonical": "#e9e6df" },
+      "label-stock": { "role": "neutral", "displayName": "Label Stock", "canonical": "#fbfaf6" },
+      "graphite": { "role": "neutral", "displayName": "Graphite", "canonical": "#22252b" }
+    },
+    "typographyMeta": {
+      "stencil": { "displayName": "Stencil", "purpose": "Names, titles, buttons, tags: condensed caps." },
+      "price": { "displayName": "Price", "purpose": "Tabular lining numerals in one numeric column." },
+      "body": { "displayName": "Body", "purpose": "Sentences and help text." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "hard-step-120", "value": "120ms steps(2)", "purpose": "Stepper, cells, total tick; disabled under reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Signal Button",
+      "kind": "button",
+      "refersTo": "button-signal",
+      "description": "Primary action plate.",
+      "html": "<button class=\"ds-btn\">Apartar pedido</button>",
+      "css": ".ds-btn{min-height:48px;padding:0 18px;border:2px solid #22252b;border-radius:2px;background:#f4c20d;color:#22252b;font:700 17px 'Arial Narrow','Nimbus Sans Narrow',Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase}.ds-btn:hover{background:#ffd23a}.ds-btn:active{background:#22252b;color:#f4c20d}.ds-btn:focus-visible{outline:3px solid #1f4aa8;outline-offset:2px}"
+    },
+    {
+      "name": "Pick-face Stepper",
+      "kind": "custom",
+      "refersTo": "stepper",
+      "description": "Minus, quantity, plus, with the quantity drawn as a cell bar.",
+      "html": "<div style=\"width:140px\"><div class=\"ds-step\"><button aria-label=\"Quitar\">−</button><input value=\"3\" aria-label=\"Cantidad\"><button aria-label=\"Agregar\">+</button></div><div class=\"ds-cells\"><i class=\"on\"></i><i class=\"on\"></i><i class=\"on\"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>",
+      "css": ".ds-step{display:grid;grid-template-columns:44px 48px 44px;border:2px solid #22252b;border-radius:2px;background:#fff}.ds-step button{height:44px;background:transparent;border:0;font-size:20px;font-weight:700}.ds-step button:hover{background:#f4c20d}.ds-step input{height:44px;min-width:0;border:0;border-inline:2px solid #22252b;background:#f4c20d;text-align:center;font:700 18px 'Arial Narrow',Arial,sans-serif}.ds-cells{display:grid;grid-template-columns:repeat(12,1fr);gap:2px;height:6px;margin-top:4px}.ds-cells i{border:1px solid #b9b4a6}.ds-cells i.on{background:#22252b;border-color:#22252b}"
+    },
+    {
+      "name": "Availability Tags",
+      "kind": "chip",
+      "refersTo": "availability-ok",
+      "description": "Disponible solid, Pocas hazard hatch, Agotado dashed.",
+      "html": "<span class=\"ds-tag ds-ok\">Disponible</span> <span class=\"ds-tag ds-low\"><span>Pocas</span></span> <span class=\"ds-tag ds-out\">Agotado</span>",
+      "css": ".ds-tag{display:inline-flex;align-items:center;height:22px;padding:0 7px;font:700 12px 'Arial Narrow',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase}.ds-ok{background:#22252b;color:#fbfaf6}.ds-low{padding:3px;background:repeating-linear-gradient(-45deg,#f4c20d 0 5px,#22252b 5px 10px)}.ds-low>span{display:inline-flex;align-items:center;height:100%;padding:0 5px;background:#fbfaf6;color:#22252b}.ds-out{border:1.5px dashed #5a5d65;color:#5a5d65}"
+    },
+    {
+      "name": "Dock Plate",
+      "kind": "custom",
+      "refersTo": "dock-plate",
+      "description": "Names the pickup warehouse.",
+      "html": "<div class=\"ds-dock\"><label>Recoges tu pedido en</label><select><option>Tejupilco</option></select></div>",
+      "css": ".ds-dock{display:grid;gap:6px;padding:10px;background:#f4c20d;border:2px solid #22252b;color:#22252b}.ds-dock label{font:700 14px 'Arial Narrow',Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase}.ds-dock select{height:48px;border:2px solid #22252b;border-radius:2px;background:#fbfaf6;font:700 24px 'Arial Narrow',Arial,sans-serif;text-transform:uppercase;padding:0 12px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "White field with graphite frame.",
+      "html": "<input class=\"ds-field\" placeholder=\"Buscar producto o marca\">",
+      "css": ".ds-field{width:100%;min-height:48px;border:2px solid #22252b;border-radius:2px;background:#fff;color:#22252b;padding:0 12px;font-size:16px}.ds-field:focus-visible{outline:3px solid #1f4aa8;outline-offset:2px}"
+    },
+    {
+      "name": "Brand Tab",
+      "kind": "nav",
+      "refersTo": "button-signal",
+      "description": "Brand tab with an extent bar proportional to the product count.",
+      "html": "<button class=\"ds-tab\" style=\"--extent:64%\"><span>Lala</span><span>25</span><i></i></button>",
+      "css": ".ds-tab{position:relative;display:flex;gap:10px;justify-content:space-between;min-width:140px;min-height:48px;align-items:center;padding:0 12px 8px;border:0;background:#1f4aa8;color:#fbfaf6;font:700 16px 'Arial Narrow',Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase}.ds-tab i{position:absolute;left:0;bottom:0;height:5px;width:var(--extent);background:#fbfaf6}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Rack Label",
+    "overview": "Customer store only. The store looks like the rack an order is picked from: label strips, a yellow dock plate, a pick list that stays in view and a reservation hang tag. Concrete ground, graphite structure, signal yellow as the one voice.",
+    "keyCharacteristics": [
+      "Label stock on concrete; yellow only for the next action, the picked state and the pickup plate.",
+      "Condensed stencilled caps for names, prices and actions; system sans for sentences.",
+      "The availability word is always printed; only the plate around it changes.",
+      "Quantity is drawn as length: a bar of whole cells grows under the stepper."
+    ],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "Yellow marks only what the customer should touch or what is already theirs.", "section": "colors" },
+      { "name": "The Hazard Hatch Rule", "body": "Hatching exists only on the Pocas tag.", "section": "colors" },
+      { "name": "The Word Always Printed Rule", "body": "Availability and order status are words first, plates second.", "section": "typography" },
+      { "name": "The Flat-Plate Rule", "body": "Frame surfaces with graphite, never shade them.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do print the availability word and the order status every time.",
+      "Do keep prices in tabular condensed numerals, right-aligned in one column.",
+      "Do frame with 2px graphite and 1px rules; keep radii at 2px.",
+      "Do keep the pickup warehouse and the \"reserve, not pay\" sentence visible on every ordering step."
+    ],
+    "donts": [
+      "Don't use hatching anywhere except the Pocas tag.",
+      "Don't add shadows, gradients, glass or photo-card grids to the store.",
+      "Don't present catalog index letters as physical rack locations.",
+      "Don't carry this look into the staff console."
+    ]
+  }
+}

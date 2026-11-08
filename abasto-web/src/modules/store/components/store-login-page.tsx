@@ -2,10 +2,6 @@ import { Link, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 
-import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
-import { Label } from '#/components/ui/label'
-import { workspace } from '#/config/workspace'
 import { authClient } from '#/lib/auth-client'
 import { emailSchema } from '#/lib/boundary'
 
@@ -53,62 +49,70 @@ export function StoreLoginPage({ redirectTo }: { redirectTo: string }) {
   }
 
   return (
-    <div className="mx-auto grid max-w-md gap-4 py-4">
+    <div className="mx-auto grid max-w-md gap-4 py-4 lg:py-10">
       <form
         onSubmit={(event) => void submit(event)}
         noValidate
-        className="rounded-2xl border border-panel-border bg-white p-6 shadow-[0_8px_24px_-12px_rgba(91,42,134,0.18)]"
+        className="st-door"
       >
-        <span className="block text-xs font-bold tracking-[1.5px] text-ink-eyebrow">
-          {workspace.business.name.toUpperCase()}
-        </span>
-        <h1 className="mt-1.5 text-[28px] font-bold tracking-[-1px] text-ink-heading">
-          Entra para apartar
-        </h1>
-        <p className="mt-1.5 text-sm text-ink-muted">
-          Tu cuenta te la da el almacén; aquí no hay registro. Si aún no tienes
-          una, pídela cuando pases por tu pedido.
-        </p>
-
-        <div className="mt-6 grid gap-2">
-          <Label htmlFor="email">Correo</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="username"
-            className="h-12 rounded-xl text-base"
-          />
+        <div className="bg-st-plum-tint px-6 py-6">
+          <h1 className="text-[26px] leading-tight font-bold text-st-plum-ink">
+            Entra para apartar
+          </h1>
         </div>
-        <div className="mt-4 grid gap-2">
-          <Label htmlFor="password">Contraseña</Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            className="h-12 rounded-xl text-base"
-          />
-        </div>
-
-        {error ? (
-          <p role="alert" className="mt-4 text-sm text-red-700">
-            {error}
+        <div className="p-6 pt-5">
+          <p className="text-[15px] leading-snug text-st-muted">
+            Tu cuenta te la da el almacén; aquí no hay registro. Si aún no
+            tienes una, pídela cuando pases por tu pedido.
           </p>
-        ) : null}
 
-        <Button
-          type="submit"
-          disabled={pending}
-          className="mt-6 h-12 w-full rounded-xl bg-primary text-base font-semibold text-brand-ink hover:bg-brand-hover disabled:opacity-45"
-        >
-          {pending ? 'Entrando…' : 'Entrar'}
-        </Button>
+          <div className="mt-6 grid gap-2">
+            <label htmlFor="email" className="st-card">
+              Correo
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="username"
+              className="st-field"
+            />
+          </div>
+          <div className="mt-4 grid gap-2">
+            <label htmlFor="password" className="st-card">
+              Contraseña
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              className="st-field"
+            />
+          </div>
+
+          {error ? (
+            <p
+              role="alert"
+              className="mt-4 rounded-xl border border-st-danger/30 bg-st-danger-tint p-3 text-sm font-medium text-st-danger"
+            >
+              {error}
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={pending}
+            className="st-btn mt-6 w-full"
+          >
+            {pending ? 'Entrando…' : 'Entrar'}
+          </button>
+        </div>
       </form>
       <Link
         to="/tienda"
         search={{}}
-        className="min-h-11 text-center text-sm font-semibold text-ink-link underline-offset-4 hover:underline"
+        className="st-btn st-btn--quiet justify-self-center"
       >
         Seguir viendo el catálogo
       </Link>

@@ -1,4 +1,4 @@
-import { MapPinIcon } from 'lucide-react'
+import { ChevronDownIcon } from 'lucide-react'
 
 import type { StoreWarehouse } from '#/modules/store/services/storefront'
 
@@ -8,41 +8,40 @@ type WarehousePickerProps = {
   onChange: (warehouseId: string) => void
 }
 
-/** Native select: best picker on phones, and fully accessible. */
+/** Names the pickup warehouse. A native select stays the best phone picker. */
 export function WarehousePicker({
   warehouses,
   value,
   onChange,
 }: WarehousePickerProps) {
   return (
-    <div className="rounded-2xl bg-ink-heading p-4 text-white">
-      <label
-        htmlFor="warehouse"
-        className="text-xs font-bold tracking-[1.5px] text-white/75"
-      >
-        RECOGES TU PEDIDO EN
-      </label>
-      <div className="relative mt-2">
-        <MapPinIcon
-          aria-hidden
-          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-heading"
-        />
-        <select
-          id="warehouse"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-12 w-full rounded-xl border-0 bg-white pr-3 pl-9 text-base font-semibold text-ink-heading"
-        >
-          {warehouses.map((warehouse) => (
-            <option key={warehouse.id} value={warehouse.id}>
-              {warehouse.name}
-            </option>
-          ))}
-        </select>
+    <div className="st-plate grid gap-1.5 p-2.5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-x-5">
+      <div className="grid gap-1.5">
+        <label htmlFor="warehouse" className="st-card">
+          Recoges tu pedido en
+        </label>
+        <div className="relative">
+          <select
+            id="warehouse"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className="h-12 w-full appearance-none rounded-[10px] border border-st-control bg-st-card pr-11 pl-3 text-[18px] font-semibold text-st-ink sm:min-w-72"
+          >
+            {warehouses.map((warehouse) => (
+              <option key={warehouse.id} value={warehouse.id}>
+                {warehouse.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDownIcon
+            aria-hidden
+            strokeWidth={2}
+            className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2"
+          />
+        </div>
       </div>
-      <p className="mt-2 text-[13px] text-white/80">
-        Precios y existencias son de este almacén. Cada almacén tiene su propio
-        carrito.
+      <p className="text-[13px] leading-snug text-st-ink-soft sm:text-[14px]">
+        Precios, existencias y hoja de surtido propios de este almacén.
       </p>
     </div>
   )

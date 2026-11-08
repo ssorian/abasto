@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import './modules/store/styles/store.css';
 
 /*
  * Abarroteros design system.

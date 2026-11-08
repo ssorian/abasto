@@ -2,6 +2,7 @@ import { Outlet, createFileRoute } from '@tanstack/react-router'
 
 import { unwrap } from '#/lib/boundary'
 import { StoreShell } from '#/modules/store/components/store-shell'
+import { storeTitle } from '#/modules/store/lib/store-config'
 import {
   storeCatalogFn,
   storeWarehousesFn,
@@ -24,7 +25,7 @@ export const Route = createFileRoute('/tienda')({
       : []
     return { warehouses, warehouse, catalog }
   },
-  head: () => ({ meta: [{ title: 'Tienda · Distribuidora del Sur' }] }),
+  head: () => ({ meta: [{ title: storeTitle('Tienda') }] }),
   component: function StoreLayout() {
     const { user } = Route.useRouteContext()
     const { warehouse, catalog } = Route.useLoaderData()

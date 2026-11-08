@@ -1,0 +1,572 @@
+/*
+ * Customer store layer: "Soft Rack-Bay" on the company palette.
+ * Everything element-level is scoped to `.store` (the shell, the cart sheet and
+ * the dialogs of /tienda carry the class); the staff console never sees it.
+ * Colours mirror the console tokens in src/styles.css (raspberry primary, plum
+ * ink, warm cream surfaces); the store only adds names for them so Tailwind
+ * utilities (bg-st-card…) work in portals too, it changes no existing utility.
+ */
+@theme {
+  --color-st-ground: #fff8f0; /* console background */
+  --color-st-sunk: #f6efe6; /* console muted surface: hover, empty mats */
+  --color-st-card: #ffffff;
+  --color-st-ink: #2a1d33; /* console figure ink */
+  --color-st-ink-soft: #503f45;
+  --color-st-muted: #6f6366; /* 5.6:1 on ground */
+  --color-st-brand: #c81d4e; /* console primary */
+  --color-st-brand-hover: #a8173f;
+  --color-st-brand-tint: #f8e8ee;
+  --color-st-plum: #5b2a86; /* console secondary and focus */
+  --color-st-plum-ink: #4a2670; /* console heading ink */
+  --color-st-plum-tint: #f1eaf6;
+  --color-st-line: #ede3d6; /* console border */
+  --color-st-line-strong: #e4d8ca;
+  --color-st-control: #9c8f92; /* borders of inputs and steppers, 3:1 */
+  --color-st-danger: #a3173f;
+  --color-st-danger-tint: #fbeae7;
+  --color-st-ok: #2f6b5a;
+  --color-st-ok-tint: #e9f4ef;
+  --color-st-low: #7d5a14;
+  --color-st-low-tint: #fff0d1;
+
+  --font-st-sans: Inter, 'Segoe UI', Arial, sans-serif;
+}
+
+body:has(.store) {
+  background: var(--color-st-ground);
+}
+
+.store {
+  --st-focus: var(--color-st-plum);
+  --st-ease: cubic-bezier(0.25, 1, 0.5, 1);
+  font-family: var(--font-st-sans);
+  color: var(--color-st-ink);
+  caret-color: var(--color-st-brand);
+  accent-color: var(--color-st-brand);
+  scrollbar-color: var(--color-st-line-strong) transparent;
+  scrollbar-width: thin;
+}
+
+.store ::selection {
+  background: var(--color-st-brand-tint);
+  color: var(--color-st-ink);
+}
+
+.store :is(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+}
+
+.store ::placeholder {
+  color: #7a6f72;
+  opacity: 1;
+}
+
+/* Names and headings: semibold sentence case. Numerals register in one column. */
+.st-stencil {
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}
+
+.st-num {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Component classes sit in the components layer so Tailwind utilities can override them. */
+@layer components {
+  /* ---- Surfaces ---------------------------------------------------------- */
+
+  .st-plate {
+    background: var(--color-st-plum-tint);
+    color: var(--color-st-ink);
+    border-radius: 14px;
+  }
+
+  .st-plate--brand {
+    background: var(--color-st-brand-tint);
+  }
+
+  .st-panel {
+    background: var(--color-st-card);
+    border: 1px solid var(--color-st-line);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .st-block {
+    background: var(--color-st-card);
+    border: 1px solid var(--color-st-line);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  /* ---- Buttons: console raspberry, softened ------------------------------ */
+
+  .st-btn {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 20px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--color-st-brand);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 650;
+    text-decoration: none;
+    box-shadow: 0 2px 3px rgb(200 29 78 / 0.04);
+    transition:
+      background-color 160ms var(--st-ease),
+      box-shadow 160ms var(--st-ease);
+  }
+
+  .st-btn:hover:not(:disabled) {
+    background: var(--color-st-brand-hover);
+    box-shadow: 0 3px 9px rgb(200 29 78 / 0.11);
+  }
+
+  .st-btn:disabled {
+    background: var(--color-st-sunk);
+    color: #7a6f72;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .st-btn--quiet {
+    background: transparent;
+    border-color: transparent;
+    color: var(--color-st-plum-ink);
+    box-shadow: none;
+  }
+
+  .st-btn--quiet:hover:not(:disabled) {
+    background: var(--color-st-plum-tint);
+    box-shadow: none;
+  }
+
+  .st-btn--quiet:disabled {
+    background: transparent;
+  }
+
+  .st-btn--outline {
+    background: var(--color-st-card);
+    border-color: var(--color-st-line-strong);
+    color: var(--color-st-ink-soft);
+    box-shadow: none;
+  }
+
+  .st-btn--outline:hover:not(:disabled) {
+    background: var(--color-st-sunk);
+    box-shadow: none;
+  }
+
+  .st-btn--danger {
+    background: var(--color-st-card);
+    border-color: rgb(163 23 63 / 0.35);
+    color: var(--color-st-danger);
+    box-shadow: none;
+  }
+
+  .st-btn--danger:hover:not(:disabled) {
+    background: var(--color-st-danger-tint);
+    box-shadow: none;
+  }
+
+  /* ---- Inputs ------------------------------------------------------------ */
+
+  .st-field {
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--color-st-control);
+    border-radius: 10px;
+    background: var(--color-st-card);
+    color: var(--color-st-ink);
+    padding: 0 12px;
+    font-size: 16px;
+  }
+
+  textarea.st-field {
+    padding: 10px 12px;
+  }
+
+  .st-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-st-plum-ink);
+  }
+
+  /* ---- Availability pills: the word is always printed -------------------- */
+
+  .st-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .st-tag::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .st-tag--ok {
+    background: var(--color-st-ok-tint);
+    color: var(--color-st-ok);
+  }
+
+  .st-tag--low {
+    background: var(--color-st-low-tint);
+    color: var(--color-st-low);
+  }
+
+  .st-tag--out {
+    background: var(--color-st-sunk);
+    color: var(--color-st-muted);
+    font-weight: 500;
+  }
+
+  .st-tag--out::before {
+    background: transparent;
+    border: 1.5px solid currentColor;
+  }
+
+  /* ---- Product mat -------------------------------------------------------- */
+
+  .st-mat {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    flex: none;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--color-st-line);
+    border-radius: 12px;
+  }
+
+  .st-mat img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 4px;
+  }
+
+  .st-mat--empty {
+    background: var(--color-st-plum-tint);
+    color: var(--color-st-plum-ink);
+    border-color: transparent;
+    font-size: 24px;
+    font-weight: 650;
+  }
+
+  /* ---- Stepper: quantity as a growing bar of cells ------------------------ */
+
+  .st-stepper {
+    display: inline-grid;
+    grid-template-columns: 44px 48px 44px;
+    border: 1px solid var(--color-st-control);
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .st-stepper button {
+    display: grid;
+    place-items: center;
+    height: 44px;
+    background: transparent;
+    color: var(--color-st-plum-ink);
+    transition: background-color 160ms var(--st-ease);
+  }
+
+  .st-stepper button:hover:not(:disabled) {
+    background: var(--color-st-plum-tint);
+  }
+
+  .st-stepper button:disabled {
+    color: #b3a8aa;
+  }
+
+  .st-stepper input {
+    height: 44px;
+    min-width: 0;
+    border: 0;
+    border-inline: 1px solid var(--color-st-line-strong);
+    background: transparent;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    transition: background-color 160ms var(--st-ease);
+  }
+
+  .st-stepper--set input {
+    background: var(--color-st-brand-tint);
+    color: var(--color-st-brand-hover);
+  }
+
+  .st-cells {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 3px;
+    height: 5px;
+    margin-top: 5px;
+  }
+
+  .st-cells > i {
+    display: block;
+    border-radius: 3px;
+    background: var(--color-st-line);
+    transition: background-color 160ms var(--st-ease);
+  }
+
+  .st-cells > i[data-on] {
+    background: var(--color-st-brand);
+  }
+
+  .st-cells[data-over] > i:last-child {
+    background: var(--color-st-plum);
+  }
+
+  /* Add: the collapsed stepper while the line is at zero. */
+  .st-add {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--color-st-brand);
+    color: #fff;
+    transition: background-color 160ms var(--st-ease);
+  }
+
+  .st-add:hover {
+    background: var(--color-st-brand-hover);
+  }
+
+  /* ---- Brand tabs: length is proportional to the product count ------------ */
+
+  .st-rail {
+    background: var(--color-st-plum-tint);
+    border-radius: 16px;
+  }
+
+  .st-tab {
+    position: relative;
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 12px 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--color-st-plum-ink);
+    font-size: 15px;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+    transition: background-color 160ms var(--st-ease);
+  }
+
+  /* Extent: a track inset from the tab edge, filled to the brand's share of the catalog. */
+  .st-tab::before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 6px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgb(91 42 134 / 0.14);
+  }
+
+  .st-tab > .st-extent {
+    position: absolute;
+    left: 12px;
+    bottom: 6px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--color-st-plum);
+    width: max(4px, calc((100% - 24px) * var(--extent, 1)));
+  }
+
+  .st-tab[aria-pressed='true'] {
+    background: var(--color-st-card);
+    color: var(--color-st-ink);
+  }
+
+  .st-tab[aria-pressed='true'] > .st-extent {
+    background: var(--color-st-brand);
+  }
+
+  .st-tab:hover:not([aria-pressed='true']) {
+    background: rgb(255 255 255 / 0.6);
+  }
+
+  .st-tab:focus-visible {
+    outline-offset: -4px;
+  }
+
+  .st-tab .st-count {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    opacity: 0.8;
+  }
+
+  /* ---- Strips ------------------------------------------------------------- */
+
+  .st-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 76px auto;
+    align-items: center;
+    column-gap: 10px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--color-st-line);
+    transition: background-color 160ms var(--st-ease);
+  }
+
+  .st-strip[data-picked] {
+    background: #fdf4f7;
+  }
+
+  .st-strip[data-out] {
+    color: var(--color-st-muted);
+  }
+
+  .st-strip[data-out] .st-strike {
+    font-weight: 500;
+    color: var(--color-st-muted);
+  }
+
+  /* ---- Pick list ---------------------------------------------------------- */
+
+  .st-tick {
+    display: inline-block;
+    animation: st-tick 200ms var(--st-ease) 1;
+  }
+
+  @keyframes st-tick {
+    from {
+      opacity: 0.4;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .st-pinned {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* ---- Reservation tag ---------------------------------------------------- */
+
+  .st-hangtag {
+    background: var(--color-st-card);
+    border: 1px solid var(--color-st-line);
+    border-radius: 16px;
+    padding-top: 20px;
+  }
+
+  /* ---- Order status strip ------------------------------------------------- */
+
+  .st-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .st-steps > li {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-st-muted);
+  }
+
+  .st-steps > li::before {
+    content: '';
+    display: block;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--color-st-line);
+  }
+
+  .st-steps > li[data-done]::before {
+    background: var(--color-st-plum);
+  }
+
+  .st-steps > li[data-done] {
+    color: var(--color-st-ink);
+  }
+
+  .st-steps > li[data-now]::before {
+    background: var(--color-st-brand);
+  }
+
+  .st-steps > li[data-now] {
+    color: var(--color-st-ink);
+    font-weight: 650;
+  }
+
+  .st-steps[data-ended] > li::before {
+    background: var(--color-st-line);
+  }
+
+  .st-steps[data-ended] > li {
+    color: var(--color-st-muted);
+    text-decoration: line-through;
+  }
+
+  /* ---- Login card ---------------------------------------------------------- */
+
+  .st-door {
+    background: var(--color-st-card);
+    border-radius: 20px;
+    box-shadow: 0 8px 28px rgb(42 29 51 / 0.09);
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .st-tick {
+      animation: none;
+    }
+
+    .st-btn,
+    .st-add,
+    .st-stepper button,
+    .st-stepper input,
+    .st-cells > i,
+    .st-tab,
+    .st-strip {
+      transition: none;
+    }
+  }
+}
+
+/* The shared sheet and dialog overlays blur; the store stays clear, so drop it here only. */
+body:has(
+    .store[data-slot='sheet-content'],
+    .store[data-slot='alert-dialog-content']
+  )
+  :is([data-slot='sheet-overlay'], [data-slot='alert-dialog-overlay']) {
+  backdrop-filter: none !important;
+  background: rgb(42 29 51 / 0.4) !important;
+}
