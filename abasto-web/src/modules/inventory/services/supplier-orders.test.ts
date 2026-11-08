@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { eq, sql } from 'drizzle-orm'
+import { asc, eq, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import type { AppErrorCode } from '#/lib/errors'
+import { presentations } from '#/modules/catalog/db/schema'
 import { updateProduct } from '#/modules/catalog/services/products'
 import {
   lots,
@@ -21,6 +22,7 @@ import {
   receiveSupplierOrder,
 } from '#/modules/inventory/services/supplier-orders'
 import {
+  boxOf,
   errorOf,
   lineFor,
   setupSupplierOrders,
@@ -734,9 +736,15 @@ describe('migration 0019: legacy lines get the box factor of their product', () 
       .update(purchaseLines)
       .set({ boxFactor: 1 })
       .where(eq(purchaseLines.purchaseId, plain.id))
-    const before = await db.select().from(purchaseLines)
+    const before = await db
+      .select()
+      .from(purchaseLines)
+      .orderBy(asc(purchaseLines.id))
     await fixLegacyBoxFactors()
-    const after = await db.select().from(purchaseLines)
+    const after = await db
+      .select()
+      .from(purchaseLines)
+      .orderBy(asc(purchaseLines.id))
     const changed = after.filter(
       (line, index) => line.boxFactor !== before[index].boxFactor,
     )
@@ -746,6 +754,21 @@ describe('migration 0019: legacy lines get the box factor of their product', () 
         (line) => line.boxFactor,
       ),
     ).toEqual([12, 24])
+  })
+})
+
+describe('box factor of an order line', () => {
+  test('is the default presentation even when it is inactive', async () => {
+    const fx = await setupSupplierOrders()
+    await db
+      .update(presentations)
+      .set({ active: false })
+      .where(eq(presentations.id, boxOf(fx.milk).id))
+    const order = await createSupplierOrder(fx.owner, orderOf(fx))
+    const detail = await getSupplierOrder(fx.owner, order.id)
+    expect(
+      detail.lines.find((line) => line.productId === fx.milk.id)?.boxFactor,
+    ).toBe(boxOf(fx.milk).factor)
   })
 })
 

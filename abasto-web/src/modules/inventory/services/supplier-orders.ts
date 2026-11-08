@@ -8,7 +8,7 @@ import {
   maxTenThousandths,
   netCostPerBoxCents,
   netCostPerPiece,
-} from '#/modules/inventory/lib/supplier-cost'
+} from '#/lib/utils/supplier-cost'
 import { purchaseLines, purchases } from '#/modules/inventory/db/schema'
 import { loadBoxProducts } from '#/modules/inventory/services/box-products'
 import { orderNotFound } from '#/modules/inventory/services/supplier-order-reads'

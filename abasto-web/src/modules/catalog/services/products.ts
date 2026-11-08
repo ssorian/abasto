@@ -5,7 +5,7 @@ import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { violatedUniqueIndex } from '#/modules/catalog/db/constraints'
 import { products, suppliers } from '#/modules/catalog/db/schema'
-import { maxTenThousandths } from '#/modules/inventory/lib/supplier-cost'
+import { maxTenThousandths } from '#/lib/utils/supplier-cost'
 import {
   validateSet,
   writeSet,

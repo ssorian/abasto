@@ -5,7 +5,7 @@ import type {
 import {
   formatTenThousandths,
   parseTenThousandths,
-} from '#/modules/inventory/lib/supplier-cost'
+} from '#/lib/utils/supplier-cost'
 import type {
   ProductInput,
   ProductPatch,

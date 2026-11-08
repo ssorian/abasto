@@ -5,7 +5,7 @@ import {
   netCostPerBoxCents,
   netCostPerPiece,
   parseTenThousandths,
-} from '#/modules/inventory/lib/supplier-cost'
+} from '#/lib/utils/supplier-cost'
 
 describe('parseTenThousandths', () => {
   test('parses pesos with up to 4 decimals into ten-thousandths', () => {
