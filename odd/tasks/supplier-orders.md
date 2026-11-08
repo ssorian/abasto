@@ -19,7 +19,7 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 
 - T1 [S1,S2,S9] worker — Remove margins (UI, service, table via migration) and add supplier cost fields to products (supplier code, list/discount/promotion per piece in ten-thousandths of a peso) with validation, catalog form fields and net cost per piece/box display. Status: done. Commit: fc8a638 (RED 13 fail + missing exports; GREEN 634/634; migrations 0016 drop product_margins, 0017 supplier cost; risk item 1: margin data dropped as requested)
 - T2 [S3,S5,S6,S8,S9] worker — Backend: purchase order status (Pedido/Recibido/Cancelado) + expected date + reception fields, migration of existing purchases to Recibido, services createOrder/cancelOrder/receiveOrder, supplier pending ledger with replacement and write-off. Status: done. Commit: e9708b4 (RED missing modules; GREEN 670/670; migration 0018 applied to dev, 12 purchases → Recibido; decisions: zero-cost lines allowed and flagged, pendings owner or any manager, box_factor frozen per line)
-- T3 [S3,S4,S5,S6,S9] worker — UI: order creation table (supplier's products, boxes, read-only cost and standard price, warning), "Por recibir" queue, reception dialog with pending replacements, supplier pendings view with write-off; remove direct entry; seed. Status: pending. Commit: —
+- T3 [S3,S4,S5,S6,S9] worker — UI: order creation table (supplier's products, boxes, read-only cost and standard price, warning), "Por recibir" queue, reception dialog with pending replacements, supplier pendings view with write-off; remove direct entry; seed. Status: done. Commit: 2a54879 (RED 4 missing modules; GREEN 684/684; pendings live in an Inventario 'Saldos' tab; db:seed not run on dev; browser not tested)
 
 ## Log
 
