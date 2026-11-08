@@ -8,18 +8,6 @@ import { SidebarInset, SidebarProvider } from '#/components/ui/sidebar'
 
 const sidebarWidth = { '--sidebar-width': '15.125rem' } as CSSProperties
 
-function SaveIndicator() {
-  return (
-    <p
-      role="status"
-      className="mb-3 flex items-center justify-end gap-[7px] text-[11px] text-[#816a72] md:mb-[17px] md:text-xs"
-    >
-      <span className="size-1.5 rounded-full bg-saved" />
-      Guardado en este navegador
-    </p>
-  )
-}
-
 export function AppShell({
   user,
   children,
@@ -33,7 +21,6 @@ export function AppShell({
       <SidebarInset className="min-w-0 bg-background">
         <AppTopbar user={user} />
         <div className="mx-auto w-full max-w-[1640px] flex-1 px-3.5 py-[23px] phone:px-5 phone:pt-[25px] phone:pb-5 md:px-[26px] md:pt-[29px] wide:px-[38px] wide:pt-9 wide:pb-[22px]">
-          <SaveIndicator />
           {children}
         </div>
         <AppFooter />

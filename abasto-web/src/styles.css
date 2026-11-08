@@ -104,10 +104,6 @@
   /* Brand */
   --color-brand-hover: #a8173f;
   --color-brand-ink: #ffffff;
-  --color-hero: #f4eef8;
-  --color-hero-eyebrow: #7a4aa3;
-  --color-hero-copy: #5e5266;
-  --color-hero-title: #2e1a40;
 
   /* Panels */
   --color-panel-border: #efe5d8;
@@ -125,8 +121,6 @@
   --color-avatar-bg: #ede3f5;
   --color-footer: #a89c9e;
   --color-footer-border: #efe6da;
-  --color-footer-brand: #8f8386;
-  --color-footer-dot: #c81d4e;
 
   /* Sidebar details */
   --color-sidebar-surface: #33233f;

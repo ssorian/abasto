@@ -19,7 +19,6 @@ export function SettingsPage(props: SettingsPageProps) {
   return (
     <>
       <PageHeading
-        eyebrow="ABARROTEROS · AJUSTES"
         title="Configuración"
         description="Quién opera cada almacén."
         actions={<NewUserDialog />}

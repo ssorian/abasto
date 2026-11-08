@@ -32,31 +32,23 @@ export function CustomersPage({ overview, presentations }: CustomersPageProps) {
   return (
     <>
       <PageHeading
-        eyebrow="ABARROTEROS · ALMACÉN"
         title="Clientes"
         description="Conoce a quién le vendes y bajo qué condiciones."
+        actions={
+          <>
+            {canManage && (
+              <CustomerButton
+                tone="primary"
+                className="min-h-[38px] px-2.5 py-2 text-xs md:min-h-[44px] md:px-[17px] md:py-2.5 md:text-sm"
+                onClick={() => setEditor({})}
+              >
+                <PlusIcon className="size-4" />
+                Nuevo cliente
+              </CustomerButton>
+            )}
+          </>
+        }
       />
-      <div className="mb-[23px] flex items-start justify-between gap-[15px] md:items-center">
-        <div>
-          <h2 className="text-[19px] font-[650] tracking-[-0.4px] md:text-xl">
-            Cartera de clientes
-          </h2>
-          <p className="mt-[7px] text-xs text-[#9c898f] md:text-sm">
-            Distribuidores autorizados, sus condiciones y su historial de
-            pedidos.
-          </p>
-        </div>
-        {canManage && (
-          <CustomerButton
-            tone="primary"
-            className="min-h-[38px] px-2.5 py-2 text-xs md:min-h-[44px] md:px-[17px] md:py-2.5 md:text-sm"
-            onClick={() => setEditor({})}
-          >
-            <PlusIcon className="size-4" />
-            Nuevo cliente
-          </CustomerButton>
-        )}
-      </div>
       <div className="my-5 flex flex-wrap gap-3">
         <input
           aria-label="Buscar cliente"

@@ -27,9 +27,6 @@ function Brand() {
           abarroteros<span className="text-primary">.</span>
         </span>
       </Link>
-      <span className="mt-1.5 pl-[33px] text-xs tracking-[1px] text-sidebar-caption max-md:tracking-[0.5px]">
-        {workspace.appName.toUpperCase()}
-      </span>
     </SidebarHeader>
   )
 }
@@ -60,9 +57,6 @@ export function AppSidebar({ user }: { user: SessionUser }) {
 
       <SidebarContent className="gap-0 px-4">
         <BusinessCard />
-        <p className="mx-3 mb-[15px] text-xs font-semibold tracking-[1.8px] text-sidebar-label">
-          OPERACIÓN
-        </p>
         <nav
           aria-label="Navegación principal"
           className="flex flex-col gap-[3px]"
@@ -73,7 +67,7 @@ export function AppSidebar({ user }: { user: SessionUser }) {
         </nav>
       </SidebarContent>
 
-      <SidebarFooter className="px-4 pt-5 pb-0">
+      <SidebarFooter className="px-4 pt-5 pb-5">
         {secondaryNav.filter(visible).map((item) => (
           <SidebarNavItem
             key={item.label}
@@ -82,9 +76,6 @@ export function AppSidebar({ user }: { user: SessionUser }) {
             className="mb-1.5 min-h-[46px] py-[13px] text-[13px]"
           />
         ))}
-        <div className="mx-2 mt-[15px] border-t border-sidebar-divider py-[19px] text-xs text-sidebar-label">
-          <span>Hecho para tu negocio.</span>
-        </div>
       </SidebarFooter>
     </Sidebar>
   )

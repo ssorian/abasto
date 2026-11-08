@@ -2,7 +2,6 @@ import { PlusIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { PageHeading } from '#/components/page-heading'
-import { CatalogBanner } from '#/modules/catalog/components/catalog-banner'
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
 import { CatalogCard } from '#/modules/catalog/components/catalog-card'
 import { CatalogEmpty } from '#/modules/catalog/components/catalog-empty'
@@ -96,7 +95,6 @@ export function CatalogPage({
   return (
     <>
       <PageHeading
-        eyebrow="ABARROTEROS · ALMACÉN"
         title="Catálogo"
         description="Los productos que ofreces a tus clientes y su precio en cada almacén."
         actions={
@@ -140,7 +138,6 @@ export function CatalogPage({
           ) : undefined
         }
       />
-      <CatalogBanner />
       <CatalogToolbar
         query={query}
         onQueryChange={setQuery}

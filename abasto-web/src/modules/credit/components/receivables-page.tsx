@@ -5,7 +5,6 @@ import { AbonoDialog } from '#/modules/credit/components/abono-dialog'
 import { AbonoHistory } from '#/modules/credit/components/abono-history'
 import { AuthorizationsList } from '#/modules/credit/components/authorizations-list'
 import { ChargesTable } from '#/modules/credit/components/charges-table'
-import { CollectionsBanner } from '#/modules/credit/components/collections-banner'
 import { StatementDialog } from '#/modules/credit/components/statement-dialog'
 import { EmptyState } from '#/modules/counter/components/empty-state'
 import { CompactSelect } from '#/modules/counter/components/form-controls'
@@ -69,7 +68,6 @@ export function ReceivablesPage({
   return (
     <>
       <PageHeading
-        eyebrow="ABARROTEROS · ALMACÉN"
         title="Cobros"
         description="Dinero recibido, saldos pendientes y crédito vencido."
       />
@@ -82,7 +80,6 @@ export function ReceivablesPage({
         </p>
       ) : (
         <>
-          <CollectionsBanner />
           <MetricStrip
             columns={4}
             items={[

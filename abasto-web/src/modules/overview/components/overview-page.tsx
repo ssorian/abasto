@@ -1,4 +1,8 @@
-import { Boxes, TriangleAlert, Truck, Wallet } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { ArrowRight, Boxes, TriangleAlert, Truck, Wallet } from 'lucide-react'
+
+import { buttonVariants } from '#/components/ui/button'
+import { cn } from '#/lib/utils/cn'
 
 import { PageHeading } from '#/components/page-heading'
 import { StatusBadge } from '#/components/status-badge'
@@ -7,7 +11,6 @@ import {
   HomeRow,
   HomeRowFigure,
 } from '#/modules/overview/components/home-panel'
-import { OverviewHero } from '#/modules/overview/components/overview-hero'
 import { OverviewMetrics } from '#/modules/overview/components/overview-metrics'
 import { metricsOf } from '#/modules/overview/lib/overview-metrics'
 import type { Overview } from '#/modules/overview/types/overview'
@@ -27,12 +30,22 @@ export function OverviewPage({ overview }: { overview: Overview }) {
   return (
     <>
       <PageHeading
-        eyebrow="ABARROTEROS · ALMACÉN"
         title="Inicio"
-        description="Una vista del día para decidir qué atender primero."
+        description={`Lo que necesita atención hoy, ${overview.today}.`}
+        actions={
+          <Link
+            to="/mostrador"
+            className={cn(
+              buttonVariants(),
+              'h-auto min-h-11 gap-[9px] rounded-[9px] px-[17px] py-2.5 text-sm font-[650] text-brand-ink hover:bg-brand-hover',
+            )}
+          >
+            Ir a mostrador
+            <ArrowRight className="size-[17px]" />
+          </Link>
+        }
       />
 
-      <OverviewHero today={overview.today} />
       <OverviewMetrics metrics={metricsOf(overview)} />
 
       {warehouses.length === 0 ? (

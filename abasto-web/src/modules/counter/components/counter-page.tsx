@@ -29,7 +29,6 @@ export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
 
   const heading = (
     <PageHeading
-      eyebrow="ABARROTEROS · ALMACÉN"
       title="Mostrador"
       description="Reserva, prepara y entrega los pedidos de tus clientes."
       actions={

@@ -35,7 +35,6 @@ export function ReportsPage({
   return (
     <>
       <PageHeading
-        eyebrow="ABARROTEROS · ALMACÉN"
         title="Reportes"
         description="Ventas y utilidad, cortes de caja, inventario por atender y cartera."
       />

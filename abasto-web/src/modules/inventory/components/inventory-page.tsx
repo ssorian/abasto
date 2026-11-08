@@ -117,7 +117,6 @@ export function InventoryPage({
     return (
       <div className="text-base">
         <PageHeading
-          eyebrow="CADA PRODUCTO, EN SU LUGAR"
           title="Inventario"
           description="Ten a la mano lo que entra, lo que sale y lo que tienes."
         />
@@ -173,7 +172,6 @@ export function InventoryPage({
   return (
     <div className="text-base">
       <PageHeading
-        eyebrow="CADA PRODUCTO, EN SU LUGAR"
         title="Inventario"
         description="Ten a la mano lo que entra, lo que sale y lo que tienes."
         actions={

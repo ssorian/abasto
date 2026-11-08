@@ -12,7 +12,6 @@ export function WarehousesPage({ warehouses, canCreate }: WarehousesPageProps) {
   return (
     <>
       <PageHeading
-        eyebrow="ABARROTEROS · ALMACÉN"
         title="Almacenes"
         description="Cada existencia tiene un lugar."
         actions={canCreate ? <CreateWarehouseDialog /> : undefined}
