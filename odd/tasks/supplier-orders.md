@@ -22,6 +22,7 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - T3 [S3,S4,S5,S6,S9] worker — UI: order creation table (supplier's products, boxes, read-only cost and standard price, warning), "Por recibir" queue, reception dialog with pending replacements, supplier pendings view with write-off; remove direct entry; seed. Status: done. Commit: 2a54879 (RED 4 missing modules; GREEN 684/684; pendings live in an Inventario 'Saldos' tab; db:seed not run on dev; browser not tested)
 
 - T4 [S2,S4,S8,S9] worker — Move only the list price from products to order lines (drop products.list_price_per_piece; keep supplier code, fixed discount and promotion on products; order lines store list/discount/promotion per piece; prefill from last order), order table inputs; fix verify F1 (legacy purchase_lines box_factor = 1) and F4 (pendings use the line box factor); add a sale test on a received lot (F3). Status: done. Commit: 8f3c360 (RED 25 fail; GREEN 706/706; migration 0019 applied to dev; F1/F3/F4 covered)
+- T5 [S2,S9] worker — Verify-T4 follow-ups: L1 prefill must not overwrite typed list prices; L2 lastSupplierCosts filters by the order's supplier, skips Cancelado and zero list prices; L3 client/server box factor agree (default presentation, active or not, same rule both sides); L5 move supplier-cost helpers to a shared location so catalog does not import inventory; L6 deterministic ORDER BY in the F1 migration test. Status: pending. Commit: —
 
 ## Log
 
@@ -36,3 +37,4 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - L9 (user): "El desglose" — keep list/discount/promotion breakdown. Parent decision: entered per order line, prefilled from the last order of the product; product form keeps only the supplier code.
 - L10 (verify after T3): S1-S3, S5-S7 pass; F1 medium legacy box_factor = 1 (0018:19); F3 no sale from a received lot; F4 pendings use current product box factor.
 - L11 (user): "Los descuentos se quedan en catalogo vdd?" → (user) "Si, se quedan en editar producto". S2 rewritten: only the list price per piece moves to the order line.
+- L12 (verify after T4): S2, S4, S8, S9, F1, F3, F4 pass. M1: 0019 dropped products.list_price_per_piece without copying it to existing lines (dev only; list prices existed briefly in T1). M2: the F4 code landed in 3af60fe (a docs commit made with `git commit -a` while the T4 worker was editing) instead of 8f3c360 — history left as is; this entry records it. L1-L6 low findings → T5 (L4 replacement-lot factor edge case left as known limitation).
