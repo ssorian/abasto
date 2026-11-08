@@ -5,12 +5,14 @@ import {
   cashCutsFn,
   receivablesAgingFn,
   reportScopeFn,
+  reportSuppliersFn,
   salesReportFn,
   stockAlertsFn,
 } from '#/modules/reports/server/reports'
 import type {
   CashCuts,
   ReceivablesAging,
+  ReportSupplier,
   ReportTab,
   ReportWarehouse,
   SalesReport,
@@ -28,6 +30,7 @@ export type ReportsLoad =
   | {
       allowed: true
       warehouses: Array<ReportWarehouse>
+      suppliers: Array<ReportSupplier>
       /** Missing when the filters were refused; `error` says why. */
       data?: ReportData
       error?: string
@@ -41,16 +44,22 @@ export async function loadReport(search: ReportSearch): Promise<ReportsLoad> {
     throw new ClientError(scope.code, scope.message)
   }
   const tab = search.tab ?? 'ventas'
+  const suppliers = unwrap(await reportSuppliersFn())
   try {
     const data = await fetchTab(tab, search)
-    return { allowed: true, warehouses: scope.data, data }
+    return { allowed: true, warehouses: scope.data, suppliers, data }
   } catch (error) {
     // Bad dates or a warehouse that is not theirs: show it next to the filters.
     if (
       error instanceof ClientError &&
       (error.code === 'invalid' || error.code === 'forbidden')
     ) {
-      return { allowed: true, warehouses: scope.data, error: error.message }
+      return {
+        allowed: true,
+        warehouses: scope.data,
+        suppliers,
+        error: error.message,
+      }
     }
     throw error
   }
@@ -60,7 +69,11 @@ async function fetchTab(
   tab: ReportTab,
   search: ReportSearch,
 ): Promise<ReportData> {
-  const input = { period: periodOf(search), warehouseId: search.almacen }
+  const input = {
+    period: periodOf(search),
+    warehouseId: search.almacen,
+    supplierId: search.proveedor,
+  }
   switch (tab) {
     case 'ventas':
       return { tab, report: unwrap(await salesReportFn({ data: input })) }
@@ -73,6 +86,7 @@ async function fetchTab(
           await stockAlertsFn({
             data: {
               warehouseId: search.almacen,
+              supplierId: search.proveedor,
               expiringDays: search.dias ?? defaultExpiringDays,
             },
           }),

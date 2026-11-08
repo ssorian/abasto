@@ -10,9 +10,11 @@ const period = z.object({
 export const periodReportInput = z.object({
   period,
   warehouseId: z.string().min(1).optional(),
+  supplierId: z.string().min(1).optional(),
 })
 
 export const stockAlertsInput = z.object({
   warehouseId: z.string().min(1).optional(),
+  supplierId: z.string().min(1).optional(),
   expiringDays: z.number().optional(),
 })

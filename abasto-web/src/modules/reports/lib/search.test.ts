@@ -25,6 +25,7 @@ describe('report search params', () => {
         desde: '2026-10-01',
         hasta: '2026-10-31',
         almacen: 'w1',
+        proveedor: 's1',
         dias: '14',
       }),
     ).toEqual({
@@ -33,8 +34,14 @@ describe('report search params', () => {
       desde: '2026-10-01',
       hasta: '2026-10-31',
       almacen: 'w1',
+      proveedor: 's1',
       dias: 14,
     })
+  })
+
+  test('an absent or empty supplier stays out of the URL', () => {
+    expect(parseReportSearch({ proveedor: '' })).toEqual({})
+    expect(parseReportSearch({ proveedor: 7 })).toEqual({})
   })
 
   test('periodOf maps the URL to a service period', () => {

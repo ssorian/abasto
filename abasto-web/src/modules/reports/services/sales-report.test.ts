@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
+import { updateProduct } from '#/modules/catalog/services/products'
+import { createSupplier } from '#/modules/catalog/services/suppliers'
 import { createCustomer } from '#/modules/customers/services/customers'
 import { saveCommercialRules } from '#/modules/customers/services/commercial-rules'
 import { getWarehouseStock } from '#/modules/inventory/services/stock-reads'
@@ -295,5 +297,59 @@ describe('sales report scope', () => {
         getSalesReport(fx.clerkA, { ...wide, warehouseIds: [fx.a.id] }),
       ),
     ).toMatchObject({ code: 'forbidden' })
+  })
+})
+
+describe('supplier filter', () => {
+  test('every aggregate counts only lines of the supplier’s products', async () => {
+    const fx = await setupReports()
+    const lala = await createSupplier(fx.owner, { name: 'Lácteos Test' })
+    const alpura = await createSupplier(fx.owner, { name: 'Bebidas Test' })
+    await receive(fx, {
+      productId: fx.milkBox.id,
+      quantity: 10,
+      totalCostCents: 1000,
+      expiresOn: farFuture,
+    })
+    await fx.sell({ at: '2026-11-02T18:00:00Z', quantity: 4 })
+    await updateProduct(fx.owner, fx.milkBox.id, { supplierId: lala.id })
+
+    const mine = await getSalesReport(fx.owner, {
+      ...wide,
+      supplierId: lala.id,
+    })
+    const all = await getSalesReport(fx.owner, wide)
+    expect(mine.summary).toEqual(all.summary)
+    expect(mine.summary.revenueCents).toBe(4000)
+    expect(mine.byProduct.map((row) => row.key)).toEqual([fx.milkBox.id])
+    expect(mine.byDay).toHaveLength(1)
+    expect(mine.byCustomer).toHaveLength(1)
+    expect(mine.byWarehouse).toHaveLength(1)
+
+    const other = await getSalesReport(fx.owner, {
+      ...wide,
+      supplierId: alpura.id,
+    })
+    expect(other.summary.orders).toBe(0)
+    expect(other.summary.revenueCents).toBe(0)
+    expect(other.byProduct).toEqual([])
+    expect(other.byDay).toEqual([])
+  })
+
+  test('an unknown or malformed supplier id yields empty results, not an error', async () => {
+    const fx = await setupReports()
+    await receive(fx, {
+      productId: fx.milkBox.id,
+      quantity: 10,
+      totalCostCents: 1000,
+      expiresOn: farFuture,
+    })
+    await fx.sell({ at: '2026-11-02T18:00:00Z', quantity: 4 })
+    for (const supplierId of [crypto.randomUUID(), 'nope']) {
+      const report = await getSalesReport(fx.owner, { ...wide, supplierId })
+      expect(report.summary.orders).toBe(0)
+      expect(report.byProduct).toEqual([])
+      expect(report.byWarehouse).toEqual([])
+    }
   })
 })

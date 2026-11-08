@@ -8,6 +8,7 @@ import {
 import { getCashCuts } from '#/modules/reports/services/cash-cuts'
 import { getReceivablesAging } from '#/modules/reports/services/receivables-aging'
 import { managedWarehouses } from '#/modules/reports/services/report-scope'
+import { listReportSuppliers } from '#/modules/reports/services/report-suppliers'
 import { getSalesReport } from '#/modules/reports/services/sales-report'
 import { getStockAlerts } from '#/modules/reports/services/stock-alerts'
 
@@ -18,6 +19,14 @@ export const reportScopeFn = createServerFn({ method: 'GET' }).handler(() =>
   runWithActor((actor) => managedWarehouses(actor)),
 )
 
+/** Suppliers offered by the report filter; same scope check as the reports. */
+export const reportSuppliersFn = createServerFn({ method: 'GET' }).handler(() =>
+  runWithActor(async (actor) => {
+    await managedWarehouses(actor)
+    return listReportSuppliers()
+  }),
+)
+
 export const salesReportFn = createServerFn({ method: 'GET' })
   .validator((data: unknown) => data)
   .handler(({ data }) =>
@@ -26,6 +35,7 @@ export const salesReportFn = createServerFn({ method: 'GET' })
       return getSalesReport(actor, {
         period: input.period,
         warehouseIds: only(input.warehouseId),
+        supplierId: input.supplierId,
       })
     }),
   )
@@ -49,6 +59,7 @@ export const stockAlertsFn = createServerFn({ method: 'GET' })
       const input = parseInput(stockAlertsInput, data)
       return getStockAlerts(actor, {
         warehouseIds: only(input.warehouseId),
+        supplierId: input.supplierId,
         expiringDays: input.expiringDays,
       })
     }),

@@ -10,6 +10,8 @@ export type DateRange = { from: string; to: string }
 
 export type ReportWarehouse = { id: string; name: string }
 
+export type ReportSupplier = { id: string; name: string; active: boolean }
+
 export type SalesTotals = {
   orders: number
   /** Base units sold. */

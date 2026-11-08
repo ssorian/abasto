@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
+import { updateProduct } from '#/modules/catalog/services/products'
+import { createSupplier } from '#/modules/catalog/services/suppliers'
 import { setMinimumStock } from '#/modules/inventory/services/stock-minimums'
 import { addDays } from '#/modules/reports/lib/period'
 import { getStockAlerts } from '#/modules/reports/services/stock-alerts'
@@ -140,6 +142,37 @@ describe('stock alerts', () => {
       expect(
         await errorOf(() => getStockAlerts(fx.owner, { expiringDays })),
       ).toMatchObject({ code: 'invalid' })
+    }
+  })
+})
+
+describe('stock alerts by supplier', () => {
+  test('low stock, expiring and expired only list the supplier’s products', async () => {
+    const fx = await scenario()
+    const lala = await createSupplier(fx.owner, { name: 'Lácteos Test' })
+    const alpura = await createSupplier(fx.owner, { name: 'Bebidas Test' })
+    await updateProduct(fx.owner, fx.milk.id, { supplierId: lala.id })
+    await updateProduct(fx.owner, fx.milkBox.id, { supplierId: lala.id })
+    await updateProduct(fx.owner, fx.soda.id, { supplierId: alpura.id })
+
+    const mine = await getStockAlerts(fx.owner, { supplierId: lala.id })
+    expect(mine.lowStock.map((row) => row.name)).toEqual(['Leche 1L'])
+    expect(mine.expiring.map((row) => row.lotCode)).toEqual(['SOON'])
+    expect(mine.expired.map((row) => row.lotCode)).toEqual(['OLD'])
+
+    const theirs = await getStockAlerts(fx.owner, { supplierId: alpura.id })
+    expect(theirs.lowStock.map((row) => row.name)).toEqual(['Refresco 600ml'])
+    expect(theirs.expiring).toEqual([])
+    expect(theirs.expired).toEqual([])
+  })
+
+  test('an unknown or malformed supplier id yields empty results', async () => {
+    const fx = await scenario()
+    for (const supplierId of [crypto.randomUUID(), 'nope']) {
+      const alerts = await getStockAlerts(fx.owner, { supplierId })
+      expect(alerts.lowStock).toEqual([])
+      expect(alerts.expiring).toEqual([])
+      expect(alerts.expired).toEqual([])
     }
   })
 })

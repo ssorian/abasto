@@ -15,6 +15,7 @@ import type { ReportSearch } from '#/modules/reports/lib/search'
 import type {
   DateRange,
   PeriodPreset,
+  ReportSupplier,
   ReportTab,
   ReportWarehouse,
 } from '#/modules/reports/types/reports'
@@ -32,6 +33,7 @@ type ReportFiltersProps = {
   tab: ReportTab
   search: ReportSearch
   warehouses: Array<ReportWarehouse>
+  suppliers: Array<ReportSupplier>
   range?: DateRange
   onChange: (patch: Partial<ReportSearch>) => void
 }
@@ -41,12 +43,14 @@ export function ReportFilters({
   tab,
   search,
   warehouses,
+  suppliers,
   range,
   onChange,
 }: ReportFiltersProps) {
   const preset = search.periodo ?? defaultPreset
   const usesPeriod = tab === 'ventas' || tab === 'cajas'
   const usesWarehouse = tab !== 'cartera'
+  const usesSupplier = tab === 'ventas' || tab === 'inventario'
 
   return (
     <div className="mb-[22px] rounded-[13px] border border-[#f0e9e1] bg-white p-[15px] md:px-[23px] md:py-5">
@@ -135,6 +139,24 @@ export function ReportFilters({
               ))}
             </FieldSelect>
           </Field>
+          {usesSupplier && (
+            <Field label="Proveedor">
+              <FieldSelect
+                aria-label="Proveedor del reporte"
+                value={search.proveedor ?? ''}
+                onChange={(event) =>
+                  onChange({ proveedor: event.target.value || undefined })
+                }
+              >
+                <option value="">Todos los proveedores</option>
+                {suppliers.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.active ? item.name : `${item.name} (inactivo)`}
+                  </option>
+                ))}
+              </FieldSelect>
+            </Field>
+          )}
           {tab === 'inventario' && (
             <Field label="Por vencer en los próximos">
               <FieldSelect

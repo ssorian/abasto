@@ -18,6 +18,19 @@ describe('report inputs', () => {
     ).toMatchObject({ warehouseId: 'w1' })
   })
 
+  test('accept an optional supplier and refuse an empty one', () => {
+    expect(
+      parseInput(periodReportInput, {
+        period: { preset: '7' },
+        supplierId: 's1',
+      }),
+    ).toMatchObject({ supplierId: 's1' })
+    expect(parseInput(stockAlertsInput, { supplierId: 's1' })).toEqual({
+      supplierId: 's1',
+    })
+    expect(() => parseInput(stockAlertsInput, { supplierId: '' })).toThrow()
+  })
+
   test('refuse unknown presets, empty ids and malformed bodies', () => {
     for (const bad of [
       undefined,

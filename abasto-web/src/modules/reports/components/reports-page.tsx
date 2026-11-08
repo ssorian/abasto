@@ -49,6 +49,7 @@ export function ReportsPage({
             tab={tab}
             search={search}
             warehouses={load.warehouses}
+            suppliers={load.suppliers}
             range={
               load.data?.tab === 'ventas' || load.data?.tab === 'cajas'
                 ? load.data.report.range

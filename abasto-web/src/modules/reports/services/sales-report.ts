@@ -47,7 +47,17 @@ const totalsOf = (row: RawRow): SalesTotals => {
  * (received cost ÷ received quantity), kept as an exact fraction. Rows of any
  * grouping sum these fractions and round once.
  */
-function pickedUpLines(range: DateRange, warehouseIds: ReadonlyArray<string>) {
+function pickedUpLines(
+  range: DateRange,
+  warehouseIds: ReadonlyArray<string>,
+  supplierId?: string,
+) {
+  // Compared as text so a malformed id matches nothing instead of failing the cast.
+  const supplier = supplierId
+    ? sql`and exists (
+        select 1 from products sp
+        where sp.id = ol.product_id and sp.supplier_id::text = ${supplierId})`
+    : sql``
   return sql`
     select o.id as order_id, o.warehouse_id, o.customer_id, o.closed_at,
       ol.product_id, ol.line_total_cents, ol.base_quantity,
@@ -61,7 +71,8 @@ function pickedUpLines(range: DateRange, warehouseIds: ReadonlyArray<string>) {
     join order_lines ol on ol.order_id = o.id
     where o.status = 'Recogido'
       and o.warehouse_id in (${uuidList(warehouseIds)})
-      and ${inRange(sql`o.closed_at`, range)}`
+      and ${inRange(sql`o.closed_at`, range)}
+      ${supplier}`
 }
 
 const aggregates = sql`
@@ -102,10 +113,11 @@ async function grouped(
   dimension: keyof typeof groupings,
   range: DateRange,
   warehouseIds: ReadonlyArray<string>,
+  supplierId?: string,
 ): Promise<Array<RawRow>> {
   const g = groupings[dimension]
   const result = await db.execute<RawRow>(sql`
-    with lines as (${pickedUpLines(range, warehouseIds)})
+    with lines as (${pickedUpLines(range, warehouseIds, supplierId)})
     select ${g.select}, ${aggregates}
     from ${g.from}
     group by ${g.groupBy}
@@ -116,9 +128,10 @@ async function grouped(
 async function summary(
   range: DateRange,
   warehouseIds: ReadonlyArray<string>,
+  supplierId?: string,
 ): Promise<SalesTotals> {
   const result = await db.execute<RawRow>(sql`
-    with lines as (${pickedUpLines(range, warehouseIds)})
+    with lines as (${pickedUpLines(range, warehouseIds, supplierId)})
     select ${aggregates} from lines s`)
   const row = result.rows[0]
   return row.orders
@@ -139,17 +152,21 @@ const asRow = (row: RawRow): SalesRow => ({
  */
 export async function getSalesReport(
   actor: Actor,
-  input: { period: PeriodInput; warehouseIds?: ReadonlyArray<string> },
+  input: {
+    period: PeriodInput
+    warehouseIds?: ReadonlyArray<string>
+    supplierId?: string
+  },
 ): Promise<SalesReport> {
   const warehouses = await reportWarehouses(actor, input.warehouseIds)
   const range = periodRange(input.period)
   const ids = warehouses.map((item) => item.id)
   const [total, byDay, byProduct, byCustomer, byWarehouse] = await Promise.all([
-    summary(range, ids),
-    grouped('day', range, ids),
-    grouped('product', range, ids),
-    grouped('customer', range, ids),
-    grouped('warehouse', range, ids),
+    summary(range, ids, input.supplierId),
+    grouped('day', range, ids, input.supplierId),
+    grouped('product', range, ids, input.supplierId),
+    grouped('customer', range, ids, input.supplierId),
+    grouped('warehouse', range, ids, input.supplierId),
   ])
   return {
     range,

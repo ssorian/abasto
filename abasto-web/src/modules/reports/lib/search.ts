@@ -11,6 +11,7 @@ export type ReportSearch = {
   desde?: string
   hasta?: string
   almacen?: string
+  proveedor?: string
   dias?: number
 }
 
@@ -39,6 +40,7 @@ export function parseReportSearch(raw: Record<string, unknown>): ReportSearch {
     ...(text(raw.desde) ? { desde: text(raw.desde) } : {}),
     ...(text(raw.hasta) ? { hasta: text(raw.hasta) } : {}),
     ...(text(raw.almacen) ? { almacen: text(raw.almacen) } : {}),
+    ...(text(raw.proveedor) ? { proveedor: text(raw.proveedor) } : {}),
     ...(Number.isInteger(dias) && dias > 0 && dias !== defaultExpiringDays
       ? { dias }
       : {}),

@@ -40,11 +40,15 @@ export async function queryExpiringLots(
   warehouseIds: ReadonlyArray<string>,
   window: { from?: string; to?: string },
   today = businessDate(),
+  supplierId?: string,
 ): Promise<Array<LotAlertRow>> {
   const lower = window.from
     ? sql`and l.expires_on >= ${window.from}::date`
     : sql``
   const upper = window.to ? sql`and l.expires_on <= ${window.to}::date` : sql``
+  const supplier = supplierId
+    ? sql`and p.supplier_id::text = ${supplierId}`
+    : sql``
   const result = await db.execute<LotRaw>(sql`
     select l.id as lot_id, l.warehouse_id, w.name as warehouse_name,
       p.id as product_id, p.name, p.sku, p.unit, l.code,
@@ -57,7 +61,7 @@ export async function queryExpiringLots(
     join products p on p.id = l.product_id
     where l.warehouse_id in (${uuidList(warehouseIds)})
       and l.on_hand > 0 and l.expires_on is not null
-      ${lower} ${upper}
+      ${lower} ${upper} ${supplier}
     order by l.expires_on, w.name, p.name, l.id`)
   return result.rows.map((row) => ({
     lotId: row.lot_id,
@@ -80,18 +84,31 @@ export async function queryExpiringLots(
 export const queryExpiredLots = (
   warehouseIds: ReadonlyArray<string>,
   today = businessDate(),
-) => queryExpiringLots(warehouseIds, { to: addDays(today, -1) }, today)
+  supplierId?: string,
+) =>
+  queryExpiringLots(warehouseIds, { to: addDays(today, -1) }, today, supplierId)
+
+/** Ids of the products of a supplier; text compare so a malformed id matches none. */
+async function supplierProducts(supplierId: string): Promise<Set<string>> {
+  const result = await db.execute<{ id: string }>(
+    sql`select id from products where supplier_id::text = ${supplierId}`,
+  )
+  return new Set(result.rows.map((row) => row.id))
+}
 
 /** Products below their minimum (available-based) in the given warehouses. */
 export async function queryLowStock(
   actor: Actor,
   warehouses: ReadonlyArray<ReportWarehouse>,
+  supplierId?: string,
 ): Promise<Array<LowStockRow>> {
+  const ofSupplier = supplierId ? await supplierProducts(supplierId) : undefined
   const rows: Array<LowStockRow> = []
   // One at a time: each read takes its warehouse's stock lock to expire orders.
   for (const warehouse of warehouses) {
     for (const item of await getWarehouseStock(actor, warehouse.id)) {
       if (!item.belowMinimum) continue
+      if (ofSupplier && !ofSupplier.has(item.productId)) continue
       rows.push({
         warehouseId: warehouse.id,
         warehouseName: warehouse.name,
@@ -119,7 +136,11 @@ export async function queryLowStock(
  */
 export async function getStockAlerts(
   actor: Actor,
-  input: { warehouseIds?: ReadonlyArray<string>; expiringDays?: number },
+  input: {
+    warehouseIds?: ReadonlyArray<string>
+    supplierId?: string
+    expiringDays?: number
+  },
 ): Promise<StockAlerts> {
   const expiringDays = input.expiringDays ?? DEFAULT_EXPIRING_DAYS
   if (
@@ -136,9 +157,14 @@ export async function getStockAlerts(
   const ids = warehouses.map((item) => item.id)
   const today = businessDate()
   const [lowStock, expiring, expired] = await Promise.all([
-    queryLowStock(actor, warehouses),
-    queryExpiringLots(ids, { from: today, to: addDays(today, expiringDays) }),
-    queryExpiredLots(ids),
+    queryLowStock(actor, warehouses, input.supplierId),
+    queryExpiringLots(
+      ids,
+      { from: today, to: addDays(today, expiringDays) },
+      today,
+      input.supplierId,
+    ),
+    queryExpiredLots(ids, today, input.supplierId),
   ])
   return { warehouses, expiringDays, lowStock, expiring, expired }
 }
