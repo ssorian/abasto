@@ -74,6 +74,17 @@ describe('getManagerDashboard', () => {
     const error = await errorOf(() => getManagerDashboard(staff, week))
     expect(error.code).toBe('forbidden')
   })
+
+  test('a customer is refused', async () => {
+    await setupSupplierOrders()
+    const customer = {
+      userId: 'customer-user',
+      role: 'customer' as const,
+      assignments: new Map(),
+    }
+    const error = await errorOf(() => getManagerDashboard(customer, week))
+    expect(error).toMatchObject({ code: 'forbidden', message: forbidden })
+  })
 })
 
 describe('getManagerDashboard sales', () => {

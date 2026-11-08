@@ -17,8 +17,12 @@ Decisions (parent): charts with shadcn/ui Chart (Recharts) — new dependency, s
 ## Tasks
 
 - T1 [S1-S3] worker — design system sync (`design/system.md`, `design/system.html`) and design `design/reports-rebuild/`: 3 owner directions + 2 manager directions. Status: pending. Commit: —
-- T2 [S1,S3-S6] — implement the chosen owner artboard. Status: blocked (waits for the user's choice). Commit: —
-- T3 [S2,S3,S5,S6] — implement the chosen manager artboard. Status: blocked (waits for the user's choice). Commit: —
+- T1 status: done. Commit: f5ea518 (5 artboards + design system).
+- T1b [S3] inline — shadcn Chart (recharts 3.8.0) at `components/ui/chart.tsx`. Risk: item 5 (new dependency). Status: done. Commits: 3fcc943, 54e62f1 (stray `cn` package removed, import fixed).
+- T2 [S1,S3-S6] worker — owner view from `01-kpi-hero-breakdown.html` + B sentences; owns `routes/reportes.tsx` wiring and `/direccion` removal. Status: done. Commit: 87ca7d7 (RED: missing owner-series/owner-narrative modules; 36 lib tests; parent: `/direccion` kept as a redirect to `/reportes`, 5 orphan old report components deleted; integrated checks: build OK, tsc clean, eslint 0 errors (3 pre-existing warnings), prettier clean, bun test 785/785; not checked in a browser)
+- T3 [S2,S3,S5,S6] worker — manager view from `04-manager-operational.html` + E selector; exports the agreed `ManagerReportsPage` / `loadManagerReports`. Status: done. Commit: d9d5c8f. Evidence: RED seen for libs and service; full bun test 785/785; tsc errors only in T2's in-progress files; dropped: today-partial cards, product days without sale, cross-page links. Commit: —
+
+Verification (independent, Risk items 2 and 3): S1-S5 pass, S6 partial for the verifier (parent ran the full set: build OK, tsc clean, eslint 0 errors, prettier clean, bun test 785/785). Gap fixed: customer refusal test for the manager dashboard (pins existing behavior, passed on first run). Follow-ups: `previousRange` and `dailySeries` exist in both owner and manager libs; owner previous totals (ranking) and previous daily chart (sales report) come from two queries. Not checked in a browser.
 
 ## Log
 
