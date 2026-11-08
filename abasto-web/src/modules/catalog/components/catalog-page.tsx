@@ -2,6 +2,7 @@ import { PlusIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { PageHeading } from '#/components/page-heading'
+import { SupplierSelect } from '#/components/supplier-select'
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
 import { CatalogCard } from '#/modules/catalog/components/catalog-card'
 import { CatalogEmpty } from '#/modules/catalog/components/catalog-empty'
@@ -64,6 +65,7 @@ export function CatalogPage({
   const actions = useCatalogActions()
   const pricingActions = usePricingActions(pricing.selectedId)
   const [query, setQuery] = useState('')
+  const [supplierId, setSupplierId] = useState('')
   const [editor, setEditor] = useState<Editor>()
   const [presentationsId, setPresentationsId] = useState<string>()
   const [suppliersOpen, setSuppliersOpen] = useState(false)
@@ -74,7 +76,7 @@ export function CatalogPage({
 
   const editing = products.find(({ id }) => id === editor?.productId)
   const presenting = products.find(({ id }) => id === presentationsId)
-  const visible = filterCatalog(products, query)
+  const visible = filterCatalog(products, query, supplierId)
   const { published, paused } = publicationCounts(products)
   const supplierNames = new Map(suppliers.map(({ id, name }) => [id, name]))
 
@@ -151,6 +153,11 @@ export function CatalogPage({
             onChange={onSelectWarehouse}
           />
         )}
+        <SupplierSelect
+          suppliers={suppliers}
+          value={supplierId}
+          onChange={setSupplierId}
+        />
       </CatalogToolbar>
       <div className="grid grid-cols-2 gap-2.5 phone:gap-3.5 md:gap-4 tablet:grid-cols-3 wide:gap-5">
         {visible.map((product) => (

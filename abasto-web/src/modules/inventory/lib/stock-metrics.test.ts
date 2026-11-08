@@ -119,3 +119,44 @@ describe('productStatus and filterStock', () => {
     ])
   })
 })
+
+describe('filterStock by supplier', () => {
+  const rows = [
+    row('Leche entera', 10, 5),
+    row('Leche light', 2, 5),
+    row('Crema', 0, 4),
+    row('Agua', 3, 1),
+  ]
+  const supplierOf = new Map([
+    ['Leche entera', 'lala'],
+    ['Leche light', 'alpura'],
+    ['Crema', 'alpura'],
+  ])
+  const names = (list: Array<ProductStock>) => list.map((r) => r.name)
+
+  test('empty supplier means all, including products without supplier', () => {
+    expect(filterStock(rows, '', 'Todos', '', supplierOf).length).toBe(4)
+  })
+
+  test('shows only that supplier products', () => {
+    expect(names(filterStock(rows, '', 'Todos', 'alpura', supplierOf))).toEqual(
+      ['Leche light', 'Crema'],
+    )
+  })
+
+  test('combines with search and status (AND)', () => {
+    expect(
+      names(filterStock(rows, 'leche', 'Todos', 'alpura', supplierOf)),
+    ).toEqual(['Leche light'])
+    expect(
+      names(filterStock(rows, '', 'Sin existencias', 'alpura', supplierOf)),
+    ).toEqual(['Crema'])
+    expect(filterStock(rows, '', 'Disponible', 'alpura', supplierOf)).toEqual(
+      [],
+    )
+  })
+
+  test('unknown supplier id yields no rows', () => {
+    expect(filterStock(rows, '', 'Todos', 'missing', supplierOf)).toEqual([])
+  })
+})

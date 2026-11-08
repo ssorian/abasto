@@ -78,14 +78,22 @@ const normalize = (value: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
 
+/**
+ * Filters stock rows by status, search text and supplier (all combined).
+ * Stock rows carry no supplier, so `supplierOf` maps product id to supplier id;
+ * an empty `supplierId` means all suppliers, including products without one.
+ */
 export function filterStock(
   rows: ReadonlyArray<ProductStock>,
   query: string,
   filter: StatusFilter,
+  supplierId = '',
+  supplierOf: ReadonlyMap<string, string> = new Map(),
 ): Array<ProductStock> {
   const needle = normalize(query.trim())
   return rows.filter(
     (row) =>
+      (!supplierId || supplierOf.get(row.productId) === supplierId) &&
       (filter === 'Todos' || productStatus(row) === filter) &&
       (!needle || normalize(`${row.name} ${row.sku}`).includes(needle)),
   )

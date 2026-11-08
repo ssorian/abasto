@@ -6,21 +6,28 @@ const normalize = (text: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
 
-/** Accent-insensitive match over name, brand, SKU and presentation barcodes. */
+/**
+ * Accent-insensitive match over name, brand, SKU and presentation barcodes,
+ * combined (AND) with the supplier filter. An empty `supplierId` means all
+ * suppliers, including products without one.
+ */
 export function filterCatalog(
   products: ReadonlyArray<CatalogProduct>,
   query: string,
+  supplierId = '',
 ) {
   const needle = normalize(query)
-  return products.filter((product) =>
-    normalize(
-      [
-        product.name,
-        product.brand,
-        product.sku,
-        ...product.presentations.map(({ barcode }) => barcode ?? ''),
-      ].join(' '),
-    ).includes(needle),
+  return products.filter(
+    (product) =>
+      (!supplierId || product.supplierId === supplierId) &&
+      normalize(
+        [
+          product.name,
+          product.brand,
+          product.sku,
+          ...product.presentations.map(({ barcode }) => barcode ?? ''),
+        ].join(' '),
+      ).includes(needle),
   )
 }
 

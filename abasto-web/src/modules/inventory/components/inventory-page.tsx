@@ -111,6 +111,7 @@ export function InventoryPage({
   const [tab, setTab] = useState('Productos')
   const [query, setQuery] = useState(initialQuery)
   const [filter, setFilter] = useState<StatusFilter>('Todos')
+  const [supplierId, setSupplierId] = useState('')
   const [moveType, setMoveType] = useState('Todos')
   const [dialog, setDialog] = useState<Dialog | null>(null)
 
@@ -121,6 +122,16 @@ export function InventoryPage({
           product.id,
           { name: product.name, sku: product.sku, pack: packInfoOf(product) },
         ]),
+      ),
+    [products],
+  )
+
+  const supplierOf = useMemo(
+    () =>
+      new Map(
+        products.flatMap((product) =>
+          product.supplierId ? [[product.id, product.supplierId] as const] : [],
+        ),
       ),
     [products],
   )
@@ -149,7 +160,7 @@ export function InventoryPage({
 
   const { canManage } = selected
   const stock = overview.stock
-  const rows = filterStock(stock, query, filter)
+  const rows = filterStock(stock, query, filter, supplierId, supplierOf)
   const low = stock.filter((row) => productStatus(row) === 'Stock bajo').length
   const soldOut = stock.filter(
     (row) => productStatus(row) === 'Sin existencias',
@@ -241,6 +252,9 @@ export function InventoryPage({
             onQueryChange={setQuery}
             filter={filter}
             onFilterChange={setFilter}
+            suppliers={suppliers}
+            supplierId={supplierId}
+            onSupplierChange={setSupplierId}
             onLots={(row) =>
               setDialog({ kind: 'lots', productId: row.productId })
             }

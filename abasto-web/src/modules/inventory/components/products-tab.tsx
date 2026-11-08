@@ -1,4 +1,5 @@
 import { StatusBadge } from '#/components/status-badge'
+import { SupplierSelect } from '#/components/supplier-select'
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import { EmptyPanel } from '#/modules/inventory/components/empty-panel'
 import {
@@ -33,6 +34,9 @@ type ProductsTabProps = {
   onQueryChange: (value: string) => void
   filter: StatusFilter
   onFilterChange: (value: StatusFilter) => void
+  suppliers: ReadonlyArray<{ id: string; name: string; active: boolean }>
+  supplierId: string
+  onSupplierChange: (id: string) => void
   onLots: (row: ProductStock) => void
   onMinimum: (productId: string) => void
 }
@@ -48,6 +52,9 @@ export function ProductsTab({
   onQueryChange,
   filter,
   onFilterChange,
+  suppliers,
+  supplierId,
+  onSupplierChange,
   onLots,
   onMinimum,
 }: ProductsTabProps) {
@@ -66,6 +73,11 @@ export function ProductsTab({
           onChange={(value) => onFilterChange(value as StatusFilter)}
           options={statusFilters}
           className="data-[size=default]:h-9 text-xs md:data-[size=default]:h-[43px] md:text-sm"
+        />
+        <SupplierSelect
+          suppliers={suppliers}
+          value={supplierId}
+          onChange={onSupplierChange}
         />
         {canManage && (
           <ActionButton onClick={() => onMinimum('')}>
@@ -154,7 +166,7 @@ export function ProductsTab({
           title={total ? 'Sin resultados' : 'Aún no hay existencias'}
           description={
             total
-              ? 'Prueba con otra búsqueda o estado.'
+              ? 'Prueba con otra búsqueda, estado o proveedor.'
               : canManage
                 ? 'Registra una compra en Entradas para dar de alta productos en este almacén.'
                 : 'Cuando el encargado registre compras, verás aquí las existencias.'
