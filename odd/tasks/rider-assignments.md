@@ -1,0 +1,30 @@
+# Rider assignments (daily stock loaned to delivery riders)
+
+Objective: let a warehouse hand any stock to a delivery rider for the day, and at day end settle it: leftovers go back to available stock, the sold remainder becomes a sale with its cash in the open cash session. Branch `feat/rider-assignments` (from `main` f7604da).
+Test runner: `bun test` in `abasto-web` against the isolated test database (`bun run db:up`).
+
+## Specs
+
+- S1: Use case — "son repartidores que se les asigna tantas cajas o tantas unidades y al final del dia reportan venta y cuanto sobro". Applies to "Cualquier producto del almacen".
+- S2: Riders — a simple catalog per warehouse: name, warehouse, active. No login, not a customer, not a staff user.
+- S3: Assignment — staff picks a rider and lines of products with quantities in boxes (default presentation), units, or both (e.g. "40 cajas y 20 unidades"), converted to base units with the presentation `factor`. Units are reserved from that warehouse's lots FIFO, reusing the existing reservation/allocation rules (expired lots excluded, no overselling, same locking as orders). Stock stays on hand in the warehouse but is unavailable to anyone else. Status "En ruta". No `sale` movement and no cash at this point. Sale prices are frozen per allocation at assignment time.
+- S4: Settlement — staff enters the leftover quantity per line (boxes and/or units) and the cash the rider delivered. Leftover must be between 0 and the assigned quantity. Sold = assigned − leftover. Leftover units are released back to available stock in their same lots (no new lot, no return flow). Sold units append `sale` stock movements and decrement on hand and reserved, like a pickup. The sold amount is recorded as one cash `sale` movement in the warehouse's open cash session, so it shows in the cash cut and reports. If delivered cash differs from the sold amount, the difference is stored as a shortage or surplus on the assignment and shown. Status "Liquidada". Settlement is atomic and can happen only once.
+- S5: Rules — a rider cannot have two open ("En ruta") assignments at the same time; an "En ruta" assignment can be cancelled ("Cancelada") and all its reserved units are released; settling requires an open cash session in that warehouse; inactive riders cannot receive assignments.
+- S6: Access — owner everywhere; managers only in warehouses they manage (assign/settle/cancel with `warehouse.operate`, riders catalog with `warehouse.manage`); customers nothing. A foreign or malformed id is refused, never another scope.
+- S7: UI — a "Repartos" page in the operational console: riders catalog, today's/open assignments with status, assign form, settle form showing assigned vs leftover vs sold per line, expected amount, delivered cash and difference, and cancel. UI copy in Spanish like the rest of the console.
+- S8: Non-goals — no change to counter sales, the online store, or customer credit.
+- S9: Checks — `bun test` green; tsc, eslint, prettier clean on changed files; `bun run web:build` OK.
+
+## Tasks
+
+- T1 [S1-S6, S8, S9] worker — schema + migration, rider/assignment services (assign, settle, cancel, riders CRUD) with tests through the public service interface. Risk: item 4 (concurrent reservations and double settlement on shared lots/cash). Status: done. Commit: cfbcdf0 (schema, migration 0025, riders catalog), assignment commit hash recorded below.
+- T2 [S6, S7, S9] worker — server functions, route `/repartos`, navigation entry, components. Status: pending. Commit: —
+
+## Log
+
+- L1 (user): "Necesito cubrir este caso de uso, hay productos de proveedores especificos que no \"vendemos\" mas bien prestamos durante el dia, por ejemplo para lala nosotros les \"prestamos\" a nuestrso clientes selectos lo que pidan por ejemplo 40 cajas y 20 unidades de lala, se las prestamos y al final del dia reportan cuanto vendieron, les cobramos lo vendido y las cajas o unidades que les sobraron vuelven a entrar al almacen. Como encaja este caso de uso en la app actual?"
+- L2 (user): "OLVIDALO, en realidad es no es el caso de uso, es mas sencillo, son repartidores que se les asigna tantas cajas o tantas unidades y al final del dia reportan venta y cuanto sobro"
+- L3 (user, scope): "Cualquier producto del almacen"
+- L4 (user, approval of the proposed design incl. default rules S5): "Arranca con esta implementacion"
+- L5 (evidence, explore): stock lives only in warehouse `lots` (`onHand`, `reserved`); movements append-only incl. `sale`; pickup at `orders/services/order-actions.ts:123` appends `sale` per allocation and decrements on hand/reserved; cash sessions one open per warehouse, movement types `sale|abono|entry|withdrawal`, at most one `sale` per order (`cash/db/schema.ts:70`); roles owner / per-warehouse manager (`access/lib/policy.ts`).
+- L6 (evidence, T1): `bun test` 829 pass / 0 fail (25 new in `modules/riders`: catalog, assign, settle, cancel, reads, concurrency); tsc, eslint, prettier clean. RED observed first: all three new test files failed with "Cannot find module" before the services existed. Shared change: `orders/services/reservations.ts` extracts `releaseLots(tx, perLot)` from `releaseReserved` (same locking and SQL; order tests unchanged and green). No shared table or enum changed: settlement posts a cash `sale` without `orderId` and the assignment stores `cash_movement_id`; sale stock movements use `reference = assignment id`. "Box" = the product's largest active presentation; frozen price per allocation = lot sale price or the default presentation's warehouse price, amount = round(sold × price / default factor) per allocation.
