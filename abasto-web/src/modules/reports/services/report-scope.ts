@@ -15,6 +15,11 @@ import { listWarehouses } from '#/modules/warehouses/services/warehouses'
 export const notAllowed = () =>
   new AppError('forbidden', 'No tienes permiso para esta acción.')
 
+/** Executive reports are for the owner only; anyone else is refused. */
+export function requireOwner(actor: Actor) {
+  if (actor.role !== 'owner') throw notAllowed()
+}
+
 /** Warehouses the actor can report on: every one they manage (the owner: all). */
 export async function managedWarehouses(
   actor: Actor,
