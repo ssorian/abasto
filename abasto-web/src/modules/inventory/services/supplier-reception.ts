@@ -154,16 +154,14 @@ export async function receiveSupplierOrder(
     const replacementLots: Array<Lot> = []
     if (replacements.length) await lockSupplier(tx, order.supplierId)
     for (const item of replacements) {
-      const factor = boxProducts.get(item.productId)?.factor ?? 1
-      const units = item.boxes * factor
-      const costCents = await settleOwed(
+      const { valueCents: costCents, units } = await settleOwed(
         tx,
         {
           supplierId: order.supplierId,
           productId: item.productId,
           purchaseId: order.id,
           type: 'replaced',
-          units,
+          boxes: item.boxes,
           actorId: actor.userId,
         },
         () =>
@@ -185,8 +183,7 @@ export async function receiveSupplierOrder(
           salePriceCents: lotSalePrice(
             prices.get(item.productId),
             costCents,
-            units,
-            factor,
+            item.boxes,
           ),
           reason: 'Reposición del proveedor',
           actorId: actor.userId,
@@ -236,8 +233,7 @@ export async function receiveSupplierOrder(
             salePriceCents: lotSalePrice(
               prices.get(line.productId),
               costCents,
-              goodUnits,
-              line.boxFactor,
+              entry.goodBoxes,
             ),
             reason: 'Compra',
             actorId: actor.userId,

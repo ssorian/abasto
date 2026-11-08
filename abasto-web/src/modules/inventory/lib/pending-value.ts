@@ -42,3 +42,49 @@ export function fifoValueCents(
   }
   return valueUpTo(settledUnits + units) - valueUpTo(settledUnits)
 }
+
+/** An owed ledger row with the pieces per box of the order line it came from. */
+export type BoxedEntry = OwedEntry & { boxFactor: number }
+
+/** What is still owed of each entry once the oldest `settledUnits` are taken off. */
+export function remainingEntries<TEntry extends BoxedEntry>(
+  entries: ReadonlyArray<TEntry>,
+  settledUnits: number,
+) {
+  let skip = settledUnits
+  return entries.flatMap((entry) => {
+    const used = Math.min(skip, entry.quantity)
+    skip -= used
+    const remaining = entry.quantity - used
+    return remaining > 0 ? [{ ...entry, remaining }] : []
+  })
+}
+
+/** Whole boxes still owed, each entry counted with its own box factor. */
+export const owedBoxesOf = (
+  entries: ReadonlyArray<BoxedEntry>,
+  settledUnits: number,
+) =>
+  remainingEntries(entries, settledUnits).reduce(
+    (sum, entry) => sum + Math.floor(entry.remaining / entry.boxFactor),
+    0,
+  )
+
+/**
+ * Units that `boxes` boxes settle, oldest owed first, each box counted with the
+ * factor of its entry. Null when more boxes are requested than are owed.
+ */
+export function unitsOfBoxes(
+  entries: ReadonlyArray<BoxedEntry>,
+  settledUnits: number,
+  boxes: number,
+): number | null {
+  let need = boxes
+  let units = 0
+  for (const entry of remainingEntries(entries, settledUnits)) {
+    const take = Math.min(need, Math.floor(entry.remaining / entry.boxFactor))
+    units += take * entry.boxFactor
+    need -= take
+  }
+  return need === 0 ? units : null
+}

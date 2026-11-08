@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import type { AppErrorCode } from '#/lib/errors'
+import { savePresentations } from '#/modules/catalog/services/presentations'
 import { updateProduct } from '#/modules/catalog/services/products'
 import {
   lots,
@@ -345,6 +346,81 @@ describe('writeOffPendings', () => {
       1,
     )
     expect(await owedMilk(fx)).toMatchObject({ owedBoxes: 2 })
+  })
+})
+
+/** Adds a box of 24 and makes it the product's default presentation. */
+const switchMilkToBoxOf24 = (fx: SupplierFixture) =>
+  savePresentations(fx.owner, fx.milk.id, {
+    presentations: [
+      ...fx.milk.presentations.map((row) => ({
+        id: row.id,
+        name: row.name,
+        factor: row.factor,
+      })),
+      { name: 'Caja 24', factor: 24 },
+    ],
+    defaultIndex: fx.milk.presentations.length,
+  })
+
+describe('boxes use the factor of the order line, not the current default', () => {
+  test('owed boxes and write-offs keep the factor the boxes were ordered with', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 5, 2) // 2 damaged + 3 missing boxes of 12
+    await switchMilkToBoxOf24(fx)
+    expect(await owedMilk(fx)).toMatchObject({
+      boxFactor: 12,
+      owedQuantity: 60,
+      owedBoxes: 5,
+      owedValueCents: 6720,
+    })
+    const result = await writeOffPendings(fx.owner, {
+      supplierId: fx.supplier.id,
+      productId: fx.milk.id,
+      boxes: 2,
+    })
+    expect(result.valueCents).toBe(2688)
+    const entry = (await supplierState()).pendings.find(
+      (row) => row.type === 'written_off',
+    )
+    expect(entry).toMatchObject({ quantity: -24, valueCents: -2688 })
+    expect(await owedMilk(fx)).toMatchObject({
+      owedQuantity: 36,
+      owedBoxes: 3,
+    })
+  })
+
+  test('replacements enter as units of the original boxes', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 5, 2)
+    await switchMilkToBoxOf24(fx)
+    const result = await receiveMilk(fx, 1, 1, 0, [
+      { productId: fx.milk.id, boxes: 5 },
+    ])
+    expect(result.replacementLots[0]).toMatchObject({
+      receivedQuantity: 60,
+      receivedCostCents: 6720,
+    })
+    expect(await owedMilk(fx)).toBeUndefined()
+  })
+
+  test('over-settling in the old boxes is rejected and changes nothing', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 5, 2)
+    await switchMilkToBoxOf24(fx)
+    const before = await supplierState()
+    const error = await errorOf(() =>
+      writeOffPendings(fx.owner, {
+        supplierId: fx.supplier.id,
+        productId: fx.milk.id,
+        boxes: 6,
+      }),
+    )
+    expect([error.code, error.message]).toEqual([
+      'invalid',
+      'Las cajas a cancelar superan el saldo del proveedor.',
+    ])
+    expect(await supplierState()).toEqual(before)
   })
 })
 

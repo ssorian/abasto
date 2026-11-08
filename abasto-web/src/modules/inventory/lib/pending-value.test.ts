@@ -3,6 +3,8 @@ import {
   divideHalfUp,
   fifoValueCents,
   lineShareCents,
+  owedBoxesOf,
+  unitsOfBoxes,
 } from '#/modules/inventory/lib/pending-value'
 
 describe('divideHalfUp', () => {
@@ -43,5 +45,32 @@ describe('fifoValueCents', () => {
   })
   test('is zero when nothing is taken', () => {
     expect(fifoValueCents(entries, 0, 0)).toBe(0)
+  })
+})
+
+describe('boxes of mixed factors', () => {
+  // 3 boxes of 12 owed first, then 2 boxes of 24.
+  const entries = [
+    { quantity: 36, valueCents: 100, boxFactor: 12 },
+    { quantity: 48, valueCents: 200, boxFactor: 24 },
+  ]
+
+  test('counts each entry with its own box factor', () => {
+    expect(owedBoxesOf(entries, 0)).toBe(5)
+    expect(owedBoxesOf(entries, 12)).toBe(4)
+    expect(owedBoxesOf(entries, 36)).toBe(2)
+    expect(owedBoxesOf(entries, 84)).toBe(0)
+  })
+
+  test('turns boxes into units oldest first', () => {
+    expect(unitsOfBoxes(entries, 0, 2)).toBe(24)
+    expect(unitsOfBoxes(entries, 0, 4)).toBe(36 + 24)
+    expect(unitsOfBoxes(entries, 24, 2)).toBe(12 + 24)
+    expect(unitsOfBoxes(entries, 0, 5)).toBe(84)
+  })
+
+  test('refuses more boxes than are owed', () => {
+    expect(unitsOfBoxes(entries, 0, 6)).toBeNull()
+    expect(unitsOfBoxes(entries, 84, 1)).toBeNull()
   })
 })

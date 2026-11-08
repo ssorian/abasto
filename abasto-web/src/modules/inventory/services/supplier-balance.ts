@@ -2,8 +2,11 @@ import { and, asc, eq, gt, sql } from 'drizzle-orm'
 import { AppError } from '#/lib/errors'
 import type { Actor } from '#/modules/access/lib/policy'
 import { suppliers } from '#/modules/catalog/db/schema'
-import { fifoValueCents } from '#/modules/inventory/lib/pending-value'
-import { supplierPendings } from '#/modules/inventory/db/schema'
+import { purchaseLines, supplierPendings } from '#/modules/inventory/db/schema'
+import {
+  fifoValueCents,
+  unitsOfBoxes,
+} from '#/modules/inventory/lib/pending-value'
 import type { Tx } from '#/modules/inventory/services/stock-ledger'
 
 /**
@@ -31,14 +34,23 @@ export async function lockSupplier(tx: Tx, supplierId: string) {
   if (!found) throw new AppError('not_found', 'No encontramos ese proveedor.')
 }
 
-/** Settled and owed base units of one product of a supplier. */
+/** Settled units and the owed ledger entries, oldest first, of one product of a supplier. */
 async function balanceOf(tx: Tx, supplierId: string, productId: string) {
   const owedEntries = await tx
     .select({
       quantity: supplierPendings.quantity,
       valueCents: supplierPendings.valueCents,
+      /** Pieces per box of the order line the entry came from. */
+      boxFactor: sql<number>`coalesce(${purchaseLines.boxFactor}, 1)::int`,
     })
     .from(supplierPendings)
+    .leftJoin(
+      purchaseLines,
+      and(
+        eq(purchaseLines.purchaseId, supplierPendings.purchaseId),
+        eq(purchaseLines.productId, supplierPendings.productId),
+      ),
+    )
     .where(
       and(
         eq(supplierPendings.supplierId, supplierId),
@@ -68,9 +80,11 @@ async function balanceOf(tx: Tx, supplierId: string, productId: string) {
 }
 
 /**
- * Settles `units` of a supplier's product, oldest owed first, by appending a
- * negative entry. Returns the settled value in cents (positive). Callers hold
- * the supplier lock; refuses with `tooMany` when more than owed is requested.
+ * Settles `boxes` of a supplier's product, oldest owed first, by appending a
+ * negative entry. Boxes count with the factor of the order line that owes
+ * them, not the product's current default. Returns the settled value in
+ * cents (positive) and units. Callers hold the supplier lock; refuses with
+ * `tooMany` when more than owed is requested.
  */
 export async function settleOwed(
   tx: Tx,
@@ -79,26 +93,31 @@ export async function settleOwed(
     productId: string
     purchaseId: string | null
     type: 'replaced' | 'written_off'
-    units: number
+    boxes: number
     actorId: string
   },
   tooMany: () => AppError,
 ) {
   const balance = await balanceOf(tx, input.supplierId, input.productId)
-  if (input.units > balance.owedUnits) throw tooMany()
+  const units = unitsOfBoxes(
+    balance.owedEntries,
+    balance.settledUnits,
+    input.boxes,
+  )
+  if (units === null || units > balance.owedUnits) throw tooMany()
   const valueCents = fifoValueCents(
     balance.owedEntries,
     balance.settledUnits,
-    input.units,
+    units,
   )
   await tx.insert(supplierPendings).values({
     supplierId: input.supplierId,
     productId: input.productId,
     purchaseId: input.purchaseId,
     type: input.type,
-    quantity: -input.units,
+    quantity: -units,
     valueCents: -valueCents,
     actorId: input.actorId,
   })
-  return valueCents
+  return { valueCents, units }
 }

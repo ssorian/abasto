@@ -1,11 +1,14 @@
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import type { Actor } from '#/modules/access/lib/policy'
-import { presentations, products, suppliers } from '#/modules/catalog/db/schema'
-import { supplierPendings } from '#/modules/inventory/db/schema'
+import { products, suppliers } from '#/modules/catalog/db/schema'
+import { purchaseLines, supplierPendings } from '#/modules/inventory/db/schema'
 import type { PendingType } from '#/modules/inventory/db/schema'
-import { loadBoxProducts } from '#/modules/inventory/services/box-products'
+import {
+  owedBoxesOf,
+  remainingEntries,
+} from '#/modules/inventory/lib/pending-value'
 import {
   authorizeSupplierBalance,
   lockSupplier,
@@ -19,6 +22,7 @@ export type OwedPending = {
   productId: string
   productName: string
   sku: string
+  /** Pieces per box of the order lines that owe it (the oldest owed one). */
   boxFactor: number
   /** Base units the supplier owes; always positive here. */
   owedQuantity: number
@@ -54,20 +58,12 @@ export async function listSupplierPendings(
       productId: supplierPendings.productId,
       productName: products.name,
       sku: products.sku,
-      boxFactor: sql<number>`coalesce(${presentations.factor}, 1)::int`,
       owedQuantity: sql<number>`sum(${supplierPendings.quantity})::int`,
       owedValueCents: sql<number>`sum(${supplierPendings.valueCents})::int`,
     })
     .from(supplierPendings)
     .innerJoin(suppliers, eq(suppliers.id, supplierPendings.supplierId))
     .innerJoin(products, eq(products.id, supplierPendings.productId))
-    .leftJoin(
-      presentations,
-      and(
-        eq(presentations.productId, products.id),
-        eq(presentations.isDefault, true),
-      ),
-    )
     .where(scope)
     .groupBy(
       supplierPendings.supplierId,
@@ -75,20 +71,49 @@ export async function listSupplierPendings(
       supplierPendings.productId,
       products.name,
       products.sku,
-      presentations.factor,
     )
     .having(sql`sum(${supplierPendings.quantity}) > 0`)
     .orderBy(suppliers.name, products.name, products.sku)
+  // Boxes count with the factor of the order line that owes them, not the
+  // product's current default presentation.
+  const entries = await db
+    .select({
+      supplierId: supplierPendings.supplierId,
+      productId: supplierPendings.productId,
+      quantity: supplierPendings.quantity,
+      valueCents: supplierPendings.valueCents,
+      boxFactor: sql<number>`coalesce(${purchaseLines.boxFactor}, 1)::int`,
+    })
+    .from(supplierPendings)
+    .leftJoin(
+      purchaseLines,
+      and(
+        eq(purchaseLines.purchaseId, supplierPendings.purchaseId),
+        eq(purchaseLines.productId, supplierPendings.productId),
+      ),
+    )
+    .where(and(scope, gt(supplierPendings.quantity, 0)))
+    .orderBy(asc(supplierPendings.createdAt), asc(supplierPendings.id))
   const history = await db
     .select()
     .from(supplierPendings)
     .where(scope)
     .orderBy(desc(supplierPendings.createdAt), desc(supplierPendings.id))
   return {
-    owed: owed.map((row) => ({
-      ...row,
-      owedBoxes: Math.floor(row.owedQuantity / row.boxFactor),
-    })),
+    owed: owed.map((row) => {
+      const own = entries.filter(
+        (entry) =>
+          entry.supplierId === row.supplierId &&
+          entry.productId === row.productId,
+      )
+      const settledUnits =
+        own.reduce((sum, entry) => sum + entry.quantity, 0) - row.owedQuantity
+      return {
+        ...row,
+        boxFactor: remainingEntries(own, settledUnits)[0]?.boxFactor ?? 1,
+        owedBoxes: owedBoxesOf(own, settledUnits),
+      }
+    }),
     history,
   }
 }
@@ -113,17 +138,14 @@ export async function writeOffPendings(
   return db.transaction(async (tx) => {
     await lockSupplier(tx, input.supplierId)
     await requireProduct(tx, input.productId)
-    const product = (await loadBoxProducts(tx, [input.productId])).get(
-      input.productId,
-    )
-    const valueCents = await settleOwed(
+    const { valueCents } = await settleOwed(
       tx,
       {
         supplierId: input.supplierId,
         productId: input.productId,
         purchaseId: null,
         type: 'written_off',
-        units: input.boxes * (product?.factor ?? 1),
+        boxes: input.boxes,
         actorId: actor.userId,
       },
       () =>

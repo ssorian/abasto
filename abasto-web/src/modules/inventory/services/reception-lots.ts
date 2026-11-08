@@ -29,17 +29,15 @@ export async function standardBoxPrices(
 /**
  * The lot freezes the standard price only when it covers the cost per box;
  * otherwise it has no price of its own and follows the standard.
- * Compared without rounding: price × units ≥ cost × units per box.
+ * Compared without rounding: price per box × boxes ≥ the lot cost.
  */
 export function lotSalePrice(
   standardCents: number | undefined,
   costCents: number,
-  units: number,
-  factor: number,
+  boxes: number,
 ) {
   if (standardCents === undefined || standardCents <= 0) return null
-  return BigInt(standardCents) * BigInt(units) >=
-    BigInt(costCents) * BigInt(factor)
+  return BigInt(standardCents) * BigInt(boxes) >= BigInt(costCents)
     ? standardCents
     : null
 }
