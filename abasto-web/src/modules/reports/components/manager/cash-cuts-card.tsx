@@ -16,6 +16,7 @@ import {
 import type { ChartConfig } from '#/components/ui/chart'
 import { formatCents } from '#/modules/pricing/lib/money'
 import { cashDifferenceSeries } from '#/modules/reports/lib/manager-chart-data'
+import { cashSupplierNote } from '#/modules/reports/lib/report-filters'
 import { shortDate } from '#/modules/reports/lib/manager-format'
 import { businessDate } from '#/modules/orders/services/clock'
 import {
@@ -53,16 +54,19 @@ const signed = (cents: number) =>
 export function CashCutsCard({
   rows,
   warehouse,
+  supplierFiltered = false,
 }: {
   rows: Array<CashCutRow>
   warehouse: string
+  /** A supplier is selected: say that cash does not follow it. */
+  supplierFiltered?: boolean
 }) {
   const series = cashDifferenceSeries(rows)
   const newestFirst = [...rows].reverse()
   return (
     <ManagerCard
       title="Cortes de caja"
-      subtitle={`Cortes de ${warehouse} del periodo y su diferencia entre lo contado y lo esperado.`}
+      subtitle={`Cortes de ${warehouse} del periodo y su diferencia entre lo contado y lo esperado.${supplierFiltered ? ` ${cashSupplierNote}` : ''}`}
     >
       {rows.length === 0 ? (
         <CardEmpty>No hubo turnos de caja en este periodo.</CardEmpty>

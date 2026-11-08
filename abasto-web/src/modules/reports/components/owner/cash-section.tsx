@@ -15,6 +15,7 @@ import {
   Td,
   Th,
 } from '#/modules/reports/components/report-table'
+import { cashSupplierNote } from '#/modules/reports/lib/report-filters'
 import {
   closedCashCuts,
   compactMoney,
@@ -40,9 +41,12 @@ const status = (difference: number) =>
 export function CashSection({
   rows,
   sentence,
+  supplierFiltered = false,
 }: {
   rows: Array<CashCutRow>
   sentence: string
+  /** A supplier is selected: say that cash does not follow it. */
+  supplierFiltered?: boolean
 }) {
   const closed = closedCashCuts(rows)
   const data = closed.slice(-chartCuts).map((row) => ({
@@ -55,7 +59,7 @@ export function CashSection({
     <ReportCard
       title="Cortes de caja"
       sentence={sentence}
-      description="Diferencia por corte (contado menos esperado). Sobrante en verde, faltante en rojo."
+      description={`Diferencia por corte (contado menos esperado). Sobrante en verde, faltante en rojo.${supplierFiltered ? ` ${cashSupplierNote}` : ''}`}
     >
       {data.length === 0 ? (
         <p className="text-sm text-ink-muted">

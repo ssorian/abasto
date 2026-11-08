@@ -13,6 +13,7 @@ export const managerDashboardFn = createServerFn({ method: 'GET' })
       return getManagerDashboard(actor, {
         period: input.period,
         warehouseId: input.warehouseId,
+        supplierId: input.supplierId,
       })
     }),
   )

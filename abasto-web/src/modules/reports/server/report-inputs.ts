@@ -19,8 +19,19 @@ export const stockAlertsInput = z.object({
   expiringDays: z.number().optional(),
 })
 
-/** Period only: the owner console always covers every warehouse. */
-export const periodOnlyInput = z.object({ period })
+const id = z.string().min(1)
 
-/** Window of the non-moving stock report; the service accepts 30, 60 or 90. */
-export const nonMovingInput = z.object({ days: z.number().optional() })
+/** Optional warehouse and supplier filters of the owner console; services validate them. */
+const ownerFilters = { warehouseId: id.optional(), supplierId: id.optional() }
+
+/** Period plus the optional filters; the owner services refuse anyone else. */
+export const periodOnlyInput = z.object({ period, ...ownerFilters })
+
+/** Filters alone, for the inventory value. */
+export const inventoryFiltersInput = z.object(ownerFilters)
+
+/** Window of the non-moving stock report (the service accepts 30, 60 or 90) plus filters. */
+export const nonMovingInput = z.object({
+  days: z.number().optional(),
+  ...ownerFilters,
+})

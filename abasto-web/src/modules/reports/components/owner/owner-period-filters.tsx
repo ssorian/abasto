@@ -2,10 +2,20 @@ import { CalendarDaysIcon } from 'lucide-react'
 
 import { cn } from '#/lib/utils/cn'
 import type { ExecutiveSearch } from '#/modules/executive/lib/search'
-import { Field, FieldInput } from '#/modules/reports/components/report-fields'
+import {
+  Field,
+  FieldInput,
+  FieldSelect,
+} from '#/modules/reports/components/report-fields'
+import { SupplierSelect } from '#/modules/reports/components/supplier-select'
 import { rangeLabel } from '#/modules/reports/lib/period'
 import { defaultPreset } from '#/modules/reports/lib/search'
-import type { DateRange, PeriodPreset } from '#/modules/reports/types/reports'
+import type {
+  DateRange,
+  PeriodPreset,
+  ReportSupplier,
+  ReportWarehouse,
+} from '#/modules/reports/types/reports'
 
 const presets: Array<{ value: PeriodPreset; label: string }> = [
   { value: 'today', label: 'Hoy' },
@@ -19,6 +29,9 @@ type PeriodFiltersProps = {
   range?: DateRange
   /** Period of equal length right before `range`, the comparison base. */
   previousRange?: DateRange
+  /** Every warehouse, for the selector ("Todos los almacenes" is the default). */
+  warehouses: Array<ReportWarehouse>
+  suppliers: Array<ReportSupplier>
   onChange: (patch: Partial<ExecutiveSearch>) => void
 }
 
@@ -27,6 +40,8 @@ export function OwnerPeriodFilters({
   search,
   range,
   previousRange,
+  warehouses,
+  suppliers,
   onChange,
 }: PeriodFiltersProps) {
   const preset = search.periodo ?? defaultPreset
@@ -71,6 +86,32 @@ export function OwnerPeriodFilters({
             · Ciudad de México
           </span>
         )}
+      </div>
+      <div className="mt-4 flex flex-col gap-3.5 md:flex-row md:flex-wrap md:items-center">
+        <Field
+          label="Almacén"
+          className="md:min-w-[220px] md:flex-row md:items-center md:gap-3"
+        >
+          <FieldSelect
+            aria-label="Almacén del reporte"
+            value={search.almacen ?? ''}
+            onChange={(event) =>
+              onChange({ almacen: event.target.value || undefined })
+            }
+          >
+            <option value="">Todos los almacenes</option>
+            {warehouses.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </FieldSelect>
+        </Field>
+        <SupplierSelect
+          suppliers={suppliers}
+          value={search.proveedor}
+          onChange={(proveedor) => onChange({ proveedor })}
+        />
       </div>
       {preset === 'custom' && (
         <div className="mt-4 grid grid-cols-1 gap-[13px] md:grid-cols-2 md:gap-4">

@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { parseInput } from '#/lib/boundary'
 import {
+  inventoryFiltersInput,
+  nonMovingInput,
+  periodOnlyInput,
   periodReportInput,
   stockAlertsInput,
 } from '#/modules/reports/server/report-inputs'
@@ -43,5 +46,25 @@ describe('report inputs', () => {
       )
     }
     expect(() => parseInput(stockAlertsInput, { expiringDays: 'x' })).toThrow()
+  })
+
+  test('owner inputs accept optional warehouse and supplier and refuse empty ones', () => {
+    const filters = { warehouseId: 'w1', supplierId: 's1' }
+    expect(
+      parseInput(periodOnlyInput, { period: { preset: '7' }, ...filters }),
+    ).toEqual({ period: { preset: '7' }, ...filters })
+    expect(parseInput(inventoryFiltersInput, filters)).toEqual(filters)
+    expect(parseInput(inventoryFiltersInput, {})).toEqual({})
+    expect(parseInput(nonMovingInput, { days: 60, ...filters })).toEqual({
+      days: 60,
+      ...filters,
+    })
+    for (const bad of [{ warehouseId: '' }, { supplierId: '' }]) {
+      expect(() => parseInput(inventoryFiltersInput, bad)).toThrow()
+      expect(() => parseInput(nonMovingInput, bad)).toThrow()
+      expect(() =>
+        parseInput(periodOnlyInput, { period: { preset: '7' }, ...bad }),
+      ).toThrow()
+    }
   })
 })

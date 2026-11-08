@@ -74,7 +74,11 @@ export function profitSentence(
     down: 'bajó',
   })
   if (!change) return `La utilidad se mantuvo igual que ${before}.`
-  const driver = profitDriver(rows, change.bps > 0 ? 'up' : 'down')
+  // A single warehouse in view (filtered) cannot be "the one that explains it".
+  const driver =
+    rows.length > 1
+      ? profitDriver(rows, change.bps > 0 ? 'up' : 'down')
+      : undefined
   const base = `La utilidad ${change.text} frente al periodo anterior`
   if (!driver) return `${base}.`
   return change.bps > 0
@@ -144,10 +148,20 @@ export function warehouseSentence(rows: ReadonlyArray<WarehouseRankingRow>) {
   return `${worst.name} bajó ${percent(worst.bps)}, la mayor caída.`
 }
 
-export function idleCapitalSentence(idleCents: number, inventoryCents: number) {
-  if (!idleCents) return 'Todo tu inventario tuvo ventas en este lapso.'
+/** `filtered`: a warehouse or supplier is selected, so it is not "tu inventario" as a whole. */
+export function idleCapitalSentence(
+  idleCents: number,
+  inventoryCents: number,
+  filtered = false,
+) {
+  const stock = filtered ? 'inventario de esta selección' : 'inventario'
+  if (!idleCents) {
+    return filtered
+      ? 'Todo el inventario de esta selección tuvo ventas en este lapso.'
+      : 'Todo tu inventario tuvo ventas en este lapso.'
+  }
   const share = inventoryCents
-    ? `, el ${percent(Math.round((idleCents * 10_000) / inventoryCents))} de tu inventario`
+    ? `, el ${percent(Math.round((idleCents * 10_000) / inventoryCents))} ${filtered ? 'del' : 'de tu'} ${stock}`
     : ''
   return `Tienes ${formatCents(idleCents)} detenidos en producto que no se vende${share}.`
 }

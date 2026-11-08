@@ -16,19 +16,34 @@ import {
   requireOwner,
   uuidList,
 } from '#/modules/reports/services/report-scope'
+import type { ExecutiveFilters } from '#/modules/executive/services/profitability'
 import { lotValueCents } from '#/modules/reports/services/stock-alerts'
 
 export const DEFAULT_NON_MOVING_DAYS: NonMovingDays = 30
 
-/** Owner-only: the executive console shows the whole business. */
-async function ownerWarehouses(actor: Actor) {
+/** Owner-only: the whole business, or the requested warehouses (each validated). */
+async function ownerWarehouses(
+  actor: Actor,
+  requested?: ReadonlyArray<string>,
+) {
   requireOwner(actor)
-  return reportWarehouses(actor)
+  return reportWarehouses(actor, requested)
 }
 
+/** Lots of one supplier's products; compared as text so a malformed id matches nothing. */
+const ofSupplier = (supplierId?: string) =>
+  supplierId
+    ? sql`and exists (
+        select 1 from products sp
+        where sp.id = l.product_id and sp.supplier_id::text = ${supplierId})`
+    : sql``
+
 /** Inventory at cost per warehouse (lots with stock only) and in total. */
-export async function getInventoryValue(actor: Actor): Promise<InventoryValue> {
-  const warehouses = await ownerWarehouses(actor)
+export async function getInventoryValue(
+  actor: Actor,
+  input: ExecutiveFilters = {},
+): Promise<InventoryValue> {
+  const warehouses = await ownerWarehouses(actor, input.warehouseIds)
   const result = await db.execute<{
     warehouse_id: string
     units: string
@@ -39,6 +54,7 @@ export async function getInventoryValue(actor: Actor): Promise<InventoryValue> {
     from lots l
     where l.warehouse_id in (${uuidList(warehouses.map((item) => item.id))})
       and l.on_hand > 0
+      ${ofSupplier(input.supplierId)}
     group by l.warehouse_id`)
   const byWarehouse = new Map(result.rows.map((row) => [row.warehouse_id, row]))
   const rows = warehouses.map((warehouse) => {
@@ -78,9 +94,9 @@ type NonMovingRaw = {
  */
 export async function getNonMovingCapital(
   actor: Actor,
-  input: { days?: number } = {},
+  input: { days?: number } & ExecutiveFilters = {},
 ): Promise<NonMovingCapital> {
-  const warehouses = await ownerWarehouses(actor)
+  const warehouses = await ownerWarehouses(actor, input.warehouseIds)
   const days = input.days ?? DEFAULT_NON_MOVING_DAYS
   if (!NON_MOVING_DAYS.some((allowed) => allowed === days)) {
     throw new AppError('invalid', 'Los días sin venta deben ser 30, 60 o 90.')
@@ -93,6 +109,7 @@ export async function getNonMovingCapital(
       from lots l
       where l.warehouse_id in (${uuidList(warehouses.map((item) => item.id))})
         and l.on_hand > 0
+        ${ofSupplier(input.supplierId)}
       group by l.warehouse_id, l.product_id
     ), last_sale as (
       select o.warehouse_id, ol.product_id,

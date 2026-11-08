@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
+import { setMinimumStock } from '#/modules/inventory/services/stock-minimums'
 import { createSupplierOrder } from '#/modules/inventory/services/supplier-orders'
 import {
   errorOf,
+  lineFor,
   setupSupplierOrders,
 } from '#/modules/inventory/services/supplier-testing'
 import {
@@ -109,5 +111,92 @@ describe('getManagerDashboard sales', () => {
     expect(
       dashboard.cash.rows.every((row) => row.warehouseId === fx.a.id),
     ).toBe(true)
+  })
+})
+
+describe('getManagerDashboard supplier filter', () => {
+  test('narrows pending orders and stock alerts to the supplier', async () => {
+    const fx = await setupSupplierOrders()
+    await orderFor(fx, fx.a.id, 'PED-ALPURA')
+    await createSupplierOrder(fx.managerA, {
+      supplierId: fx.cocaCola.id,
+      warehouseId: fx.a.id,
+      expectedOn: '2099-01-10',
+      reference: 'PED-COLA',
+      lines: [lineFor(fx.cola, 1)],
+    })
+    for (const product of [fx.milk, fx.cola]) {
+      await setMinimumStock(fx.owner, {
+        productId: product.id,
+        warehouseId: fx.a.id,
+        minimum: 5,
+      })
+    }
+
+    const all = await getManagerDashboard(fx.managerA, week)
+    expect(all.pendingOrders.map((order) => order.reference).sort()).toEqual([
+      'PED-ALPURA',
+      'PED-COLA',
+    ])
+    const lowStock = (d: typeof all) => d.stock.lowStock.map((row) => row.name)
+    expect(lowStock(all)).toEqual(
+      expect.arrayContaining(['Leche Alpura 1L', 'Cola 600ml']),
+    )
+
+    const cola = await getManagerDashboard(fx.managerA, {
+      ...week,
+      supplierId: fx.cocaCola.id,
+    })
+    expect(cola.pendingOrders.map((order) => order.reference)).toEqual([
+      'PED-COLA',
+    ])
+    expect(lowStock(cola)).toEqual(['Cola 600ml'])
+
+    const unknown = await getManagerDashboard(fx.managerA, {
+      ...week,
+      supplierId: 'nope',
+    })
+    expect(unknown.pendingOrders).toEqual([])
+    expect(unknown.stock.lowStock).toEqual([])
+  })
+
+  test('narrows current and previous sales; cash cuts stay unchanged', async () => {
+    const fx = await setupReports()
+    await receive(fx, {
+      productId: fx.milkBox.id,
+      quantity: 40,
+      expiresOn: farFuture,
+    })
+    await fx.sell({ at: '2026-11-08T18:00:00Z', quantity: 3 })
+    await fx.sell({ at: '2026-10-30T18:00:00Z', quantity: 2 })
+    useClock(() => new Date('2026-11-08T20:00:00Z'))
+
+    const mine = await getManagerDashboard(fx.staffA, {
+      ...week,
+      supplierId: fx.supplier.id,
+    })
+    expect(mine.sales.summary.revenueCents).toBe(3000)
+    expect(mine.previousSales.summary.revenueCents).toBe(2000)
+
+    const other = await getManagerDashboard(fx.staffA, {
+      ...week,
+      supplierId: crypto.randomUUID(),
+    })
+    expect(other.sales.summary.revenueCents).toBe(0)
+    expect(other.previousSales.summary.revenueCents).toBe(0)
+    const unfiltered = await getManagerDashboard(fx.staffA, week)
+    expect(other.cash).toEqual(unfiltered.cash)
+  })
+
+  test('a supplier filter never opens another warehouse', async () => {
+    const fx = await setupSupplierOrders()
+    const error = await errorOf(() =>
+      getManagerDashboard(fx.managerB, {
+        ...week,
+        warehouseId: fx.a.id,
+        supplierId: fx.supplier.id,
+      }),
+    )
+    expect(error).toMatchObject({ code: 'forbidden', message: forbidden })
   })
 })

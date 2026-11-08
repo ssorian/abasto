@@ -9,7 +9,7 @@ describe('manager report search params', () => {
     ).toEqual({})
   })
 
-  test('keeps only the period and the warehouse', () => {
+  test('keeps only the period, the warehouse and the supplier', () => {
     expect(
       parseManagerReportsSearch({
         tab: 'cajas',
@@ -25,6 +25,7 @@ describe('manager report search params', () => {
       desde: '2026-10-01',
       hasta: '2026-10-31',
       almacen: 'w1',
+      proveedor: 's1',
     })
   })
 })
