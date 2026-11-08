@@ -90,6 +90,11 @@ export const lots = pgTable(
       .notNull(),
     receivedQuantity: integer('received_quantity').notNull(),
     receivedCostCents: integer('received_cost_cents').notNull(),
+    /**
+     * Sale price per default presentation (box) in integer cents, never below
+     * the lot's cost per box. Null sells at the warehouse standard price.
+     */
+    salePriceCents: integer('sale_price_cents'),
     /** Cached sum of the lot's ledger movements; updated in the movement's transaction. */
     onHand: integer('on_hand').notNull(),
     /** Cached units held by open orders; never above `on_hand`. Available = on_hand − reserved. */
@@ -102,6 +107,10 @@ export const lots = pgTable(
       sql`${table.reserved} >= 0 and ${table.reserved} <= ${table.onHand}`,
     ),
     check('lots_received_quantity_min', sql`${table.receivedQuantity} > 0`),
+    check(
+      'lots_sale_price_min',
+      sql`${table.salePriceCents} is null or ${table.salePriceCents} > 0`,
+    ),
     index('lots_product_warehouse_idx').on(table.productId, table.warehouseId),
   ],
 )

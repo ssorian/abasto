@@ -1,9 +1,9 @@
-import { inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
-import { products } from '#/modules/catalog/db/schema'
+import { presentations, products } from '#/modules/catalog/db/schema'
 import { expireOverdueOrders } from '#/modules/orders/services/expiry'
 import { lots, purchaseLines, purchases } from '#/modules/inventory/db/schema'
 import {
@@ -23,6 +23,11 @@ export type PurchaseLineInput = {
   quantity: number
   /** Whole line cost in integer cents. */
   totalCostCents: number
+  /**
+   * Sale price per default presentation (box) in integer cents; never below
+   * the cost per box. Omitted sells the lot at the standard price.
+   */
+  salePriceCents?: number
   lotCode?: string
   /** YYYY-MM-DD */
   expiresOn?: string
@@ -61,6 +66,21 @@ function validate(input: PurchaseInput) {
       line.totalCostCents,
       `El costo no puede ser mayor que ${MAX_INT4} centavos.`,
     )
+    if (
+      line.salePriceCents !== undefined &&
+      (!isWholeNumber(line.salePriceCents) || line.salePriceCents <= 0)
+    ) {
+      throw new AppError(
+        'invalid',
+        'El precio de salida debe ser un monto en centavos mayor que cero.',
+      )
+    }
+    if (line.salePriceCents !== undefined) {
+      assertFitsInt4(
+        line.salePriceCents,
+        `El precio de salida no puede ser mayor que ${MAX_INT4} centavos.`,
+      )
+    }
     if (line.expiresOn && !isIsoDate(line.expiresOn)) {
       throw new AppError('invalid', 'La fecha de caducidad no es válida.')
     }
@@ -80,11 +100,33 @@ export async function createPurchase(
     await expireOverdueOrders(tx, input.warehouseId)
     const productIds = [...new Set(input.lines.map((line) => line.productId))]
     const found = await tx
-      .select({ id: products.id })
+      .select({ id: products.id, boxFactor: presentations.factor })
       .from(products)
+      .leftJoin(
+        presentations,
+        and(
+          eq(presentations.productId, products.id),
+          eq(presentations.isDefault, true),
+        ),
+      )
       .where(inArray(products.id, productIds))
     if (found.length !== productIds.length) {
       throw new AppError('not_found', 'No encontramos ese producto.')
+    }
+    const boxFactor = new Map(found.map((row) => [row.id, row.boxFactor ?? 1]))
+    for (const line of input.lines) {
+      if (line.salePriceCents === undefined) continue
+      // price ≥ totalCost / boxes, with boxes = quantity / factor; compared without rounding.
+      const factor = BigInt(boxFactor.get(line.productId) ?? 1)
+      if (
+        BigInt(line.salePriceCents) * BigInt(line.quantity) <
+        BigInt(line.totalCostCents) * factor
+      ) {
+        throw new AppError(
+          'invalid',
+          'El precio de salida no puede ser menor que el costo por caja.',
+        )
+      }
     }
     const [purchase] = await tx
       .insert(purchases)
@@ -120,6 +162,7 @@ export async function createPurchase(
           expiresOn: stored.expiresOn,
           receivedQuantity: line.quantity,
           receivedCostCents: line.totalCostCents,
+          salePriceCents: line.salePriceCents ?? null,
           onHand: 0,
         })
         .returning()

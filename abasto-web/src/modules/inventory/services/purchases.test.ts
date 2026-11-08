@@ -4,6 +4,7 @@ import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import type { AppErrorCode } from '#/lib/errors'
 import { lots, stockMovements } from '#/modules/inventory/db/schema'
+import { createProduct } from '#/modules/catalog/services/products'
 import { createPurchase } from '#/modules/inventory/services/purchases'
 import { getWarehouseStock } from '#/modules/inventory/services/stock-reads'
 import {
@@ -214,4 +215,80 @@ describe('createPurchase', () => {
       .where(eq(lots.id, created.lots[0].id))
     expect(lot.receivedCostCents).toBe(0)
   })
+})
+
+describe('createPurchase sale price per box', () => {
+  const boxedMilk = (fx: Fixture) =>
+    createProduct(fx.owner, {
+      name: 'Leche caja',
+      sku: 'LEC-CAJA',
+      category: 'Lácteos',
+      unit: 'piezas',
+      presentations: [
+        { name: 'Pieza', factor: 1 },
+        { name: 'Caja', factor: 12 },
+      ],
+      defaultIndex: 1,
+    })
+
+  /** Two boxes of 12 for $60.00: the cost per box is $30.00. */
+  const twoBoxes = (productId: string, salePriceCents?: number) => ({
+    productId,
+    quantity: 24,
+    totalCostCents: 6000,
+    ...(salePriceCents === undefined ? {} : { salePriceCents }),
+  })
+
+  test.each([3400, 3000])(
+    'stores sale price %p on the lot when it is not below the cost per box',
+    async (salePriceCents) => {
+      const fx = await setupInventory()
+      const product = await boxedMilk(fx)
+      const created = await createPurchase(
+        fx.owner,
+        purchaseOf(fx, { lines: [twoBoxes(product.id, salePriceCents)] }),
+      )
+      const [lot] = await db
+        .select()
+        .from(lots)
+        .where(eq(lots.id, created.lots[0].id))
+      expect(lot.salePriceCents).toBe(salePriceCents)
+      expect(created.lots[0].salePriceCents).toBe(salePriceCents)
+    },
+  )
+
+  test('a line without a sale price leaves the lot on the standard price', async () => {
+    const fx = await setupInventory()
+    const product = await boxedMilk(fx)
+    const created = await createPurchase(
+      fx.owner,
+      purchaseOf(fx, { lines: [twoBoxes(product.id)] }),
+    )
+    expect(created.lots[0].salePriceCents).toBeNull()
+  })
+
+  test('rejects a sale price below the cost per box', async () => {
+    const fx = await setupInventory()
+    const product = await boxedMilk(fx)
+    await rejects(
+      fx,
+      purchaseOf(fx, { lines: [twoBoxes(product.id, 2999)] }),
+      'invalid',
+      'El precio de salida no puede ser menor que el costo por caja.',
+    )
+  })
+
+  test.each([0, -100, 34.5])(
+    'rejects sale price %p',
+    async (salePriceCents) => {
+      const fx = await setupInventory()
+      const product = await boxedMilk(fx)
+      await rejects(
+        fx,
+        purchaseOf(fx, { lines: [twoBoxes(product.id, salePriceCents)] }),
+        'invalid',
+        'El precio de salida debe ser un monto en centavos mayor que cero.',
+      )
+    },
+  )
 })

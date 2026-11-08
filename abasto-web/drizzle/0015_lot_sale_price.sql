@@ -1,0 +1,2 @@
+ALTER TABLE "lots" ADD COLUMN "sale_price_cents" integer;--> statement-breakpoint
+ALTER TABLE "lots" ADD CONSTRAINT "lots_sale_price_min" CHECK ("lots"."sale_price_cents" is null or "lots"."sale_price_cents" > 0);
