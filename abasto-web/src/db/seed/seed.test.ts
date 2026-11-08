@@ -12,7 +12,12 @@ import { presentations, suppliers, products } from '#/modules/catalog/db/schema'
 import { creditAuthorizations } from '#/modules/credit/db/schema'
 import { getCustomerBalance } from '#/modules/credit/services/customer-ledger'
 import { customers } from '#/modules/customers/db/schema'
-import { lots, stockMovements } from '#/modules/inventory/db/schema'
+import {
+  lots,
+  purchases,
+  stockMovements,
+  supplierPendings,
+} from '#/modules/inventory/db/schema'
 import {
   orderAllocations,
   orderLines,
@@ -117,6 +122,18 @@ describe('seedDatabase', () => {
       ).map((row) => row.status)
       expect(transferStatuses).toContain('En tránsito')
       expect(transferStatuses).toContain('Recibido con diferencia')
+
+      // Orders: received ones, one still waiting, and a damaged box owed by the supplier.
+      const orderStatuses = (
+        await db.select({ status: purchases.status }).from(purchases)
+      ).map((row) => row.status)
+      expect(orderStatuses).toContain('Recibido')
+      expect(
+        orderStatuses.filter((status) => status === 'Pedido'),
+      ).toHaveLength(1)
+      const pendings = await db.select().from(supplierPendings)
+      expect(pendings.filter((row) => row.type === 'damaged')).toHaveLength(1)
+      for (const row of pendings) expect(row.quantity).toBeGreaterThan(0)
 
       // Every purchased lot sells at or above its cost per box.
       const purchased = await db

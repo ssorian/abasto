@@ -13,6 +13,7 @@ const tones: Record<string, StatusTone> = {
   Bloqueado: 'red',
   Reservado: 'blue',
   'En tránsito': 'blue',
+  Pedido: 'blue',
   Recibido: 'green',
   'Recibido con diferencia': 'amber',
 }

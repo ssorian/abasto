@@ -7,6 +7,10 @@ import {
 } from '#/modules/catalog/server/catalog'
 import { InventoryPage } from '#/modules/inventory/components/inventory-page'
 import { inventoryOverviewFn } from '#/modules/inventory/server/inventory'
+import {
+  supplierOrdersFn,
+  supplierPendingsFn,
+} from '#/modules/inventory/server/supplier-orders'
 import { transfersOverviewFn } from '#/modules/transfers/server/transfers'
 
 type InventorySearch = {
@@ -40,8 +44,21 @@ export const Route = createFileRoute('/inventario')({
           }),
         )
       : { transfers: [], destinations: [] }
+    const selected = loaded.warehouses.find(
+      ({ id }) => id === loaded.selectedId,
+    )
+    // Orders and supplier balances are only for managers of the warehouse.
+    const [supplierOrders, pendings] =
+      selected?.canManage && loaded.selectedId
+        ? await Promise.all([
+            supplierOrdersFn({ data: { warehouseId: loaded.selectedId } }),
+            supplierPendingsFn({ data: {} }),
+          ]).then(([orders, owed]) => [unwrap(orders), unwrap(owed)] as const)
+        : ([[], { owed: [], history: [] }] as const)
     return {
       overview: loaded,
+      supplierOrders,
+      pendings,
       products: unwrap(products),
       suppliers: unwrap(suppliers),
       transfers,
@@ -52,7 +69,8 @@ export const Route = createFileRoute('/inventario')({
 
 function InventoryRoute() {
   const { q } = Route.useSearch()
-  const { overview, products, suppliers, transfers } = Route.useLoaderData()
+  const { overview, products, suppliers, transfers, supplierOrders, pendings } =
+    Route.useLoaderData()
   const navigate = Route.useNavigate()
   return (
     <InventoryPage
@@ -62,6 +80,8 @@ function InventoryRoute() {
       products={products}
       suppliers={suppliers}
       transfers={transfers}
+      supplierOrders={[...supplierOrders]}
+      pendings={{ owed: [...pendings.owed], history: [...pendings.history] }}
       initialQuery={q ?? ''}
       onSelectWarehouse={(almacen) =>
         void navigate({ search: (current) => ({ ...current, almacen }) })

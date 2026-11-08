@@ -2,8 +2,10 @@ import {
   ArrowDownToLineIcon,
   ClipboardCheckIcon,
   LayoutGridIcon,
+  ClockIcon,
   PlusIcon,
   RotateCcwIcon,
+  ScaleIcon,
   TruckIcon,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -17,14 +19,16 @@ import { EntriesTab } from '#/modules/inventory/components/entries-tab'
 import { MovementsTab } from '#/modules/inventory/components/movements-tab'
 import type { ProductLabel } from '#/modules/inventory/components/movement-table'
 import { ProductsTab } from '#/modules/inventory/components/products-tab'
+import { SupplierOrdersTab } from '#/modules/inventory/components/supplier-orders-tab'
+import { SupplierPendingsTab } from '#/modules/inventory/components/supplier-pendings-tab'
 import { WarehouseSummary } from '#/modules/inventory/components/warehouse-summary'
 import { CountDialog } from '#/modules/inventory/forms/count-dialog'
 import { LotsDialog } from '#/modules/inventory/forms/lots-dialog'
 import { MinimumDialog } from '#/modules/inventory/forms/minimum-dialog'
-import { PurchaseDialog } from '#/modules/inventory/forms/purchase-dialog'
-import type { SavedPurchase } from '#/modules/inventory/forms/purchase-dialog'
-import { PurchaseResultDialog } from '#/modules/inventory/forms/purchase-result-dialog'
-import type { PurchaseResult } from '#/modules/inventory/forms/purchase-result-dialog'
+import { CancelOrderDialog } from '#/modules/inventory/forms/cancel-order-dialog'
+import { OrderDialog } from '#/modules/inventory/forms/order-dialog'
+import { ReceptionDialog } from '#/modules/inventory/forms/reception-dialog'
+import { WriteOffDialog } from '#/modules/inventory/forms/write-off-dialog'
 import {
   packInfoOf,
   quantityPresentations,
@@ -46,12 +50,21 @@ import type {
   CatalogSupplier,
 } from '#/modules/catalog/lib/catalog-types'
 import type { ProductStock } from '#/modules/inventory/services/stock-reads'
+import type { SupplierOrderSummary } from '#/modules/inventory/services/supplier-orders'
+import type {
+  OwedPending,
+  PendingEntry,
+} from '#/modules/inventory/services/supplier-pendings'
 
 type InventoryPageProps = {
   overview: InventoryOverview
   products: Array<CatalogProduct>
   suppliers: Array<CatalogSupplier>
   transfers: TransfersOverview
+  /** Supplier orders of the selected warehouse, newest first. */
+  supplierOrders: Array<SupplierOrderSummary>
+  /** What suppliers owe, with its ledger history. */
+  pendings: { owed: Array<OwedPending>; history: Array<PendingEntry> }
   /** Pre-filled product search, e.g. from Catálogo "Consultar inventario". */
   initialQuery: string
   onSelectWarehouse: (warehouseId: string) => void
@@ -60,6 +73,8 @@ type InventoryPageProps = {
 const tabs: Array<{ name: string; icon: LucideIcon }> = [
   { name: 'Productos', icon: LayoutGridIcon },
   { name: 'Entradas', icon: ArrowDownToLineIcon },
+  { name: 'Por recibir', icon: ClockIcon },
+  { name: 'Saldos', icon: ScaleIcon },
   { name: 'Movimientos', icon: RotateCcwIcon },
   { name: 'Conteos', icon: ClipboardCheckIcon },
   { name: 'Traslados', icon: TruckIcon },
@@ -69,7 +84,10 @@ const headingButton =
   'max-md:min-h-[43px] max-md:px-[11px] max-md:py-[9px] max-md:text-[11px]'
 
 type Dialog =
-  | { kind: 'purchase' }
+  | { kind: 'order' }
+  | { kind: 'receiveOrder'; order: SupplierOrderSummary }
+  | { kind: 'cancelOrder'; order: SupplierOrderSummary }
+  | { kind: 'writeOff'; pending: OwedPending }
   | { kind: 'count' }
   | { kind: 'transfer' }
   | { kind: 'receive'; transfer: TransferListItem }
@@ -82,6 +100,8 @@ export function InventoryPage({
   products,
   suppliers,
   transfers,
+  supplierOrders,
+  pendings,
   initialQuery,
   onSelectWarehouse,
 }: InventoryPageProps) {
@@ -90,7 +110,6 @@ export function InventoryPage({
   const [filter, setFilter] = useState<StatusFilter>('Todos')
   const [moveType, setMoveType] = useState('Todos')
   const [dialog, setDialog] = useState<Dialog | null>(null)
-  const [result, setResult] = useState<PurchaseResult | null>(null)
 
   const labels = useMemo(
     () =>
@@ -140,24 +159,9 @@ export function InventoryPage({
       : undefined
   const lotsProduct = products.find(({ id }) => id === lotsRow?.productId)
 
-  function onSaved(purchase: SavedPurchase) {
-    setDialog(null)
-    setResult({
-      lots: purchase.lots.map((lot) => {
-        const label = labels.get(lot.productId)
-        return {
-          name: label?.name ?? 'Producto',
-          code: lot.code,
-          quantity: lot.onHand,
-          pack: label?.pack ?? {
-            packName: 'piezas',
-            factor: 1,
-            unit: 'piezas',
-          },
-        }
-      }),
-    })
-  }
+  const supplierNames = new Map(
+    suppliers.map((supplier) => [supplier.id, supplier.name]),
+  )
 
   return (
     <div className="text-base">
@@ -177,10 +181,10 @@ export function InventoryPage({
               <ActionButton
                 tone="primary"
                 className={headingButton}
-                onClick={() => setDialog({ kind: 'purchase' })}
+                onClick={() => setDialog({ kind: 'order' })}
               >
                 <PlusIcon size={19} />
-                Nueva compra
+                Nuevo pedido
               </ActionButton>
             </div>
           ) : undefined
@@ -245,7 +249,25 @@ export function InventoryPage({
             rows={overview.movements}
             products={labels}
             canManage={canManage}
-            onNew={() => setDialog({ kind: 'purchase' })}
+            onNew={() => setDialog({ kind: 'order' })}
+          />
+        </TabsContent>
+        <TabsContent value="Por recibir" className="text-base">
+          <SupplierOrdersTab
+            orders={supplierOrders}
+            canManage={canManage}
+            onNew={() => setDialog({ kind: 'order' })}
+            onReceive={(order) => setDialog({ kind: 'receiveOrder', order })}
+            onCancel={(order) => setDialog({ kind: 'cancelOrder', order })}
+          />
+        </TabsContent>
+        <TabsContent value="Saldos" className="text-base">
+          <SupplierPendingsTab
+            owed={pendings.owed}
+            history={pendings.history}
+            suppliers={supplierNames}
+            products={labels}
+            onWriteOff={(pending) => setDialog({ kind: 'writeOff', pending })}
           />
         </TabsContent>
         <TabsContent value="Movimientos" className="text-base">
@@ -278,15 +300,32 @@ export function InventoryPage({
         </TabsContent>
       </Tabs>
 
-      {dialog?.kind === 'purchase' && (
-        <PurchaseDialog
+      {dialog?.kind === 'order' && (
+        <OrderDialog
           warehouses={managed}
           initialWarehouseId={selected.id}
           suppliers={suppliers}
           products={products}
-          today={overview.today}
           onClose={() => setDialog(null)}
-          onSaved={onSaved}
+        />
+      )}
+      {dialog?.kind === 'receiveOrder' && (
+        <ReceptionDialog
+          order={dialog.order}
+          owed={pendings.owed}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'cancelOrder' && (
+        <CancelOrderDialog
+          order={dialog.order}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'writeOff' && (
+        <WriteOffDialog
+          pending={dialog.pending}
+          onClose={() => setDialog(null)}
         />
       )}
       {dialog?.kind === 'count' && (
@@ -342,9 +381,6 @@ export function InventoryPage({
           canManage={canManage}
           onClose={() => setDialog(null)}
         />
-      )}
-      {result && (
-        <PurchaseResultDialog result={result} onClose={() => setResult(null)} />
       )}
     </div>
   )

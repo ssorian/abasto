@@ -7,23 +7,6 @@ const whole = z.number().int()
 
 export const overviewInput = z.object({ warehouseId: id.optional() })
 
-export const purchaseInput = z.object({
-  supplierId: id,
-  warehouseId: id,
-  reference: z.string().optional(),
-  purchasedOn: z.string(),
-  lines: z.array(
-    z.object({
-      productId: id,
-      quantity: whole,
-      totalCostCents: whole,
-      salePriceCents: whole.optional(),
-      lotCode: z.string().optional(),
-      expiresOn: z.string().optional(),
-    }),
-  ),
-})
-
 export const standardPricesInput = z.object({ warehouseId: id })
 
 export const minimumInput = z.object({

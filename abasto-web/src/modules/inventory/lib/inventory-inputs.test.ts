@@ -9,7 +9,6 @@ import {
   orderIdInput,
   overviewInput,
   pendingsInput,
-  purchaseInput,
   receiveOrderInput,
   supplierOrderInput,
   supplierOrdersInput,
@@ -33,46 +32,6 @@ describe('server function input shapes', () => {
       warehouseId: 'w1',
     })
     expect(fails(overviewInput, { warehouseId: 5 })).toBe(true)
-  })
-
-  test('purchase accepts the service shape and rejects fractional numbers', () => {
-    const valid = {
-      supplierId: 's1',
-      warehouseId: 'w1',
-      purchasedOn: '2026-11-04',
-      lines: [{ productId: 'p1', quantity: 10, totalCostCents: 1500 }],
-    }
-    expect(parseInput(purchaseInput, valid)).toEqual(valid)
-    expect(
-      fails(purchaseInput, {
-        ...valid,
-        lines: [{ productId: 'p1', quantity: 1.5, totalCostCents: 1500 }],
-      }),
-    ).toBe(true)
-    expect(fails(purchaseInput, { ...valid, lines: 'x' })).toBe(true)
-  })
-
-  test('purchase keeps the optional sale price per box', () => {
-    const withPrice = {
-      supplierId: 's1',
-      warehouseId: 'w1',
-      purchasedOn: '2026-11-04',
-      lines: [
-        {
-          productId: 'p1',
-          quantity: 24,
-          totalCostCents: 6000,
-          salePriceCents: 3600,
-        },
-      ],
-    }
-    expect(parseInput(purchaseInput, withPrice)).toEqual(withPrice)
-    expect(
-      fails(purchaseInput, {
-        ...withPrice,
-        lines: [{ ...withPrice.lines[0], salePriceCents: 36.5 }],
-      }),
-    ).toBe(true)
   })
 
   test('adjust, loss, count and minimum', () => {

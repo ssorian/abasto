@@ -13,7 +13,7 @@ type EntriesTabProps = {
   onNew: () => void
 }
 
-/** Recent purchase entries of the warehouse, taken from the ledger. */
+/** Recent entries from received orders, taken from the ledger. */
 export function EntriesTab({
   rows,
   products,
@@ -23,13 +23,13 @@ export function EntriesTab({
   return (
     <>
       <SectionRow
-        title="Compras a proveedores"
-        description="Lo que has recibido recientemente. Cada compra crea sus lotes."
+        title="Entradas por pedido"
+        description="Lo que ha entrado recientemente al recibir pedidos de proveedores. Cada línea recibida crea su lote."
         action={
           canManage ? (
             <ActionButton tone="primary" onClick={onNew}>
               <PlusIcon size={19} />
-              Nueva compra
+              Nuevo pedido
             </ActionButton>
           ) : undefined
         }
@@ -37,11 +37,11 @@ export function EntriesTab({
       <MovementTable
         rows={rows.filter((row) => row.type === 'purchase')}
         products={products}
-        emptyTitle="Aún no hay compras"
+        emptyTitle="Aún no hay entradas"
         emptyDescription={
           canManage
-            ? 'Registra tu primera compra para dar de alta existencias.'
-            : 'Las compras que registre el encargado aparecerán aquí.'
+            ? 'Pide mercancía a un proveedor y recíbela para dar de alta existencias.'
+            : 'Los pedidos que reciba el encargado aparecerán aquí.'
         }
       />
     </>

@@ -32,8 +32,11 @@ import {
   setCustomerCredit,
   updateCustomer,
 } from '#/modules/customers/services/customers'
-import { createPurchase } from '#/modules/inventory/services/purchases'
-import type { PurchaseLineInput } from '#/modules/inventory/services/purchases'
+import {
+  createSupplierOrder,
+  getSupplierOrder,
+  receiveSupplierOrder,
+} from '#/modules/inventory/services/supplier-orders'
 import { registerLoss } from '#/modules/inventory/services/stock-adjustments'
 import { setMinimumStock } from '#/modules/inventory/services/stock-minimums'
 import { businessDate, useClock } from '#/modules/orders/services/clock'
@@ -62,7 +65,11 @@ import {
   warehouseNames,
   warehousePriceOffset,
 } from '#/db/seed/seed-data'
-import type { SeedProduct, WarehouseName } from '#/db/seed/seed-data'
+import type {
+  SeedProduct,
+  SupplierKey,
+  WarehouseName,
+} from '#/db/seed/seed-data'
 
 /** Default password of every seeded user (development only). */
 export const defaultSeedPassword = 'abasto-2026'
@@ -244,7 +251,7 @@ export async function seedDatabase({
     prices: [{ presentationId: pieceOf('LAL-001'), priceCents: 2700 }],
   })
 
-  // Purchases: one per warehouse and supplier, fresh lots.
+  // Orders go through the real flow: created as Pedido, then verified on arrival.
   const lineFor = (
     sku: string,
     warehouse: (typeof warehouseNames)[number],
@@ -252,19 +259,49 @@ export async function seedDatabase({
     expiresInDays: number,
   ) => {
     const { seed, product } = item(sku)
-    const line: PurchaseLineInput = {
+    return {
       productId: product.id,
-      quantity: boxes * seed.boxFactor,
-      totalCostCents: boxes * seed.boxCostCents,
-      // The box standard price, never below this lot's cost per box.
-      salePriceCents: Math.max(
-        seed.boxPriceCents + warehousePriceOffset[warehouse],
-        seed.boxCostCents,
-      ),
+      boxes,
       lotCode: `${sku}-${addDays(today, expiresInDays).replaceAll('-', '')}`,
       expiresOn: addDays(today, expiresInDays),
+      warehouse,
+      seed,
     }
-    return line
+  }
+  type SeedLine = ReturnType<typeof lineFor>
+  /** Creates the order and receives it; `damaged` boxes per sku arrive unusable. */
+  const orderAndReceive = async (
+    warehouse: (typeof warehouseNames)[number],
+    supplierKey: SupplierKey,
+    reference: string,
+    lines: Array<SeedLine>,
+    damaged: Partial<Record<string, number>> = {},
+  ) => {
+    const actor = managerOf(warehouse)
+    // Damaged boxes are ordered on top, so the stock that stays is the seeded one.
+    const order = await createSupplierOrder(actor, {
+      supplierId: supplierId[supplierKey],
+      warehouseId: warehouseId[warehouse],
+      reference,
+      lines: lines.map((line) => ({
+        productId: line.productId,
+        boxes: line.boxes + (damaged[line.seed.sku] ?? 0),
+      })),
+    })
+    const stored = await getSupplierOrder(actor, order.id)
+    return receiveSupplierOrder(actor, {
+      purchaseId: order.id,
+      lines: stored.lines.map((stock) => {
+        const line = lines.find((entry) => entry.productId === stock.productId)!
+        return {
+          lineId: stock.id,
+          goodBoxes: line.boxes,
+          damagedBoxes: damaged[line.seed.sku] ?? 0,
+          lotCode: line.lotCode,
+          expiresOn: line.expiresOn,
+        }
+      }),
+    })
   }
   let folio = 1000
   for (const name of warehouseNames) {
@@ -278,36 +315,39 @@ export async function seedDatabase({
             : []
         })
       if (!lines.length) continue
-      await createPurchase(managerOf(name), {
-        supplierId: supplierId[supplier.key],
-        warehouseId: warehouseId[name],
-        reference: `F-${folio++}`,
-        purchasedOn: addDays(today, -2),
-        lines,
-      })
+      // One box of the first Lala product arrives damaged in Tejupilco: a supplier pending.
+      const damaged =
+        name === 'Tejupilco' && supplier.key === 'lala'
+          ? { [lines[0].seed.sku]: 1 }
+          : {}
+      await orderAndReceive(name, supplier.key, `F-${folio++}`, lines, damaged)
     }
   }
   // An older Lala lot about to expire in Tejupilco (FEFO sells it first).
-  await createPurchase(managerOf('Tejupilco'), {
-    supplierId: supplierId.lala,
-    warehouseId: warehouseId.Tejupilco,
-    reference: `F-${folio++}`,
-    purchasedOn: addDays(today, -12),
-    lines: [lineFor('LAL-001', 'Tejupilco', 10, 3)],
-  })
+  await orderAndReceive('Tejupilco', 'lala', `F-${folio++}`, [
+    lineFor('LAL-001', 'Tejupilco', 10, 3),
+  ])
   // Expired yoghurt in Luvianos, written off as a loss.
-  const expired = await createPurchase(managerOf('Luvianos'), {
-    supplierId: supplierId.lala,
-    warehouseId: warehouseId.Luvianos,
-    reference: `F-${folio++}`,
-    purchasedOn: addDays(today, -15),
-    lines: [lineFor('LAL-005', 'Luvianos', 1, -2)],
-  })
+  const expired = await orderAndReceive('Luvianos', 'lala', `F-${folio++}`, [
+    lineFor('LAL-005', 'Luvianos', 1, -2),
+  ])
   await registerLoss(managerOf('Luvianos'), {
     lotId: expired.lots[0].id,
     quantity: item('LAL-005').seed.boxFactor,
     category: 'caducado',
     reason: 'Lote vencido sin vender',
+  })
+  // Waiting in the "Por recibir" queue: an Alpura order for Tejupilco, not received yet.
+  const waiting = productSeed.filter((seed) => seed.supplier === 'alpura')
+  await createSupplierOrder(managerOf('Tejupilco'), {
+    supplierId: supplierId.alpura,
+    warehouseId: warehouseId.Tejupilco,
+    reference: `P-${folio++}`,
+    expectedOn: addDays(today, 3),
+    lines: waiting.slice(0, 2).map((seed) => ({
+      productId: item(seed.sku).product.id,
+      boxes: 4,
+    })),
   })
 
   // Minimum stock.

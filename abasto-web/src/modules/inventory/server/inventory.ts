@@ -8,11 +8,9 @@ import {
   lossInput,
   minimumInput,
   overviewInput,
-  purchaseInput,
   standardPricesInput,
 } from '#/modules/inventory/lib/inventory-inputs'
 import { withProducts } from '#/modules/inventory/server/movement-products'
-import { createPurchase } from '#/modules/inventory/services/purchases'
 import {
   adjustLot,
   registerLoss,
@@ -62,14 +60,6 @@ export const inventoryOverviewFn = createServerFn({ method: 'GET' })
         movements: await withProducts(movements),
       }
     }),
-  )
-
-export const createPurchaseFn = createServerFn({ method: 'POST' })
-  .validator((data: unknown) => data)
-  .handler(({ data }) =>
-    runWithActor((actor) =>
-      createPurchase(actor, parseInput(purchaseInput, data)),
-    ),
   )
 
 /** Standard price of each product's box (default presentation) in a warehouse. */

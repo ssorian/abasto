@@ -6,12 +6,23 @@ import type { Result } from '#/lib/boundary'
 import {
   adjustLotFn,
   countStockFn,
-  createPurchaseFn,
   purchaseStandardPricesFn,
   registerLossFn,
   setMinimumFn,
 } from '#/modules/inventory/server/inventory'
-import type { PurchaseInput } from '#/modules/inventory/services/purchases'
+import {
+  cancelSupplierOrderFn,
+  createSupplierOrderFn,
+  receiveSupplierOrderFn,
+  supplierOrderFn,
+  writeOffPendingsFn,
+} from '#/modules/inventory/server/supplier-orders'
+import { formatCents } from '#/modules/inventory/lib/cents'
+import type { ReceptionInput } from '#/modules/inventory/services/supplier-reception'
+import type {
+  SupplierOrder,
+  SupplierOrderInput,
+} from '#/modules/inventory/services/supplier-orders'
 import type { LossCategory } from '#/modules/inventory/db/schema'
 
 const messageOf = (failure: unknown) =>
@@ -40,9 +51,41 @@ export function useInventoryActions() {
   }
 
   return {
-    createPurchase: (input: PurchaseInput) =>
-      run(() => createPurchaseFn({ data: input })),
-    /** Standard prices only prefill the form: a failure must not block the purchase. */
+    createOrder: (input: SupplierOrderInput) =>
+      run(
+        () => createSupplierOrderFn({ data: input }),
+        () => 'Pedido registrado. Quedó en «Por recibir».',
+      ),
+    cancelOrder: (purchaseId: string) =>
+      run(
+        () => cancelSupplierOrderFn({ data: { purchaseId } }),
+        () => 'Pedido cancelado.',
+      ),
+    receiveOrder: (input: ReceptionInput) =>
+      run(
+        () => receiveSupplierOrderFn({ data: input }),
+        () => 'Pedido recibido. Las existencias ya están actualizadas.',
+      ),
+    writeOff: (input: {
+      supplierId: string
+      productId: string
+      boxes: number
+    }) =>
+      run(
+        () => writeOffPendingsFn({ data: input }),
+        ({ valueCents }) =>
+          `Se descontaron ${formatCents(valueCents)} del pago al proveedor.`,
+      ),
+    /** Lines of an order; a failure shows the message and resolves to undefined. */
+    async loadOrder(purchaseId: string): Promise<SupplierOrder | undefined> {
+      try {
+        return unwrap(await supplierOrderFn({ data: { purchaseId } }))
+      } catch (failure) {
+        toast.error(messageOf(failure))
+        return undefined
+      }
+    },
+    /** Standard prices are shown read-only: a failure must not block the order. */
     async loadStandardPrices(
       warehouseId: string,
     ): Promise<Record<string, number>> {
