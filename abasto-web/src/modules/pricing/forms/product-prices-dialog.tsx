@@ -67,8 +67,8 @@ export function ProductPricesDialog({
       title={group.productName}
       description={
         canEdit
-          ? `Precios en ${warehouseName}. Una presentación sin precio propio lo deriva de la principal.`
-          : `Precios en ${warehouseName}. Solo lectura: los cambia el encargado de este almacén.`
+          ? `Precios estándar en ${warehouseName}; cada lote puede venderse más caro al darle entrada. Una presentación sin precio propio lo deriva de la principal.`
+          : `Precios estándar en ${warehouseName}. Solo lectura: los cambia el encargado de este almacén.`
       }
       size="editor"
       onClose={onClose}
@@ -139,7 +139,7 @@ export function ProductPricesDialog({
           <span>
             Margen objetivo
             <span className="block text-xs text-[#a29096]">
-              Sugiere el precio al registrar una compra.
+              Referencia de margen para el precio estándar.
             </span>
           </span>
           <MarginCell

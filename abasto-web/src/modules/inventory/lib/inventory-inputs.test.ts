@@ -3,13 +3,12 @@ import { AppError } from '#/lib/errors'
 import { parseInput } from '#/lib/boundary'
 import {
   adjustInput,
-  applyPricesInput,
   countInput,
   lossInput,
   minimumInput,
   overviewInput,
   purchaseInput,
-  suggestionsInput,
+  standardPricesInput,
 } from '#/modules/inventory/lib/inventory-inputs'
 
 const fails = (schema: Parameters<typeof parseInput>[0], data: unknown) => {
@@ -45,6 +44,29 @@ describe('server function input shapes', () => {
       }),
     ).toBe(true)
     expect(fails(purchaseInput, { ...valid, lines: 'x' })).toBe(true)
+  })
+
+  test('purchase keeps the optional sale price per box', () => {
+    const withPrice = {
+      supplierId: 's1',
+      warehouseId: 'w1',
+      purchasedOn: '2026-11-04',
+      lines: [
+        {
+          productId: 'p1',
+          quantity: 24,
+          totalCostCents: 6000,
+          salePriceCents: 3600,
+        },
+      ],
+    }
+    expect(parseInput(purchaseInput, withPrice)).toEqual(withPrice)
+    expect(
+      fails(purchaseInput, {
+        ...withPrice,
+        lines: [{ ...withPrice.lines[0], salePriceCents: 36.5 }],
+      }),
+    ).toBe(true)
   })
 
   test('adjust, loss, count and minimum', () => {
@@ -85,20 +107,10 @@ describe('server function input shapes', () => {
     expect(fails(minimumInput, { productId: 'p', warehouseId: 'w' })).toBe(true)
   })
 
-  test('suggestions and apply', () => {
-    expect(parseInput(suggestionsInput, { purchaseId: 'x' })).toEqual({
-      purchaseId: 'x',
+  test('standard prices take a warehouse id', () => {
+    expect(parseInput(standardPricesInput, { warehouseId: 'w1' })).toEqual({
+      warehouseId: 'w1',
     })
-    const apply = {
-      purchaseId: 'x',
-      prices: [{ presentationId: 'pr', priceCents: 1000 }],
-    }
-    expect(parseInput(applyPricesInput, apply)).toEqual(apply)
-    expect(
-      fails(applyPricesInput, {
-        purchaseId: 'x',
-        prices: [{ presentationId: 'pr' }],
-      }),
-    ).toBe(true)
+    expect(fails(standardPricesInput, {})).toBe(true)
   })
 })

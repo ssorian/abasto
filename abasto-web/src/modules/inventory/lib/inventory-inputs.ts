@@ -16,18 +16,14 @@ export const purchaseInput = z.object({
       productId: id,
       quantity: whole,
       totalCostCents: whole,
+      salePriceCents: whole.optional(),
       lotCode: z.string().optional(),
       expiresOn: z.string().optional(),
     }),
   ),
 })
 
-export const suggestionsInput = z.object({ purchaseId: id })
-
-export const applyPricesInput = z.object({
-  purchaseId: id,
-  prices: z.array(z.object({ presentationId: id, priceCents: whole })),
-})
+export const standardPricesInput = z.object({ warehouseId: id })
 
 export const minimumInput = z.object({
   productId: id,

@@ -5,12 +5,11 @@ import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
 import type { Result } from '#/lib/boundary'
 import {
   adjustLotFn,
-  applyPricesFn,
   countStockFn,
   createPurchaseFn,
+  purchaseStandardPricesFn,
   registerLossFn,
   setMinimumFn,
-  suggestPricesFn,
 } from '#/modules/inventory/server/inventory'
 import type { PurchaseInput } from '#/modules/inventory/services/purchases'
 import type { LossCategory } from '#/modules/inventory/db/schema'
@@ -43,23 +42,22 @@ export function useInventoryActions() {
   return {
     createPurchase: (input: PurchaseInput) =>
       run(() => createPurchaseFn({ data: input })),
-    /** Suggestions are optional: a failure here must not hide the saved purchase. */
-    async loadSuggestions(purchaseId: string) {
+    /** Standard prices only prefill the form: a failure must not block the purchase. */
+    async loadStandardPrices(
+      warehouseId: string,
+    ): Promise<Record<string, number>> {
       try {
-        return unwrap(await suggestPricesFn({ data: { purchaseId } }))
+        const prices = unwrap(
+          await purchaseStandardPricesFn({ data: { warehouseId } }),
+        )
+        return Object.fromEntries(
+          prices.map((price) => [price.productId, price.priceCents]),
+        )
       } catch (failure) {
         toast.error(messageOf(failure))
-        return []
+        return {}
       }
     },
-    applyPrices: (
-      purchaseId: string,
-      prices: Array<{ presentationId: string; priceCents: number }>,
-    ) =>
-      run(
-        () => applyPricesFn({ data: { purchaseId, prices } }),
-        () => 'Precios actualizados.',
-      ),
     setMinimum: (input: {
       productId: string
       warehouseId: string

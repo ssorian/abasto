@@ -4,13 +4,12 @@ import { runWithActor } from '#/lib/server-actor'
 import { can } from '#/modules/access/lib/policy'
 import {
   adjustInput,
-  applyPricesInput,
   countInput,
   lossInput,
   minimumInput,
   overviewInput,
   purchaseInput,
-  suggestionsInput,
+  standardPricesInput,
 } from '#/modules/inventory/lib/inventory-inputs'
 import { withProducts } from '#/modules/inventory/server/movement-products'
 import { createPurchase } from '#/modules/inventory/services/purchases'
@@ -25,10 +24,7 @@ import {
   listStockMovements,
 } from '#/modules/inventory/services/stock-reads'
 import type { InventoryOverview } from '#/modules/inventory/types/stock'
-import {
-  applySuggestedPrices,
-  suggestPurchasePrices,
-} from '#/modules/pricing/services/price-suggestions'
+import { listWarehousePrices } from '#/modules/pricing/services/price-reads'
 import { listWarehouses } from '#/modules/warehouses/services/warehouses'
 import { businessDate } from '#/lib/utils/format'
 
@@ -76,23 +72,19 @@ export const createPurchaseFn = createServerFn({ method: 'POST' })
     ),
   )
 
-export const suggestPricesFn = createServerFn({ method: 'POST' })
+/** Standard price of each product's box (default presentation) in a warehouse. */
+export const purchaseStandardPricesFn = createServerFn({ method: 'POST' })
   .validator((data: unknown) => data)
   .handler(({ data }) =>
-    runWithActor((actor) =>
-      suggestPurchasePrices(
-        actor,
-        parseInput(suggestionsInput, data).purchaseId,
-      ),
-    ),
-  )
-
-export const applyPricesFn = createServerFn({ method: 'POST' })
-  .validator((data: unknown) => data)
-  .handler(({ data }) =>
-    runWithActor((actor) =>
-      applySuggestedPrices(actor, parseInput(applyPricesInput, data)),
-    ),
+    runWithActor(async (actor) => {
+      const { warehouseId } = parseInput(standardPricesInput, data)
+      const prices = await listWarehousePrices(actor, warehouseId)
+      return prices.flatMap((row) =>
+        row.isDefault && row.priceCents !== null
+          ? [{ productId: row.productId, priceCents: row.priceCents }]
+          : [],
+      )
+    }),
   )
 
 export const setMinimumFn = createServerFn({ method: 'POST' })

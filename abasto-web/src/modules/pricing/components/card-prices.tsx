@@ -22,7 +22,7 @@ export function CardPrices({
 }: CardPricesProps) {
   return (
     <div className="mb-3 border-b border-[#f4f1ed] pb-[15px] text-xs text-[#a29096] md:text-sm">
-      <span>Precio en {warehouseName}</span>
+      <span>Precio estándar en {warehouseName}</span>
       {group?.rows.length ? (
         <ul className="mt-[7px] space-y-1">
           {group.rows.map((row) => (
@@ -50,6 +50,11 @@ export function CardPrices({
       ) : (
         <p className="mt-[7px] text-[#ae9fa4]">Sin presentaciones activas.</p>
       )}
+      {group?.rows.length ? (
+        <p className="mt-2 text-[11px] leading-snug text-[#ae9fa4]">
+          Es una referencia: cada lote puede venderse más caro al darle entrada.
+        </p>
+      ) : null}
       {group?.rows.length ? (
         <CatalogButton className="mt-3 w-full" onClick={onOpen}>
           <TagIcon className="size-4" />

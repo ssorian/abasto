@@ -1,21 +1,27 @@
 import { parsePesosToCents } from '#/modules/inventory/lib/cents'
 import { fail } from '#/modules/inventory/lib/parsed'
 import type { Parsed } from '#/modules/inventory/lib/parsed'
-import { toBaseUnits } from '#/modules/inventory/lib/quantity'
 import type { PurchaseInput } from '#/modules/inventory/services/purchases'
 
-/** One row of the purchase form; every field stays as typed text. */
-export type PurchaseLineDraft = {
-  /** Stable key for the UI. */
-  key: string
-  productId: string
-  /** Presentation the quantity is typed in. */
-  presentationId: string
-  packs: string
-  /** Loose base units. */
-  loose: string
-  /** Whole line cost in pesos. */
+/** What a purchase row needs of one product; the box is its default presentation. */
+export type PurchaseProduct = {
+  id: string
+  name: string
+  presentations: ReadonlyArray<{
+    id: string
+    factor: number
+    isDefault: boolean
+  }>
+}
+
+/** One product row of the bulk entry; every field stays as typed text. */
+export type PurchaseEntryRow = {
+  /** Whole boxes that arrived. */
+  boxes: string
+  /** Cost of the whole lot in pesos. */
   cost: string
+  /** Sale price per box in pesos; blank keeps the prefilled one. */
+  salePrice: string
   lotCode: string
   expiresOn: string
 }
@@ -25,73 +31,140 @@ export type PurchaseDraft = {
   warehouseId: string
   reference: string
   purchasedOn: string
-  lines: Array<PurchaseLineDraft>
+  /** Rows by product id; products never touched have no entry. */
+  rows: Partial<Record<string, PurchaseEntryRow>>
 }
 
-/** What the converter needs from the catalog. */
-export type PurchaseCatalog = ReadonlyArray<{
-  id: string
-  presentations: ReadonlyArray<{ id: string; factor: number }>
-}>
+export const SALE_BELOW_COST_MESSAGE =
+  'El precio de salida no puede ser menor que el costo por caja.'
 
-export const emptyLine = (key: string): PurchaseLineDraft => ({
-  key,
-  productId: '',
-  presentationId: '',
-  packs: '',
-  loose: '',
+export const emptyRow = (): PurchaseEntryRow => ({
+  boxes: '',
   cost: '',
+  salePrice: '',
   lotCode: '',
   expiresOn: '',
 })
 
-function lineFromDraft(
-  line: PurchaseLineDraft,
-  products: PurchaseCatalog,
-): Parsed<PurchaseInput['lines'][number]> {
-  const product = products.find(({ id }) => id === line.productId)
-  if (!product) return fail('selecciona el producto.')
-  const presentation = product.presentations.find(
-    ({ id }) => id === line.presentationId,
-  )
-  if (!presentation) return fail('selecciona la presentación.')
-  const quantity = toBaseUnits({
-    packs: line.packs,
-    loose: line.loose,
-    factor: presentation.factor,
-  })
-  if (!quantity.ok) return quantity
-  const cost = parsePesosToCents(line.cost, { allowZero: true })
+/** The box of a product: its default presentation, else the first one. */
+export const boxOf = <
+  TPresentation extends PurchaseProduct['presentations'][number],
+>(
+  presentations: ReadonlyArray<TPresentation>,
+): TPresentation | undefined =>
+  presentations.find((item) => item.isDefault) ?? presentations.at(0)
+
+const WHOLE = /^\d+$/
+
+/** Boxes as a positive whole number; null while blank, zero or invalid. */
+function wholeBoxes(text: string): number | null {
+  const clean = text.trim()
+  if (!WHOLE.test(clean)) return null
+  const value = Number(clean)
+  return Number.isSafeInteger(value) && value > 0 ? value : null
+}
+
+/** Cost of one box (can have fractions of a cent); null until boxes and cost are valid. */
+export function costPerBoxCents(row: PurchaseEntryRow): number | null {
+  const boxes = wholeBoxes(row.boxes)
+  const cost = parsePesosToCents(row.cost, { allowZero: true })
+  if (boxes === null || !cost.ok) return null
+  return cost.value / boxes
+}
+
+const centsText = (cents: number) => (cents / 100).toFixed(2)
+
+/**
+ * Text shown in the sale price input: what the user typed, else the standard
+ * price, else the cost per box rounded up to the cent.
+ */
+export function salePriceText(
+  row: PurchaseEntryRow,
+  standardCents: number | null,
+): string {
+  if (row.salePrice) return row.salePrice
+  if (standardCents !== null) return centsText(standardCents)
+  const cost = costPerBoxCents(row)
+  return cost === null || cost === 0 ? '' : centsText(Math.ceil(cost))
+}
+
+/** Message when the effective sale price is below the cost per box. */
+export function salePriceError(
+  row: PurchaseEntryRow,
+  effectiveSalePriceCents: number | null,
+): string | null {
+  const boxes = wholeBoxes(row.boxes)
+  const cost = parsePesosToCents(row.cost, { allowZero: true })
+  if (boxes === null || !cost.ok || effectiveSalePriceCents === null) {
+    return null
+  }
+  // Compare whole lots so fractions of a cent per box do not round away.
+  return effectiveSalePriceCents * boxes < cost.value
+    ? SALE_BELOW_COST_MESSAGE
+    : null
+}
+
+function lineFromRow(
+  product: PurchaseProduct,
+  row: PurchaseEntryRow,
+  standardCents: number | null,
+): Parsed<PurchaseInput['lines'][number]> | null {
+  const typed = row.boxes.trim()
+  if (!typed) return null
+  if (!WHOLE.test(typed)) return fail('las cajas deben ser un número entero.')
+  const boxes = wholeBoxes(typed)
+  // Zero boxes means the product did not arrive.
+  if (boxes === null) return null
+  const cost = parsePesosToCents(row.cost, { allowZero: true })
   if (!cost.ok) return cost
-  const lotCode = line.lotCode.trim()
+  const text = salePriceText(row, standardCents)
+  let salePriceCents: number | undefined
+  if (text) {
+    const sale = parsePesosToCents(text)
+    if (!sale.ok) return sale
+    const error = salePriceError(row, sale.value)
+    if (error) return fail(error)
+    salePriceCents = sale.value
+  }
+  const factor = boxOf(product.presentations)?.factor ?? 1
+  const lotCode = row.lotCode.trim()
   return {
     ok: true,
     value: {
       productId: product.id,
-      quantity: quantity.value,
+      quantity: boxes * factor,
       totalCostCents: cost.value,
+      ...(salePriceCents === undefined ? {} : { salePriceCents }),
       ...(lotCode ? { lotCode } : {}),
-      ...(line.expiresOn ? { expiresOn: line.expiresOn } : {}),
+      ...(row.expiresOn ? { expiresOn: row.expiresOn } : {}),
     },
   }
 }
 
-/** Purchase form → service input: quantities in base units, costs in cents. */
+/** Bulk entry → service input: only rows with boxes, quantities in base units, prices in cents. */
 export function purchaseInputFromDraft(
   draft: PurchaseDraft,
-  products: PurchaseCatalog,
+  products: ReadonlyArray<PurchaseProduct>,
+  standardByProductId: Readonly<Record<string, number>>,
 ): Parsed<PurchaseInput> {
   if (!draft.supplierId) return fail('Selecciona el proveedor.')
   if (!draft.warehouseId) return fail('Selecciona el almacén.')
   if (!draft.purchasedOn) return fail('Indica la fecha de la compra.')
-  if (!draft.lines.length) {
-    return fail('Agrega al menos un producto a la compra.')
-  }
   const lines: PurchaseInput['lines'] = []
-  for (const [index, line] of draft.lines.entries()) {
-    const parsed = lineFromDraft(line, products)
-    if (!parsed.ok) return fail(`Línea ${index + 1}: ${parsed.message}`)
+  for (const product of products) {
+    const row = draft.rows[product.id]
+    if (!row) continue
+    const parsed = lineFromRow(
+      product,
+      row,
+      standardByProductId[product.id] ?? null,
+    )
+    if (!parsed) continue
+    if (!parsed.ok) return fail(`${product.name}: ${parsed.message}`)
     lines.push(parsed.value)
+  }
+  if (!lines.length) {
+    return fail('Escribe cuántas cajas llegaron de al menos un producto.')
   }
   const reference = draft.reference.trim()
   return {

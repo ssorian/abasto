@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
-import { count, eq, sql } from 'drizzle-orm'
+import { and, count, eq, isNotNull, sql } from 'drizzle-orm'
 import type { PgTable } from 'drizzle-orm/pg-core'
 import { db } from '#/db'
 import { user } from '#/db/auth-schema'
@@ -8,7 +8,7 @@ import { AppError } from '#/lib/errors'
 import { bootstrapOwner, requireActor } from '#/modules/access/services/access'
 import { signIn } from '#/modules/access/lib/testing'
 import { cashSessions } from '#/modules/cash/db/schema'
-import { suppliers, products } from '#/modules/catalog/db/schema'
+import { presentations, suppliers, products } from '#/modules/catalog/db/schema'
 import { creditAuthorizations } from '#/modules/credit/db/schema'
 import { getCustomerBalance } from '#/modules/credit/services/customer-ledger'
 import { customers } from '#/modules/customers/db/schema'
@@ -117,6 +117,32 @@ describe('seedDatabase', () => {
       ).map((row) => row.status)
       expect(transferStatuses).toContain('En tránsito')
       expect(transferStatuses).toContain('Recibido con diferencia')
+
+      // Every purchased lot sells at or above its cost per box.
+      const purchased = await db
+        .select({
+          price: lots.salePriceCents,
+          quantity: lots.receivedQuantity,
+          cost: lots.receivedCostCents,
+          boxFactor: presentations.factor,
+        })
+        .from(lots)
+        .innerJoin(
+          presentations,
+          and(
+            eq(presentations.productId, lots.productId),
+            eq(presentations.isDefault, true),
+          ),
+        )
+        .where(isNotNull(lots.purchaseLineId))
+      expect(purchased.length).toBeGreaterThan(0)
+      for (const lot of purchased) {
+        expect(lot.price).not.toBeNull()
+        // price × boxes ≥ cost, with boxes = quantity / boxFactor.
+        expect(lot.price! * lot.quantity).toBeGreaterThanOrEqual(
+          lot.cost * lot.boxFactor,
+        )
+      }
 
       // Stock invariants hold for every lot.
       for (const lot of await db.select().from(lots)) {

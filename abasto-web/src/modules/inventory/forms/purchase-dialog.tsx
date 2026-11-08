@@ -1,5 +1,4 @@
-import { PlusIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import {
@@ -13,13 +12,18 @@ import {
   DialogActions,
   InventoryDialog,
 } from '#/modules/inventory/components/inventory-dialog'
-import { PurchaseLineFields } from '#/modules/inventory/forms/purchase-line-fields'
+import { SearchBox } from '#/modules/inventory/components/search-box'
+import { PurchaseEntryTable } from '#/modules/inventory/forms/purchase-entry-table'
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
+import { quantityPresentations } from '#/modules/inventory/lib/pack-info'
 import {
-  emptyLine,
+  emptyRow,
   purchaseInputFromDraft,
 } from '#/modules/inventory/lib/purchase-draft'
-import type { PurchaseDraft } from '#/modules/inventory/lib/purchase-draft'
+import type {
+  PurchaseDraft,
+  PurchaseEntryRow,
+} from '#/modules/inventory/lib/purchase-draft'
 import type {
   CatalogProduct,
   CatalogSupplier,
@@ -44,10 +48,7 @@ type PurchaseDialogProps = {
   onSaved: (purchase: SavedPurchase) => void
 }
 
-let lineCounter = 0
-const newLine = () => emptyLine(`line-${(lineCounter += 1)}`)
-
-/** Purchase to a supplier: one lot per line, costs in pesos, quantities in presentations. */
+/** Purchase to a supplier: one list of every product; rows with boxes become one lot each. */
 export function PurchaseDialog({
   warehouses,
   initialWarehouseId,
@@ -63,24 +64,53 @@ export function PurchaseDialog({
     warehouseId: initialWarehouseId,
     reference: '',
     purchasedOn: today,
-    lines: [newLine()],
+    rows: {},
   }))
+  const [query, setQuery] = useState('')
+  const [standard, setStandard] = useState<Record<string, number>>({})
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  const patchLine = (
-    key: string,
-    patch: Partial<PurchaseDraft['lines'][number]>,
-  ) =>
+  // Standard prices prefill the sale price; reload them for the receiving warehouse.
+  useEffect(() => {
+    let current = true
+    void actions.loadStandardPrices(draft.warehouseId).then((prices) => {
+      if (current) setStandard(prices)
+    })
+    return () => {
+      current = false
+    }
+  }, [draft.warehouseId])
+
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    return needle
+      ? products.filter(
+          (product) =>
+            product.name.toLowerCase().includes(needle) ||
+            product.sku.toLowerCase().includes(needle),
+        )
+      : products
+  }, [products, query])
+
+  const patchRow = (productId: string, patch: Partial<PurchaseEntryRow>) =>
     setDraft((current) => ({
       ...current,
-      lines: current.lines.map((line) =>
-        line.key === key ? { ...line, ...patch } : line,
-      ),
+      rows: {
+        ...current.rows,
+        [productId]: { ...(current.rows[productId] ?? emptyRow()), ...patch },
+      },
     }))
 
   async function submit() {
-    const parsed = purchaseInputFromDraft(draft, products)
+    const parsed = purchaseInputFromDraft(
+      draft,
+      products.map((product) => ({
+        ...product,
+        presentations: quantityPresentations(product),
+      })),
+      standard,
+    )
     if (!parsed.ok) return setError(parsed.message)
     setError(null)
     setPending(true)
@@ -102,7 +132,7 @@ export function PurchaseDialog({
     <InventoryDialog
       title="Nueva compra"
       eyebrow="ENTRADA DE MERCANCÍA"
-      description="Registra lo que te surtió el proveedor. Cada línea crea un lote con su costo y caducidad."
+      description="Escribe las cajas que llegaron de cada producto; los que dejes vacíos no se registran. El costo es el de todo el lote. El precio de salida empieza en el precio estándar y puedes subirlo, nunca bajarlo del costo por caja."
       size="wide"
       onClose={onClose}
     >
@@ -163,35 +193,18 @@ export function PurchaseDialog({
             }
           />
         </Field>
-        {draft.lines.map((line, index) => (
-          <PurchaseLineFields
-            key={line.key}
-            index={index}
-            line={line}
-            products={products}
-            onChange={(patch) => patchLine(line.key, patch)}
-            onRemove={
-              draft.lines.length > 1
-                ? () =>
-                    setDraft({
-                      ...draft,
-                      lines: draft.lines.filter(({ key }) => key !== line.key),
-                    })
-                : undefined
-            }
-          />
-        ))}
-        <div>
-          <ActionButton
-            type="button"
-            onClick={() =>
-              setDraft({ ...draft, lines: [...draft.lines, newLine()] })
-            }
-          >
-            <PlusIcon size={17} />
-            Agregar producto
-          </ActionButton>
-        </div>
+        <SearchBox
+          label="Buscar producto"
+          placeholder="Buscar por nombre o SKU"
+          value={query}
+          onChange={setQuery}
+        />
+        <PurchaseEntryTable
+          products={visible}
+          rows={draft.rows}
+          standardByProductId={standard}
+          onChange={patchRow}
+        />
         {error && <FormError>{error}</FormError>}
         <DialogActions>
           <ActionButton type="button" onClick={onClose}>

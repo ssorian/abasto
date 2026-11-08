@@ -249,12 +249,22 @@ export async function seedDatabase({
   })
 
   // Purchases: one per warehouse and supplier, fresh lots.
-  const lineFor = (sku: string, boxes: number, expiresInDays: number) => {
+  const lineFor = (
+    sku: string,
+    warehouse: (typeof warehouseNames)[number],
+    boxes: number,
+    expiresInDays: number,
+  ) => {
     const { seed, product } = item(sku)
     const line: PurchaseLineInput = {
       productId: product.id,
       quantity: boxes * seed.boxFactor,
       totalCostCents: boxes * seed.boxCostCents,
+      // The box standard price, never below this lot's cost per box.
+      salePriceCents: Math.max(
+        seed.boxPriceCents + warehousePriceOffset[warehouse],
+        seed.boxCostCents,
+      ),
       lotCode: `${sku}-${addDays(today, expiresInDays).replaceAll('-', '')}`,
       expiresOn: addDays(today, expiresInDays),
     }
@@ -267,7 +277,9 @@ export async function seedDatabase({
         .filter((seed) => seed.supplier === supplier.key)
         .flatMap((seed) => {
           const boxes = stockSeed[name][seed.sku]
-          return boxes ? [lineFor(seed.sku, boxes, seed.shelfLifeDays)] : []
+          return boxes
+            ? [lineFor(seed.sku, name, boxes, seed.shelfLifeDays)]
+            : []
         })
       if (!lines.length) continue
       await createPurchase(managerOf(name), {
@@ -285,7 +297,7 @@ export async function seedDatabase({
     warehouseId: warehouseId.Tejupilco,
     reference: `F-${folio++}`,
     purchasedOn: addDays(today, -12),
-    lines: [lineFor('LAL-001', 10, 3)],
+    lines: [lineFor('LAL-001', 'Tejupilco', 10, 3)],
   })
   // Expired yoghurt in Luvianos, written off as a loss.
   const expired = await createPurchase(managerOf('Luvianos'), {
@@ -293,7 +305,7 @@ export async function seedDatabase({
     warehouseId: warehouseId.Luvianos,
     reference: `F-${folio++}`,
     purchasedOn: addDays(today, -15),
-    lines: [lineFor('LAL-005', 1, -2)],
+    lines: [lineFor('LAL-005', 'Luvianos', 1, -2)],
   })
   await registerLoss(managerOf('Luvianos'), {
     lotId: expired.lots[0].id,

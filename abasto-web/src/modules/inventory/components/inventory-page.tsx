@@ -25,7 +25,6 @@ import { PurchaseDialog } from '#/modules/inventory/forms/purchase-dialog'
 import type { SavedPurchase } from '#/modules/inventory/forms/purchase-dialog'
 import { PurchaseResultDialog } from '#/modules/inventory/forms/purchase-result-dialog'
 import type { PurchaseResult } from '#/modules/inventory/forms/purchase-result-dialog'
-import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import {
   packInfoOf,
   quantityPresentations,
@@ -86,7 +85,6 @@ export function InventoryPage({
   initialQuery,
   onSelectWarehouse,
 }: InventoryPageProps) {
-  const actions = useInventoryActions()
   const [tab, setTab] = useState('Productos')
   const [query, setQuery] = useState(initialQuery)
   const [filter, setFilter] = useState<StatusFilter>('Todos')
@@ -142,17 +140,9 @@ export function InventoryPage({
       : undefined
   const lotsProduct = products.find(({ id }) => id === lotsRow?.productId)
 
-  async function onSaved(purchase: SavedPurchase) {
+  function onSaved(purchase: SavedPurchase) {
     setDialog(null)
-    const suggestions = await actions.loadSuggestions(purchase.purchaseId)
-    const canApply = overview.warehouses.some(
-      (warehouse) =>
-        warehouse.id === purchase.warehouseId && warehouse.canManage,
-    )
     setResult({
-      purchaseId: purchase.purchaseId,
-      canApply,
-      suggestions,
       lots: purchase.lots.map((lot) => {
         const label = labels.get(lot.productId)
         return {
@@ -296,7 +286,7 @@ export function InventoryPage({
           products={products}
           today={overview.today}
           onClose={() => setDialog(null)}
-          onSaved={(purchase) => void onSaved(purchase)}
+          onSaved={onSaved}
         />
       )}
       {dialog?.kind === 'count' && (
