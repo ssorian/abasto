@@ -286,6 +286,14 @@ describe('sales report scope', () => {
       ),
     ).toMatchObject({ code: 'forbidden' })
   })
+
+  test('staff who manage no warehouse cannot read reports', async () => {
+    const fx = await twoWarehouses()
+    const unassigned = { ...fx.managerA, assignments: new Map() }
+    expect(await errorOf(() => getSalesReport(unassigned, wide))).toMatchObject(
+      { code: 'forbidden', message: forbidden },
+    )
+  })
 })
 
 describe('supplier filter', () => {
