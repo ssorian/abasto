@@ -8,11 +8,6 @@ import {
 
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
 import { presentationLabel } from '#/modules/catalog/lib/catalog-presentations'
-import {
-  netCostPerBoxCents,
-  netCostPerPiece,
-} from '#/modules/catalog/lib/supplier-cost'
-import { formatCents } from '#/modules/pricing/lib/money'
 
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
 import type { ReactNode } from 'react'
@@ -38,12 +33,6 @@ export function CatalogCard({
   onEdit,
   onTogglePublished,
 }: CatalogCardProps) {
-  const boxFactor = product.presentations.find((p) => p.isDefault)?.factor ?? 1
-  const netPerPiece = netCostPerPiece(
-    product.listPricePerPiece,
-    product.fixedDiscountPerPiece,
-    product.promotionPerPiece,
-  )
   return (
     <article className="relative overflow-hidden rounded-xl border border-[#eee8e2] bg-white shadow-[0_3px_5px_#35145202] transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[#ddd4d7] hover:shadow-[0_7px_22px_#3712570b]">
       <div className="relative m-[5px_5px_0] flex h-[162px] items-center justify-center overflow-hidden rounded-[7px] bg-[#faf9f7] md:m-[7px_7px_0] md:h-[205px]">
@@ -86,12 +75,6 @@ export function CatalogCard({
           {supplierName ? (
             <span className="mt-1 block text-xs">
               Proveedor: {supplierName}
-            </span>
-          ) : null}
-          {canManage && product.listPricePerPiece > 0 ? (
-            <span className="mt-1 block text-xs">
-              Costo neto por caja:{' '}
-              {formatCents(netCostPerBoxCents(netPerPiece, boxFactor))}
             </span>
           ) : null}
         </div>

@@ -60,7 +60,6 @@ describe('CSV row → createProduct input', () => {
         unit: 'cajas',
         supplierId: null,
         supplierCode: '',
-        listPricePerPiece: 0,
         fixedDiscountPerPiece: 0,
         promotionPerPiece: 0,
         published: true,

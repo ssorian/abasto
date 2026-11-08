@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import {
@@ -38,7 +37,7 @@ type OrderDialogProps = {
   onClose: () => void
 }
 
-/** Order to a supplier: its products, boxes per product; cost and price come from the catalog. */
+/** Order to a supplier: its products, boxes and list price per product; discounts and the sale price come from the catalog. */
 export function OrderDialog({
   warehouses,
   initialWarehouseId,
@@ -53,6 +52,7 @@ export function OrderDialog({
     expectedOn: '',
     reference: '',
     boxes: {},
+    prices: {},
   }))
   const [query, setQuery] = useState('')
   const [standard, setStandard] = useState<Record<string, number>>({})
@@ -70,6 +70,18 @@ export function OrderDialog({
     }
   }, [draft.warehouseId])
 
+  // Prefill the list prices from the last order of each product of the supplier.
+  useEffect(() => {
+    if (!draft.supplierId) return
+    let current = true
+    void actions.loadLastPrices(draft.supplierId).then((prices) => {
+      if (current) setDraft((state) => ({ ...state, prices }))
+    })
+    return () => {
+      current = false
+    }
+  }, [draft.supplierId])
+
   const own = useMemo(
     () => supplierProducts(products, draft.supplierId, ''),
     [products, draft.supplierId],
@@ -78,7 +90,7 @@ export function OrderDialog({
     () => supplierProducts(products, draft.supplierId, query),
     [products, draft.supplierId, query],
   )
-  const total = orderTotalCents(own, draft.boxes)
+  const total = orderTotalCents(own, draft)
 
   async function submit() {
     const parsed = orderInputFromDraft(draft, own)
@@ -87,23 +99,14 @@ export function OrderDialog({
     setPending(true)
     const saved = await actions.createOrder(parsed.value)
     setPending(false)
-    if (!saved) return
-    const missing = saved.data.missingCostProductIds
-      .map((id) => products.find((product) => product.id === id)?.name)
-      .filter(Boolean)
-    if (missing.length) {
-      toast.warning(
-        `Sin costo del proveedor: ${missing.join(', ')}. Captura la lista de precios en el catálogo.`,
-      )
-    }
-    onClose()
+    if (saved) onClose()
   }
 
   return (
     <InventoryDialog
       title="Nuevo pedido al proveedor"
       eyebrow="POR RECIBIR"
-      description="Elige el proveedor y escribe las cajas que pides. El pedido no mueve existencias: espera en «Por recibir» hasta que llegue y lo verifiques. El costo y el precio de salida vienen del catálogo."
+      description="Elige el proveedor y escribe las cajas y el precio por pieza. El pedido no mueve existencias: espera en «Por recibir» hasta que llegue y lo verifiques. El descuento, la promoción y el precio de salida vienen del catálogo."
       size="wide"
       onClose={onClose}
     >
@@ -124,6 +127,7 @@ export function OrderDialog({
                   ...draft,
                   supplierId: event.target.value,
                   boxes: {},
+                  prices: {},
                 })
               }}
             >
@@ -181,11 +185,18 @@ export function OrderDialog({
               <OrderTable
                 products={visible}
                 boxes={draft.boxes}
+                prices={draft.prices}
                 standardByProductId={standard}
                 onBoxes={(productId, boxes) =>
                   setDraft((current) => ({
                     ...current,
                     boxes: { ...current.boxes, [productId]: boxes },
+                  }))
+                }
+                onPrice={(productId, price) =>
+                  setDraft((current) => ({
+                    ...current,
+                    prices: { ...current.prices, [productId]: price },
                   }))
                 }
               />

@@ -216,8 +216,6 @@ export async function seedDatabase({
       imageUrl: seed.imageUrl,
       unit: 'piezas',
       supplierId: supplierId[seed.supplier],
-      // Supplier list price per piece (ten-thousandths of a peso) from the box cost.
-      listPricePerPiece: Math.round((seed.boxCostCents * 100) / seed.boxFactor),
       presentations: [
         { name: 'Pieza', factor: 1 },
         { name: seed.boxName, factor: seed.boxFactor },
@@ -227,6 +225,9 @@ export async function seedDatabase({
     catalog.set(seed.sku, { seed, product })
   }
   const item = (sku: string) => catalog.get(sku)!
+  // List price per piece typed in the orders (ten-thousandths of a peso), from the seed's box cost.
+  const listPriceOf = (seed: SeedProduct) =>
+    Math.round((seed.boxCostCents * 100) / seed.boxFactor)
   const boxOf = (sku: string) =>
     item(sku).product.presentations.find(
       (p) => p.factor === item(sku).seed.boxFactor,
@@ -286,6 +287,7 @@ export async function seedDatabase({
       lines: lines.map((line) => ({
         productId: line.productId,
         boxes: line.boxes + (damaged[line.seed.sku] ?? 0),
+        listPricePerPiece: listPriceOf(line.seed),
       })),
     })
     const stored = await getSupplierOrder(actor, order.id)
@@ -347,6 +349,7 @@ export async function seedDatabase({
     lines: waiting.slice(0, 2).map((seed) => ({
       productId: item(seed.sku).product.id,
       boxes: 4,
+      listPricePerPiece: listPriceOf(seed),
     })),
   })
 

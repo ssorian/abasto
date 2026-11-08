@@ -27,7 +27,6 @@ export type ProductDraft = {
   /** The supplier's own code for the product. */
   supplierCode: string
   /** Pesos per piece as typed, up to 4 decimals; blank means zero. */
-  listPrice: string
   fixedDiscount: string
   promotion: string
 }

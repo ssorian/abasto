@@ -94,6 +94,16 @@ export const purchaseLines = pgTable(
       .references(() => products.id),
     /** Ordered base units. */
     quantity: integer('quantity').notNull(),
+    /**
+     * Supplier cost breakdown per piece in ten-thousandths of a peso, as of the
+     * order: the list price typed in the line, and the product's discount and
+     * promotion copied then. Net per piece = list − discount − promotion.
+     */
+    listPricePerPiece: integer('list_price_per_piece').notNull().default(0),
+    fixedDiscountPerPiece: integer('fixed_discount_per_piece')
+      .notNull()
+      .default(0),
+    promotionPerPiece: integer('promotion_per_piece').notNull().default(0),
     /** Whole ordered line cost in integer cents; unit cost is derived, never stored rounded. */
     totalCostCents: integer('total_cost_cents').notNull(),
     /** Base units per box when the line was created; boxes = quantity / boxFactor. */
@@ -109,6 +119,10 @@ export const purchaseLines = pgTable(
     check('purchase_lines_quantity_min', sql`${table.quantity} > 0`),
     check('purchase_lines_cost_min', sql`${table.totalCostCents} >= 0`),
     check('purchase_lines_box_factor_min', sql`${table.boxFactor} > 0`),
+    check(
+      'purchase_lines_supplier_amounts_min',
+      sql`${table.listPricePerPiece} >= 0 and ${table.fixedDiscountPerPiece} >= 0 and ${table.promotionPerPiece} >= 0`,
+    ),
     check(
       'purchase_lines_reception_range',
       sql`(${table.goodQuantity} is null and ${table.damagedQuantity} is null) or (${table.goodQuantity} >= 0 and ${table.damagedQuantity} >= 0 and ${table.goodQuantity} + ${table.damagedQuantity} <= ${table.quantity})`,

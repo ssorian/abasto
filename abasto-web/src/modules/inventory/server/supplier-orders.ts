@@ -5,6 +5,7 @@ import {
   orderIdInput,
   pendingsInput,
   receiveOrderInput,
+  supplierCostsInput,
   supplierOrderInput,
   supplierOrdersInput,
   writeOffInput,
@@ -13,6 +14,7 @@ import {
   cancelSupplierOrder,
   createSupplierOrder,
   getSupplierOrder,
+  lastSupplierCosts,
   listSupplierOrders,
   receiveSupplierOrder,
 } from '#/modules/inventory/services/supplier-orders'
@@ -74,5 +76,13 @@ export const writeOffPendingsFn = createServerFn({ method: 'POST' })
   .handler(({ data }) =>
     runWithActor((actor) =>
       writeOffPendings(actor, parseInput(writeOffInput, data)),
+    ),
+  )
+
+export const lastSupplierCostsFn = createServerFn({ method: 'POST' })
+  .validator((data: unknown) => data)
+  .handler(({ data }) =>
+    runWithActor((actor) =>
+      lastSupplierCosts(actor, parseInput(supplierCostsInput, data).supplierId),
     ),
   )

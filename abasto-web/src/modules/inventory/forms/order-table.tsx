@@ -11,8 +11,9 @@ import {
 } from '#/modules/inventory/components/list-panel'
 import { formatCents } from '#/modules/inventory/lib/cents'
 import { packInfoOf } from '#/modules/inventory/lib/pack-info'
+import { formatTenThousandths } from '#/modules/inventory/lib/supplier-cost'
 import {
-  costPerBoxOf,
+  rowOf,
   rowWarnings,
 } from '#/modules/inventory/lib/supplier-order-draft'
 import type { OrderDraft } from '#/modules/inventory/lib/supplier-order-draft'
@@ -22,9 +23,11 @@ type OrderTableProps = {
   /** Products of the chosen supplier, already filtered by the search. */
   products: ReadonlyArray<CatalogProduct>
   boxes: OrderDraft['boxes']
+  prices: OrderDraft['prices']
   /** Standard price per box by product id for the receiving warehouse. */
   standardByProductId: Readonly<Partial<Record<string, number>>>
   onBoxes: (productId: string, boxes: string) => void
+  onPrice: (productId: string, price: string) => void
 }
 
 const compact = 'min-h-[38px] px-2 py-1.5'
@@ -35,12 +38,14 @@ function boxLabel(product: CatalogProduct) {
   return factor === 1 ? packName : `${packName} · ${factor} ${unit}`
 }
 
-/** One row per supplier product: boxes typed, cost and price read-only, warnings. */
+/** One row per supplier product: boxes and list price typed; discounts, cost and sale price read-only. */
 export function OrderTable({
   products,
   boxes,
+  prices,
   standardByProductId,
   onBoxes,
+  onPrice,
 }: OrderTableProps) {
   if (!products.length) {
     return (
@@ -51,14 +56,24 @@ export function OrderTable({
   }
   return (
     <ListPanel className="max-h-[420px] overflow-auto">
-      <ListTable className="min-w-[760px]">
+      <ListTable className="min-w-[1040px]">
         <ListHead>
-          {['Producto', 'Cajas', 'Costo por caja', 'Precio de salida por caja']}
+          {[
+            'Producto',
+            'Cajas',
+            'Precio x pieza',
+            'Desc. fijo x pieza',
+            'Promo x pieza',
+            'Costo neto x caja',
+            'Total',
+            'Precio de salida',
+          ]}
         </ListHead>
         <ListBody>
           {products.map((product) => {
             const standard = standardByProductId[product.id]
-            const warnings = rowWarnings(product, standard)
+            const row = rowOf(product, boxes[product.id], prices[product.id])
+            const warnings = rowWarnings(row, standard)
             return (
               <ListRow key={product.id} className="align-top">
                 <ListCell>
@@ -91,8 +106,29 @@ export function OrderTable({
                     }
                   />
                 </ListCell>
+                <ListCell>
+                  <FieldInput
+                    inputMode="decimal"
+                    aria-label={`Precio por pieza de ${product.name}`}
+                    className={`${compact} w-[100px]`}
+                    placeholder="0.0000"
+                    value={prices[product.id] ?? ''}
+                    onChange={(event) =>
+                      onPrice(product.id, event.target.value)
+                    }
+                  />
+                </ListCell>
                 <ListCell className="whitespace-nowrap">
-                  {formatCents(costPerBoxOf(product))}
+                  {formatTenThousandths(product.fixedDiscountPerPiece)}
+                </ListCell>
+                <ListCell className="whitespace-nowrap">
+                  {formatTenThousandths(product.promotionPerPiece)}
+                </ListCell>
+                <ListCell className="whitespace-nowrap">
+                  {formatCents(row.costPerBoxCents)}
+                </ListCell>
+                <ListCell className="whitespace-nowrap">
+                  {formatCents(row.totalCents)}
                 </ListCell>
                 <ListCell className="whitespace-nowrap">
                   {standard === undefined ? '—' : formatCents(standard)}

@@ -4,7 +4,6 @@ import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import type { AppErrorCode } from '#/lib/errors'
 import { savePresentations } from '#/modules/catalog/services/presentations'
-import { updateProduct } from '#/modules/catalog/services/products'
 import {
   lots,
   stockMovements,
@@ -21,6 +20,7 @@ import {
 } from '#/modules/inventory/services/supplier-pendings'
 import {
   errorOf,
+  lineFor,
   setupSupplierOrders,
   supplierState,
 } from '#/modules/inventory/services/supplier-testing'
@@ -37,11 +37,12 @@ async function receiveMilk(
   good: number,
   damaged: number,
   replacements?: Array<{ productId: string; boxes: number }>,
+  listPricePerPiece?: number,
 ) {
   const created = await createSupplierOrder(fx.owner, {
     supplierId: fx.supplier.id,
     warehouseId: fx.a.id,
-    lines: [{ productId: fx.milk.id, boxes }],
+    lines: [lineFor(fx.milk, boxes, listPricePerPiece)],
   })
   const order = await getSupplierOrder(fx.owner, created.id)
   return receiveSupplierOrder(fx.owner, {
@@ -95,11 +96,15 @@ describe('replacements', () => {
   test('replaced boxes enter as a lot at the original cost per box', async () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 10, 5, 2)
-    // The catalog cost rises to 2304 per box (above the 2000 standard price).
-    await updateProduct(fx.owner, fx.milk.id, { listPricePerPiece: 20000 })
-    const result = await receiveMilk(fx, 4, 4, 0, [
-      { productId: fx.milk.id, boxes: 2 },
-    ])
+    // The next order is priced at 2304 per box (above the 2000 standard price).
+    const result = await receiveMilk(
+      fx,
+      4,
+      4,
+      0,
+      [{ productId: fx.milk.id, boxes: 2 }],
+      20000,
+    )
     expect(result.lots[0]).toMatchObject({
       receivedCostCents: 9216,
       salePriceCents: null,
@@ -141,8 +146,7 @@ describe('replacements', () => {
   test('values replacements with the oldest owed entries first', async () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 6, 1, 0) // 5 boxes missing at 1344
-    await updateProduct(fx.owner, fx.milk.id, { listPricePerPiece: 20000 })
-    await receiveMilk(fx, 4, 0, 2) // 2 damaged + 2 missing at 2304
+    await receiveMilk(fx, 4, 0, 2, undefined, 20000) // 2 damaged + 2 missing at 2304
     expect(await owedMilk(fx)).toMatchObject({
       owedBoxes: 9,
       owedValueCents: 6720 + 4 * 2304,
@@ -168,7 +172,7 @@ describe('replacements', () => {
     const created = await createSupplierOrder(fx.owner, {
       supplierId: fx.supplier.id,
       warehouseId: fx.a.id,
-      lines: [{ productId: fx.milk.id, boxes: 1 }],
+      lines: [lineFor(fx.milk, 1)],
     })
     const order = await getSupplierOrder(fx.owner, created.id)
     const lines = [{ lineId: order.lines[0].id, goodBoxes: 1, damagedBoxes: 0 }]
@@ -218,7 +222,7 @@ describe('replacements', () => {
     const colaOrder = await createSupplierOrder(fx.owner, {
       supplierId: fx.cocaCola.id,
       warehouseId: fx.a.id,
-      lines: [{ productId: fx.cola.id, boxes: 2 }],
+      lines: [lineFor(fx.cola, 2)],
     })
     const order = await getSupplierOrder(fx.owner, colaOrder.id)
     await receiveSupplierOrder(fx.owner, {

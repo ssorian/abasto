@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
-import { eq } from 'drizzle-orm'
+import { readFileSync } from 'node:fs'
+import { eq, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import type { AppErrorCode } from '#/lib/errors'
@@ -15,11 +16,13 @@ import {
   cancelSupplierOrder,
   createSupplierOrder,
   getSupplierOrder,
+  lastSupplierCosts,
   listSupplierOrders,
   receiveSupplierOrder,
 } from '#/modules/inventory/services/supplier-orders'
 import {
   errorOf,
+  lineFor,
   setupSupplierOrders,
   supplierState,
 } from '#/modules/inventory/services/supplier-testing'
@@ -37,10 +40,7 @@ const orderOf = (
   warehouseId: fx.a.id,
   expectedOn: '2026-11-10',
   reference: 'PED-1',
-  lines: [
-    { productId: fx.milk.id, boxes: 10 },
-    { productId: fx.soda.id, boxes: 2 },
-  ],
+  lines: [lineFor(fx.milk, 10), lineFor(fx.soda, 2)],
   ...overrides,
 })
 
@@ -59,10 +59,10 @@ async function rejectsCreate(
 }
 
 describe('createSupplierOrder', () => {
-  test('stores a Pedido priced from the catalog and moves no stock', async () => {
+  test('stores a Pedido priced from the typed list price and moves no stock', async () => {
     const fx = await setupSupplierOrders()
     const created = await createSupplierOrder(fx.managerA, orderOf(fx))
-    expect(created.missingCostProductIds).toEqual([])
+    expect(created).toEqual({ id: expect.any(String) })
     const order = await getSupplierOrder(fx.managerA, created.id)
     expect(order).toMatchObject({
       status: 'Pedido',
@@ -79,6 +79,9 @@ describe('createSupplierOrder', () => {
       boxes: 10,
       quantity: 120,
       totalCostCents: 13440,
+      listPricePerPiece: 12000,
+      fixedDiscountPerPiece: 500,
+      promotionPerPiece: 300,
       goodQuantity: null,
       damagedQuantity: null,
     })
@@ -93,53 +96,106 @@ describe('createSupplierOrder', () => {
     expect(state.pendings).toEqual([])
   })
 
-  test('accepts a product without supplier cost and flags it', async () => {
+  test('accepts a zero list price at no cost', async () => {
     const fx = await setupSupplierOrders()
     const created = await createSupplierOrder(
       fx.owner,
-      orderOf(fx, { lines: [{ productId: fx.free.id, boxes: 3 }] }),
+      orderOf(fx, { lines: [lineFor(fx.free, 3)] }),
     )
-    expect(created.missingCostProductIds).toEqual([fx.free.id])
     const order = await getSupplierOrder(fx.owner, created.id)
-    expect(order.lines[0]).toMatchObject({ quantity: 18, totalCostCents: 0 })
+    expect(order.lines[0]).toMatchObject({
+      quantity: 18,
+      totalCostCents: 0,
+      listPricePerPiece: 0,
+    })
+  })
+
+  test('net cost per box is rounded half up before multiplying by the boxes', async () => {
+    const fx = await setupSupplierOrders()
+    // 0.0025 × 6 pieces = 0.0150 → 1.5 cents → 2 cents per box; 3 boxes = 6 cents.
+    const created = await createSupplierOrder(
+      fx.owner,
+      orderOf(fx, { lines: [lineFor(fx.free, 3, 25)] }),
+    )
+    const order = await getSupplierOrder(fx.owner, created.id)
+    expect(order.lines[0]).toMatchObject({
+      totalCostCents: 6,
+      costPerBoxCents: 2,
+    })
+  })
+
+  test('a discount and promotion equal to the list price cost nothing', async () => {
+    const fx = await setupSupplierOrders()
+    const created = await createSupplierOrder(
+      fx.owner,
+      orderOf(fx, { lines: [lineFor(fx.milk, 2, 800)] }),
+    )
+    const order = await getSupplierOrder(fx.owner, created.id)
+    expect(order.lines[0].totalCostCents).toBe(0)
+  })
+
+  test('rejects discount plus promotion above the list price and bad amounts', async () => {
+    const fx = await setupSupplierOrders()
+    const net =
+      'El descuento y la promoción no pueden superar el precio de lista.'
+    const bad =
+      'Los montos del proveedor deben ser enteros en diezmilésimas, de cero o más.'
+    // Milk carries 0.0500 + 0.0300 per piece on the product.
+    await rejectsCreate(
+      fx,
+      orderOf(fx, { lines: [lineFor(fx.milk, 1, 799)] }),
+      'invalid',
+      net,
+    )
+    for (const price of [-1, 1.5, Number.NaN, 2 ** 53, 2_147_483_648]) {
+      await rejectsCreate(
+        fx,
+        orderOf(fx, { lines: [lineFor(fx.milk, 1, price)] }),
+        'invalid',
+        bad,
+      )
+    }
+    await rejectsCreate(
+      fx,
+      orderOf(fx, { lines: [lineFor(fx.milk, 10, 2_147_483_647)] }),
+      'invalid',
+      'El pedido es demasiado grande.',
+    )
   })
 
   test('rejects invalid orders and leaves everything unchanged', async () => {
     const fx = await setupSupplierOrders()
     const cases: Array<[Record<string, unknown>, AppErrorCode, string]> = [
       [
-        { lines: [{ productId: fx.cola.id, boxes: 1 }] },
+        { lines: [lineFor(fx.cola, 1)] },
         'invalid',
         'Ese producto no pertenece a este proveedor.',
       ],
       [{ lines: [] }, 'invalid', 'Agrega al menos un producto al pedido.'],
       [
         {
-          lines: [
-            { productId: fx.milk.id, boxes: 1 },
-            { productId: fx.milk.id, boxes: 2 },
-          ],
+          lines: [lineFor(fx.milk, 1), lineFor(fx.milk, 2)],
         },
         'invalid',
         'Cada producto solo puede aparecer una vez en el pedido.',
       ],
       [
-        { lines: [{ productId: fx.milk.id, boxes: 0 }] },
+        { lines: [lineFor(fx.milk, 0)] },
         'invalid',
         'Las cajas deben ser un número entero mayor que cero.',
       ],
       [
-        { lines: [{ productId: fx.milk.id, boxes: 1.5 }] },
+        { lines: [lineFor(fx.milk, 1.5)] },
         'invalid',
         'Las cajas deben ser un número entero mayor que cero.',
       ],
       [
-        { lines: [{ productId: fx.milk.id, boxes: 999_999_999 }] },
+        { lines: [lineFor(fx.milk, 999_999_999)] },
         'invalid',
         'El pedido es demasiado grande.',
       ],
       [
-        { lines: [{ productId: crypto.randomUUID(), boxes: 1 }] },
+        { lines: [{ ...lineFor(fx.milk, 1), productId: crypto.randomUUID() }] },
         'not_found',
         'No encontramos ese producto.',
       ],
@@ -234,10 +290,7 @@ async function pendingOrder(fx: SupplierFixture, boxes = 10) {
   const created = await createSupplierOrder(
     fx.owner,
     orderOf(fx, {
-      lines: [
-        { productId: fx.milk.id, boxes },
-        { productId: fx.soda.id, boxes: 2 },
-      ],
+      lines: [lineFor(fx.milk, boxes), lineFor(fx.soda, 2)],
     }),
   )
   return getSupplierOrder(fx.owner, created.id)
@@ -443,7 +496,7 @@ describe('receiveSupplierOrder', () => {
       ],
       [
         arrive(order, ok, {
-          replacements: [{ productId: fx.milk.id, boxes: 1 }],
+          replacements: [lineFor(fx.milk, 1)],
         }),
         'invalid',
         'Las cajas de reposición superan el saldo del proveedor.',
@@ -598,10 +651,22 @@ describe('legacy and listing', () => {
     expect([denied.code, denied.message]).toEqual(['forbidden', forbidden])
   })
 
-  test('catalog cost changes after ordering do not alter the order', async () => {
+  test('catalog discount changes after ordering do not alter the order', async () => {
     const fx = await setupSupplierOrders()
     const order = await pendingOrder(fx)
-    await updateProduct(fx.owner, fx.milk.id, { listPricePerPiece: 20000 })
+    await updateProduct(fx.owner, fx.milk.id, {
+      fixedDiscountPerPiece: 0,
+      promotionPerPiece: 0,
+    })
+    expect(
+      (await getSupplierOrder(fx.owner, order.id)).lines.find(
+        (line) => line.productId === fx.milk.id,
+      ),
+    ).toMatchObject({
+      listPricePerPiece: 12000,
+      fixedDiscountPerPiece: 500,
+      promotionPerPiece: 300,
+    })
     const result = await receiveSupplierOrder(
       fx.owner,
       arrive(order, [
@@ -610,5 +675,140 @@ describe('legacy and listing', () => {
       ]),
     )
     expect(result.lots[0].receivedCostCents).toBe(13440)
+  })
+})
+
+describe('migration 0019: legacy lines get the box factor of their product', () => {
+  /** The data-fix statement of the migration file, run as shipped. */
+  const fixLegacyBoxFactors = () => {
+    const file = readFileSync(
+      new URL(
+        '../../../../drizzle/0019_order_line_list_price.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    )
+    const statement = file
+      .split('--> statement-breakpoint')
+      .find((part) => part.includes('UPDATE "purchase_lines"'))!
+    return db.execute(sql.raw(statement))
+  }
+
+  test('divisible quantities get the default presentation factor, others stay at 1', async () => {
+    const fx = await setupSupplierOrders()
+    const purchase = (productId: string, quantity: number) =>
+      createPurchase(fx.managerA, {
+        supplierId: fx.supplier.id,
+        warehouseId: fx.a.id,
+        purchasedOn: '2026-11-01',
+        lines: [{ productId, quantity, totalCostCents: 1000 }],
+      })
+    const milk = await purchase(fx.milk.id, 36) // 3 boxes of 12
+    const odd = await purchase(fx.milk.id, 25) // not a whole number of boxes
+    const soda = await purchase(fx.soda.id, 48) // 2 boxes of 24
+    const single = await purchase(fx.free.id, 6) // 1 box of 6
+    // As stored before box factors existed.
+    await db.update(purchaseLines).set({ boxFactor: 1 })
+    await fixLegacyBoxFactors()
+    const factors = async (id: string) =>
+      (await getSupplierOrder(fx.owner, id)).lines.map((line) => [
+        line.boxFactor,
+        line.boxes,
+      ])
+    expect(await factors(milk.id)).toEqual([[12, 3]])
+    expect(await factors(odd.id)).toEqual([[1, 25]])
+    expect(await factors(soda.id)).toEqual([[24, 2]])
+    expect(await factors(single.id)).toEqual([[6, 1]])
+  })
+
+  test('lines that already have a factor, and products sold by piece, are untouched', async () => {
+    const fx = await setupSupplierOrders()
+    const order = await createSupplierOrder(fx.owner, orderOf(fx))
+    const plain = await createPurchase(fx.owner, {
+      supplierId: fx.supplier.id,
+      warehouseId: fx.a.id,
+      purchasedOn: '2026-11-01',
+      lines: [{ productId: fx.milk.id, quantity: 24, totalCostCents: 100 }],
+    })
+    await db
+      .update(purchaseLines)
+      .set({ boxFactor: 1 })
+      .where(eq(purchaseLines.purchaseId, plain.id))
+    const before = await db.select().from(purchaseLines)
+    await fixLegacyBoxFactors()
+    const after = await db.select().from(purchaseLines)
+    const changed = after.filter(
+      (line, index) => line.boxFactor !== before[index].boxFactor,
+    )
+    expect(changed.map((line) => line.purchaseId)).toEqual([plain.id])
+    expect(
+      (await getSupplierOrder(fx.owner, order.id)).lines.map(
+        (line) => line.boxFactor,
+      ),
+    ).toEqual([12, 24])
+  })
+})
+
+describe('lastSupplierCosts', () => {
+  const place = (fx: SupplierFixture, milk: number, soda?: number) =>
+    createSupplierOrder(
+      fx.owner,
+      orderOf(fx, {
+        lines: [
+          lineFor(fx.milk, 1, milk),
+          ...(soda === undefined ? [] : [lineFor(fx.soda, 1, soda)]),
+        ],
+      }),
+    )
+
+  test('is empty before any order', async () => {
+    const fx = await setupSupplierOrders()
+    expect(await lastSupplierCosts(fx.managerA, fx.supplier.id)).toEqual([])
+  })
+
+  test('returns the list price of the most recent order line of each product', async () => {
+    const fx = await setupSupplierOrders()
+    await place(fx, 12000, 8400)
+    await place(fx, 13000)
+    const costs = await lastSupplierCosts(fx.managerA, fx.supplier.id)
+    expect(
+      Object.fromEntries(
+        costs.map((row) => [row.productId, row.listPricePerPiece]),
+      ),
+    ).toEqual({ [fx.milk.id]: 13000, [fx.soda.id]: 8400 })
+    expect(costs).toHaveLength(2)
+    expect(Object.keys(costs[0]).sort()).toEqual([
+      'listPricePerPiece',
+      'productId',
+    ])
+  })
+
+  test('only covers the products of that supplier', async () => {
+    const fx = await setupSupplierOrders()
+    await place(fx, 12000)
+    await createSupplierOrder(fx.owner, {
+      supplierId: fx.cocaCola.id,
+      warehouseId: fx.a.id,
+      lines: [lineFor(fx.cola, 2, 9000)],
+    })
+    const costs = await lastSupplierCosts(fx.owner, fx.cocaCola.id)
+    expect(costs).toEqual([{ productId: fx.cola.id, listPricePerPiece: 9000 }])
+  })
+
+  test('refuses unknown suppliers and staff without a manager role', async () => {
+    const fx = await setupSupplierOrders()
+    const before = await supplierState()
+    const missing = await errorOf(() =>
+      lastSupplierCosts(fx.owner, crypto.randomUUID()),
+    )
+    expect([missing.code, missing.message]).toEqual([
+      'not_found',
+      'No encontramos ese proveedor.',
+    ])
+    const denied = await errorOf(() =>
+      lastSupplierCosts(fx.clerkA, fx.supplier.id),
+    )
+    expect([denied.code, denied.message]).toEqual(['forbidden', forbidden])
+    expect(await supplierState()).toEqual(before)
   })
 })

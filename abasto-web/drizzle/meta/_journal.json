@@ -134,6 +134,13 @@
       "when": 1794107113785,
       "tag": "0018_supplier_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794109124824,
+      "tag": "0019_order_line_list_price",
+      "breakpoints": true
     }
   ]
 }

@@ -10,15 +10,9 @@ import {
 import { baseUnits, categories } from '#/modules/catalog/lib/catalog-types'
 import {
   draftFromProduct,
-  draftNetPerPiece,
   emptyProductDraft,
   supplierCostErrors,
 } from '#/modules/catalog/lib/product-draft'
-import {
-  formatTenThousandths,
-  netCostPerBoxCents,
-} from '#/modules/catalog/lib/supplier-cost'
-import { formatCents } from '#/modules/pricing/lib/money'
 
 import type {
   CatalogProduct,
@@ -48,9 +42,6 @@ export function ProductFormDialog({
   const [showErrors, setShowErrors] = useState(false)
   const costErrors = supplierCostErrors(draft)
   const costFailed = Object.keys(costErrors).length > 0
-  const netPerPiece = draftNetPerPiece(draft)
-  const boxFactor =
-    product?.presentations.find((row) => row.isDefault)?.factor ?? 1
   const patch = (change: Partial<ProductDraft>) =>
     setDraft((current) => ({ ...current, ...change }))
   // An inactive supplier stays selectable only while the product still uses it.
@@ -74,13 +65,9 @@ export function ProductFormDialog({
   ]
 
   const costFields: Array<
-    readonly [
-      'supplierCode' | 'listPrice' | 'fixedDiscount' | 'promotion',
-      string,
-    ]
+    readonly ['supplierCode' | 'fixedDiscount' | 'promotion', string]
   > = [
     ['supplierCode', 'Clave del proveedor'],
-    ['listPrice', 'Precio de lista por pieza'],
     ['fixedDiscount', 'Descuento fijo por pieza'],
     ['promotion', 'Promoción por pieza'],
   ]
@@ -186,7 +173,7 @@ export function ProductFormDialog({
               value={draft[key]}
               placeholder={key === 'supplierCode' ? '' : '0.0000'}
               aria-invalid={
-                showErrors && Boolean(costErrors[key as 'listPrice'])
+                showErrors && Boolean(key !== 'supplierCode' && costErrors[key])
               }
               onChange={(event) => patch({ [key]: event.target.value })}
             />
@@ -195,29 +182,6 @@ export function ProductFormDialog({
             )}
           </Field>
         ))}
-        {showErrors && costErrors.net && (
-          <span className="text-xs text-[#b42318] md:col-span-2">
-            {costErrors.net}
-          </span>
-        )}
-        <Field label="Costo neto por pieza">
-          <TextInput
-            aria-label="Costo neto por pieza"
-            readOnly
-            value={costFailed ? '—' : formatTenThousandths(netPerPiece)}
-          />
-        </Field>
-        <Field label="Costo neto por caja">
-          <TextInput
-            aria-label="Costo neto por caja"
-            readOnly
-            value={
-              costFailed
-                ? '—'
-                : formatCents(netCostPerBoxCents(netPerPiece, boxFactor))
-            }
-          />
-        </Field>
       </fieldset>
       <div className="mt-[5px] flex items-center justify-between gap-3 border-t border-[#f4eee8] pt-5">
         <CatalogButton onClick={onClose}>Cancelar</CatalogButton>
