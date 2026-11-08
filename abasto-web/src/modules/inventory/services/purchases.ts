@@ -136,6 +136,10 @@ export async function createPurchase(
         reference: input.reference?.trim() ?? '',
         purchasedOn: input.purchasedOn,
         createdBy: actor.userId,
+        // Direct entries are received on the spot.
+        status: 'Recibido',
+        receivedAt: new Date(),
+        receivedBy: actor.userId,
       })
       .returning({ id: purchases.id })
     const created: Array<Lot> = []
@@ -147,6 +151,9 @@ export async function createPurchase(
           productId: line.productId,
           quantity: line.quantity,
           totalCostCents: line.totalCostCents,
+          boxFactor: boxFactor.get(line.productId) ?? 1,
+          goodQuantity: line.quantity,
+          damagedQuantity: 0,
           lotCode: line.lotCode?.trim() ?? '',
           expiresOn: line.expiresOn || null,
         })

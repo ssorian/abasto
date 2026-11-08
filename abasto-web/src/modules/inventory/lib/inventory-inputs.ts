@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { purchaseStatuses } from '#/modules/inventory/db/schema'
 import { lossCategoryValues } from '#/modules/inventory/lib/loss-categories'
 
 const id = z.string().min(1)
@@ -49,4 +50,50 @@ export const countInput = z.object({
   warehouseId: id,
   countedQuantity: whole,
   note: z.string().optional(),
+})
+
+export const supplierOrderInput = z.object({
+  supplierId: id,
+  warehouseId: id,
+  expectedOn: z.string().optional(),
+  reference: z.string().optional(),
+  lines: z.array(z.object({ productId: id, boxes: whole })),
+})
+
+export const orderIdInput = z.object({ purchaseId: id })
+
+export const supplierOrdersInput = z.object({
+  warehouseId: id,
+  status: z.enum(purchaseStatuses).optional(),
+})
+
+export const receiveOrderInput = z.object({
+  purchaseId: id,
+  lines: z.array(
+    z.object({
+      lineId: id,
+      goodBoxes: whole,
+      damagedBoxes: whole,
+      lotCode: z.string().optional(),
+      expiresOn: z.string().optional(),
+    }),
+  ),
+  replacements: z
+    .array(
+      z.object({
+        productId: id,
+        boxes: whole,
+        lotCode: z.string().optional(),
+        expiresOn: z.string().optional(),
+      }),
+    )
+    .optional(),
+})
+
+export const pendingsInput = z.object({ supplierId: id.optional() })
+
+export const writeOffInput = z.object({
+  supplierId: id,
+  productId: id,
+  boxes: whole,
 })

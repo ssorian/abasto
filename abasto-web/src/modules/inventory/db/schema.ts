@@ -30,21 +30,57 @@ export const movementTypes = [
 ] as const
 export type MovementType = (typeof movementTypes)[number]
 
-export const purchases = pgTable('purchases', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  supplierId: uuid('supplier_id')
-    .notNull()
-    .references(() => suppliers.id),
-  warehouseId: uuid('warehouse_id')
-    .notNull()
-    .references(() => warehouses.id),
-  reference: text('reference').notNull().default(''),
-  purchasedOn: date('purchased_on', { mode: 'string' }).notNull(),
-  createdBy: text('created_by')
-    .notNull()
-    .references(() => user.id),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+export const purchaseStatuses = ['Pedido', 'Recibido', 'Cancelado'] as const
+export type PurchaseStatus = (typeof purchaseStatuses)[number]
+
+export const pendingTypes = [
+  'damaged',
+  'missing',
+  'replaced',
+  'written_off',
+] as const
+export type PendingType = (typeof pendingTypes)[number]
+
+/**
+ * A supplier order: `Pedido` waits in the queue (no stock moved), `Recibido`
+ * was verified and its lots exist, `Cancelado` never moved stock. Purchases
+ * recorded before orders existed are `Recibido`.
+ */
+export const purchases = pgTable(
+  'purchases',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    supplierId: uuid('supplier_id')
+      .notNull()
+      .references(() => suppliers.id),
+    warehouseId: uuid('warehouse_id')
+      .notNull()
+      .references(() => warehouses.id),
+    reference: text('reference').notNull().default(''),
+    purchasedOn: date('purchased_on', { mode: 'string' }).notNull(),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    status: text('status', { enum: purchaseStatuses })
+      .notNull()
+      .default('Pedido'),
+    /** YYYY-MM-DD the supplier is expected to deliver. */
+    expectedOn: date('expected_on', { mode: 'string' }),
+    receivedAt: timestamp('received_at'),
+    receivedBy: text('received_by').references(() => user.id),
+  },
+  (table) => [
+    check(
+      'purchases_status_check',
+      sql`${table.status} in ('Pedido', 'Recibido', 'Cancelado')`,
+    ),
+    check(
+      'purchases_reception_consistent',
+      sql`(${table.status} = 'Recibido' and ${table.receivedAt} is not null and ${table.receivedBy} is not null) or (${table.status} <> 'Recibido' and ${table.receivedAt} is null and ${table.receivedBy} is null)`,
+    ),
+  ],
+)
 
 export const purchaseLines = pgTable(
   'purchase_lines',
@@ -56,16 +92,27 @@ export const purchaseLines = pgTable(
     productId: uuid('product_id')
       .notNull()
       .references(() => products.id),
-    /** Base units. */
+    /** Ordered base units. */
     quantity: integer('quantity').notNull(),
-    /** Whole line cost in integer cents; unit cost is derived, never stored rounded. */
+    /** Whole ordered line cost in integer cents; unit cost is derived, never stored rounded. */
     totalCostCents: integer('total_cost_cents').notNull(),
+    /** Base units per box when the line was created; boxes = quantity / boxFactor. */
+    boxFactor: integer('box_factor').notNull().default(1),
+    /** Base units that arrived in good condition; null until received. */
+    goodQuantity: integer('good_quantity'),
+    /** Base units that arrived damaged or expired; null until received. */
+    damagedQuantity: integer('damaged_quantity'),
     lotCode: text('lot_code').notNull().default(''),
     expiresOn: date('expires_on', { mode: 'string' }),
   },
   (table) => [
     check('purchase_lines_quantity_min', sql`${table.quantity} > 0`),
     check('purchase_lines_cost_min', sql`${table.totalCostCents} >= 0`),
+    check('purchase_lines_box_factor_min', sql`${table.boxFactor} > 0`),
+    check(
+      'purchase_lines_reception_range',
+      sql`(${table.goodQuantity} is null and ${table.damagedQuantity} is null) or (${table.goodQuantity} >= 0 and ${table.damagedQuantity} >= 0 and ${table.goodQuantity} + ${table.damagedQuantity} <= ${table.quantity})`,
+    ),
   ],
 )
 
@@ -183,5 +230,50 @@ export const stockMinimums = pgTable(
   (table) => [
     primaryKey({ columns: [table.productId, table.warehouseId] }),
     check('stock_minimums_minimum_min', sql`${table.minimum} >= 0`),
+  ],
+)
+
+/**
+ * Append-only supplier balance: boxes the supplier owes us (positive: damaged
+ * or missing on reception) and boxes settled (negative: replaced by a later
+ * delivery or written off "a lo chino"). A database trigger rejects UPDATE and DELETE.
+ */
+export const supplierPendings = pgTable(
+  'supplier_pendings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    supplierId: uuid('supplier_id')
+      .notNull()
+      .references(() => suppliers.id),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id),
+    /** Order that caused the entry; null for write-offs. */
+    purchaseId: uuid('purchase_id').references(() => purchases.id),
+    type: text('type', { enum: pendingTypes }).notNull(),
+    /** Signed base units: positive owed, negative settled. */
+    quantity: integer('quantity').notNull(),
+    /** Signed value in cents at the original cost; same sign as `quantity`. */
+    valueCents: integer('value_cents').notNull(),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp('created_at')
+      .default(sql`clock_timestamp()`)
+      .notNull(),
+  },
+  (table) => [
+    check(
+      'supplier_pendings_type_check',
+      sql`${table.type} in ('damaged', 'missing', 'replaced', 'written_off')`,
+    ),
+    check(
+      'supplier_pendings_sign',
+      sql`(${table.type} in ('damaged', 'missing') and ${table.quantity} > 0 and ${table.valueCents} >= 0) or (${table.type} in ('replaced', 'written_off') and ${table.quantity} < 0 and ${table.valueCents} <= 0)`,
+    ),
+    index('supplier_pendings_supplier_product_idx').on(
+      table.supplierId,
+      table.productId,
+    ),
   ],
 )
