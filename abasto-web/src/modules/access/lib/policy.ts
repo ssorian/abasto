@@ -49,6 +49,7 @@ export function can(
   warehouseId?: string,
 ): boolean {
   if (actor.role === 'owner') return true
+  if (actor.role === 'customer') return false
   if (!isWarehousePermission(permission) || !warehouseId) return false
   const role = actor.assignments.get(warehouseId)
   return role ? warehouseGrants[role].has(permission) : false

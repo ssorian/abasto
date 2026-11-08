@@ -1,0 +1,29 @@
+# Online store
+
+Objective: a customer-facing web store in `abasto-web` (`/tienda`): catalog with price and availability, cart and confirmation; the only checkout is a reservation (apartado) made by an authenticated customer whose account the owner creates. Branch `feat/online-store`.
+Test runner: `bun test` in `abasto-web` against the isolated `db-test` Postgres.
+
+## Specs
+
+- S1: Store view — "Quiero que crees una vista web tipo tienda en linea para los clientes de la app, veran el catalogo precio del producto si hay stock disponible, carrito y confirmacion".
+- S2: No payment — "no hay pago con tarjeta, transferencia ni pasarela de pago, solo se puede marcar como apartado". Confirming the cart creates an order in status Reservado (existing orders backend: frozen price, stock reserved, expiry by `reservationHours`).
+- S3: Closed customer base — "siempre y cuando este autenticado el cliente, dado a que tenemos una cartera cerrada y solo clientes selectos pueden apartar, el perfil se los haremos nosotros y se los daremos". No sign-up; the owner creates a customer's store access (email + password) linked to an existing customer; only an active customer with access can reserve. A customer account never gets staff access.
+- S4: Warehouse — user choice "El cliente elige almacén (Recomendado)": the store has a warehouse selector; catalog prices and availability come from the selected warehouse; the cart belongs to that warehouse and the order is picked up there.
+- S5: Visibility — user choice "Público, apartar requiere login (Recomendado)": anyone sees catalog, list price and availability; cart checkout and reservation require a customer session.
+- S6: Availability — user choice "Disponible / Pocas / Agotado (Recomendado)": exact quantities are never exposed.
+- S7: Customer orders — user choice "Ver y cancelar mientras esté Reservado (Recomendado)": a customer lists their own orders and may cancel one only while it is Reservado (releasing stock); Preparado orders are cancelled only by staff.
+
+## Tasks
+
+- T1 [S3] inline + verify (security) — Customer role and store access: `customer` user role, user ↔ customer link, owner creates/resets access from Clientes, staff guard rejects customer sessions, customer guard. Status: implemented, suite + verify pending (RED: missing `store/services/store-access` + `Cliente` label; GREEN 44/44 access+store).
+- T2 [S2,S4,S5,S6,S7] delegated (context backstop) — Store backend: public warehouses + catalog read (published products, active priced presentations, availability bucket), customer reserve, my orders, cancel own Reservado; orders record their source. Status: pending.
+- T3 [S1,S4,S5,S6,S7] inline — `/tienda` UI outside the staff shell: catalog, cart, confirmation, customer login, my orders. Status: pending.
+
+## Log
+
+- L1 (2026-11-07) Original request: "Quiero que crees una vista web tipo tienda en linea para los clientes de la app, veran el catalogo precio del producto si hay stock disponible, carrito y confirmacion, no hay pago con tarjeta, transferencia ni pasarela de pago, solo se puede marcar como apartado siempre y cuando este autenticado el cliente, dado a que tenemos una cartera cerrada y solo clientes selectos pueden apartar, el perfil se los haremos nosotros y se los daremos."
+- L2 (2026-11-07) Answers: warehouse "El cliente elige almacén (Recomendado)"; visibility "Público, apartar requiere login (Recomendado)"; stock "Disponible / Pocas / Agotado (Recomendado)"; cancel "Ver y cancelar mientras esté Reservado (Recomendado)".
+- L3 (2026-11-07) Exploration: no `user` ↔ `customers` link and roles are `owner | staff` (CHECK); root `beforeLoad` redirects every unauthenticated route to `/login` and wraps pages in the staff `AppShell`; `createOrder` requires `warehouse.operate` and `createdBy` is a NOT NULL FK to `user`; `listWarehousePrices`/`getWarehouseStock` require `warehouse.view`; product images are external `imageUrl`s. Uncommitted seed edits (`seed-data.ts`, `seed.test.ts`) predate this feature and are not part of it.
+- L4 (2026-11-07) T1 design (assumptions A): `user.role` gains `customer` (CHECK, migration 0021); `customers.user_id` unique FK links one store account per customer; `grantStoreAccess` (owner, `customers.manage`) creates the account with the customer's name; `setStoreAccessPassword` replaces the password and deletes the customer's sessions. (A) No revoke: deactivating the customer blocks the store ("Tu cuenta no está activa. Comunícate con el almacén."); password change closes sessions. `requireActor` refuses customer sessions ("Esta cuenta solo tiene acceso a la tienda."), `can()` denies every permission to customers, `listUsers` hides them and warehouse assignment treats them as not found. `requireCustomer(headers)` is the store guard ("Inicia sesión con tu cuenta de cliente."). Owner UI: "Acceso a la tienda" block in the customer detail.
+- L5 (2026-11-07) Incident: another session (worktree `Abasto-supplier-filters`) runs `bun test` against the shared `abasto_test`, producing session FK failures in both runs. This feature uses its own databases in `db-test`: `abasto_store_test` (parent) and `abasto_store_t2_test` (T2 worker) via `TEST_DATABASE_URL`.
+- L6 (2026-11-07) T2 design (A): catalog availability in presentation units — 0 → "Agotado", 1–5 → "Pocas", more → "Disponible"; the default presentation shows the FIFO first sellable lot's sale price (same rule as the order quote); only published products with at least one priced active presentation; orders get `source` (`counter` | `store`); store orders are created by the customer's user; a customer sees an overdue reservation as "Vencido" and cancels only own Reservado orders ("Tu pedido ya se está preparando. Comunícate con el almacén para cancelarlo."); unpublished products are refused at reservation ("Ese producto no está disponible en la tienda.").

@@ -1,10 +1,16 @@
 export type SessionUser = {
   name: string
   email: string
-  role: 'owner' | 'staff'
-  roleLabel: 'Dueño' | 'Personal'
+  role: 'owner' | 'staff' | 'customer'
+  roleLabel: 'Dueño' | 'Personal' | 'Cliente'
   initials: string
 }
+
+const roleLabels = {
+  owner: 'Dueño',
+  staff: 'Personal',
+  customer: 'Cliente',
+} as const
 
 const initialsOf = (name: string) =>
   name
@@ -19,12 +25,13 @@ export function toSessionUser(row: {
   email: string
   role: string
 }): SessionUser {
-  const isOwner = row.role === 'owner'
+  const role =
+    row.role === 'owner' || row.role === 'customer' ? row.role : 'staff'
   return {
     name: row.name.trim(),
     email: row.email,
-    role: isOwner ? 'owner' : 'staff',
-    roleLabel: isOwner ? 'Dueño' : 'Personal',
+    role,
+    roleLabel: roleLabels[role],
     initials: initialsOf(row.name),
   }
 }
