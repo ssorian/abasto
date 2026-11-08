@@ -13,6 +13,10 @@ const productFields = z.object({
   imageUrl: z.string().nullish(),
   supplierId: z.string().nullish(),
   published: z.boolean().optional(),
+  supplierCode: z.string().optional(),
+  listPricePerPiece: z.number().optional(),
+  fixedDiscountPerPiece: z.number().optional(),
+  promotionPerPiece: z.number().optional(),
 })
 
 export const productInput = productFields.extend(presentationSetInput.shape)

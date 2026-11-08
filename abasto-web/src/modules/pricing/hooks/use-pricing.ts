@@ -5,7 +5,6 @@ import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
 import type { Result } from '#/lib/boundary'
 import {
   bulkChangePricesFn,
-  setMarginFn,
   setPricesFn,
 } from '#/modules/pricing/server/pricing'
 import type { BulkChangeInput } from '#/modules/pricing/services/bulk-prices'
@@ -49,13 +48,6 @@ export function usePricingActions(warehouseId: string | null) {
             setPricesFn({ data: { warehouseId: warehouseId ?? '', prices } }),
           () =>
             prices.length === 1 ? 'Precio guardado.' : 'Precios guardados.',
-        ),
-      ),
-    saveMargin: (productId: string, marginBps: number) =>
-      withToast(
-        run(
-          () => setMarginFn({ data: { productId, marginBps } }),
-          () => 'Margen guardado.',
         ),
       ),
     bulkChange: (input: BulkChangeInput) =>

@@ -3,7 +3,6 @@ import { parseInput } from '#/lib/boundary'
 import {
   bulkChangeInput,
   historyInput,
-  marginInput,
   setPricesInput,
 } from '#/modules/pricing/lib/pricing-inputs'
 
@@ -29,9 +28,6 @@ describe('pricing server inputs', () => {
       }).change,
     ).toEqual({ kind: 'fixed', cents: -50 })
     expect(
-      parseInput(marginInput, { productId: 'p', marginBps: 1200 }).marginBps,
-    ).toBe(1200)
-    expect(
       parseInput(historyInput, { warehouseId: 'w', presentationId: 'a' })
         .presentationId,
     ).toBe('a')
@@ -49,9 +45,6 @@ describe('pricing server inputs', () => {
         warehouseIds: ['w'],
         change: { kind: 'bogus' },
       }),
-    ).toThrow('Revisa los datos')
-    expect(() =>
-      parseInput(marginInput, { productId: 'p', marginBps: '12' }),
     ).toThrow('Revisa los datos')
   })
 })

@@ -9,7 +9,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core'
 import { user } from '#/db/auth-schema'
-import { presentations, products } from '#/modules/catalog/db/schema'
+import { presentations } from '#/modules/catalog/db/schema'
 import { warehouses } from '#/modules/warehouses/db/schema'
 
 export const priceSources = ['manual', 'bulk', 'purchase-suggestion'] as const
@@ -52,16 +52,4 @@ export const presentationPrices = pgTable(
       table.effectiveFrom,
     ),
   ],
-)
-
-/** Target margin per product, in basis points (1200 = 12%); owned by pricing, set by the owner. */
-export const productMargins = pgTable(
-  'product_margins',
-  {
-    productId: uuid('product_id')
-      .primaryKey()
-      .references(() => products.id),
-    marginBps: integer('margin_bps').notNull(),
-  },
-  (table) => [check('product_margins_bps_min', sql`${table.marginBps} >= 0`)],
 )

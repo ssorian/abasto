@@ -6,6 +6,10 @@ import type { Actor } from '#/modules/access/lib/policy'
 import { violatedUniqueIndex } from '#/modules/catalog/db/constraints'
 import { products, suppliers } from '#/modules/catalog/db/schema'
 import {
+  maxTenThousandths,
+  netCostPerPiece,
+} from '#/modules/catalog/lib/supplier-cost'
+import {
   validateSet,
   writeSet,
 } from '#/modules/catalog/services/presentation-rules'
@@ -32,6 +36,12 @@ export type ProductFields = {
   imageUrl?: string | null
   supplierId?: string | null
   published?: boolean
+  /** The supplier's own code for the product. */
+  supplierCode?: string
+  /** Supplier amounts per piece, in ten-thousandths of a peso. */
+  listPricePerPiece?: number
+  fixedDiscountPerPiece?: number
+  promotionPerPiece?: number
 }
 export type ProductInput = ProductFields & PresentationSet
 export type ProductPatch = Partial<ProductFields>
@@ -41,6 +51,33 @@ const required = () =>
     'invalid',
     'Completa nombre, SKU, presentación, unidad y categoría.',
   )
+
+const amountKeys = [
+  'listPricePerPiece',
+  'fixedDiscountPerPiece',
+  'promotionPerPiece',
+] as const
+
+const badAmount = () =>
+  new AppError(
+    'invalid',
+    'Los montos del proveedor deben ser enteros en diezmilésimas, de cero o más.',
+  )
+
+/** The net cost per piece (list − discount − promotion) can never go below zero. */
+function checkNet(amounts: Record<(typeof amountKeys)[number], number>) {
+  const net = netCostPerPiece(
+    amounts.listPricePerPiece,
+    amounts.fixedDiscountPerPiece,
+    amounts.promotionPerPiece,
+  )
+  if (net < 0) {
+    throw new AppError(
+      'invalid',
+      'El descuento y la promoción no pueden superar el precio de lista.',
+    )
+  }
+}
 
 const requiredKeys = ['name', 'sku', 'unit', 'category'] as const
 
@@ -73,6 +110,21 @@ function cleaned(input: ProductPatch): ProductPatch {
     values.imageUrl = cleanedImageUrl(input.imageUrl)
   }
   if (input.supplierId !== undefined) values.supplierId = input.supplierId
+  if (input.supplierCode !== undefined) {
+    values.supplierCode = input.supplierCode.trim()
+  }
+  for (const key of amountKeys) {
+    const amount = input[key]
+    if (amount === undefined) continue
+    if (
+      !Number.isSafeInteger(amount) ||
+      amount < 0 ||
+      amount > maxTenThousandths
+    ) {
+      throw badAmount()
+    }
+    values[key] = amount
+  }
   if (input.published !== undefined) values.published = input.published
   return values
 }
@@ -117,6 +169,11 @@ export async function createProduct(
   try {
     return await db.transaction(async (tx) => {
       await requireSupplier(tx, values.supplierId)
+      checkNet({
+        listPricePerPiece: values.listPricePerPiece ?? 0,
+        fixedDiscountPerPiece: values.fixedDiscountPerPiece ?? 0,
+        promotionPerPiece: values.promotionPerPiece ?? 0,
+      })
       const [created] = await tx.insert(products).values(values).returning()
       await writeSet(tx, created.id, rows, defaultIndex)
       return loadProduct(tx, created.id)
@@ -135,8 +192,16 @@ export async function updateProduct(
   const values = cleaned(patch)
   try {
     return await db.transaction(async (tx) => {
-      await loadProduct(tx, id)
+      const current = await loadProduct(tx, id)
       await requireSupplier(tx, values.supplierId)
+      checkNet({
+        listPricePerPiece:
+          values.listPricePerPiece ?? current.listPricePerPiece,
+        fixedDiscountPerPiece:
+          values.fixedDiscountPerPiece ?? current.fixedDiscountPerPiece,
+        promotionPerPiece:
+          values.promotionPerPiece ?? current.promotionPerPiece,
+      })
       if (Object.keys(values).length) {
         const updated = await tx
           .update(products)

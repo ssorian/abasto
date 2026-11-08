@@ -243,7 +243,8 @@ export const productSeed: Array<SeedProduct> = [
     sku: 'LAL-011',
     name: 'Chocolala 330 ml',
     brand: 'Lala',
-    description: 'Leche sabor chocolate, botella de 330 ml · Caja con 24 piezas',
+    description:
+      'Leche sabor chocolate, botella de 330 ml · Caja con 24 piezas',
     category: 'Lácteos',
     supplier: 'lala',
     imageUrl: `${lalaMedia}/leche/Chocolala.png`,
@@ -352,11 +353,6 @@ export const productSeed: Array<SeedProduct> = [
     shelfLifeDays: 120,
   },
 ]
-
-/** Target margin per category, in basis points (purchase price suggestions). */
-export const marginBps: Record<SeedProduct['category'], number> = {
-  Lácteos: 1200,
-}
 
 /** Boxes received per warehouse and SKU (absent = none). */
 export const stockSeed: Record<

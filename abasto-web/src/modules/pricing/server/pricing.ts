@@ -5,15 +5,10 @@ import { can } from '#/modules/access/lib/policy'
 import {
   bulkChangeInput,
   historyInput,
-  marginInput,
   pricingOverviewInput,
   setPricesInput,
 } from '#/modules/pricing/lib/pricing-inputs'
 import { bulkChangePrices } from '#/modules/pricing/services/bulk-prices'
-import {
-  getProductMargin,
-  setProductMargin,
-} from '#/modules/pricing/services/margins'
 import {
   getPriceHistory,
   listWarehousePrices,
@@ -35,20 +30,7 @@ export const pricingOverviewFn = createServerFn({ method: 'GET' })
       const selected =
         warehouses.find(({ id }) => id === warehouseId) ?? warehouses.at(0)
       const rows = selected ? await listWarehousePrices(actor, selected.id) : []
-      // Target margins are owner-only (`catalog.manage`).
-      const productIds = [...new Set(rows.map((row) => row.productId))]
-      const margins =
-        actor.role === 'owner'
-          ? Object.fromEntries(
-              await Promise.all(
-                productIds.map(
-                  async (id) =>
-                    [id, await getProductMargin(actor, id)] as const,
-                ),
-              ),
-            )
-          : null
-      return { warehouses, selectedId: selected?.id ?? null, rows, margins }
+      return { warehouses, selectedId: selected?.id ?? null, rows }
     }),
   )
 
@@ -63,14 +45,6 @@ export const bulkChangePricesFn = createServerFn({ method: 'POST' })
   .handler(({ data }) =>
     runWithActor((actor) =>
       bulkChangePrices(actor, parseInput(bulkChangeInput, data)),
-    ),
-  )
-
-export const setMarginFn = createServerFn({ method: 'POST' })
-  .validator((data: unknown) => data)
-  .handler(({ data }) =>
-    runWithActor((actor) =>
-      setProductMargin(actor, parseInput(marginInput, data)),
     ),
   )
 

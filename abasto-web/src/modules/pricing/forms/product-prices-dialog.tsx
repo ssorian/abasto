@@ -6,7 +6,6 @@ import type { StatusTone } from '#/components/status-badge'
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
 import { CatalogModal } from '#/modules/catalog/components/catalog-modal'
 import { TextInput } from '#/modules/catalog/forms/form-field'
-import { MarginCell } from '#/modules/pricing/components/margin-cell'
 import { formatCents } from '#/modules/pricing/lib/money'
 import { originLabels, pendingPrices } from '#/modules/pricing/lib/price-table'
 import type {
@@ -25,12 +24,9 @@ type ProductPricesDialogProps = {
   warehouseName: string
   /** Manager of this warehouse or owner; everyone else only reads. */
   canEdit: boolean
-  /** Null hides the target margin (owner only). */
-  marginBps: number | null
   onSavePrices: (
     prices: Array<{ presentationId: string; priceCents: number }>,
   ) => Promise<boolean>
-  onSaveMargin: (marginBps: number) => Promise<boolean>
   onHistory: (row: PriceTableRow) => void
   onClose: () => void
 }
@@ -40,9 +36,7 @@ export function ProductPricesDialog({
   group,
   warehouseName,
   canEdit,
-  marginBps,
   onSavePrices,
-  onSaveMargin,
   onHistory,
   onClose,
 }: ProductPricesDialogProps) {
@@ -134,21 +128,6 @@ export function ProductPricesDialog({
           </li>
         ))}
       </ul>
-      {marginBps !== null && (
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[#513f45]">
-          <span>
-            Margen objetivo
-            <span className="block text-xs text-[#a29096]">
-              Referencia de margen para el precio estándar.
-            </span>
-          </span>
-          <MarginCell
-            key={marginBps}
-            marginBps={marginBps}
-            onSave={onSaveMargin}
-          />
-        </div>
-      )}
       <div className="flex justify-end gap-2.5">
         <CatalogButton onClick={onClose}>
           {canEdit ? 'Cancelar' : 'Cerrar'}

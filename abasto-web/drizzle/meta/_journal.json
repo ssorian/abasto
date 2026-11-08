@@ -113,6 +113,20 @@
       "when": 1794101948307,
       "tag": "0015_lot_sale_price",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794106595895,
+      "tag": "0016_drop_product_margins",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794106600045,
+      "tag": "0017_product_supplier_cost",
+      "breakpoints": true
     }
   ]
 }

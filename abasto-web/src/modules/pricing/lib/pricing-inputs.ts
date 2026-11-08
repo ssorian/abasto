@@ -23,6 +23,4 @@ export const bulkChangeInput = z.object({
   reason: z.string().optional(),
 })
 
-export const marginInput = z.object({ productId: id, marginBps: cents })
-
 export const historyInput = z.object({ warehouseId: id, presentationId: id })

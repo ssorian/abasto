@@ -188,15 +188,7 @@ export function CatalogPage({
           group={openPrices}
           warehouseName={warehouse.name}
           canEdit={warehouse.canManage}
-          marginBps={
-            pricing.margins
-              ? (pricing.margins[openPrices.productId] ?? 0)
-              : null
-          }
           onSavePrices={pricingActions.savePrices}
-          onSaveMargin={(bps) =>
-            pricingActions.saveMargin(openPrices.productId, bps)
-          }
           onHistory={(row) => {
             setPricesId(undefined)
             setHistory({

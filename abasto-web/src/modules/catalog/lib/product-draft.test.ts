@@ -5,6 +5,8 @@ import {
   emptyProductDraft,
   productInputFromDraft,
   productPatchFromDraft,
+  draftNetPerPiece,
+  supplierCostErrors,
 } from '#/modules/catalog/lib/product-draft'
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
 
@@ -18,6 +20,10 @@ const stored: CatalogProduct = {
   category: 'Lácteos',
   unit: 'piezas',
   supplierId: 's1',
+  supplierCode: 'ORA-77',
+  listPricePerPiece: 12055,
+  fixedDiscountPerPiece: 1000,
+  promotionPerPiece: 500,
   published: false,
   createdAt: new Date(0),
   presentations: [],
@@ -63,6 +69,10 @@ describe('product draft ↔ service input', () => {
       category: 'Lácteos',
       supplierId: 's1',
       published: false,
+      supplierCode: 'ORA-77',
+      listPricePerPiece: 12055,
+      fixedDiscountPerPiece: 1000,
+      promotionPerPiece: 500,
     })
   })
 
@@ -90,5 +100,69 @@ describe('product draft ↔ service input', () => {
       productPatchFromDraft({ ...draftFromProduct(stored), supplierId: '' })
         .supplierId,
     ).toBeNull()
+  })
+
+  test('supplier cost shows as 4-decimal pesos and saves as ten-thousandths', () => {
+    const draft = draftFromProduct(stored)
+    expect(draft).toMatchObject({
+      supplierCode: 'ORA-77',
+      listPrice: '1.2055',
+      fixedDiscount: '0.1000',
+      promotion: '0.0500',
+    })
+    expect(
+      productInputFromDraft({
+        ...draft,
+        supplierCode: 'X1',
+        listPrice: '0.0840',
+        fixedDiscount: '',
+        promotion: '0.01',
+      }),
+    ).toMatchObject({
+      supplierCode: 'X1',
+      listPricePerPiece: 840,
+      fixedDiscountPerPiece: 0,
+      promotionPerPiece: 100,
+    })
+  })
+
+  test('a new draft has no supplier cost', () => {
+    expect(emptyProductDraft()).toMatchObject({
+      supplierCode: '',
+      listPrice: '',
+      fixedDiscount: '',
+      promotion: '',
+    })
+  })
+})
+
+describe('supplier cost validation', () => {
+  const draft = { ...emptyProductDraft(), listPrice: '1.0000' }
+
+  test('a valid draft has no errors and a net cost', () => {
+    expect(supplierCostErrors(draft)).toEqual({})
+    expect(
+      draftNetPerPiece({ ...draft, fixedDiscount: '0.2', promotion: '0.1' }),
+    ).toBe(7000)
+  })
+
+  test('reports the field that cannot be parsed', () => {
+    expect(supplierCostErrors({ ...draft, fixedDiscount: '0.12345' })).toEqual({
+      fixedDiscount: 'Usa máximo 4 decimales.',
+    })
+    expect(supplierCostErrors({ ...draft, promotion: '-1' })).toEqual({
+      promotion: 'El monto no puede ser negativo.',
+    })
+  })
+
+  test('reports a net cost below zero on the discount fields', () => {
+    expect(
+      supplierCostErrors({ ...draft, fixedDiscount: '0.8', promotion: '0.3' }),
+    ).toEqual({
+      net: 'El descuento y la promoción no pueden superar el precio de lista.',
+    })
+    expect(
+      supplierCostErrors({ ...draft, fixedDiscount: '0.7', promotion: '0.3' }),
+    ).toEqual({})
   })
 })

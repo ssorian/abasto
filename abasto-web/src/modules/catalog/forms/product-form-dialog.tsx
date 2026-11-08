@@ -10,8 +10,15 @@ import {
 import { baseUnits, categories } from '#/modules/catalog/lib/catalog-types'
 import {
   draftFromProduct,
+  draftNetPerPiece,
   emptyProductDraft,
+  supplierCostErrors,
 } from '#/modules/catalog/lib/product-draft'
+import {
+  formatTenThousandths,
+  netCostPerBoxCents,
+} from '#/modules/catalog/lib/supplier-cost'
+import { formatCents } from '#/modules/pricing/lib/money'
 
 import type {
   CatalogProduct,
@@ -38,6 +45,12 @@ export function ProductFormDialog({
     product ? draftFromProduct(product) : emptyProductDraft(),
   )
   const [saving, setSaving] = useState(false)
+  const [showErrors, setShowErrors] = useState(false)
+  const costErrors = supplierCostErrors(draft)
+  const costFailed = Object.keys(costErrors).length > 0
+  const netPerPiece = draftNetPerPiece(draft)
+  const boxFactor =
+    product?.presentations.find((row) => row.isDefault)?.factor ?? 1
   const patch = (change: Partial<ProductDraft>) =>
     setDraft((current) => ({ ...current, ...change }))
   // An inactive supplier stays selectable only while the product still uses it.
@@ -46,6 +59,7 @@ export function ProductFormDialog({
   )
 
   async function save() {
+    if (costFailed) return setShowErrors(true)
     setSaving(true)
     const saved = await onSubmit(draft)
     setSaving(false)
@@ -57,6 +71,18 @@ export function ProductFormDialog({
     ['brand', 'Marca'],
     ['sku', 'SKU'],
     ...(product ? [] : ([['barcode', 'Código de barras']] as const)),
+  ]
+
+  const costFields: Array<
+    readonly [
+      'supplierCode' | 'listPrice' | 'fixedDiscount' | 'promotion',
+      string,
+    ]
+  > = [
+    ['supplierCode', 'Clave del proveedor'],
+    ['listPrice', 'Precio de lista por pieza'],
+    ['fixedDiscount', 'Descuento fijo por pieza'],
+    ['promotion', 'Promoción por pieza'],
   ]
 
   return (
@@ -148,6 +174,51 @@ export function ProductFormDialog({
           </SelectInput>
         </Field>
       </div>
+      <fieldset className="grid grid-cols-1 gap-[15px] md:grid-cols-2">
+        <legend className="mb-[10px] text-[13px] font-semibold text-[#513f45]">
+          Costo del proveedor
+        </legend>
+        {costFields.map(([key, label]) => (
+          <Field key={key} label={label}>
+            <TextInput
+              aria-label={label}
+              inputMode={key === 'supplierCode' ? 'text' : 'decimal'}
+              value={draft[key]}
+              placeholder={key === 'supplierCode' ? '' : '0.0000'}
+              aria-invalid={
+                showErrors && Boolean(costErrors[key as 'listPrice'])
+              }
+              onChange={(event) => patch({ [key]: event.target.value })}
+            />
+            {showErrors && key !== 'supplierCode' && costErrors[key] && (
+              <span className="text-xs text-[#b42318]">{costErrors[key]}</span>
+            )}
+          </Field>
+        ))}
+        {showErrors && costErrors.net && (
+          <span className="text-xs text-[#b42318] md:col-span-2">
+            {costErrors.net}
+          </span>
+        )}
+        <Field label="Costo neto por pieza">
+          <TextInput
+            aria-label="Costo neto por pieza"
+            readOnly
+            value={costFailed ? '—' : formatTenThousandths(netPerPiece)}
+          />
+        </Field>
+        <Field label="Costo neto por caja">
+          <TextInput
+            aria-label="Costo neto por caja"
+            readOnly
+            value={
+              costFailed
+                ? '—'
+                : formatCents(netCostPerBoxCents(netPerPiece, boxFactor))
+            }
+          />
+        </Field>
+      </fieldset>
       <div className="mt-[5px] flex items-center justify-between gap-3 border-t border-[#f4eee8] pt-5">
         <CatalogButton onClick={onClose}>Cancelar</CatalogButton>
         <CatalogButton

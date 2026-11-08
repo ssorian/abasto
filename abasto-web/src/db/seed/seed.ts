@@ -45,7 +45,6 @@ import {
 import type { PickupPayment } from '#/modules/orders/services/pickup-gate'
 import { createOrder } from '#/modules/orders/services/orders'
 import { setReservationHours } from '#/modules/orders/services/reservation-settings'
-import { setProductMargin } from '#/modules/pricing/services/margins'
 import { setPrices } from '#/modules/pricing/services/prices'
 import { dispatchTransfer } from '#/modules/transfers/services/transfer-dispatch'
 import { getTransfer } from '#/modules/transfers/services/transfer-reads'
@@ -54,7 +53,6 @@ import { warehouses } from '#/modules/warehouses/db/schema'
 import { createWarehouse } from '#/modules/warehouses/services/warehouses'
 import {
   customerSeed,
-  marginBps,
   minimumSeed,
   ownerSeed,
   productSeed,
@@ -211,15 +209,13 @@ export async function seedDatabase({
       imageUrl: seed.imageUrl,
       unit: 'piezas',
       supplierId: supplierId[seed.supplier],
+      // Supplier list price per piece (ten-thousandths of a peso) from the box cost.
+      listPricePerPiece: Math.round((seed.boxCostCents * 100) / seed.boxFactor),
       presentations: [
         { name: 'Pieza', factor: 1 },
         { name: seed.boxName, factor: seed.boxFactor },
       ],
       defaultIndex: 1,
-    })
-    await setProductMargin(owner, {
-      productId: product.id,
-      marginBps: marginBps[seed.category],
     })
     catalog.set(seed.sku, { seed, product })
   }

@@ -59,6 +59,10 @@ describe('CSV row → createProduct input', () => {
         category: 'Bebidas',
         unit: 'cajas',
         supplierId: null,
+        supplierCode: '',
+        listPricePerPiece: 0,
+        fixedDiscountPerPiece: 0,
+        promotionPerPiece: 0,
         published: true,
         createdAt: new Date(0),
         presentations: [

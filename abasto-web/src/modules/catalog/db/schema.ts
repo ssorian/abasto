@@ -40,10 +40,24 @@ export const products = pgTable(
     /** Name of the base unit; quantities are stored in this unit. */
     unit: text('unit').notNull(),
     supplierId: uuid('supplier_id').references(() => suppliers.id),
+    /** The supplier's own code for this product. */
+    supplierCode: text('supplier_code').notNull().default(''),
+    /** Supplier amounts per piece, in ten-thousandths of a peso (1.2055 → 12055). */
+    listPricePerPiece: integer('list_price_per_piece').notNull().default(0),
+    fixedDiscountPerPiece: integer('fixed_discount_per_piece')
+      .notNull()
+      .default(0),
+    promotionPerPiece: integer('promotion_per_piece').notNull().default(0),
     published: boolean('published').notNull().default(true),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  (table) => [uniqueIndex('products_sku_unique').on(sql`lower(${table.sku})`)],
+  (table) => [
+    uniqueIndex('products_sku_unique').on(sql`lower(${table.sku})`),
+    check(
+      'products_supplier_amounts_min',
+      sql`${table.listPricePerPiece} >= 0 and ${table.fixedDiscountPerPiece} >= 0 and ${table.promotionPerPiece} >= 0`,
+    ),
+  ],
 )
 
 export const presentations = pgTable(

@@ -8,8 +8,6 @@ export type PricingOverview = {
   warehouses: Array<{ id: string; name: string; canManage: boolean }>
   selectedId: string | null
   rows: Array<PriceRow>
-  /** Target margins per product; null for everyone but the owner. */
-  margins: Record<string, number> | null
 }
 
 export const originLabels = {
