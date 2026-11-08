@@ -4,16 +4,17 @@ import {
   useNavigate,
   useRouter,
 } from '@tanstack/react-router'
-import { ShoppingBasketIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { Button } from '#/components/ui/button'
 import { authClient } from '#/lib/auth-client'
-import { workspace } from '#/config/workspace'
 import type { SessionUser } from '#/modules/access/lib/session-user'
 import { CartSheet } from '#/modules/store/components/cart-sheet'
+import { PickListBar } from '#/modules/store/components/pick-list-bar'
+import { PickListPanel } from '#/modules/store/components/pick-list-panel'
 import { useStoreCart } from '#/modules/store/hooks/use-store-cart'
+import { listTotal, resolveCartLines } from '#/modules/store/lib/pick-list'
+import { storeConfig } from '#/modules/store/lib/store-config'
 import type {
   StoreProduct,
   StoreWarehouse,
@@ -27,10 +28,9 @@ type StoreShellProps = {
 }
 
 const navLink =
-  'inline-flex min-h-11 items-center border-b-2 border-transparent px-1 text-sm font-semibold text-ink-muted transition-colors hover:text-ink-heading'
-const navActive = { className: 'border-primary text-ink-heading' }
+  'rb-stencil inline-flex min-h-11 items-center border-b-4 border-transparent px-1 text-[16px] text-rb-label/85 hover:text-rb-label aria-[current=page]:border-rb-signal aria-[current=page]:text-rb-label'
 
-/** Header, cart and footer shared by every `/tienda` page. */
+/** Graphite bar, page, pick list and footer shared by every `/tienda` page. */
 export function StoreShell({
   user,
   warehouse,
@@ -44,6 +44,16 @@ export function StoreShell({
   const [cartOpen, setCartOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
 
+  const { resolved } = useMemo(
+    () => resolveCartLines(catalog, cart.lines),
+    [catalog, cart.lines],
+  )
+  const totalCents = listTotal(resolved)
+  const isCatalog = location.pathname === '/tienda'
+  const isLogin = location.pathname === '/tienda/entrar'
+  const showBar =
+    warehouse !== null && !isLogin && (isCatalog || cart.count > 0)
+
   const signOut = async () => {
     setSigningOut(true)
     try {
@@ -56,111 +66,123 @@ export function StoreShell({
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="store flex min-h-dvh flex-col bg-rb-ground">
       <a
         href="#contenido"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-3 focus:font-semibold"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-rb-signal focus:px-4 focus:py-3 focus:font-semibold focus:text-rb-graphite"
       >
         Saltar al contenido
       </a>
-      <header className="sticky top-0 z-30 border-b border-topbar-border bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 px-4 pt-3">
+      <header className="rb-dark z-30 bg-rb-graphite text-rb-label lg:sticky lg:top-0">
+        <div className="mx-auto flex max-w-[1360px] flex-wrap items-center gap-x-6 px-4 lg:min-h-14 lg:flex-nowrap">
           <Link
             to="/tienda"
             search={(prev) => ({ almacen: prev.almacen })}
-            className="min-w-0 py-1"
+            className="flex min-h-12 min-w-0 flex-1 items-center gap-2.5 lg:flex-none"
           >
-            <span className="block text-[11px] font-bold tracking-[1.5px] text-ink-eyebrow">
-              TIENDA
-            </span>
-            <span className="block truncate text-lg leading-tight font-bold tracking-tight text-ink-heading">
-              {workspace.business.name}
+            <span
+              aria-hidden
+              className="block size-3.5 shrink-0 bg-rb-signal"
+            />
+            <span className="rb-stencil truncate text-[17px] leading-none sm:text-[19px]">
+              {storeConfig.name}
             </span>
           </Link>
-          <div className="flex items-center gap-2">
+          <nav
+            aria-label="Tienda"
+            className="order-last flex w-full gap-5 lg:order-none lg:w-auto"
+          >
+            <Link
+              to="/tienda"
+              search={(prev) => ({ almacen: prev.almacen })}
+              activeOptions={{ exact: true }}
+              className={navLink}
+            >
+              Catálogo
+            </Link>
+            <Link
+              to="/tienda/pedidos"
+              search={(prev) => ({ almacen: prev.almacen })}
+              className={navLink}
+            >
+              Mis pedidos
+            </Link>
+          </nav>
+          <div className="flex items-center gap-1 lg:ml-auto">
             {user ? (
-              <div className="flex items-center gap-1">
-                <span className="max-w-[9rem] truncate text-sm font-semibold text-ink-row">
+              <>
+                <span className="hidden max-w-[12rem] truncate text-sm font-semibold sm:inline">
                   {user.name}
                 </span>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  className="h-11 rounded-xl px-3 text-ink-link"
+                  className="rb-btn rb-btn--quiet min-h-11 px-3 text-[16px]"
                   disabled={signingOut}
                   onClick={() => void signOut()}
                 >
                   Salir
-                </Button>
-              </div>
+                </button>
+              </>
             ) : (
-              <Button
-                asChild
-                variant="ghost"
-                className="h-11 rounded-xl px-3 font-semibold text-ink-link"
+              <Link
+                to="/tienda/entrar"
+                search={{ redirect: location.href }}
+                className="rb-btn rb-btn--quiet min-h-11 px-3 text-[16px]"
               >
-                <Link to="/tienda/entrar" search={{ redirect: location.href }}>
-                  Iniciar sesión
-                </Link>
-              </Button>
+                <span className="sm:hidden">Entrar</span>
+                <span className="hidden sm:inline">Iniciar sesión</span>
+              </Link>
             )}
-            {warehouse ? (
-              <Button
-                type="button"
-                onClick={() => setCartOpen(true)}
-                className="relative h-11 rounded-xl bg-primary px-3.5 font-semibold text-brand-ink hover:bg-brand-hover"
-                aria-label={`Carrito, ${cart.count} ${cart.count === 1 ? 'unidad' : 'unidades'}`}
-              >
-                <ShoppingBasketIcon aria-hidden />
-                <span className="tabular-nums" aria-hidden>
-                  {cart.count}
-                </span>
-              </Button>
-            ) : null}
           </div>
         </div>
-        <nav aria-label="Tienda" className="mx-auto flex max-w-6xl gap-5 px-4">
-          <Link
-            to="/tienda"
-            search={(prev) => ({ almacen: prev.almacen })}
-            activeOptions={{ exact: true }}
-            activeProps={navActive}
-            className={navLink}
-          >
-            Catálogo
-          </Link>
-          <Link
-            to="/tienda/pedidos"
-            search={(prev) => ({ almacen: prev.almacen })}
-            activeProps={navActive}
-            className={navLink}
-          >
-            Mis pedidos
-          </Link>
-        </nav>
       </header>
 
-      <main
-        id="contenido"
-        className="mx-auto w-full max-w-6xl flex-1 px-4 py-6"
+      <div
+        className={
+          isCatalog && warehouse
+            ? 'mx-auto grid w-full max-w-[1360px] flex-1 grid-cols-[minmax(0,1fr)] content-start gap-6 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_352px] lg:py-6'
+            : 'mx-auto w-full max-w-[1360px] flex-1 px-4 py-4 lg:py-6'
+        }
       >
-        {children}
-      </main>
+        <main id="contenido" className="min-w-0">
+          {children}
+        </main>
+        {isCatalog && warehouse ? (
+          <PickListPanel
+            warehouseName={warehouse.name}
+            lines={resolved}
+            totalCents={totalCents}
+            onSet={cart.setQuantity}
+            onReview={() => setCartOpen(true)}
+          />
+        ) : null}
+      </div>
 
-      <footer className="border-t border-footer-border px-4 py-6 text-center text-[13px] text-ink-muted">
-        {workspace.business.name} · {workspace.business.location}. Los pedidos
-        son apartados: se recogen y se pagan en el almacén.
+      <footer
+        className={`border-t-2 border-rb-graphite px-4 py-6 text-center text-[14px] text-rb-muted ${showBar ? 'pb-28 lg:pb-6' : ''}`}
+      >
+        {storeConfig.name} · {storeConfig.location}. Los pedidos son apartados:
+        se recogen y se pagan en el almacén.
       </footer>
 
       {warehouse ? (
-        <CartSheet
-          open={cartOpen}
-          onOpenChange={setCartOpen}
-          warehouse={warehouse}
-          catalog={catalog}
-          cart={cart}
-          signedIn={user !== null}
-        />
+        <>
+          {showBar ? (
+            <PickListBar
+              units={cart.count}
+              totalCents={totalCents}
+              onReview={() => setCartOpen(true)}
+            />
+          ) : null}
+          <CartSheet
+            open={cartOpen}
+            onOpenChange={setCartOpen}
+            warehouse={warehouse}
+            catalog={catalog}
+            cart={cart}
+            signedIn={user !== null}
+          />
+        </>
       ) : null}
     </div>
   )

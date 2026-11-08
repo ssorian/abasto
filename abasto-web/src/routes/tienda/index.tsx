@@ -7,40 +7,49 @@ import {
 import { CatalogPage } from '#/modules/store/components/catalog-page'
 import { WarehousePicker } from '#/modules/store/components/warehouse-picker'
 import { useStoreCart } from '#/modules/store/hooks/use-store-cart'
+import { quantityIn } from '#/modules/store/lib/pick-list'
 
 const parent = getRouteApi('/tienda')
 
 export const Route = createFileRoute('/tienda/')({
   validateSearch: (
     search: Record<string, unknown>,
-  ): { q?: string; categoria?: string } => ({
+  ): { q?: string; marca?: string; categoria?: string } => ({
     ...(typeof search.q === 'string' && search.q ? { q: search.q } : {}),
+    ...(typeof search.marca === 'string' && search.marca
+      ? { marca: search.marca }
+      : {}),
     ...(typeof search.categoria === 'string' && search.categoria
       ? { categoria: search.categoria }
       : {}),
   }),
   component: function StoreCatalog() {
     const { warehouses, warehouse, catalog } = parent.useLoaderData()
-    const { q, categoria } = Route.useSearch()
+    const { q, marca, categoria } = Route.useSearch()
     const navigate = useNavigate({ from: '/tienda/' })
     const cart = useStoreCart(warehouse?.id ?? '')
 
     if (!warehouse) {
       return (
-        <p className="rounded-2xl border border-dashed border-input bg-white/60 p-8 text-center font-semibold text-ink-figure">
-          La tienda aún no tiene almacenes disponibles.
+        <p className="rb-stencil border-2 border-dashed border-rb-graphite-soft bg-rb-label p-8 text-center text-xl">
+          La tienda aún no tiene almacenes disponibles
         </p>
       )
     }
     return (
-      <div className="grid gap-5">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
         <h1 className="sr-only">Catálogo</h1>
         <WarehousePicker
           warehouses={warehouses}
           value={warehouse.id}
           onChange={(almacen) =>
             void navigate({
-              search: { almacen, q: undefined, categoria: undefined },
+              search: {
+                almacen,
+                q: undefined,
+                marca: undefined,
+                categoria: undefined,
+              },
             })
           }
         />
@@ -48,10 +57,18 @@ export const Route = createFileRoute('/tienda/')({
           catalog={catalog}
           warehouseName={warehouse.name}
           query={q ?? ''}
+          brand={marca}
           category={categoria}
+          lines={cart.lines}
           onQueryChange={(value) =>
             void navigate({
               search: (prev) => ({ ...prev, q: value || undefined }),
+              replace: true,
+            })
+          }
+          onBrandChange={(value) =>
+            void navigate({
+              search: (prev) => ({ ...prev, marca: value }),
               replace: true,
             })
           }
@@ -61,7 +78,11 @@ export const Route = createFileRoute('/tienda/')({
               replace: true,
             })
           }
-          onAdd={cart.add}
+          onSet={(presentationId, quantity) =>
+            quantityIn(cart.lines, presentationId) === 0
+              ? cart.add(presentationId, quantity)
+              : cart.setQuantity(presentationId, quantity)
+          }
         />
       </div>
     )

@@ -1,0 +1,635 @@
+/*
+ * Customer store layer: "Rack-Bay Labels".
+ * Everything element-level is scoped to `.store` (the shell, the cart sheet and
+ * the dialogs of /tienda carry the class); the staff console never sees it.
+ * Tokens live in @theme so Tailwind utilities (bg-rb-label…) can use them in
+ * portals too; they only add names, they change no existing utility.
+ */
+@theme {
+  --color-rb-ground: #e9e6df; /* concrete floor */
+  --color-rb-ground-deep: #dad6cb;
+  --color-rb-label: #fbfaf6; /* label stock */
+  --color-rb-graphite: #22252b; /* pressed steel */
+  --color-rb-graphite-soft: #3a3e46;
+  --color-rb-muted: #5a5d65; /* 5.3:1 on ground */
+  --color-rb-signal: #f4c20d; /* the one voice */
+  --color-rb-beam: #e8531d; /* rack beam, large marks only */
+  --color-rb-beam-text: #b23a0c; /* beam as text on label stock */
+  --color-rb-cobalt: #1f4aa8; /* upright */
+  --color-rb-cobalt-deep: #173a86;
+  --color-rb-rule: #b9b4a6;
+
+  --font-rb-stencil:
+    'Arial Narrow', 'Nimbus Sans Narrow', 'Roboto Condensed',
+    'Liberation Sans Narrow', 'Avenir Next Condensed', 'sans-serif-condensed',
+    'Helvetica Neue', Arial, sans-serif;
+  --font-rb-body:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+}
+
+body:has(.store) {
+  background: var(--color-rb-ground);
+}
+
+.store {
+  --rb-focus: var(--color-rb-cobalt);
+  --rb-cell: 8px;
+  font-family: var(--font-rb-body);
+  color: var(--color-rb-graphite);
+  caret-color: var(--color-rb-cobalt);
+  accent-color: var(--color-rb-graphite);
+  scrollbar-color: var(--color-rb-graphite-soft) transparent;
+  scrollbar-width: thin;
+}
+
+.store ::selection {
+  background: var(--color-rb-signal);
+  color: var(--color-rb-graphite);
+}
+
+.store :is(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--rb-focus);
+  outline-offset: 2px;
+  border-radius: 0;
+}
+
+.store .rb-dark {
+  --rb-focus: var(--color-rb-signal);
+}
+
+.store ::placeholder {
+  color: #6b6e75;
+  opacity: 1;
+}
+
+/* Stencilled alphanumerics: condensed caps with open tracking. */
+.rb-stencil {
+  font-family: var(--font-rb-stencil);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rb-num {
+  font-family: var(--font-rb-stencil);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0.01em;
+}
+
+/* Component classes sit in the components layer so Tailwind utilities can override them. */
+@layer components {
+  /* ---- Plates ------------------------------------------------------------ */
+
+  .rb-plate {
+    background: var(--color-rb-signal);
+    color: var(--color-rb-graphite);
+    border: 2px solid var(--color-rb-graphite);
+  }
+
+  .rb-panel {
+    background: var(--color-rb-label);
+    border: 2px solid var(--color-rb-graphite);
+  }
+
+  .rb-rule {
+    border-color: var(--color-rb-rule);
+  }
+
+  /* ---- Buttons: pressed steel and signal plates -------------------------- */
+
+  .rb-btn {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 18px;
+    border: 2px solid var(--color-rb-graphite);
+    border-radius: 2px;
+    background: var(--color-rb-signal);
+    color: var(--color-rb-graphite);
+    font-family: var(--font-rb-stencil);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background-color 120ms steps(2);
+  }
+
+  .rb-btn:hover:not(:disabled) {
+    background: #ffd23a;
+  }
+
+  .rb-btn:active:not(:disabled) {
+    background: var(--color-rb-graphite);
+    color: var(--color-rb-signal);
+  }
+
+  .rb-btn:disabled {
+    border-color: var(--color-rb-rule);
+    background: var(--color-rb-ground-deep);
+    color: #6b6e75;
+    cursor: not-allowed;
+  }
+
+  .rb-btn--quiet {
+    background: transparent;
+    border-color: transparent;
+    color: var(--color-rb-graphite);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--color-rb-signal);
+    letter-spacing: 0.03em;
+  }
+
+  .rb-btn--quiet:hover:not(:disabled) {
+    background: var(--color-rb-ground-deep);
+  }
+
+  .rb-btn--outline {
+    background: var(--color-rb-label);
+  }
+
+  .rb-btn--outline:hover:not(:disabled) {
+    background: var(--color-rb-ground-deep);
+  }
+
+  .rb-btn--danger {
+    background: var(--color-rb-label);
+    border-color: var(--color-rb-beam-text);
+    color: var(--color-rb-beam-text);
+  }
+
+  .rb-btn--danger:hover:not(:disabled) {
+    background: #f6e3da;
+  }
+
+  /* On the graphite bar, the same button inverts. */
+  .rb-dark .rb-btn--quiet {
+    color: var(--color-rb-label);
+  }
+
+  .rb-dark .rb-btn--quiet:hover:not(:disabled) {
+    background: var(--color-rb-graphite-soft);
+  }
+
+  /* ---- Inputs ------------------------------------------------------------ */
+
+  .rb-field {
+    width: 100%;
+    min-height: 48px;
+    border: 2px solid var(--color-rb-graphite);
+    border-radius: 2px;
+    background: #fff;
+    color: var(--color-rb-graphite);
+    padding: 0 12px;
+    font-size: 16px;
+  }
+
+  textarea.rb-field {
+    padding: 10px 12px;
+  }
+
+  .rb-label {
+    font-family: var(--font-rb-stencil);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ---- Availability tags: the word is always printed --------------------- */
+
+  .rb-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 7px;
+    font-family: var(--font-rb-stencil);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .rb-tag--ok {
+    background: var(--color-rb-graphite);
+    color: var(--color-rb-label);
+  }
+
+  /* Hazard hatching appears here and nowhere else. */
+  .rb-tag--low {
+    padding: 3px;
+    height: 22px;
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--color-rb-signal) 0 5px,
+      var(--color-rb-graphite) 5px 10px
+    );
+  }
+
+  .rb-tag--low > span {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 5px;
+    background: var(--color-rb-label);
+    color: var(--color-rb-graphite);
+  }
+
+  .rb-tag--out {
+    border: 1.5px dashed var(--color-rb-muted);
+    color: var(--color-rb-muted);
+  }
+
+  /* ---- Product mat -------------------------------------------------------- */
+
+  .rb-mat {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    flex: none;
+    overflow: hidden;
+    background: #fff;
+    border: 2px solid var(--color-rb-graphite);
+  }
+
+  .rb-mat img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 3px;
+  }
+
+  .rb-mat--empty {
+    background: var(--color-rb-ground-deep);
+    color: var(--color-rb-graphite-soft);
+    font-family: var(--font-rb-stencil);
+    font-size: 26px;
+    font-weight: 700;
+    border-style: dashed;
+  }
+
+  /* ---- Pick-face stepper: quantity as a growing bar of cells -------------- */
+
+  .rb-stepper {
+    display: inline-grid;
+    grid-template-columns: 44px 48px 44px;
+    border: 2px solid var(--color-rb-graphite);
+    border-radius: 2px;
+    background: #fff;
+  }
+
+  .rb-stepper button {
+    display: grid;
+    place-items: center;
+    height: 44px;
+    background: transparent;
+    color: var(--color-rb-graphite);
+    transition: background-color 120ms steps(2);
+  }
+
+  .rb-stepper button:hover:not(:disabled) {
+    background: var(--color-rb-signal);
+  }
+
+  .rb-stepper button:disabled {
+    color: #9a9a96;
+  }
+
+  .rb-stepper input {
+    height: 44px;
+    min-width: 0;
+    border: 0;
+    border-inline: 2px solid var(--color-rb-graphite);
+    background: transparent;
+    text-align: center;
+    font-family: var(--font-rb-stencil);
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rb-stepper--set input {
+    background: var(--color-rb-signal);
+  }
+
+  .rb-cells {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 2px;
+    height: 6px;
+    margin-top: 4px;
+  }
+
+  .rb-cells > i {
+    display: block;
+    background: transparent;
+    border: 1px solid var(--color-rb-rule);
+    transition: background-color 120ms steps(2);
+  }
+
+  .rb-cells > i[data-on] {
+    background: var(--color-rb-graphite);
+    border-color: var(--color-rb-graphite);
+  }
+
+  .rb-cells[data-over] > i:last-child {
+    background: var(--color-rb-signal);
+    border-color: var(--color-rb-graphite);
+  }
+
+  /* Add: the collapsed stepper while the line is at zero. */
+  .rb-add {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 2px solid var(--color-rb-graphite);
+    border-radius: 2px;
+    background: var(--color-rb-signal);
+    color: var(--color-rb-graphite);
+    transition: background-color 120ms steps(2);
+  }
+
+  .rb-add:hover {
+    background: #ffd23a;
+  }
+
+  .rb-add:active {
+    background: var(--color-rb-graphite);
+    color: var(--color-rb-signal);
+  }
+
+  /* ---- Brand tabs: length is proportional to the product count ------------ */
+
+  .rb-tab {
+    position: relative;
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 12px 10px;
+    border: 0;
+    background: transparent;
+    color: var(--color-rb-graphite);
+    font-family: var(--font-rb-stencil);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  /* Extent: a track inset from the tab edge, filled to the brand's share of the catalog. */
+  .rb-tab::before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 6px;
+    height: 4px;
+    background: rgb(34 37 43 / 0.18);
+  }
+
+  .rb-tab > .rb-extent {
+    position: absolute;
+    left: 12px;
+    bottom: 6px;
+    height: 4px;
+    background: var(--color-rb-graphite);
+    width: max(4px, calc((100% - 24px) * var(--extent, 1)));
+  }
+
+  .rb-tab[aria-pressed='true'] {
+    background: var(--color-rb-signal);
+  }
+
+  .rb-tab[aria-pressed='true'] > .rb-extent {
+    background: var(--color-rb-beam);
+  }
+
+  .rb-tab:hover:not([aria-pressed='true']) {
+    background: var(--color-rb-ground-deep);
+  }
+
+  .rb-tab:focus-visible {
+    outline-offset: -4px;
+  }
+
+  .rb-tab .rb-count {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.75;
+  }
+
+  .rb-rail {
+    background: var(--color-rb-cobalt);
+  }
+
+  .rb-rail .rb-tab {
+    color: var(--color-rb-label);
+  }
+
+  .rb-rail .rb-tab::before {
+    background: rgb(251 250 246 / 0.28);
+  }
+
+  .rb-rail .rb-tab > .rb-extent {
+    background: var(--color-rb-label);
+  }
+
+  .rb-rail .rb-tab[aria-pressed='true']::before {
+    background: rgb(34 37 43 / 0.2);
+  }
+
+  .rb-rail .rb-tab[aria-pressed='true'] {
+    color: var(--color-rb-graphite);
+  }
+
+  .rb-rail .rb-tab[aria-pressed='true'] > .rb-extent {
+    background: var(--color-rb-beam);
+  }
+
+  .rb-rail .rb-tab:hover:not([aria-pressed='true']) {
+    background: var(--color-rb-cobalt-deep);
+  }
+
+  .rb-rail {
+    --rb-focus: var(--color-rb-signal);
+  }
+
+  /* ---- Strips ------------------------------------------------------------- */
+
+  .rb-block {
+    background: var(--color-rb-label);
+    border: 2px solid var(--color-rb-graphite);
+  }
+
+  .rb-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 76px auto;
+    align-items: center;
+    column-gap: 10px;
+    padding: 8px 10px;
+    border-top: 1px solid var(--color-rb-rule);
+  }
+
+  .rb-strip[data-picked] {
+    background: #fdf3c4;
+  }
+
+  .rb-strip[data-out] .rb-strike {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    color: var(--color-rb-muted);
+  }
+
+  .rb-strip[data-out] {
+    color: var(--color-rb-muted);
+  }
+
+  /* ---- Pick list ---------------------------------------------------------- */
+
+  .rb-tick {
+    display: inline-block;
+    animation: rb-tick 120ms steps(3) 1;
+  }
+
+  @keyframes rb-tick {
+    from {
+      transform: translateY(5px);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .rb-pinned {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* ---- Reservation tag ---------------------------------------------------- */
+
+  .rb-hangtag {
+    position: relative;
+    background: var(--color-rb-label);
+    border: 2px solid var(--color-rb-graphite);
+    padding-top: 34px;
+  }
+
+  .rb-hangtag::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin-left: -8px;
+    border: 2px solid var(--color-rb-graphite);
+    border-radius: 50%;
+    background: var(--color-rb-ground);
+  }
+
+  /* ---- Order status strip ------------------------------------------------- */
+
+  .rb-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+  }
+
+  .rb-steps > li {
+    display: grid;
+    gap: 4px;
+    font-family: var(--font-rb-stencil);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-rb-muted);
+  }
+
+  .rb-steps > li::before {
+    content: '';
+    display: block;
+    height: 10px;
+    border: 2px solid var(--color-rb-graphite);
+    background: transparent;
+  }
+
+  .rb-steps > li[data-done]::before {
+    background: var(--color-rb-graphite);
+  }
+
+  .rb-steps > li[data-done] {
+    color: var(--color-rb-graphite);
+  }
+
+  .rb-steps > li[data-now]::before {
+    background: var(--color-rb-signal);
+  }
+
+  .rb-steps > li[data-now] {
+    color: var(--color-rb-graphite);
+  }
+
+  .rb-steps[data-ended] > li::before {
+    border-color: var(--color-rb-rule);
+    background: transparent;
+  }
+
+  .rb-steps[data-ended] > li {
+    color: var(--color-rb-muted);
+    text-decoration: line-through;
+  }
+
+  /* ---- Door plate (login) -------------------------------------------------- */
+
+  .rb-door {
+    position: relative;
+    background: var(--color-rb-label);
+    border: 3px solid var(--color-rb-graphite);
+  }
+
+  .rb-screw {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-rb-graphite);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rb-tick {
+      animation: none;
+    }
+
+    .rb-btn,
+    .rb-add,
+    .rb-stepper button,
+    .rb-cells > i {
+      transition: none;
+    }
+  }
+}
+
+/* The shared sheet and dialog overlays blur; the store is flat, so drop it here only. */
+body:has(
+    .store[data-slot='sheet-content'],
+    .store[data-slot='alert-dialog-content']
+  )
+  :is([data-slot='sheet-overlay'], [data-slot='alert-dialog-overlay']) {
+  backdrop-filter: none !important;
+  background: rgb(34 37 43 / 0.45) !important;
+}

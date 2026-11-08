@@ -1,16 +1,15 @@
 import { Link, useLocation } from '@tanstack/react-router'
+import { AlertDialog as AlertDialogPrimitive } from 'radix-ui'
 import { useState } from 'react'
 
 import {
   AlertDialog,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog'
-import { Button } from '#/components/ui/button'
 import type { SessionUser } from '#/modules/access/lib/session-user'
 import { OrderSummary } from '#/modules/store/components/order-summary'
 import { useCancelOrder } from '#/modules/store/hooks/use-cancel-order'
@@ -28,9 +27,9 @@ type OrdersPageProps = {
 
 function Notice({ title, children }: { title: string; children: string }) {
   return (
-    <div className="grid justify-items-center gap-1 rounded-2xl border border-dashed border-input bg-white/60 p-8 text-center">
-      <p className="font-semibold text-ink-figure">{title}</p>
-      <p className="max-w-md text-sm text-ink-muted">{children}</p>
+    <div className="grid justify-items-center gap-1 border-2 border-dashed border-rb-graphite-soft bg-rb-label p-8 text-center">
+      <p className="rb-stencil text-xl">{title}</p>
+      <p className="max-w-md text-sm text-rb-muted">{children}</p>
     </div>
   )
 }
@@ -43,24 +42,23 @@ export function OrdersPage({ user, orders }: OrdersPageProps) {
   if (!user) {
     return (
       <div className="grid gap-4">
-        <Notice title="Inicia sesión para ver tus pedidos.">
+        <Notice title="Inicia sesión para ver tus pedidos">
           Tus apartados aparecen aquí cuando entras con la cuenta que te dio el
           almacén.
         </Notice>
-        <Button
-          asChild
-          className="mx-auto h-12 rounded-xl bg-primary px-6 font-semibold text-brand-ink hover:bg-brand-hover"
+        <Link
+          to="/tienda/entrar"
+          search={{ redirect: location.href }}
+          className="rb-btn justify-self-center"
         >
-          <Link to="/tienda/entrar" search={{ redirect: location.href }}>
-            Iniciar sesión
-          </Link>
-        </Button>
+          Iniciar sesión
+        </Link>
       </div>
     )
   }
   if (!orders) {
     return (
-      <Notice title="Esta sesión no es de cliente.">
+      <Notice title="Esta sesión no es de cliente">
         Las cuentas del almacén no tienen pedidos en la tienda. Entra con una
         cuenta de cliente para ver y apartar pedidos.
       </Notice>
@@ -69,33 +67,30 @@ export function OrdersPage({ user, orders }: OrdersPageProps) {
 
   return (
     <div className="grid gap-5">
-      <h1 className="text-2xl font-bold tracking-tight text-ink-heading">
-        Mis pedidos
-      </h1>
+      <h1 className="rb-stencil text-[32px] leading-none">Mis pedidos</h1>
       {orders.length ? (
-        <ul className="grid gap-4 md:grid-cols-2">
+        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {orders.map((order) => (
             <li
               key={order.id}
-              className="grid content-start gap-4 rounded-2xl border border-panel-border bg-white p-4"
+              className="rb-block grid content-start gap-4 p-4"
             >
               <OrderSummary order={order} />
               {canCancelOrder(order.status) ? (
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  className="h-11 rounded-xl border-status-red/40 font-semibold text-status-red hover:bg-status-red-bg"
+                  className="rb-btn rb-btn--danger"
                   disabled={pendingId === order.id}
                   onClick={() => setTarget(order)}
                 >
                   {pendingId === order.id ? 'Cancelando…' : 'Cancelar apartado'}
-                </Button>
+                </button>
               ) : null}
             </li>
           ))}
         </ul>
       ) : (
-        <Notice title="Aún no tienes pedidos.">
+        <Notice title="Aún no tienes pedidos">
           Cuando apartes productos, los verás aquí con su fecha límite para
           recogerlos.
         </Notice>
@@ -107,21 +102,23 @@ export function OrdersPage({ user, orders }: OrdersPageProps) {
           if (!open) setTarget(null)
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="store rounded-none border-2 border-rb-graphite bg-rb-label ring-0">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="rb-stencil text-xl">
               ¿Cancelar {target ? storeOrderCode(target.id) : 'el apartado'}?
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-rb-muted">
               Los productos se liberan para otros clientes. Para volver a
               apartarlos tendrás que hacer un pedido nuevo.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Conservar apartado</AlertDialogCancel>
-            <Button
+            <AlertDialogPrimitive.Cancel className="rb-btn rb-btn--outline">
+              Conservar apartado
+            </AlertDialogPrimitive.Cancel>
+            <button
               type="button"
-              variant="destructive"
+              className="rb-btn rb-btn--danger"
               onClick={() => {
                 const id = target?.id
                 setTarget(null)
@@ -129,7 +126,7 @@ export function OrdersPage({ user, orders }: OrdersPageProps) {
               }}
             >
               Cancelar apartado
-            </Button>
+            </button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

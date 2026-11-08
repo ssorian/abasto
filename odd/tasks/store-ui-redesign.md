@@ -1,0 +1,26 @@
+# Store UI redesign
+
+Objective: redesign the customer store (`/tienda` in `abasto-web`) with the impeccable skill: a new visual language for the store only, fast reorder plus catalog browsing, phone-first. Branch `feat/store-ui-redesign`.
+Checks: screenshots desktop 1440 + mobile 390 against the scratch DB `abasto_ui_shots_test` (dev server :3041), `impeccable detect`, tsc/eslint/prettier/build, existing store tests.
+
+## Specs
+
+- S1: Request — "Me gusto, ahora mejora mucho la ui, usa impeccable para esto, toma screenshots si consideras".
+- S2: Usage — user choice "Ambas por igual": fast reorder from the phone (adjust quantities of many products without leaving the list) and catalog browsing (photos, brands, presentations) are equally important.
+- S3: Scope — user choice "Rediseño de la tienda (Recomendado)": new visual language for `/tienda` only; the staff console is not touched.
+- S4: Brand — user choice "Uso un nombre provisional configurable": the store name lives in one configurable place; tone close and professional.
+- S5: Product truth preserved: everything in `abasto-web/PRODUCT.md` and odd/tasks/online-store.md S1–S7 (availability labels only, reservation not payment, one warehouse at a time, customer-only reserve) keeps working.
+
+## Tasks
+
+- T1 [S1–S5] delegated — Direction round: impeccable new-work steps 1–4 (concept-seed, directions) → user picks. Status: done (seed b6e025a5; user chose the dealt direction "Rack-Bay Labels", kind assigned).
+- T2 [S1–S5] delegated — Build the chosen direction across catalog, cart, confirmation, login, orders; screenshots; detect; finish review; DESIGN.md. Status: done. Commit: see L6 (helpers RED→GREEN; 86/86 store+access; tsc/eslint/prettier/build clean; detect clean then 20 advisory token notes).
+
+## Log
+
+- L1 (2026-11-08) Original request: "Me gusto, ahora mejora mucho la ui, usa impeccable para esto, toma screenshots si consideras"
+- L2 (2026-11-08) Answers: usage "Ambas por igual"; scope "Rediseño de la tienda (Recomendado)"; brand "Uso un nombre provisional configurable". PRODUCT.md written at `abasto-web/PRODUCT.md` (init). Baseline screenshots: oversized cards (one product fills a phone screen, 3 per row on desktop), a heavy purple warehouse block that outweighs the catalog, generic template hierarchy; most seed products show Agotado (seed stock). Visitor mode: Operate. Build path: code-led (no image generation reported by `impeccable context`).
+- L3 (2026-11-08) Direction round (worker): mechanism, rut excluded (photo-card e-commerce grid and the dense admin table), seven candidates from the wholesale dairy/soft-drink world; dealt "Rack-Bay Labels" (rack-beam/dock labelling): concrete off-white ground, graphite, label stock, signal yellow as the one voice, beam orange and upright cobalt; every presentation is a label strip; Disponible solid strip, Pocas hazard hatch (only place hatching appears), Agotado struck and dimmed, word always printed; phone: graphite bar, yellow "dock plate" pickup warehouse, brand tabs + search, ~72px strip rows with photo mat, tabular price and inline stepper, pinned pick-list bar; desktop: cobalt brand rail, two columns of strips, permanent pick-list panel; signature: pick-face stepper (quantity as growing cell bar, ticking total, hard-stepped ~120ms, static under reduced motion); cart "hoja de surtido", confirmation reservation tag, orders three-position status strip, login enamel door plate; catalog index codes never presented as physical locations. Decision page key 62dc5145.
+- L4 (2026-11-08) User choice: "Rack-Bay Labels (sorteada)" (assigned). Open, not in scope: a "lo que pides seguido" block from the customer's past orders (needs new data/function).
+- L5 (2026-11-08) Build (worker, code-led; comp phases skipped by contract): Rack-Bay world across catalog, pick list (bar/panel), cart "hoja de surtido", reservation tag, orders status strip, login door plate; store name in `lib/store-config.ts`; store-scoped `styles/store.css`; DESIGN.md (store surface only). Worker choices accepted: sold-out products sort last; brand is the main filter (`marca` param), category secondary; stepper replaces "Agregar" and the add toast. Inline finish review fixed broken-image SSR fallback and phone first viewport.
+- L6 (2026-11-08) Independent fresh-context review (gentle-ai-verify following impeccable degraded finish-reviewer): disposition fix; behaviour S5 and online-store S1–S7 pass, 86/86, tsc clean. Fixed in one batch: brand extent bars measured against the catalog on a visible track; phone header "Entrar" + single-line truncated name; tab strip end fade cue; active nav via aria-current; store-scoped flat overlay (no blur); inset tab focus; Arial-fallback tolerance. Open (accepted): display face is a system condensed stack (no new dependencies); `#fdf3c4` picked tint and a 12px size not in DESIGN.md (detect advisory); orders desktop grid and dock plate below the direction's ceiling; tab focus inset not captured. Unrelated uncommitted staff changes from another session (reports, executive, seed, owner-console.md) excluded from this commit.
