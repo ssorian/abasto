@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { AppError } from '#/lib/errors'
+import { warehouseRoles } from '#/modules/access/db/schema'
 import { authorize, can } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 
@@ -8,11 +9,17 @@ const south = 'warehouse-south'
 
 const actor = (
   role: Actor['role'],
-  assignments: Record<string, 'manager' | 'clerk'> = {},
+  assignments: Record<string, 'manager'> = {},
 ): Actor => ({
   userId: 'user-1',
   role,
   assignments: new Map(Object.entries(assignments)),
+})
+
+describe('warehouse roles', () => {
+  test('manager is the only warehouse role', () => {
+    expect([...warehouseRoles]).toEqual(['manager'])
+  })
 })
 
 describe('can', () => {
@@ -46,14 +53,6 @@ describe('can', () => {
     expect(can(manager, 'warehouse.manage', south)).toBe(false)
   })
 
-  test('a clerk views and operates the assigned warehouse but does not manage it', () => {
-    const clerk = actor('staff', { [north]: 'clerk' })
-    expect(can(clerk, 'warehouse.view', north)).toBe(true)
-    expect(can(clerk, 'warehouse.operate', north)).toBe(true)
-    expect(can(clerk, 'warehouse.manage', north)).toBe(false)
-    expect(can(clerk, 'warehouse.operate', south)).toBe(false)
-  })
-
   test('staff never hold owner-only permissions, whatever their assignments', () => {
     const manager = actor('staff', { [north]: 'manager', [south]: 'manager' })
     expect(can(manager, 'catalog.manage')).toBe(false)
@@ -77,7 +76,11 @@ describe('authorize', () => {
   test('throws a forbidden AppError otherwise', () => {
     let error: unknown
     try {
-      authorize(actor('staff', { [north]: 'clerk' }), 'warehouse.manage', north)
+      authorize(
+        actor('staff', { [north]: 'manager' }),
+        'warehouse.manage',
+        south,
+      )
     } catch (caught) {
       error = caught
     }

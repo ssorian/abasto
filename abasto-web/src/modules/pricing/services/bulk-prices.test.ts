@@ -207,10 +207,10 @@ describe('bulkChangePrices', () => {
     expect(await pricingState(fx)).toEqual(before)
   })
 
-  test('a clerk cannot change prices', async () => {
+  test('a manager of another warehouse cannot change prices', async () => {
     const fx = await priced()
     const error = await errorOf(() =>
-      bulkChangePrices(fx.clerkA, {
+      bulkChangePrices(fx.managerB, {
         warehouseIds: [fx.a.id],
         supplierId: fx.cocaCola.id,
         change: { kind: 'fixed', cents: 100 },

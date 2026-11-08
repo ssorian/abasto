@@ -28,7 +28,7 @@ afterEach(() => useClock(null))
 async function setup(quantity = 20) {
   const fx = await setupOrders()
   const lot = await receive(fx, { productId: fx.milkBox.id, quantity })
-  const place = (n: number, actor = fx.clerkA) =>
+  const place = (n: number, actor = fx.staffA) =>
     createOrder(actor, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
@@ -41,9 +41,9 @@ const pay = (actor: Parameters<typeof getOrder>[0], id: string) =>
   pickupOrder(actor, id, payCash)
 
 const statusOf = async (
-  fx: { clerkA: Parameters<typeof getOrder>[0] },
+  fx: { staffA: Parameters<typeof getOrder>[0] },
   id: string,
-) => (await getOrder(fx.clerkA, id)).status
+) => (await getOrder(fx.staffA, id)).status
 
 const onlyReserved = 'Solo se puede preparar un pedido reservado.'
 const onlyOpenPickup = 'Solo se puede entregar un pedido reservado o preparado.'
@@ -55,7 +55,7 @@ describe('prepareOrder', () => {
   test('Reservado → Preparado keeps the reservation', async () => {
     const { fx, place } = await setup()
     const order = await place(5)
-    const prepared = await prepareOrder(fx.clerkA, order.id)
+    const prepared = await prepareOrder(fx.staffA, order.id)
     expect(prepared.status).toBe('Preparado')
     expect(prepared.preparedAt).toBeInstanceOf(Date)
     expect((await orderState()).lots[0]).toMatchObject({
@@ -67,12 +67,12 @@ describe('prepareOrder', () => {
   test('only a reserved order can be prepared', async () => {
     const { fx, place } = await setup()
     const order = await place(5)
-    await prepareOrder(fx.clerkA, order.id)
+    await prepareOrder(fx.staffA, order.id)
     const before = await orderState()
-    const again = await errorOf(() => prepareOrder(fx.clerkA, order.id))
+    const again = await errorOf(() => prepareOrder(fx.staffA, order.id))
     expect([again.code, again.message]).toEqual(['conflict', onlyReserved])
-    await pickupOrder(fx.clerkA, order.id, payCash)
-    const done = await errorOf(() => prepareOrder(fx.clerkA, order.id))
+    await pickupOrder(fx.staffA, order.id, payCash)
+    const done = await errorOf(() => prepareOrder(fx.staffA, order.id))
     expect(done.message).toBe(onlyReserved)
     expect(await orderState()).not.toEqual(before)
   })
@@ -88,8 +88,8 @@ describe('pickupOrder', () => {
     })
     const order = await place(9)
     expect(order.lines[0].allocations).toHaveLength(2)
-    await prepareOrder(fx.clerkA, order.id)
-    const picked = await pickupOrder(fx.clerkA, order.id, payCash)
+    await prepareOrder(fx.staffA, order.id)
+    const picked = await pickupOrder(fx.staffA, order.id, payCash)
     expect(picked.status).toBe('Recogido')
     const movements = await db
       .select()
@@ -97,7 +97,7 @@ describe('pickupOrder', () => {
       .where(eq(stockMovements.type, 'sale'))
     expect(movements).toHaveLength(2)
     expect(movements.every((m) => m.reference === order.id)).toBe(true)
-    expect(movements.every((m) => m.actorId === fx.clerkA.userId)).toBe(true)
+    expect(movements.every((m) => m.actorId === fx.staffA.userId)).toBe(true)
     expect(movements.reduce((s, m) => s + m.quantity, 0)).toBe(-9)
     const lots = (await orderState()).lots
     expect(lots.every((l) => l.reserved === 0)).toBe(true)
@@ -109,7 +109,7 @@ describe('pickupOrder', () => {
   test('works straight from Reservado', async () => {
     const { fx, place } = await setup()
     const order = await place(2)
-    expect((await pickupOrder(fx.clerkA, order.id, payCash)).status).toBe(
+    expect((await pickupOrder(fx.staffA, order.id, payCash)).status).toBe(
       'Recogido',
     )
   })
@@ -117,12 +117,12 @@ describe('pickupOrder', () => {
   test('a picked-up, cancelled or expired order cannot be picked up again', async () => {
     const { fx, place } = await setup()
     const picked = await place(2)
-    await pickupOrder(fx.clerkA, picked.id, payCash)
+    await pickupOrder(fx.staffA, picked.id, payCash)
     const cancelled = await place(2)
-    await cancelOrder(fx.clerkA, cancelled.id)
+    await cancelOrder(fx.staffA, cancelled.id)
     for (const id of [picked.id, cancelled.id]) {
       const before = await orderState()
-      const error = await errorOf(() => pickupOrder(fx.clerkA, id, payCash))
+      const error = await errorOf(() => pickupOrder(fx.staffA, id, payCash))
       expect([error.code, error.message]).toEqual(['conflict', onlyOpenPickup])
       expect(await orderState()).toEqual(before)
     }
@@ -133,8 +133,8 @@ describe('cancelOrder', () => {
   test('releases the reserved units', async () => {
     const { fx, place } = await setup()
     const order = await place(7)
-    await prepareOrder(fx.clerkA, order.id)
-    const cancelled = await cancelOrder(fx.clerkA, order.id)
+    await prepareOrder(fx.staffA, order.id)
+    const cancelled = await cancelOrder(fx.staffA, order.id)
     expect(cancelled.status).toBe('Cancelado')
     expect((await orderState()).lots[0]).toMatchObject({
       onHand: 20,
@@ -148,12 +148,12 @@ describe('cancelOrder', () => {
   test('cannot cancel a picked-up or already cancelled order', async () => {
     const { fx, place } = await setup()
     const picked = await place(2)
-    await pickupOrder(fx.clerkA, picked.id, payCash)
+    await pickupOrder(fx.staffA, picked.id, payCash)
     const cancelled = await place(2)
-    await cancelOrder(fx.clerkA, cancelled.id)
+    await cancelOrder(fx.staffA, cancelled.id)
     for (const id of [picked.id, cancelled.id]) {
       const before = await orderState()
-      const error = await errorOf(() => cancelOrder(fx.clerkA, id))
+      const error = await errorOf(() => cancelOrder(fx.staffA, id))
       expect([error.code, error.message]).toEqual(['conflict', onlyOpenCancel])
       expect(await orderState()).toEqual(before)
     }
@@ -161,7 +161,7 @@ describe('cancelOrder', () => {
 })
 
 describe('permissions and unknown orders', () => {
-  test('the clerk of A acts on A orders; staff of B and others are forbidden', async () => {
+  test('staff of A act on A orders; the manager of B is forbidden', async () => {
     const { fx, place } = await setup()
     const order = await place(3)
     for (const act of [prepareOrder, pay, cancelOrder, getOrder]) {
@@ -194,7 +194,7 @@ describe('lazy expiry', () => {
     const order = await place(10)
     advance(25)
     for (const act of [prepareOrder, pay, cancelOrder]) {
-      const error = await errorOf(() => act(fx.clerkA, order.id))
+      const error = await errorOf(() => act(fx.staffA, order.id))
       expect([error.code, error.message]).toEqual(['conflict', expired])
     }
     expect(await statusOf(fx, order.id)).toBe('Vencido')
@@ -220,9 +220,9 @@ describe('lazy expiry', () => {
   test('a prepared order also expires', async () => {
     const { fx, place } = await setup()
     const order = await place(4)
-    await prepareOrder(fx.clerkA, order.id)
+    await prepareOrder(fx.staffA, order.id)
     advance(25)
-    const list = await listOrders(fx.clerkA, { warehouseId: fx.a.id })
+    const list = await listOrders(fx.staffA, { warehouseId: fx.a.id })
     expect(list[0]).toMatchObject({ id: order.id, status: 'Vencido' })
     expect((await orderState()).lots[0].reserved).toBe(0)
   })
@@ -230,11 +230,11 @@ describe('lazy expiry', () => {
   test('picked-up and cancelled orders never expire', async () => {
     const { fx, place } = await setup()
     const picked = await place(2)
-    await pickupOrder(fx.clerkA, picked.id, payCash)
+    await pickupOrder(fx.staffA, picked.id, payCash)
     const cancelled = await place(2)
-    await cancelOrder(fx.clerkA, cancelled.id)
+    await cancelOrder(fx.staffA, cancelled.id)
     advance(100)
-    const list = await listOrders(fx.clerkA, { warehouseId: fx.a.id })
+    const list = await listOrders(fx.staffA, { warehouseId: fx.a.id })
     expect(list.map((o) => o.status).sort()).toEqual(['Cancelado', 'Recogido'])
   })
 
@@ -254,24 +254,24 @@ describe('listOrders and getOrder', () => {
     const { fx, place } = await setup()
     const other = await createCustomer(fx.owner, { name: 'Abarrotes Sur' })
     const first = await place(1)
-    const second = await createOrder(fx.clerkA, {
+    const second = await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: other.id,
       lines: [{ presentationId: fx.pieceId, quantity: 2 }],
     })
-    await prepareOrder(fx.clerkA, first.id)
-    const all = await listOrders(fx.clerkA, { warehouseId: fx.a.id })
+    await prepareOrder(fx.staffA, first.id)
+    const all = await listOrders(fx.staffA, { warehouseId: fx.a.id })
     expect(all.map((o) => o.id)).toEqual([second.id, first.id])
     expect(all[0]).toMatchObject({
       customerName: 'Abarrotes Sur',
       totalCents: 2000,
     })
-    const prepared = await listOrders(fx.clerkA, {
+    const prepared = await listOrders(fx.staffA, {
       warehouseId: fx.a.id,
       status: 'Preparado',
     })
     expect(prepared.map((o) => o.id)).toEqual([first.id])
-    const byCustomer = await listOrders(fx.clerkA, {
+    const byCustomer = await listOrders(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: other.id,
     })
@@ -282,7 +282,7 @@ describe('listOrders and getOrder', () => {
   test('listing requires access to that warehouse', async () => {
     const { fx } = await setup()
     const error = await errorOf(() =>
-      listOrders(fx.clerkA, { warehouseId: fx.b.id }),
+      listOrders(fx.staffA, { warehouseId: fx.b.id }),
     )
     expect(error.code).toBe('forbidden')
   })
@@ -290,7 +290,7 @@ describe('listOrders and getOrder', () => {
   test('getOrder returns lines with product names and allocations with lot codes', async () => {
     const { fx, place } = await setup()
     const order = await place(3)
-    const read = await getOrder(fx.clerkA, order.id)
+    const read = await getOrder(fx.staffA, order.id)
     expect(read).toMatchObject({ customerName: 'Distribuidora Norte' })
     expect(read.lines[0]).toMatchObject({
       productName: 'Leche entera 1L',
@@ -313,7 +313,7 @@ describe('pickup of a lot that expired meanwhile', () => {
       expiresOn: '2098-12-01',
     })
     useClock(() => new Date('2098-12-01T18:00:00Z'))
-    const order = await createOrder(fx.clerkA, {
+    const order = await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.pieceId, quantity: 4 }],
@@ -327,9 +327,9 @@ describe('pickup of a lot that expired meanwhile', () => {
     useClock(() => new Date('2098-12-02T12:00:00Z'))
     const before = await orderState()
     for (const status of ['Reservado', 'Preparado'] as const) {
-      if (status === 'Preparado') await prepareOrder(fx.clerkA, order.id)
+      if (status === 'Preparado') await prepareOrder(fx.staffA, order.id)
       const error = await errorOf(() =>
-        pickupOrder(fx.clerkA, order.id, payCash),
+        pickupOrder(fx.staffA, order.id, payCash),
       )
       expect(error.code).toBe('conflict')
       expect(error.message).toBe(caducado)
@@ -338,14 +338,14 @@ describe('pickup of a lot that expired meanwhile', () => {
     expect((await orderState()).lots).toEqual(before.lots)
     expect(await statusOf(fx, order.id)).toBe('Preparado')
     // Cancelling is the way out and releases the units.
-    await cancelOrder(fx.clerkA, order.id)
+    await cancelOrder(fx.staffA, order.id)
     expect((await orderState()).lots[0].reserved).toBe(0)
   })
 
   test('a lot expiring today can still be picked up', async () => {
     const { fx, order } = await reserveOnExpiringLot()
     useClock(() => new Date('2098-12-02T04:00:00Z')) // 22:00 on 12-01 in Mexico City
-    const picked = await pickupOrder(fx.clerkA, order.id, payCash)
+    const picked = await pickupOrder(fx.staffA, order.id, payCash)
     expect(picked.status).toBe('Recogido')
   })
 })

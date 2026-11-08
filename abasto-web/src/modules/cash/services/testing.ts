@@ -26,7 +26,7 @@ export async function setupSales() {
     quantity: number,
     options: { warehouseId?: string; customerId?: string } = {},
   ) =>
-    createOrder(options.warehouseId === fx.b.id ? fx.managerB : fx.clerkA, {
+    createOrder(options.warehouseId === fx.b.id ? fx.managerB : fx.staffA, {
       warehouseId: options.warehouseId ?? fx.a.id,
       customerId: options.customerId ?? fx.customer.id,
       lines: [{ presentationId: fx.pieceId, quantity }],

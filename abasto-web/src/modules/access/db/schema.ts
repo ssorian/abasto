@@ -10,7 +10,7 @@ import {
 import { user } from '#/db/auth-schema'
 import { warehouses } from '#/modules/warehouses/db/schema'
 
-export const warehouseRoles = ['manager', 'clerk'] as const
+export const warehouseRoles = ['manager'] as const
 export type WarehouseRole = (typeof warehouseRoles)[number]
 
 /** Which warehouses a staff user operates, and with which role. */
@@ -30,7 +30,7 @@ export const warehouseAssignments = pgTable(
     primaryKey({ columns: [table.userId, table.warehouseId] }),
     check(
       'warehouse_assignments_role_check',
-      sql`${table.role} in ('manager', 'clerk')`,
+      sql`${table.role} in ('manager')`,
     ),
   ],
 )

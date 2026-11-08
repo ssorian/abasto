@@ -3,7 +3,7 @@ import { orderCode } from '#/modules/counter/lib/order-format'
 import { receiptLines } from '#/modules/counter/lib/payment'
 import type { PickupWithReceipt } from '#/modules/counter/server/pickup'
 
-/** What the clerk hands over after a pickup: total, cash received and change. */
+/** What the staff member hands over after a pickup: total, cash received and change. */
 export function ReceiptView({
   result,
   customerName,

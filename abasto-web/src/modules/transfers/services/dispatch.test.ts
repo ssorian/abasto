@@ -112,7 +112,7 @@ describe('dispatchTransfer', () => {
   test('does not take reserved units', async () => {
     const fx = await setupTransfers()
     const lot = await receive(fx, { productId: fx.milkBox.id, quantity: 10 })
-    await createOrder(fx.clerkA, {
+    await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.pieceId, quantity: 7 }],
@@ -152,7 +152,7 @@ describe('dispatchTransfer', () => {
     const fx = await setupTransfers()
     const lot = await receive(fx, { productId: fx.milkBox.id, quantity: 10 })
     const { useClock } = await import('#/modules/orders/services/testing')
-    await createOrder(fx.clerkA, {
+    await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.pieceId, quantity: 10 }],
@@ -166,16 +166,11 @@ describe('dispatchTransfer', () => {
     expect(await onHandOf(lot.id)).toBe(0)
   })
 
-  test('manager of the source dispatches; destination manager, clerk and outsiders cannot', async () => {
+  test('manager of the source dispatches; destination manager cannot', async () => {
     const fx = await setupTransfers()
     await receive(fx, { productId: fx.milkBox.id, quantity: 10 })
     await rejects(
       () => send(fx, 1, fx.managerB),
-      'forbidden',
-      'No tienes permiso para esta acción.',
-    )
-    await rejects(
-      () => send(fx, 1, fx.clerkA),
       'forbidden',
       'No tienes permiso para esta acción.',
     )

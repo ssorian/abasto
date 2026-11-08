@@ -10,12 +10,11 @@ describe('role labels', () => {
     expect(userRoleLabel('owner')).toBe('Dueño')
     expect(userRoleLabel('staff')).toBe('Personal')
     expect(warehouseRoleLabel('manager')).toBe('Encargado')
-    expect(warehouseRoleLabel('clerk')).toBe('Mostrador')
   })
 
   test('chipLabel joins warehouse and role', () => {
     expect(
-      chipLabel({ warehouseId: 'a', warehouseName: 'Norte', role: 'clerk' }),
-    ).toBe('Norte · Mostrador')
+      chipLabel({ warehouseId: 'a', warehouseName: 'Norte', role: 'manager' }),
+    ).toBe('Norte · Encargado')
   })
 })

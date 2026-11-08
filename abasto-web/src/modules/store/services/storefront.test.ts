@@ -274,7 +274,7 @@ describe('placeStoreOrder', () => {
   test('counter orders keep source counter', async () => {
     const fx = await setupOrders()
     await receive(fx, { productId: fx.milkBox.id, quantity: 5 })
-    const order = await createOrder(fx.clerkA, {
+    const order = await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.pieceId, quantity: 1 }],
@@ -341,12 +341,12 @@ describe('my orders', () => {
     const fx = await setupStore()
     await receive(fx, { productId: fx.milkBox.id, quantity: 50 })
     const other = await createCustomer(fx.owner, { name: 'Otro' })
-    await createOrder(fx.clerkA, {
+    await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: other.id,
       lines: [{ presentationId: fx.pieceId, quantity: 1 }],
     })
-    const counter = await createOrder(fx.clerkA, {
+    const counter = await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       notes: 'Nota interna del mostrador',
@@ -397,12 +397,12 @@ describe('my orders', () => {
       lines: [{ presentationId: fx.pieceId, quantity: 1 }],
     })
     const other = await createCustomer(fx.owner, { name: 'Otro' })
-    const foreign = await createOrder(fx.clerkA, {
+    const foreign = await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: other.id,
       lines: [{ presentationId: fx.pieceId, quantity: 1 }],
     })
-    await prepareOrder(fx.clerkA, placed.id)
+    await prepareOrder(fx.staffA, placed.id)
     const before = await orderState()
     const preparing = await errorOf(() => cancelMyOrder(fx.shopper, placed.id))
     expect(preparing.code).toBe('conflict')

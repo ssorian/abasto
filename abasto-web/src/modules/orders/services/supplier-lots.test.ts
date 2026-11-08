@@ -43,7 +43,7 @@ async function sell(
   product: SupplierFixture['milk'],
   quantity: number,
 ) {
-  return createOrder(fx.clerkA, {
+  return createOrder(fx.staffA, {
     warehouseId: fx.a.id,
     customerId,
     lines: [{ presentationId: boxOf(product).id, quantity }],

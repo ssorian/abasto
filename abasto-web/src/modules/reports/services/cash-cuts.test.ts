@@ -28,17 +28,17 @@ async function scenario() {
   })
   await fx.sell({ at: '2026-11-02T18:00:00Z', quantity: 3 })
   useClock(null)
-  await recordCashEntry(fx.clerkA, {
+  await recordCashEntry(fx.staffA, {
     warehouseId: fx.a.id,
     amountCents: 500,
     reason: 'Cambio',
   })
-  await recordCashWithdrawal(fx.clerkA, {
+  await recordCashWithdrawal(fx.staffA, {
     warehouseId: fx.a.id,
     amountCents: 200,
     reason: 'Gasto',
   })
-  await closeCashSession(fx.clerkA, {
+  await closeCashSession(fx.staffA, {
     warehouseId: fx.a.id,
     countedCents: 3250,
   })
@@ -127,8 +127,5 @@ describe('cash cuts', () => {
         getCashCuts(fx.managerA, { ...today, warehouseIds: [fx.b.id] }),
       ),
     ).toMatchObject({ code: 'forbidden' })
-    expect(await errorOf(() => getCashCuts(fx.clerkA, today))).toMatchObject({
-      code: 'forbidden',
-    })
   })
 })

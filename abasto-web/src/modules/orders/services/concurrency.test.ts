@@ -23,7 +23,7 @@ afterEach(() => useClock(null))
 
 type Fx = Awaited<ReturnType<typeof setupOrders>>
 const place = (fx: Fx, quantity: number) =>
-  createOrder(fx.clerkA, {
+  createOrder(fx.staffA, {
     warehouseId: fx.a.id,
     customerId: fx.customer.id,
     lines: [{ presentationId: fx.pieceId, quantity }],
@@ -110,9 +110,9 @@ async function crossingRound(race: Race) {
   overdue = true
   const second = Promise.allSettled([
     race === 'pickup'
-      ? pickupOrder(fx.clerkA, p.id, payCash)
+      ? pickupOrder(fx.staffA, p.id, payCash)
       : race === 'cancel'
-        ? cancelOrder(fx.clerkA, p.id)
+        ? cancelOrder(fx.staffA, p.id)
         : countStock(fx.managerA, {
             warehouseId: fx.a.id,
             productId: fx.milkBox.id,

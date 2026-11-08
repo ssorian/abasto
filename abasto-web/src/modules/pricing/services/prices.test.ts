@@ -149,21 +149,21 @@ describe('setPrices', () => {
     })
   })
 
-  test('a manager prices their warehouse; a clerk reads it but cannot price', async () => {
+  test('a manager prices their warehouse; the manager of another one cannot', async () => {
     const fx = await setupPricing()
     const presentationId = fx.piece(fx.cola).id
     await setPrices(fx.managerA, {
       warehouseId: fx.a.id,
       prices: [{ presentationId, priceCents: 1850 }],
     })
-    const read = await listWarehousePrices(fx.clerkA, fx.a.id)
+    const read = await listWarehousePrices(fx.managerA, fx.a.id)
     await expect(
       read.find((row) => row.presentationId === presentationId),
     ).toMatchObject({
       priceCents: 1850,
     })
     const error = await errorOf(() =>
-      setPrices(fx.clerkA, {
+      setPrices(fx.managerB, {
         warehouseId: fx.a.id,
         prices: [{ presentationId, priceCents: 1 }],
       }),

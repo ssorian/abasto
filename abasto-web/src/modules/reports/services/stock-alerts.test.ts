@@ -121,7 +121,7 @@ describe('stock alerts', () => {
     })
   })
 
-  test('counts are scoped to the manager’s warehouses and clerks are refused', async () => {
+  test('counts are scoped to the manager’s warehouses only', async () => {
     const fx = await scenario()
     const own = await getStockAlerts(fx.managerB, {})
     expect(own.lowStock.map((row) => row.warehouseName)).toEqual(['Almacén B'])
@@ -131,9 +131,6 @@ describe('stock alerts', () => {
         getStockAlerts(fx.managerB, { warehouseIds: [fx.a.id] }),
       ),
     ).toMatchObject({ code: 'forbidden' })
-    expect(await errorOf(() => getStockAlerts(fx.clerkA, {}))).toMatchObject({
-      code: 'forbidden',
-    })
   })
 
   test('rejects an expiring window that is not a positive number of days', async () => {

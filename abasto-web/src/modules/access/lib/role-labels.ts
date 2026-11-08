@@ -10,8 +10,12 @@ const userRoleLabels: Record<UserRole, string> = {
 
 export const userRoleLabel = (role: UserRole) => userRoleLabels[role]
 
+const warehouseRoleLabels: Record<WarehouseRole, string> = {
+  manager: 'Encargado',
+}
+
 export const warehouseRoleLabel = (role: WarehouseRole) =>
-  role === 'manager' ? 'Encargado' : 'Mostrador'
+  warehouseRoleLabels[role]
 
 export const chipLabel = (assignment: UserAssignment) =>
   `${assignment.warehouseName} · ${warehouseRoleLabel(assignment.role)}`

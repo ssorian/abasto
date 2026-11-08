@@ -293,14 +293,14 @@ describe('receiveTransfer', () => {
     })
   })
 
-  test('manager of the destination and the owner receive; source manager and clerks cannot', async () => {
+  test('manager of the destination and the owner receive; source manager cannot', async () => {
     const fx = await setupTransfers()
     const { id, line } = await inTransit(fx)
     const input = {
       transferId: id,
       lines: [{ lineId: line.id, receivedQuantity: 6 }],
     }
-    for (const actor of [fx.managerA, fx.clerkA]) {
+    for (const actor of [fx.managerA]) {
       await rejects(
         () => receiveTransfer(actor, input),
         'forbidden',
@@ -322,31 +322,5 @@ describe('receiveTransfer', () => {
       transferId: second.id,
       lines: [{ lineId: secondLine.id, receivedQuantity: 1 }],
     })
-  })
-
-  test('a clerk of the destination cannot receive', async () => {
-    const fx = await setupTransfers()
-    const back = await receive(fx, {
-      productId: fx.milkBox.id,
-      warehouseId: fx.b.id,
-      quantity: 5,
-    })
-    const sent = await dispatchTransfer(fx.managerB, {
-      fromWarehouseId: fx.b.id,
-      toWarehouseId: fx.a.id,
-      items: [{ productId: fx.milkBox.id, quantity: 2 }],
-    })
-    const [line] = await db
-      .select()
-      .from(transferLines)
-      .where(eq(transferLines.transferId, sent.id))
-    const error = await errorOf(() =>
-      receiveTransfer(fx.clerkA, {
-        transferId: sent.id,
-        lines: [{ lineId: line.id, receivedQuantity: 2 }],
-      }),
-    )
-    expect(error.code).toBe('forbidden')
-    expect(await onHandOf(back.id)).toBe(3)
   })
 })

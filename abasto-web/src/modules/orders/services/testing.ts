@@ -37,7 +37,7 @@ export async function setupOrders() {
     warehouseId: fx.a.id,
     prices: [{ presentationId: piece, priceCents: 1000 }],
   })
-  await openCashSession(fx.clerkA, { warehouseId: fx.a.id, openingCents: 0 })
+  await openCashSession(fx.staffA, { warehouseId: fx.a.id, openingCents: 0 })
   return { ...fx, customer, pieceId: piece, boxId: box }
 }
 

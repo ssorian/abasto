@@ -96,7 +96,7 @@ describe('transfer reads', () => {
 
   test('reading needs view access to one of the two warehouses', async () => {
     const { fx, sent } = await setup()
-    expect((await getTransfer(fx.clerkA, sent.id)).id).toBe(sent.id)
+    expect((await getTransfer(fx.staffA, sent.id)).id).toBe(sent.id)
     expect((await getTransfer(fx.managerB, sent.id)).id).toBe(sent.id)
     const forbidden = {
       code: 'forbidden',
@@ -106,7 +106,7 @@ describe('transfer reads', () => {
       await errorOf(() => listWarehouseTransfers(fx.managerB, fx.a.id)),
     ).toMatchObject(forbidden)
     expect(
-      await errorOf(() => listWarehouseTransfers(fx.clerkA, fx.b.id)),
+      await errorOf(() => listWarehouseTransfers(fx.staffA, fx.b.id)),
     ).toMatchObject(forbidden)
     expect(
       await errorOf(() => getTransfer(fx.managerB, crypto.randomUUID())),
@@ -119,7 +119,7 @@ describe('transfer reads', () => {
       { id: fx.b.id, name: 'Almacén B' },
     ])
     expect(
-      await errorOf(() => listTransferDestinations(fx.clerkA, fx.a.id)),
+      await errorOf(() => listTransferDestinations(fx.managerB, fx.a.id)),
     ).toMatchObject({ code: 'forbidden' })
   })
 })

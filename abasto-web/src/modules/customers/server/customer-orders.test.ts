@@ -45,8 +45,8 @@ describe('listCustomerOrders', () => {
       totalCents: 2200,
     })
 
-    const clerkView = await listCustomerOrders(fx.clerkA, fx.customer.id)
-    expect(clerkView.map((o) => o.id)).toEqual([inA.id])
+    const staffView = await listCustomerOrders(fx.staffA, fx.customer.id)
+    expect(staffView.map((o) => o.id)).toEqual([inA.id])
   })
 
   test('an unknown customer is not found', async () => {

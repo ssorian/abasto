@@ -25,7 +25,6 @@ const warehouseGrants: Record<
   ReadonlySet<WarehousePermission>
 > = {
   manager: new Set(['warehouse.view', 'warehouse.operate', 'warehouse.manage']),
-  clerk: new Set(['warehouse.view', 'warehouse.operate']),
 }
 
 const warehousePermissions: ReadonlySet<Permission> =

@@ -3,7 +3,7 @@ import type { Parsed } from '#/modules/inventory/lib/parsed'
 import { formatCents } from '#/modules/pricing/lib/money'
 import type { PickupReceipt } from '#/modules/orders/services/pickup-gate'
 
-/** Cash received and the change to hand back, from the pesos the clerk typed. */
+/** Cash received and the change to hand back, from the pesos the staff member typed. */
 export function changeFor(
   totalCents: number,
   tenderedText: string,

@@ -95,13 +95,10 @@ describe('createPurchase', () => {
     expect(created.lots[0].warehouseId).toBe(fx.b.id)
   })
 
-  test('manager of A cannot purchase in B, and a clerk cannot purchase', async () => {
+  test('manager of A cannot purchase in B', async () => {
     const fx = await setupInventory()
     const before = await inventoryState()
-    for (const [actor, warehouseId] of [
-      [fx.managerA, fx.b.id],
-      [fx.clerkA, fx.a.id],
-    ] as const) {
+    for (const [actor, warehouseId] of [[fx.managerA, fx.b.id]] as const) {
       const error = await errorOf(() =>
         createPurchase(actor, purchaseOf(fx, { warehouseId })),
       )
