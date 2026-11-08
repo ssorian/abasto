@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import type { AppErrorCode } from '#/lib/errors'
+import type { Actor } from '#/modules/access/lib/policy'
 import { savePresentations } from '#/modules/catalog/services/presentations'
 import {
   lots,
@@ -29,6 +30,12 @@ import type { SupplierFixture } from '#/modules/inventory/services/supplier-test
 beforeEach(() => resetDatabase(db))
 
 const forbidden = 'No tienes permiso para esta acción.'
+
+/** Staff with no warehouse assignments. */
+const unassigned = (actor: Actor): Actor => ({
+  ...actor,
+  assignments: new Map(),
+})
 
 /** Orders milk, then receives `good`/`damaged` of it (plus replacements). */
 async function receiveMilk(
@@ -86,7 +93,9 @@ describe('listSupplierPendings', () => {
 
   test('requires owner or a warehouse manager', async () => {
     const fx = await setupSupplierOrders()
-    const error = await errorOf(() => listSupplierPendings(fx.clerkA))
+    const error = await errorOf(() =>
+      listSupplierPendings(unassigned(fx.managerB)),
+    )
     expect([error.code, error.message]).toEqual(['forbidden', forbidden])
     await listSupplierPendings(fx.managerB)
   })
@@ -324,7 +333,7 @@ describe('writeOffPendings', () => {
         'not_found',
         'No encontramos ese producto.',
       ],
-      [fx.clerkA, input, 'forbidden', forbidden],
+      [unassigned(fx.managerB), input, 'forbidden', forbidden],
     ]
     for (const [actor, payload, code, message] of cases) {
       const before = await supplierState()

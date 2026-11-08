@@ -69,7 +69,7 @@ describe('listUsers', () => {
     await assignWarehouse(owner, {
       userId: staffUser.id,
       warehouseId: center.id,
-      role: 'clerk',
+      role: 'manager',
     })
     const users = await listUsers(owner)
     expect(users.map((u) => [u.name, u.role])).toEqual([
@@ -86,7 +86,7 @@ describe('listUsers', () => {
     })
     expect(users[1].assignments).toEqual([])
     expect(users[2].assignments).toEqual([
-      { warehouseId: center.id, warehouseName: 'Centro', role: 'clerk' },
+      { warehouseId: center.id, warehouseName: 'Centro', role: 'manager' },
       { warehouseId: north.id, warehouseName: 'Norte', role: 'manager' },
     ])
   })
@@ -111,7 +111,7 @@ describe('unassignWarehouse', () => {
       await assignWarehouse(owner, {
         userId: staffUser.id,
         warehouseId: warehouse.id,
-        role: 'clerk',
+        role: 'manager',
       })
     }
     await unassignWarehouse(owner, {
@@ -121,7 +121,7 @@ describe('unassignWarehouse', () => {
     const staff = await requireActor(
       await signIn('beto@abasto.test', 'secreto-456'),
     )
-    expect([...staff.assignments]).toEqual([[center.id, 'clerk']])
+    expect([...staff.assignments]).toEqual([[center.id, 'manager']])
   })
 
   test('staff cannot unassign and state is unchanged', async () => {
@@ -196,6 +196,24 @@ describe('owner row', () => {
     expect((await listUsers(owner))[0].assignments).toEqual([])
   })
 
+  test('the retired clerk role is rejected and nothing is stored', async () => {
+    const { owner, staffUser, north } = await setup()
+    let rejected = false
+    try {
+      await assignWarehouse(owner, {
+        userId: staffUser.id,
+        warehouseId: north.id,
+        role: 'clerk' as never,
+      })
+    } catch {
+      rejected = true
+    }
+    expect(rejected).toBe(true)
+    expect(
+      (await listUsers(owner)).find((u) => u.id === staffUser.id)?.assignments,
+    ).toEqual([])
+  })
+
   test('assigning to an unknown user is not_found', async () => {
     const { owner, north } = await setup()
     await expectAppError(
@@ -203,7 +221,7 @@ describe('owner row', () => {
         assignWarehouse(owner, {
           userId: 'nadie',
           warehouseId: north.id,
-          role: 'clerk',
+          role: 'manager',
         }),
       'not_found',
       notFound,

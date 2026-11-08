@@ -226,9 +226,9 @@ describe('countStock', () => {
     )
   })
 
-  test('a clerk, and the manager of another warehouse, cannot count', async () => {
+  test('the manager of another warehouse cannot count', async () => {
     const { fx } = await setup()
-    for (const actor of [fx.clerkA, fx.managerB]) {
+    for (const actor of [fx.managerB]) {
       await rejects(() => count(fx, 1, actor), 'forbidden', forbidden)
     }
   })

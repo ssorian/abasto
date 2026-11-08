@@ -27,7 +27,7 @@ const line = (presentationId: string, quantity: number) => ({
 const place = (
   fx: Fx,
   lines: Array<ReturnType<typeof line>>,
-  actor = fx.clerkA,
+  actor = fx.staffA,
 ) =>
   createOrder(actor, {
     warehouseId: fx.a.id,
@@ -88,7 +88,7 @@ describe('createOrder', () => {
       warehouseId: fx.a.id,
       prices: [{ presentationId: fx.pieceId, priceCents: 5000 }],
     })
-    const read = await getOrder(fx.clerkA, order.id)
+    const read = await getOrder(fx.staffA, order.id)
     expect(read.totalCents).toBe(4000)
     expect(read.lines[0]).toMatchObject({
       unitPriceCents: 1000,
@@ -329,7 +329,7 @@ describe('createOrder', () => {
     await rejects(
       fx,
       () =>
-        createOrder(fx.clerkA, {
+        createOrder(fx.staffA, {
           warehouseId: fx.a.id,
           customerId: crypto.randomUUID(),
           lines: [line(fx.pieceId, 1)],
@@ -373,7 +373,7 @@ describe('createOrder', () => {
     )
   })
 
-  test('the clerk of A orders in A but not in B; unassigned staff cannot order', async () => {
+  test('the staff of A orders in A but not in B; unassigned staff cannot order', async () => {
     const fx = await setupOrders()
     await receive(fx, { productId: fx.milkBox.id, quantity: 50 })
     await receive(fx, {
@@ -381,11 +381,11 @@ describe('createOrder', () => {
       quantity: 50,
       warehouseId: fx.b.id,
     })
-    await place(fx, [line(fx.pieceId, 1)], fx.clerkA)
+    await place(fx, [line(fx.pieceId, 1)], fx.staffA)
     await rejects(
       fx,
       () =>
-        createOrder(fx.clerkA, {
+        createOrder(fx.staffA, {
           warehouseId: fx.b.id,
           customerId: fx.customer.id,
           lines: [line(fx.pieceId, 1)],

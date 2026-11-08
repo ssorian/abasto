@@ -12,6 +12,7 @@ import { countAffected } from '#/modules/pricing/lib/price-table'
 import type { PriceTableRow } from '#/modules/pricing/lib/price-table'
 import type { Outcome } from '#/modules/pricing/hooks/use-pricing'
 import type { BulkChangeInput } from '#/modules/pricing/services/bulk-prices'
+import { hasWarehouseChoice } from '#/modules/warehouses/lib/warehouse-choice'
 
 type BulkChangeDialogProps = {
   /** Warehouses the actor manages. */
@@ -43,7 +44,11 @@ export function BulkChangeDialog({
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
   const [selected, setSelected] = useState<Array<string>>(
-    currentWarehouse ? [currentWarehouse.id] : [],
+    currentWarehouse
+      ? [currentWarehouse.id]
+      : warehouses.length === 1
+        ? [warehouses[0].id]
+        : [],
   )
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
@@ -148,29 +153,33 @@ export function BulkChangeDialog({
           ))}
         </div>
       </fieldset>
-      <fieldset className="grid gap-1.5 text-sm text-[#513f45]">
-        <legend className="mb-1 text-[13px] font-medium">Almacenes</legend>
-        <label className="flex items-center gap-2 font-semibold">
-          <input
-            type="checkbox"
-            checked={everyWarehouse}
-            onChange={() =>
-              setSelected(everyWarehouse ? [] : warehouses.map(({ id }) => id))
-            }
-          />
-          Todos
-        </label>
-        {warehouses.map(({ id, name }) => (
-          <label key={id} className="flex items-center gap-2">
+      {hasWarehouseChoice(warehouses) && (
+        <fieldset className="grid gap-1.5 text-sm text-[#513f45]">
+          <legend className="mb-1 text-[13px] font-medium">Almacenes</legend>
+          <label className="flex items-center gap-2 font-semibold">
             <input
               type="checkbox"
-              checked={selected.includes(id)}
-              onChange={() => setSelected((list) => toggle(list, id))}
+              checked={everyWarehouse}
+              onChange={() =>
+                setSelected(
+                  everyWarehouse ? [] : warehouses.map(({ id }) => id),
+                )
+              }
             />
-            {name}
+            Todos
           </label>
-        ))}
-      </fieldset>
+          {warehouses.map(({ id, name }) => (
+            <label key={id} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={selected.includes(id)}
+                onChange={() => setSelected((list) => toggle(list, id))}
+              />
+              {name}
+            </label>
+          ))}
+        </fieldset>
+      )}
       <Field label="Motivo (opcional)">
         <TextInput value={reason} onChange={(e) => setReason(e.target.value)} />
       </Field>

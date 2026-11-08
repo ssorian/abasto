@@ -24,17 +24,17 @@ const invalid =
 describe('reservation duration', () => {
   test('defaults to 24 hours and any staff can read it', async () => {
     const fx = await setupOrders()
-    expect(await getReservationHours(fx.clerkA)).toBe(24)
+    expect(await getReservationHours(fx.staffA)).toBe(24)
   })
 
   test('the owner changes it and new orders use it', async () => {
     const fx = await setupOrders()
     await receive(fx, { productId: fx.milkBox.id, quantity: 10 })
     await setReservationHours(fx.owner, 2)
-    expect(await getReservationHours(fx.clerkA)).toBe(2)
+    expect(await getReservationHours(fx.staffA)).toBe(2)
     await setReservationHours(fx.owner, 3)
     const before = Date.now()
-    const order = await createOrder(fx.clerkA, {
+    const order = await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.pieceId, quantity: 1 }],
@@ -44,13 +44,13 @@ describe('reservation duration', () => {
     expect(hours).toBeLessThan(3.01)
     // 4 h later it is overdue under the 3 h setting.
     advance(4)
-    const list = await listOrders(fx.clerkA, { warehouseId: fx.a.id })
+    const list = await listOrders(fx.staffA, { warehouseId: fx.a.id })
     expect(list[0].status).toBe('Vencido')
   })
 
   test('staff, including a manager, cannot change it', async () => {
     const fx = await setupOrders()
-    for (const actor of [fx.managerA, fx.clerkA]) {
+    for (const actor of [fx.managerA, fx.staffA]) {
       const error = await errorOf(() => setReservationHours(actor, 5))
       expect([error.code, error.message]).toEqual([
         'forbidden',

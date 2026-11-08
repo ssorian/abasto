@@ -66,13 +66,13 @@ describe('sales and margin', () => {
       expiresOn: '2099-12-01',
     })
     const place = (quantity: number) =>
-      createOrder(fx.clerkA, {
+      createOrder(fx.staffA, {
         warehouseId: fx.a.id,
         customerId: fx.customer.id,
         lines: [{ presentationId: fx.pieceId, quantity }],
       })
     useClock(() => new Date('2026-11-03T19:00:00Z'))
-    await cancelOrder(fx.clerkA, (await place(2)).id)
+    await cancelOrder(fx.staffA, (await place(2)).id)
     await place(2) // becomes Vencido after the reservation window
     useClock(() => new Date('2026-11-05T12:00:00Z'))
     await getWarehouseStock(fx.owner, fx.a.id)
@@ -287,16 +287,12 @@ describe('sales report scope', () => {
     ).toMatchObject({ code: 'forbidden' })
   })
 
-  test('a clerk cannot read reports', async () => {
+  test('staff who manage no warehouse cannot read reports', async () => {
     const fx = await twoWarehouses()
-    expect(await errorOf(() => getSalesReport(fx.clerkA, wide))).toMatchObject({
-      code: 'forbidden',
-    })
-    expect(
-      await errorOf(() =>
-        getSalesReport(fx.clerkA, { ...wide, warehouseIds: [fx.a.id] }),
-      ),
-    ).toMatchObject({ code: 'forbidden' })
+    const unassigned = { ...fx.managerA, assignments: new Map() }
+    expect(await errorOf(() => getSalesReport(unassigned, wide))).toMatchObject(
+      { code: 'forbidden', message: forbidden },
+    )
   })
 })
 

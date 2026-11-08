@@ -36,7 +36,7 @@ export async function setupReports() {
   }) => {
     useClock(() => new Date(input.at))
     const inB = input.warehouseId === fx.b.id
-    const actor: Actor = inB ? fx.managerB : fx.clerkA
+    const actor: Actor = inB ? fx.managerB : fx.staffA
     const order = await createOrder(actor, {
       warehouseId: input.warehouseId ?? fx.a.id,
       customerId: input.customerId ?? fx.customer.id,

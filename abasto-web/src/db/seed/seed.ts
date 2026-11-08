@@ -75,7 +75,7 @@ export const defaultSeedPassword = 'abasto-2026'
 export type SeededUser = {
   name: string
   email: string
-  role: 'Dueño' | 'Encargado' | 'Mostrador'
+  role: 'Dueño' | 'Encargado'
   warehouses: string
   /** Null when the owner already existed (their password is unchanged). */
   password: string | null
@@ -154,35 +154,26 @@ export async function seedDatabase({
     await assignWarehouse(owner, {
       userId: created.id,
       warehouseId: warehouseId[member.warehouse],
-      role: member.role,
+      role: 'manager',
     })
     staff.set(member.email, {
       userId: created.id,
       role: 'staff',
       assignments: new Map<string, WarehouseRole>([
-        [warehouseId[member.warehouse], member.role],
+        [warehouseId[member.warehouse], 'manager'],
       ]),
     })
     users.push({
       name: member.name,
       email: member.email,
-      role: member.role === 'manager' ? 'Encargado' : 'Mostrador',
+      role: 'Encargado',
       warehouses: member.warehouse,
       password,
     })
   }
   const as = (email: string) => staff.get(email)!
   const managerOf = (warehouse: WarehouseName) =>
-    as(
-      staffSeed.find((m) => m.warehouse === warehouse && m.role === 'manager')!
-        .email,
-    )
-  const clerkOf = (warehouse: WarehouseName) => {
-    const clerk = staffSeed.find(
-      (m) => m.warehouse === warehouse && m.role === 'clerk',
-    )
-    return clerk ? as(clerk.email) : managerOf(warehouse)
-  }
+    as(staffSeed.find((m) => m.warehouse === warehouse)!.email)
 
   // Catalog.
   const supplierId = {} as Record<string, string>
@@ -389,7 +380,7 @@ export async function seedDatabase({
     lines: Array<[sku: string, boxes: number]>,
     notes?: string,
   ) =>
-    createOrder(clerkOf(warehouse), {
+    createOrder(managerOf(warehouse), {
       warehouseId: warehouseId[warehouse],
       customerId: customerId[customer],
       notes,
@@ -402,7 +393,7 @@ export async function seedDatabase({
     warehouse: WarehouseName,
     orderId: string,
     payment: PickupPayment,
-  ) => pickupOrder(clerkOf(warehouse), orderId, payment)
+  ) => pickupOrder(managerOf(warehouse), orderId, payment)
   /** Cash tendered rounded up to the next 100 pesos. */
   const cash = (totalCents: number): PickupPayment => ({
     terms: 'contado',
@@ -410,7 +401,7 @@ export async function seedDatabase({
   })
 
   // Today in Tejupilco: drawer, cash sale, withdrawal and open orders.
-  await openCashSession(clerkOf('Tejupilco'), {
+  await openCashSession(managerOf('Tejupilco'), {
     warehouseId: warehouseId.Tejupilco,
     openingCents: 100_000,
   })
@@ -419,7 +410,7 @@ export async function seedDatabase({
     ['23431', 3],
   ])
   await pickup('Tejupilco', counterSale.id, cash(counterSale.totalCents))
-  await recordCashWithdrawal(clerkOf('Tejupilco'), {
+  await recordCashWithdrawal(managerOf('Tejupilco'), {
     warehouseId: warehouseId.Tejupilco,
     amountCents: 15_000,
     reason: 'Compra de bolsas y hielo',
@@ -429,12 +420,12 @@ export async function seedDatabase({
     ['25018', 4],
     ['LU11', 2],
   ])
-  await prepareOrder(clerkOf('Tejupilco'), prepared.id)
+  await prepareOrder(managerOf('Tejupilco'), prepared.id)
   const cancelled = await order('Tejupilco', 'esquinita', [['SA80', 2]])
-  await cancelOrder(clerkOf('Tejupilco'), cancelled.id)
+  await cancelOrder(managerOf('Tejupilco'), cancelled.id)
 
   // Luvianos: open drawer, a cash sale, a damaged-goods loss and a reservation.
-  await openCashSession(clerkOf('Luvianos'), {
+  await openCashSession(managerOf('Luvianos'), {
     warehouseId: warehouseId.Luvianos,
     openingCents: 50_000,
   })

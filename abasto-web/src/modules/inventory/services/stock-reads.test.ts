@@ -43,7 +43,7 @@ describe('getWarehouseStock', () => {
       minimum: 14,
     })
 
-    const stock = await getWarehouseStock(fx.clerkA, fx.a.id)
+    const stock = await getWarehouseStock(fx.staffA, fx.a.id)
     expect(stock).toHaveLength(1)
     const [row] = stock
     expect(row).toMatchObject({
@@ -78,9 +78,9 @@ describe('getWarehouseStock', () => {
     expect(stock.map((row) => row.belowMinimum)).toEqual([false, false])
   })
 
-  test('a clerk reads their own warehouse only', async () => {
+  test('staff read their own warehouse only', async () => {
     const fx = await setupInventory()
-    const error = await errorOf(() => getWarehouseStock(fx.clerkA, fx.b.id))
+    const error = await errorOf(() => getWarehouseStock(fx.staffA, fx.b.id))
     expect([error.code, error.message]).toEqual([
       'forbidden',
       'No tienes permiso para esta acción.',
@@ -113,7 +113,7 @@ describe('listStockMovements', () => {
 
   test('lists the warehouse ledger newest first with signed quantity, reason, actor and lot code', async () => {
     const { fx } = await history()
-    const rows = await listStockMovements(fx.clerkA, { warehouseId: fx.a.id })
+    const rows = await listStockMovements(fx.staffA, { warehouseId: fx.a.id })
     expect(rows.map((row) => [row.type, row.quantity])).toEqual([
       ['count', 2],
       ['adjustment', -3],
@@ -158,7 +158,7 @@ describe('listStockMovements', () => {
   test('needs warehouse.view for that warehouse', async () => {
     const { fx } = await history()
     const error = await errorOf(() =>
-      listStockMovements(fx.clerkA, { warehouseId: fx.b.id }),
+      listStockMovements(fx.staffA, { warehouseId: fx.b.id }),
     )
     expect(error.code).toBe('forbidden')
   })

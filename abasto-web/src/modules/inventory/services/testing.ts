@@ -3,6 +3,7 @@ import { asc, count, eq, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { user } from '#/db/auth-schema'
 import { signIn } from '#/modules/access/lib/testing'
+import type { WarehouseRole } from '#/modules/access/db/schema'
 import type { Actor } from '#/modules/access/lib/policy'
 import {
   assignWarehouse,
@@ -30,7 +31,7 @@ async function staffActor(
   owner: Actor,
   name: string,
   warehouseId: string,
-  role: 'manager' | 'clerk',
+  role: WarehouseRole,
 ): Promise<Actor> {
   const userId = `user-${name}`
   await db.insert(user).values({
@@ -56,7 +57,7 @@ const productInput = (sku: string, name: string) => ({
   defaultIndex: 0,
 })
 
-/** Owner, warehouses A and B (manager and clerk in A, manager in B), a supplier and two products. */
+/** Owner, warehouses A and B (two managers in A, one in B), a supplier and two products. */
 export async function setupInventory() {
   await bootstrapOwner({
     name: 'Dueño',
@@ -69,7 +70,7 @@ export async function setupInventory() {
   const a = await createWarehouse(owner, { name: 'Almacén A' })
   const b = await createWarehouse(owner, { name: 'Almacén B' })
   const managerA = await staffActor(owner, 'gerente-a', a.id, 'manager')
-  const clerkA = await staffActor(owner, 'cajero-a', a.id, 'clerk')
+  const staffA = await staffActor(owner, 'cajero-a', a.id, 'manager')
   const managerB = await staffActor(owner, 'gerente-b', b.id, 'manager')
   const supplier = await createSupplier(owner, { name: 'Alpura' })
   const milk = await createProduct(owner, productInput('LEC-1', 'Leche 1L'))
@@ -77,7 +78,7 @@ export async function setupInventory() {
     owner,
     productInput('REF-1', 'Refresco 600ml'),
   )
-  return { owner, a, b, managerA, clerkA, managerB, supplier, milk, soda }
+  return { owner, a, b, managerA, staffA, managerB, supplier, milk, soda }
 }
 
 export type Fixture = Awaited<ReturnType<typeof setupInventory>>

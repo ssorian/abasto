@@ -164,7 +164,7 @@ describe('createStaffUser', () => {
 })
 
 describe('assignWarehouse', () => {
-  test('the owner assigns a role that the staff session then carries', async () => {
+  test('the owner assigns a warehouse (twice is harmless) and the staff session carries it', async () => {
     const owner = await ownerActor()
     const staffUser = await createStaffUser(owner, {
       name: 'Encargado',
@@ -180,12 +180,12 @@ describe('assignWarehouse', () => {
     await assignWarehouse(owner, {
       userId: staffUser.id,
       warehouseId: north.id,
-      role: 'clerk',
+      role: 'manager',
     })
     const staff = await requireActor(
       await signIn('encargado@abasto.test', 'secreto-456'),
     )
-    expect([...staff.assignments]).toEqual([[north.id, 'clerk']])
+    expect([...staff.assignments]).toEqual([[north.id, 'manager']])
   })
 
   test('staff cannot assign warehouses', async () => {

@@ -13,6 +13,7 @@ import { orderStatusFilters } from '#/modules/counter/lib/order-status'
 import type { StatusFilter } from '#/modules/counter/lib/order-status'
 import type { CounterOverview } from '#/modules/counter/types/counter-view'
 import { cn } from '#/lib/utils/cn'
+import { hasWarehouseChoice } from '#/modules/warehouses/lib/warehouse-choice'
 
 type CounterPageProps = {
   overview: CounterOverview
@@ -60,22 +61,31 @@ export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
     <>
       {heading}
       <div className="mb-5 flex flex-wrap items-end gap-4">
-        <label className="flex min-w-[220px] flex-col gap-[7px] text-[13px] font-medium text-[#513f45]">
-          Almacén
-          <FieldSelect
-            value={selected.id}
-            onChange={(event) => {
-              setFilter('Todos')
-              onSelectWarehouse(event.target.value)
-            }}
-          >
-            {overview.warehouses.map((warehouse) => (
-              <option key={warehouse.id} value={warehouse.id}>
-                {warehouse.name}
-              </option>
-            ))}
-          </FieldSelect>
-        </label>
+        {hasWarehouseChoice(overview.warehouses) ? (
+          <label className="flex min-w-[220px] flex-col gap-[7px] text-[13px] font-medium text-[#513f45]">
+            Almacén
+            <FieldSelect
+              value={selected.id}
+              onChange={(event) => {
+                setFilter('Todos')
+                onSelectWarehouse(event.target.value)
+              }}
+            >
+              {overview.warehouses.map((warehouse) => (
+                <option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.name}
+                </option>
+              ))}
+            </FieldSelect>
+          </label>
+        ) : (
+          <p className="flex min-w-[220px] flex-col gap-[7px] text-[13px] font-medium text-[#513f45]">
+            Almacén
+            <span className="text-sm font-[650] text-[#442460]">
+              {selected.name}
+            </span>
+          </p>
+        )}
         <div
           role="group"
           aria-label="Filtrar por estado"

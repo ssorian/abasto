@@ -20,7 +20,7 @@ async function setup() {
     { presentationId: fx.pieceId, minQuantity: 10, discountBps: 1000 },
   ])
   const quote = (quantity: number, presentationId = fx.pieceId) =>
-    previewQuote(fx.clerkA, {
+    previewQuote(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId, quantity }],
@@ -50,7 +50,7 @@ describe('previewQuote', () => {
   test('matches the frozen price of the order the service then creates', async () => {
     const { fx, quote } = await setup()
     const preview = await quote(12)
-    const order = await createOrder(fx.clerkA, {
+    const order = await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.pieceId, quantity: 12 }],
@@ -97,7 +97,7 @@ describe('previewQuote', () => {
   test('no lines quote nothing; a bad quantity is rejected', async () => {
     const { fx, quote } = await setup()
     expect(
-      await previewQuote(fx.clerkA, {
+      await previewQuote(fx.staffA, {
         warehouseId: fx.a.id,
         customerId: fx.customer.id,
         lines: [],

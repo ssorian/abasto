@@ -9,7 +9,7 @@ web
 ## Users
 
 - **Store customers (primary for `/tienda`):** authorized distributors of a milk and soft-drink wholesaler. A closed, hand-picked customer base; each account is created by the owner and handed over (there is no sign-up). They use the store both to reorder quickly what they already know they need and to browse the catalog for brands and presentations, often from a phone.
-- **Staff (operations console):** the owner, warehouse managers and counter clerks who run purchases, stock, prices, orders, cash and credit across four warehouses.
+- **Staff (operations console):** the owner and one manager per warehouse who run purchases, stock, prices, orders, cash and credit across four warehouses.
 
 ## Product Purpose
 

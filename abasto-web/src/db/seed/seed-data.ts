@@ -29,48 +29,15 @@ export type SeedStaff = {
   name: string
   email: string
   warehouse: WarehouseName
-  role: 'manager' | 'clerk'
 }
 
 export const ownerSeed = { name: 'Dueño Abasto', email: 'dueno@abasto.local' }
 
 export const staffSeed: Array<SeedStaff> = [
-  {
-    name: 'Laura Méndez',
-    email: 'laura@abasto.local',
-    warehouse: 'Tejupilco',
-    role: 'manager',
-  },
-  {
-    name: 'Carlos Ruiz',
-    email: 'carlos@abasto.local',
-    warehouse: 'Tejupilco',
-    role: 'clerk',
-  },
-  {
-    name: 'Ana Torres',
-    email: 'ana@abasto.local',
-    warehouse: 'Luvianos',
-    role: 'manager',
-  },
-  {
-    name: 'Diego López',
-    email: 'diego@abasto.local',
-    warehouse: 'Luvianos',
-    role: 'clerk',
-  },
-  {
-    name: 'Rosa Jiménez',
-    email: 'rosa@abasto.local',
-    warehouse: 'Amatepec',
-    role: 'manager',
-  },
-  {
-    name: 'Miguel Cruz',
-    email: 'miguel@abasto.local',
-    warehouse: 'Arcelia',
-    role: 'manager',
-  },
+  { name: 'Laura Méndez', email: 'laura@abasto.local', warehouse: 'Tejupilco' },
+  { name: 'Miguel Cruz', email: 'miguel@abasto.local', warehouse: 'Arcelia' },
+  { name: 'Ana Torres', email: 'ana@abasto.local', warehouse: 'Luvianos' },
+  { name: 'Rosa Jiménez', email: 'rosa@abasto.local', warehouse: 'Amatepec' },
 ]
 
 export const supplierSeed = [
@@ -166,7 +133,7 @@ function alpuraProduct(row: AlpuraRow): SeedProduct {
     `Pedido: ${row.sheetName}`,
     row.subcategory,
     row.presentation,
-    box > 1 ? `Charola con ${box} piezas` : 'Pieza individual',
+    box > 1 ? `Caja con ${box} piezas` : 'Pieza individual',
     `Tarima con ${row.piecesPerPallet} piezas (${row.boxesPerPallet} empaques)`,
     `Precio de lista $${row.listPrice.toFixed(2)} por pieza`,
   ]
@@ -181,12 +148,11 @@ function alpuraProduct(row: AlpuraRow): SeedProduct {
     supplierCode: row.oracle,
     fixedDiscountPerPiece: tenThousandths(row.fixedDiscount),
     promotionPerPiece: tenThousandths(row.promotion),
-    boxName: box > 1 ? 'Charola' : 'Pieza',
+    boxName: box > 1 ? 'Caja' : 'Pieza',
     boxFactor: box,
     presentations: presentationsOf(
       { name: 'Pieza', factor: 1, barcode: row.barcode },
-      { name: 'Charola', factor: box },
-      { name: 'Tarima', factor: row.piecesPerPallet },
+      { name: 'Caja', factor: box },
     ),
     boxCostCents: cents(row.listPrice * box),
     boxPriceCents: cents(net * alpuraMarkup * box),

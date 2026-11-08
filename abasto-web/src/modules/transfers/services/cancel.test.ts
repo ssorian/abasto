@@ -109,11 +109,11 @@ describe('cancelTransfer', () => {
     expect(await transferState()).toEqual(afterCancel)
   })
 
-  test('the source manager and the owner cancel; destination manager and clerks cannot', async () => {
+  test('the source manager and the owner cancel; destination manager cannot', async () => {
     const fx = await setupTransfers()
     const { id } = await twoLotsInTransit(fx)
     const before = await transferState()
-    for (const actor of [fx.managerB, fx.clerkA]) {
+    for (const actor of [fx.managerB]) {
       const error = await errorOf(() =>
         cancelTransfer(actor, { transferId: id }),
       )

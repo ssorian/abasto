@@ -52,7 +52,6 @@ If you prefer not to use Tailwind CSS:
 
 ## Linting & Formatting
 
-
 This project uses [eslint](https://eslint.org/) and [prettier](https://prettier.io/) for linting and formatting. Eslint is configured using [tanstack/eslint-config](https://tanstack.com/config/latest/docs/eslint). The following scripts are available:
 
 ```bash
@@ -60,7 +59,6 @@ bun --bun run lint
 bun --bun run format
 bun --bun run check
 ```
-
 
 ## Deploy with Nitro
 
@@ -75,7 +73,6 @@ The build output is a self-contained Node server. To deploy, push the `.output/`
 
 For host-specific presets (Vercel, Netlify, Cloudflare, AWS Lambda, etc.) and tuning, see https://v3.nitro.build/deploy.
 
-
 ## T3Env
 
 - You can use T3Env to add type safety to your environment variables.
@@ -85,18 +82,14 @@ For host-specific presets (Vercel, Netlify, Cloudflare, AWS Lambda, etc.) and tu
 ### Usage
 
 ```ts
-import { env } from "#/env";
+import { env } from '#/env'
 
-console.log(env.VITE_APP_TITLE);
+console.log(env.VITE_APP_TITLE)
 ```
-
-
-
-
 
 ## Accounts and roles
 
-Better Auth stores users and sessions in Postgres (`src/db/auth-schema.ts`). Public sign-up is disabled: the owner creates staff accounts and assigns them to warehouses as `manager` or `clerk`.
+Better Auth stores users and sessions in Postgres (`src/db/auth-schema.ts`). Public sign-up is disabled: the owner creates staff accounts and assigns them to warehouses as `manager` (one role per warehouse; the owner sees everything).
 
 1. Set `BETTER_AUTH_SECRET` in `.env.local` (`bunx --bun @better-auth/cli secret` generates one).
 2. Create the first owner once:
@@ -109,7 +102,7 @@ Better Auth stores users and sessions in Postgres (`src/db/auth-schema.ts`). Pub
 
 ## Seed data
 
-`bun run db:seed` loads a sample business into the development database through the real services: four warehouses (Tejupilco, Arcelia, Luvianos, Amatepec) with managers and clerks, suppliers Grupo Lala and Alpura, eighteen dairy products with official brand photos and per-warehouse prices, lots with expiry dates, customers with credit and commercial rules, orders in every state, open and closed cash drawers, an abono, a pending credit authorization, an overdue balance and transfers.
+`bun run db:seed` loads a sample business into the development database through the real services: four warehouses (Tejupilco, Arcelia, Luvianos, Amatepec) each with its own manager, suppliers Grupo Lala and Alpura, eighteen dairy products with official brand photos and per-warehouse prices, lots with expiry dates, customers with credit and commercial rules, orders in every state, open and closed cash drawers, an abono, a pending credit authorization, an overdue balance and transfers.
 
 - It only runs on an empty database. An owner created with `auth:create-owner` is reused; otherwise it creates `dueno@abasto.local`.
 - Every seeded user gets the password in `SEED_PASSWORD` (default `abasto-2026`); the command prints the users.
@@ -132,7 +125,7 @@ Now that you have two routes you can use a `Link` component to navigate between 
 To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
 
 ```tsx
-import { Link } from "@tanstack/react-router";
+import { Link } from '@tanstack/react-router'
 ```
 
 Then anywhere in your JSX you can use it like so:
@@ -200,11 +193,11 @@ const getServerTime = createServerFn({
 // Use in a component
 function MyComponent() {
   const [time, setTime] = useState('')
-  
+
   useEffect(() => {
     getServerTime().then(setTime)
   }, [])
-  
+
   return <div>Server time: {time}</div>
 }
 ```
@@ -256,8 +249,6 @@ function PeopleComponent() {
 ```
 
 Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-
 
 # Learn More
 

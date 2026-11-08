@@ -36,7 +36,7 @@ test('dispatches racing orders and withdrawals keep stock non-negative and the l
         items: [{ productId: fx.milkBox.id, quantity }],
       })
     const order = (quantity: number) =>
-      createOrder(fx.clerkA, {
+      createOrder(fx.staffA, {
         warehouseId: fx.a.id,
         customerId: fx.customer.id,
         lines: [{ presentationId: fx.pieceId, quantity }],

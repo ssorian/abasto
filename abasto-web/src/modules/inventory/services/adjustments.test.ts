@@ -115,9 +115,9 @@ describe('adjustLot', () => {
     )
   })
 
-  test('a clerk, and the manager of another warehouse, cannot adjust', async () => {
+  test('the manager of another warehouse cannot adjust', async () => {
     const { fx, lot } = await setup()
-    for (const actor of [fx.clerkA, fx.managerB]) {
+    for (const actor of [fx.managerB]) {
       await rejects(
         () => adjustLot(actor, { lotId: lot.id, quantity: 1, reason: 'x' }),
         'forbidden',
@@ -208,11 +208,11 @@ describe('registerLoss', () => {
     )
   })
 
-  test('a clerk cannot register losses', async () => {
+  test('the manager of another warehouse cannot register losses', async () => {
     const { fx, lot } = await setup()
     await rejects(
       () =>
-        registerLoss(fx.clerkA, {
+        registerLoss(fx.managerB, {
           lotId: lot.id,
           quantity: 1,
           category: 'otro',

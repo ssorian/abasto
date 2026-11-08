@@ -35,14 +35,14 @@ async function twoLots(fx: OrdersFixture) {
 }
 
 const order = (fx: OrdersFixture, quantity: number) =>
-  createOrder(fx.clerkA, {
+  createOrder(fx.staffA, {
     warehouseId: fx.a.id,
     customerId: fx.customer.id,
     lines: [{ presentationId: fx.box(fx.water).id, quantity }],
   })
 
 const preview = (fx: OrdersFixture, quantity: number) =>
-  previewQuote(fx.clerkA, {
+  previewQuote(fx.staffA, {
     warehouseId: fx.a.id,
     customerId: fx.customer.id,
     lines: [{ presentationId: fx.box(fx.water).id, quantity }],
@@ -153,7 +153,7 @@ describe('orders priced by the oldest lot (FIFO)', () => {
       prices: [{ presentationId: fx.piece(fx.water).id, priceCents: 300 }],
     })
     await twoLots(fx)
-    const placed = await createOrder(fx.clerkA, {
+    const placed = await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.piece(fx.water).id, quantity: 5 }],

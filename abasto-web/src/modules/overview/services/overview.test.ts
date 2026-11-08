@@ -39,7 +39,7 @@ async function scenario() {
   useClock(() => new Date('2026-11-04T18:00:00Z'))
 
   const place = () =>
-    createOrder(fx.clerkA, {
+    createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.pieceId, quantity: 1 }],
@@ -107,24 +107,5 @@ describe('Inicio per role', () => {
     const other = await getOverview(fx.managerB)
     expect(other.warehouses.map((item) => item.id)).toEqual([fx.b.id])
     expect(other.totals.openOrders).toBe(0)
-  })
-
-  test('a clerk sees operational counts only: no sales or margin', async () => {
-    const fx = await scenario()
-    const overview = await getOverview(fx.clerkA)
-    expect(overview.warehouses).toHaveLength(1)
-    const [a] = overview.warehouses
-    expect(a).toMatchObject({
-      openOrders: 2,
-      expiringTodayOrders: 1,
-      drawerOpen: true,
-      belowMinimum: 1,
-      expiringLots: 1,
-      pickedUpToday: 1,
-    })
-    expect(a).not.toHaveProperty('salesCents')
-    expect(a).not.toHaveProperty('marginCents')
-    expect(overview.totals).not.toHaveProperty('salesCents')
-    expect(overview.totals).not.toHaveProperty('marginCents')
   })
 })

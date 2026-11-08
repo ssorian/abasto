@@ -88,9 +88,9 @@ describe('setMinimumStock', () => {
     expect(await rows()).toBe(0)
   })
 
-  test('a clerk and a manager of another warehouse cannot set it', async () => {
+  test('a manager of another warehouse cannot set it', async () => {
     const fx = await setupInventory()
-    for (const actor of [fx.clerkA, fx.managerB]) {
+    for (const actor of [fx.managerB]) {
       const error = await errorOf(() =>
         setMinimumStock(actor, {
           productId: fx.milk.id,

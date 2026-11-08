@@ -29,6 +29,7 @@ import type {
   CatalogSupplier,
 } from '#/modules/catalog/lib/catalog-types'
 import type { WarehouseOption } from '#/modules/inventory/types/stock'
+import { hasWarehouseChoice } from '#/modules/warehouses/lib/warehouse-choice'
 
 type OrderDialogProps = {
   /** Warehouses the actor manages. */
@@ -139,20 +140,22 @@ export function OrderDialog({
                   ))}
               </FieldSelect>
             </Field>
-            <Field label="Almacén que recibe">
-              <FieldSelect
-                value={draft.warehouseId}
-                onChange={(event) =>
-                  setDraft({ ...draft, warehouseId: event.target.value })
-                }
-              >
-                {warehouses.map((warehouse) => (
-                  <option key={warehouse.id} value={warehouse.id}>
-                    {warehouse.name}
-                  </option>
-                ))}
-              </FieldSelect>
-            </Field>
+            {hasWarehouseChoice(warehouses) && (
+              <Field label="Almacén que recibe">
+                <FieldSelect
+                  value={draft.warehouseId}
+                  onChange={(event) =>
+                    setDraft({ ...draft, warehouseId: event.target.value })
+                  }
+                >
+                  {warehouses.map((warehouse) => (
+                    <option key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name}
+                    </option>
+                  ))}
+                </FieldSelect>
+              </Field>
+            )}
             <Field label="Fecha esperada de entrega (opcional)">
               <FieldInput
                 type="date"

@@ -25,12 +25,12 @@ async function setup() {
   const owner = await requireActor(
     await signIn('dueno@abasto.test', 'secreto-123'),
   )
-  const clerkUser = await createStaffUser(owner, {
+  const staffUser = await createStaffUser(owner, {
     name: 'Cajero',
     email: 'cajero@abasto.test',
     password: 'secreto-456',
   })
-  return { owner, clerkUser }
+  return { owner, staffUser }
 }
 
 const warehouseCount = async () =>
@@ -92,10 +92,10 @@ describe('createWarehouse', () => {
 
   test('staff cannot create warehouses', async () => {
     await setup()
-    const clerk = await requireActor(
+    const staff = await requireActor(
       await signIn('cajero@abasto.test', 'secreto-456'),
     )
-    const error = await errorOf(() => createWarehouse(clerk, { name: 'Sur' }))
+    const error = await errorOf(() => createWarehouse(staff, { name: 'Sur' }))
     expect(error.code).toBe('forbidden')
     expect(error.message).toBe('No tienes permiso para esta acción.')
     expect(await warehouseCount()).toBe(0)
@@ -104,16 +104,16 @@ describe('createWarehouse', () => {
 
 describe('listWarehouses', () => {
   test('the owner sees every warehouse sorted by name; staff only their own', async () => {
-    const { owner, clerkUser } = await setup()
+    const { owner, staffUser } = await setup()
     const sur = await createWarehouse(owner, { name: 'Sur' })
     const centro = await createWarehouse(owner, { name: 'Centro' })
     const norte = await createWarehouse(owner, { name: 'Norte' })
     await assignWarehouse(owner, {
-      userId: clerkUser.id,
+      userId: staffUser.id,
       warehouseId: norte.id,
-      role: 'clerk',
+      role: 'manager',
     })
-    const clerk = await requireActor(
+    const staff = await requireActor(
       await signIn('cajero@abasto.test', 'secreto-456'),
     )
     expect((await listWarehouses(owner)).map(({ name }) => name)).toEqual([
@@ -121,7 +121,7 @@ describe('listWarehouses', () => {
       'Norte',
       'Sur',
     ])
-    expect(await listWarehouses(clerk)).toEqual([norte])
+    expect(await listWarehouses(staff)).toEqual([norte])
     expect([centro.id, sur.id]).not.toContain(norte.id)
   })
 })

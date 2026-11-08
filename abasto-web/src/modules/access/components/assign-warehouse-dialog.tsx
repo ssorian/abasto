@@ -39,7 +39,7 @@ export function AssignWarehouseDialog({
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [warehouseId, setWarehouseId] = useState('')
-  const [role, setRole] = useState<WarehouseRole>('clerk')
+  const [role, setRole] = useState<WarehouseRole>('manager')
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

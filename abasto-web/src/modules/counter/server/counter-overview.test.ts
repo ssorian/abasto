@@ -17,13 +17,13 @@ describe('getCounterOverview', () => {
     await receive(fx, { productId: fx.milkBox.id, quantity: 30 })
     const inactive = await createCustomer(fx.owner, { name: 'Inactivo' })
     await updateCustomer(fx.owner, inactive.id, { active: false })
-    const order = await createOrder(fx.clerkA, {
+    const order = await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.pieceId, quantity: 6 }],
     })
 
-    const view = await getCounterOverview(fx.clerkA)
+    const view = await getCounterOverview(fx.staffA)
     expect(view.warehouses).toEqual([{ id: fx.a.id, name: 'Almacén A' }])
     expect(view.selectedId).toBe(fx.a.id)
     expect(view.orders.map((o) => o.id)).toEqual([order.id])
@@ -45,10 +45,10 @@ describe('getCounterOverview', () => {
     ])
     expect(view.reservationHours).toBe(24)
     expect(view.canSetHours).toBe(false)
-    // setupOrders leaves A's drawer open with no cash in it; a clerk has no history.
+    // setupOrders leaves A's drawer open with no cash in it; its manager may read the history.
     expect(view.cash?.session.warehouseId).toBe(fx.a.id)
     expect(view.cash?.expectedCents).toBe(0)
-    expect(view.canViewCashHistory).toBe(false)
+    expect(view.canViewCashHistory).toBe(true)
   })
 
   test('the owner sees every warehouse, can set the hours and picks one with the id', async () => {
@@ -68,7 +68,7 @@ describe('getCounterOverview', () => {
 
   test("a warehouse the actor can't operate falls back to their own", async () => {
     const fx = await setupOrders()
-    const view = await getCounterOverview(fx.clerkA, fx.b.id)
+    const view = await getCounterOverview(fx.staffA, fx.b.id)
     expect(view.selectedId).toBe(fx.a.id)
   })
 })

@@ -3,6 +3,7 @@ import { WarehouseIcon } from 'lucide-react'
 import { Picker } from '#/modules/inventory/components/picker'
 import type { StatusFilter } from '#/modules/inventory/lib/stock-metrics'
 import type { WarehouseOption } from '#/modules/inventory/types/stock'
+import { hasWarehouseChoice } from '#/modules/warehouses/lib/warehouse-choice'
 
 type WarehouseSummaryProps = {
   warehouses: ReadonlyArray<WarehouseOption>
@@ -40,16 +41,22 @@ export function WarehouseSummary({
           <span className="ml-[9px] text-xs font-[650] tracking-[1.1px] text-[#9d8d92]">
             ESTÁS CONSULTANDO
           </span>
-          <Picker
-            label="Almacén"
-            value={selectedId}
-            onChange={onWarehouseChange}
-            options={warehouses.map(({ id, name }) => ({
-              value: id,
-              label: name,
-            }))}
-            className="data-[size=default]:h-[27px] min-w-[150px] border-0 bg-transparent px-[9px] text-sm font-[650] text-[#442460] md:min-w-[165px]"
-          />
+          {hasWarehouseChoice(warehouses) ? (
+            <Picker
+              label="Almacén"
+              value={selectedId}
+              onChange={onWarehouseChange}
+              options={warehouses.map(({ id, name }) => ({
+                value: id,
+                label: name,
+              }))}
+              className="data-[size=default]:h-[27px] min-w-[150px] border-0 bg-transparent px-[9px] text-sm font-[650] text-[#442460] md:min-w-[165px]"
+            />
+          ) : (
+            <p className="px-[9px] text-sm leading-[27px] font-[650] text-[#442460]">
+              {warehouses.find(({ id }) => id === selectedId)?.name}
+            </p>
+          )}
         </div>
       </div>
       <div className="flex w-full items-center justify-around gap-3 border-t border-[#f4eee7] pt-4 md:ml-auto md:w-auto md:justify-start md:border-0 md:p-0 tablet:gap-5 wide:ml-0 wide:gap-[19px]">

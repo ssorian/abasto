@@ -30,7 +30,7 @@ describe('Inicio headline figures', () => {
     ])
   })
 
-  test('clerks only get operational counts', () => {
+  test('without managed warehouses only operational counts show', () => {
     const metrics = metricsOf(base)
     expect(metrics.map((item) => item.label)).toEqual([
       'Entregas de hoy',

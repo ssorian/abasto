@@ -15,7 +15,7 @@ beforeEach(() => resetDatabase(db))
 
 async function setup() {
   const fx = await setupInventory()
-  const session = await openCashSession(fx.clerkA, {
+  const session = await openCashSession(fx.staffA, {
     warehouseId: fx.a.id,
     openingCents: 1000,
   })
@@ -44,7 +44,7 @@ const insertMovement = (
 describe('closed cash sessions are immutable', () => {
   test('a closed session refuses UPDATE and DELETE, an open one can still close', async () => {
     const { fx, session } = await setup()
-    const closed = await closeCashSession(fx.clerkA, {
+    const closed = await closeCashSession(fx.staffA, {
       warehouseId: fx.a.id,
       countedCents: 1000,
     })
@@ -67,16 +67,16 @@ describe('closed cash sessions are immutable', () => {
 
   test('an open session can be updated and deleted-free flows keep working', async () => {
     const { fx } = await setup()
-    await recordCashEntry(fx.clerkA, {
+    await recordCashEntry(fx.staffA, {
       warehouseId: fx.a.id,
       amountCents: 500,
       reason: 'cambio',
     })
-    await closeCashSession(fx.clerkA, {
+    await closeCashSession(fx.staffA, {
       warehouseId: fx.a.id,
       countedCents: 1500,
     })
-    const reopened = await openCashSession(fx.clerkA, {
+    const reopened = await openCashSession(fx.staffA, {
       warehouseId: fx.a.id,
       openingCents: 0,
     })
@@ -87,13 +87,13 @@ describe('closed cash sessions are immutable', () => {
 describe('cash movements need an open session of the same warehouse', () => {
   test('inserting into a closed session is refused', async () => {
     const { fx, session } = await setup()
-    await closeCashSession(fx.clerkA, {
+    await closeCashSession(fx.staffA, {
       warehouseId: fx.a.id,
       countedCents: 1000,
     })
     expect(
       await failure(() =>
-        insertMovement(session.id, fx.a.id, fx.clerkA.userId),
+        insertMovement(session.id, fx.a.id, fx.staffA.userId),
       ),
     ).toContain('open')
     expect(await db.select().from(cashMovements)).toHaveLength(0)
@@ -103,7 +103,7 @@ describe('cash movements need an open session of the same warehouse', () => {
     const { fx, session } = await setup()
     expect(
       await failure(() =>
-        insertMovement(session.id, fx.b.id, fx.clerkA.userId),
+        insertMovement(session.id, fx.b.id, fx.staffA.userId),
       ),
     ).toContain('warehouse')
     expect(await db.select().from(cashMovements)).toHaveLength(0)
@@ -111,7 +111,7 @@ describe('cash movements need an open session of the same warehouse', () => {
 
   test('an open session of the same warehouse accepts movements', async () => {
     const { fx, session } = await setup()
-    await insertMovement(session.id, fx.a.id, fx.clerkA.userId)
+    await insertMovement(session.id, fx.a.id, fx.staffA.userId)
     expect(await db.select().from(cashMovements)).toHaveLength(1)
   })
 })
@@ -120,13 +120,13 @@ describe('expected cash', () => {
   test('sums as bigint beyond the int4 range', async () => {
     const { fx } = await setup()
     for (let i = 0; i < 2; i++) {
-      await recordCashEntry(fx.clerkA, {
+      await recordCashEntry(fx.staffA, {
         warehouseId: fx.a.id,
         amountCents: 2_000_000_000,
         reason: 'grande',
       })
     }
-    const open = await getOpenCashSession(fx.clerkA, fx.a.id)
+    const open = await getOpenCashSession(fx.staffA, fx.a.id)
     expect(open?.expectedCents).toBe(4_000_001_000)
   })
 })

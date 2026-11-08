@@ -29,7 +29,7 @@ describe('pickup paid in cash (contado)', () => {
   test('exact payment records a cash sale in the open session', async () => {
     const fx = await setupSales()
     const order = await fx.place(3)
-    const picked = await pickupOrder(fx.clerkA, order.id, cash(3000))
+    const picked = await pickupOrder(fx.staffA, order.id, cash(3000))
     expect(picked.status).toBe('Recogido')
     expect(picked.payment).toEqual({
       terms: 'contado',
@@ -43,9 +43,9 @@ describe('pickup paid in cash (contado)', () => {
       tenderedCents: 3000,
       changeCents: 0,
       orderId: order.id,
-      actorId: fx.clerkA.userId,
+      actorId: fx.staffA.userId,
     })
-    expect((await getOpenCashSession(fx.clerkA, fx.a.id))?.expectedCents).toBe(
+    expect((await getOpenCashSession(fx.staffA, fx.a.id))?.expectedCents).toBe(
       3000,
     )
   })
@@ -53,7 +53,7 @@ describe('pickup paid in cash (contado)', () => {
   test('more cash than the total gives change, and only the total stays in the drawer', async () => {
     const fx = await setupSales()
     const order = await fx.place(3)
-    const picked = await pickupOrder(fx.clerkA, order.id, cash(5000))
+    const picked = await pickupOrder(fx.staffA, order.id, cash(5000))
     expect(picked.payment).toMatchObject({ changeCents: 2000 })
     const [sale] = await db.select().from(cashMovements)
     expect([sale.amountCents, sale.tenderedCents, sale.changeCents]).toEqual([
@@ -66,7 +66,7 @@ describe('pickup paid in cash (contado)', () => {
     const order = await fx.place(3)
     const before = await paymentState()
     const error = await errorOf(() =>
-      pickupOrder(fx.clerkA, order.id, cash(2999)),
+      pickupOrder(fx.staffA, order.id, cash(2999)),
     )
     expect([error.code, error.message]).toEqual(['conflict', short])
     expect(await paymentState()).toEqual(before)
@@ -74,11 +74,11 @@ describe('pickup paid in cash (contado)', () => {
 
   test('without an open session the pickup is refused and changes nothing', async () => {
     const fx = await setupSales()
-    await closeCashSession(fx.clerkA, { warehouseId: fx.a.id, countedCents: 0 })
+    await closeCashSession(fx.staffA, { warehouseId: fx.a.id, countedCents: 0 })
     const order = await fx.place(3)
     const before = await paymentState()
     const error = await errorOf(() =>
-      pickupOrder(fx.clerkA, order.id, cash(3000)),
+      pickupOrder(fx.staffA, order.id, cash(3000)),
     )
     expect([error.code, error.message]).toEqual(['conflict', noDrawer])
     expect(await paymentState()).toEqual(before)
@@ -89,7 +89,7 @@ describe('pickup paid in cash (contado)', () => {
     const order = await fx.place(3)
     const before = await paymentState()
     const none = await errorOf(() =>
-      pickupOrder(fx.clerkA, order.id, undefined),
+      pickupOrder(fx.staffA, order.id, undefined),
     )
     expect([none.code, none.message]).toEqual(['invalid', choose])
     for (const bad of [
@@ -98,14 +98,14 @@ describe('pickup paid in cash (contado)', () => {
       cash(3000.5),
       cash(2 ** 40),
     ]) {
-      const error = await errorOf(() => pickupOrder(fx.clerkA, order.id, bad))
+      const error = await errorOf(() => pickupOrder(fx.staffA, order.id, bad))
       expect(error.code).toBe('invalid')
     }
     for (const terms of ['x', 'credito']) {
       expect(
         (
           await errorOf(() =>
-            pickupOrder(fx.clerkA, order.id, { terms } as never),
+            pickupOrder(fx.staffA, order.id, { terms } as never),
           )
         ).message,
       ).toBe(choose)
