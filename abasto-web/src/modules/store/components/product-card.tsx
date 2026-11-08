@@ -24,7 +24,7 @@ export function ProductMat({ product }: { product: StoreProduct }) {
   const [failed, setFailed] = useState(false)
   if (product.imageUrl && !failed) {
     return (
-      <span className="rb-mat">
+      <span className="st-mat">
         <img
           ref={(img) => {
             // The server-rendered image can fail before React attaches onError.
@@ -39,7 +39,7 @@ export function ProductMat({ product }: { product: StoreProduct }) {
     )
   }
   return (
-    <span className="rb-mat rb-mat--empty" aria-hidden>
+    <span className="st-mat st-mat--empty" aria-hidden>
       {product.name.charAt(0).toUpperCase()}
     </span>
   )
@@ -60,12 +60,12 @@ function PresentationStrip({
   const label = `${product.name}, ${presentation.name}`
   return (
     <li
-      className="rb-strip"
+      className="st-strip"
       data-out={available ? undefined : ''}
       data-picked={quantity > 0 ? '' : undefined}
     >
       <div className="grid min-w-0 gap-1">
-        <span className="rb-strike truncate text-[15px] leading-tight font-semibold">
+        <span className="st-strike truncate text-[15px] leading-tight font-semibold">
           {presentation.name}
         </span>
         <AvailabilityTag
@@ -73,22 +73,22 @@ function PresentationStrip({
           className="justify-self-start"
         />
       </div>
-      <span className="rb-num rb-strike text-right text-[19px] leading-none">
+      <span className="st-num st-strike text-right text-[17px] leading-none">
         {formatCents(presentation.priceCents)}
       </span>
       <div className="flex min-h-[52px] w-[140px] items-center justify-end">
         {!available ? (
-          <span className="text-right text-[13px] leading-tight text-rb-muted">
+          <span className="text-right text-[13px] leading-tight text-st-muted">
             Sin existencias
           </span>
         ) : quantity === 0 ? (
           <button
             type="button"
-            className="rb-add"
+            className="st-add"
             aria-label={`Agregar a la hoja: ${label}`}
             onClick={() => onSet(presentation.id, 1)}
           >
-            <PlusIcon className="size-6" strokeWidth={2.75} aria-hidden />
+            <PlusIcon className="size-6" strokeWidth={2.25} aria-hidden />
           </button>
         ) : (
           <QuantityStepper
@@ -106,14 +106,14 @@ function PresentationStrip({
 /** One product as a rack label: header with the photo mat, one strip per presentation. */
 export function ProductCard({ product, lines, onSet }: ProductCardProps) {
   return (
-    <article aria-label={product.name} className="rb-block">
+    <article aria-label={product.name} className="st-block">
       <header className="flex items-center gap-3 p-2.5">
         <ProductMat product={product} />
         <div className="min-w-0">
-          <h3 className="rb-stencil line-clamp-2 text-[18px] leading-[1.15] tracking-[0.02em]">
+          <h3 className="st-stencil line-clamp-2 text-[16px] leading-snug">
             {product.name}
           </h3>
-          <p className="truncate text-[13px] text-rb-muted">
+          <p className="truncate text-[13px] text-st-muted">
             {[product.brand, product.category].filter(Boolean).join(' · ')}
           </p>
         </div>

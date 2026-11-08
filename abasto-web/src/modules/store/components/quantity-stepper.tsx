@@ -16,7 +16,7 @@ const CELLS = 12
 
 /**
  * Pick-face stepper: minus, typed quantity, plus, and under it the quantity
- * drawn as a bar of whole cells (the twelfth cell turns signal past twelve).
+ * drawn as a bar of whole cells (the twelfth cell turns plum past twelve).
  */
 export function QuantityStepper({
   value,
@@ -32,7 +32,7 @@ export function QuantityStepper({
       <div
         role="group"
         aria-label={label}
-        className={cn('rb-stepper', value > min && 'rb-stepper--set')}
+        className={cn('st-stepper', value > min && 'st-stepper--set')}
       >
         <button
           type="button"
@@ -40,7 +40,7 @@ export function QuantityStepper({
           disabled={value <= min}
           onClick={() => onChange(clamp(value - 1))}
         >
-          <MinusIcon className="size-5" strokeWidth={2.5} aria-hidden />
+          <MinusIcon className="size-5" strokeWidth={2} aria-hidden />
         </button>
         <input
           inputMode="numeric"
@@ -59,11 +59,11 @@ export function QuantityStepper({
           disabled={value >= MAX_LINE_QUANTITY}
           onClick={() => onChange(clamp(value + 1))}
         >
-          <PlusIcon className="size-5" strokeWidth={2.5} aria-hidden />
+          <PlusIcon className="size-5" strokeWidth={2} aria-hidden />
         </button>
       </div>
       <div
-        className="rb-cells"
+        className="st-cells"
         aria-hidden
         data-over={value > CELLS ? '' : undefined}
       >

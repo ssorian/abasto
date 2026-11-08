@@ -31,7 +31,7 @@ export const Route = createFileRoute('/tienda/')({
 
     if (!warehouse) {
       return (
-        <p className="rb-stencil border-2 border-dashed border-rb-graphite-soft bg-rb-label p-8 text-center text-xl">
+        <p className="st-stencil rounded-2xl border border-dashed border-st-line-strong bg-st-card p-8 text-center text-lg">
           La tienda aún no tiene almacenes disponibles
         </p>
       )

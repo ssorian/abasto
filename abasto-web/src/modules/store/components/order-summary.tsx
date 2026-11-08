@@ -9,7 +9,7 @@ import type { StoreOrder } from '#/modules/store/services/storefront'
 /** Lines and total of an order, as ruled label lines. */
 export function OrderLines({ order }: { order: StoreOrder }) {
   return (
-    <ul className="grid divide-y divide-rb-rule border-y-2 border-rb-graphite">
+    <ul className="grid divide-y divide-st-line border-y border-st-line">
       {order.lines.map((line, index) => (
         <li
           key={`${line.productName}-${line.presentationName}-${index}`}
@@ -19,20 +19,20 @@ export function OrderLines({ order }: { order: StoreOrder }) {
             <p className="text-[15px] leading-tight font-semibold">
               {line.productName}
             </p>
-            <p className="text-[14px] text-rb-muted">
+            <p className="text-[14px] text-st-muted">
               {line.presentationName} ·{' '}
-              <span className="rb-num">{line.quantity}</span> ×{' '}
-              <span className="rb-num">{formatCents(line.unitPriceCents)}</span>
+              <span className="st-num">{line.quantity}</span> ×{' '}
+              <span className="st-num">{formatCents(line.unitPriceCents)}</span>
             </p>
           </div>
-          <span className="rb-num shrink-0 text-[17px]">
+          <span className="st-num shrink-0 text-[16px]">
             {formatCents(line.lineTotalCents)}
           </span>
         </li>
       ))}
       <li className="flex items-baseline justify-between py-2.5">
-        <span className="rb-label">Total</span>
-        <span className="rb-num text-[26px]">
+        <span className="st-card">Total</span>
+        <span className="st-num text-[24px]">
           {formatCents(order.totalCents)}
         </span>
       </li>
@@ -48,10 +48,10 @@ export function OrderSummary({ order }: { order: StoreOrder }) {
   return (
     <div className="grid gap-4">
       <div>
-        <p className="rb-stencil text-[24px] leading-none">
+        <p className="st-num text-[22px] leading-none text-st-plum-ink">
           {storeOrderCode(order.id)}
         </p>
-        <p className="mt-1 text-[14px] text-rb-muted">
+        <p className="mt-1 text-[14px] text-st-muted">
           Recoges en {order.warehouseName}
         </p>
       </div>
@@ -60,11 +60,11 @@ export function OrderSummary({ order }: { order: StoreOrder }) {
       <OrderLines order={order} />
 
       {order.notes ? (
-        <p className="text-[14px] text-rb-muted">Nota: {order.notes}</p>
+        <p className="text-[14px] text-st-muted">Nota: {order.notes}</p>
       ) : null}
 
       <p className="text-[15px]">
-        <span className="text-rb-muted">
+        <span className="text-st-muted">
           {isOpenOrder(order) ? 'Recoge antes de' : 'Fecha límite era'}
         </span>{' '}
         <strong className="font-semibold">

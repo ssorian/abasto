@@ -12,7 +12,7 @@ export function OrderStatusStrip({ status }: { status: StoreOrderStatus }) {
   return (
     <div className="grid gap-1.5">
       <ol
-        className="rb-steps"
+        className="st-steps"
         data-ended={ended ? '' : undefined}
         aria-label={`Estado del pedido: ${status}`}
       >
@@ -28,7 +28,7 @@ export function OrderStatusStrip({ status }: { status: StoreOrderStatus }) {
         ))}
       </ol>
       {ended ? (
-        <p className="rb-stencil text-[15px] text-rb-beam-text">{status}</p>
+        <p className="st-stencil text-[15px] text-st-danger">{status}</p>
       ) : null}
     </div>
   )

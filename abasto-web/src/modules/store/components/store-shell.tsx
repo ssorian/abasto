@@ -28,7 +28,7 @@ type StoreShellProps = {
 }
 
 const navLink =
-  'rb-stencil inline-flex min-h-11 items-center border-b-4 border-transparent px-1 text-[16px] text-rb-label/85 hover:text-rb-label aria-[current=page]:border-rb-signal aria-[current=page]:text-rb-label'
+  'inline-flex min-h-11 items-center border-b-[3px] border-transparent px-1 text-[15px] font-semibold text-st-muted hover:text-st-plum-ink aria-[current=page]:border-st-brand aria-[current=page]:text-st-plum-ink'
 
 /** Graphite bar, page, pick list and footer shared by every `/tienda` page. */
 export function StoreShell({
@@ -66,14 +66,14 @@ export function StoreShell({
   }
 
   return (
-    <div className="store flex min-h-dvh flex-col bg-rb-ground">
+    <div className="store flex min-h-dvh flex-col bg-st-ground">
       <a
         href="#contenido"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-rb-signal focus:px-4 focus:py-3 focus:font-semibold focus:text-rb-graphite"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-st-brand focus:px-4 focus:py-3 focus:font-semibold focus:text-white"
       >
         Saltar al contenido
       </a>
-      <header className="rb-dark z-30 bg-rb-graphite text-rb-label lg:sticky lg:top-0">
+      <header className="z-30 border-b border-st-line bg-st-card text-st-ink lg:sticky lg:top-0">
         <div className="mx-auto flex max-w-[1360px] flex-wrap items-center gap-x-6 px-4 lg:min-h-14 lg:flex-nowrap">
           <Link
             to="/tienda"
@@ -82,9 +82,9 @@ export function StoreShell({
           >
             <span
               aria-hidden
-              className="block size-3.5 shrink-0 bg-rb-signal"
+              className="block size-3.5 shrink-0 rounded-full bg-st-brand"
             />
-            <span className="rb-stencil truncate text-[17px] leading-none sm:text-[19px]">
+            <span className="truncate text-[17px] leading-none font-bold text-st-plum-ink sm:text-[19px]">
               {storeConfig.name}
             </span>
           </Link>
@@ -116,7 +116,7 @@ export function StoreShell({
                 </span>
                 <button
                   type="button"
-                  className="rb-btn rb-btn--quiet min-h-11 px-3 text-[16px]"
+                  className="st-btn st-btn--quiet min-h-11 px-3 text-[15px]"
                   disabled={signingOut}
                   onClick={() => void signOut()}
                 >
@@ -127,7 +127,7 @@ export function StoreShell({
               <Link
                 to="/tienda/entrar"
                 search={{ redirect: location.href }}
-                className="rb-btn rb-btn--quiet min-h-11 px-3 text-[16px]"
+                className="st-btn st-btn--quiet min-h-11 px-3 text-[15px]"
               >
                 <span className="sm:hidden">Entrar</span>
                 <span className="hidden sm:inline">Iniciar sesión</span>
@@ -159,7 +159,7 @@ export function StoreShell({
       </div>
 
       <footer
-        className={`border-t-2 border-rb-graphite px-4 py-6 text-center text-[14px] text-rb-muted ${showBar ? 'pb-28 lg:pb-6' : ''}`}
+        className={`border-t border-st-line px-4 py-6 text-center text-[13px] text-st-muted ${showBar ? 'pb-28 lg:pb-6' : ''}`}
       >
         {storeConfig.name} · {storeConfig.location}. Los pedidos son apartados:
         se recogen y se pagan en el almacén.

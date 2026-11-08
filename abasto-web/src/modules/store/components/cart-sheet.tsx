@@ -109,26 +109,26 @@ export function CartSheet({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         showCloseButton={false}
-        className="store w-full gap-0 rounded-none border-l-2 border-rb-graphite bg-rb-ground p-0 text-rb-graphite shadow-none data-[side=right]:w-full data-[side=right]:sm:max-w-[28rem]"
+        className="store w-full gap-0 rounded-none border-l border-st-line bg-st-ground p-0 text-st-ink shadow-none data-[side=right]:w-full data-[side=right]:sm:max-w-[28rem]"
         aria-describedby="cart-description"
       >
-        <SheetHeader className="rb-dark flex-row items-start justify-between gap-3 bg-rb-graphite p-4 text-rb-label">
+        <SheetHeader className="flex-row items-start justify-between gap-3 border-b border-st-line bg-st-card p-4 text-st-ink">
           <div className="min-w-0">
-            <SheetTitle className="rb-stencil text-[24px] leading-none text-rb-label">
+            <SheetTitle className="text-[22px] leading-tight font-bold text-st-plum-ink">
               {title}
             </SheetTitle>
             <SheetDescription
               id="cart-description"
-              className="mt-1.5 text-[14px] text-rb-label/85"
+              className="mt-1 text-[14px] text-st-muted"
             >
               Recoges en {warehouse.name}
             </SheetDescription>
           </div>
           <SheetClose
-            className="grid size-11 shrink-0 place-items-center border-2 border-rb-label/60 hover:bg-rb-graphite-soft"
+            className="grid size-11 shrink-0 place-items-center rounded-[10px] border border-st-line-strong text-st-ink-soft hover:bg-st-sunk"
             aria-label="Cerrar"
           >
-            <XIcon className="size-5" strokeWidth={2.5} aria-hidden />
+            <XIcon className="size-5" strokeWidth={2} aria-hidden />
           </SheetClose>
         </SheetHeader>
 
@@ -140,15 +140,15 @@ export function CartSheet({
                 to="/tienda/pedidos"
                 search={{ almacen: warehouse.id }}
                 onClick={() => handleOpenChange(false)}
-                className="rb-btn rb-btn--outline"
+                className="st-btn st-btn--outline"
               >
                 Ver mis pedidos
               </Link>
             </div>
           ) : !resolved.length && !gone.length ? (
-            <div className="grid gap-1 border-2 border-dashed border-rb-graphite-soft bg-rb-label p-8 text-center">
-              <p className="rb-stencil text-xl">Tu hoja está vacía</p>
-              <p className="text-sm text-rb-muted">
+            <div className="grid gap-1 rounded-2xl border border-dashed border-st-line-strong bg-st-card p-8 text-center">
+              <p className="st-stencil text-lg">Tu hoja está vacía</p>
+              <p className="text-sm text-st-muted">
                 Agrega productos de {warehouse.name} para apartarlos.
               </p>
             </div>
@@ -162,37 +162,37 @@ export function CartSheet({
                 const unit = priceOf(item)
                 const discounted = unit < item.presentation.priceCents
                 return (
-                  <li key={item.presentation.id} className="rb-block grid">
+                  <li key={item.presentation.id} className="st-block grid">
                     <div className="flex items-start justify-between gap-3 p-3">
                       <div className="min-w-0">
                         <p className="text-[15px] leading-tight font-semibold">
                           {item.product.name}
                         </p>
-                        <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[14px] text-rb-muted">
+                        <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[14px] text-st-muted">
                           <span>{item.presentation.name}</span>
-                          <span className="rb-num text-rb-graphite">
+                          <span className="st-num text-st-ink">
                             {pricesPending ? '…' : formatCents(unit)}
                           </span>
                           {discounted && !pricesPending ? (
-                            <s className="rb-num text-[13px]">
+                            <s className="st-num text-[13px]">
                               {formatCents(item.presentation.priceCents)}
                             </s>
                           ) : null}
                         </p>
                         {unavailable ? (
-                          <p className="mt-1 text-[14px] font-semibold text-rb-beam-text">
+                          <p className="mt-1 text-[14px] font-semibold text-st-danger">
                             Agotado: quítalo para continuar.
                           </p>
                         ) : null}
                       </div>
-                      <p className="rb-num shrink-0 text-[19px]">
+                      <p className="st-num shrink-0 text-[19px]">
                         {pricesPending
                           ? '…'
                           : formatCents(unit * item.quantity)}
                       </p>
                     </div>
                     {step === 'cart' ? (
-                      <div className="flex items-start justify-between gap-2 border-t border-rb-rule bg-rb-ground/50 px-3 py-2">
+                      <div className="flex items-start justify-between gap-2 border-t border-st-line bg-st-ground/60 px-3 py-2">
                         <QuantityStepper
                           value={item.quantity}
                           min={1}
@@ -203,7 +203,7 @@ export function CartSheet({
                         />
                         <button
                           type="button"
-                          className="rb-btn rb-btn--quiet min-h-11 px-2 text-[15px]"
+                          className="st-btn st-btn--quiet min-h-11 px-2 text-[15px]"
                           aria-label={`Quitar ${label}`}
                           onClick={() => cart.remove(item.presentation.id)}
                         >
@@ -212,9 +212,9 @@ export function CartSheet({
                         </button>
                       </div>
                     ) : (
-                      <p className="border-t border-rb-rule px-3 py-2 text-[14px] text-rb-muted">
+                      <p className="border-t border-st-line px-3 py-2 text-[14px] text-st-muted">
                         Cantidad:{' '}
-                        <span className="rb-num text-rb-graphite">
+                        <span className="st-num text-st-ink">
                           {item.quantity}
                         </span>
                       </p>
@@ -226,14 +226,14 @@ export function CartSheet({
                 ? gone.map((presentationId) => (
                     <li
                       key={presentationId}
-                      className="flex items-center justify-between gap-3 border-2 border-dashed border-rb-graphite-soft p-3"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-st-line-strong p-3"
                     >
-                      <p className="text-sm text-rb-muted">
+                      <p className="text-sm text-st-muted">
                         Un producto ya no está disponible en este almacén.
                       </p>
                       <button
                         type="button"
-                        className="rb-btn rb-btn--quiet min-h-11 px-2 text-[15px]"
+                        className="st-btn st-btn--quiet min-h-11 px-2 text-[15px]"
                         onClick={() => cart.remove(presentationId)}
                       >
                         Quitar
@@ -246,25 +246,23 @@ export function CartSheet({
 
           {step === 'confirm' ? (
             <div className="mt-4 grid gap-4">
-              <div className="rb-plate p-3.5">
-                <p className="rb-stencil text-[19px] leading-tight">
+              <div className="st-plate p-4">
+                <p className="st-stencil text-[17px] leading-tight text-st-plum-ink">
                   Esto es un apartado, no una compra
                 </p>
-                <p className="mt-1.5 text-[14px] leading-snug font-medium">
+                <p className="mt-1.5 text-[14px] leading-snug">
                   No pagas nada en línea. Recoges tu pedido y lo pagas en el
                   almacén. Si no lo recoges a tiempo, el apartado vence y los
                   productos vuelven al inventario.
                 </p>
               </div>
               <label className="grid gap-1.5">
-                <span className="rb-label">
-                  Nota para el almacén (opcional)
-                </span>
+                <span className="st-card">Nota para el almacén (opcional)</span>
                 <textarea
                   value={notes}
                   maxLength={500}
                   onChange={(event) => setNotes(event.target.value)}
-                  className="rb-field min-h-20"
+                  className="st-field min-h-20"
                 />
               </label>
             </div>
@@ -272,12 +270,12 @@ export function CartSheet({
         </div>
 
         {step !== 'done' && (resolved.length || gone.length) ? (
-          <SheetFooter className="mt-0 gap-3 border-t-2 border-rb-graphite bg-rb-label p-4">
+          <SheetFooter className="mt-0 gap-3 border-t border-st-line bg-st-card p-4">
             <div className="flex items-baseline justify-between">
-              <span className="rb-label">
+              <span className="st-card">
                 {signedIn ? 'Total con tus precios' : 'Total a precio de lista'}
               </span>
-              <span key={total} className="rb-num rb-tick text-[30px]">
+              <span key={total} className="st-num st-tick text-[28px]">
                 {pricesPending ? '…' : formatCents(total)}
               </span>
             </div>
@@ -285,7 +283,7 @@ export function CartSheet({
             {signedIn && preview.status === 'error' ? (
               <p
                 role="alert"
-                className="border-2 border-rb-beam-text bg-[#f6e3da] p-2.5 text-sm font-medium text-rb-beam-text"
+                className="rounded-xl border border-st-danger/30 bg-st-danger-tint p-3 text-sm font-medium text-st-danger"
               >
                 {preview.message}
               </p>
@@ -293,7 +291,7 @@ export function CartSheet({
 
             {!signedIn ? (
               <>
-                <p className="text-[14px] text-rb-muted">
+                <p className="text-[14px] text-st-muted">
                   Los precios pueden cambiar cuando entras con tu cuenta. Para
                   apartar necesitas una cuenta de cliente.
                 </p>
@@ -301,19 +299,19 @@ export function CartSheet({
                   to="/tienda/entrar"
                   search={{ redirect: location.href }}
                   onClick={() => handleOpenChange(false)}
-                  className="rb-btn"
+                  className="st-btn"
                 >
                   Inicia sesión para apartar
                 </Link>
               </>
             ) : step === 'cart' ? (
               <>
-                <p className="text-[14px] text-rb-muted">
+                <p className="text-[14px] text-st-muted">
                   Es un apartado: lo recoges y lo pagas en el almacén.
                 </p>
                 <button
                   type="button"
-                  className="rb-btn"
+                  className="st-btn"
                   disabled={blocked}
                   onClick={() => setStep('confirm')}
                 >
@@ -324,7 +322,7 @@ export function CartSheet({
               <>
                 <button
                   type="button"
-                  className="rb-btn"
+                  className="st-btn"
                   disabled={blocked || pending}
                   onClick={() => void confirm()}
                 >
@@ -332,7 +330,7 @@ export function CartSheet({
                 </button>
                 <button
                   type="button"
-                  className="rb-btn rb-btn--quiet"
+                  className="st-btn st-btn--quiet"
                   disabled={pending}
                   onClick={() => setStep('cart')}
                 >

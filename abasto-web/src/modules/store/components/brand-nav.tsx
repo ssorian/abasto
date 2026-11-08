@@ -20,9 +20,9 @@ export function BrandNav({ tabs, total, value, onChange }: BrandNavProps) {
   return (
     <nav
       aria-label="Marcas"
-      className="rb-rail lg:sticky lg:top-[68px] lg:self-start"
+      className="st-rail lg:sticky lg:top-[76px] lg:self-start"
     >
-      <ul className="flex overflow-x-auto pr-10 [scrollbar-width:none] max-lg:[mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] lg:flex-col lg:overflow-visible lg:py-2 lg:pr-0">
+      <ul className="flex overflow-x-auto pr-10 [scrollbar-width:none] max-lg:[mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] py-1.5 pl-1.5 lg:flex-col lg:overflow-visible lg:p-2">
         {[all, ...tabs].map((tab) => {
           const share = tab.value ? tab.count / most : 0.4
           const extent = tab.value ? tab.count / whole : 1
@@ -31,7 +31,7 @@ export function BrandNav({ tabs, total, value, onChange }: BrandNavProps) {
             <li key={tab.value || 'all'} className="shrink-0 lg:shrink">
               <button
                 type="button"
-                className="rb-tab w-full max-lg:min-w-[calc(64px+var(--share)*84px)]"
+                className="st-tab w-full max-lg:min-w-[calc(64px+var(--share)*84px)]"
                 aria-pressed={pressed}
                 onClick={() => onChange(tab.value || undefined)}
                 style={
@@ -42,8 +42,8 @@ export function BrandNav({ tabs, total, value, onChange }: BrandNavProps) {
                 }
               >
                 <span>{tab.label}</span>
-                <span className="rb-count">{tab.count}</span>
-                <span className="rb-extent" aria-hidden />
+                <span className="st-count">{tab.count}</span>
+                <span className="st-extent" aria-hidden />
               </button>
             </li>
           )

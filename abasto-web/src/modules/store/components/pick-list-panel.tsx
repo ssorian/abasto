@@ -21,17 +21,19 @@ export function PickListPanel({
   return (
     <aside
       aria-label="Hoja de surtido"
-      className="rb-panel sticky top-[68px] hidden max-h-[calc(100dvh-84px)] flex-col lg:flex"
+      className="st-panel sticky top-[76px] hidden max-h-[calc(100dvh-92px)] flex-col lg:flex"
     >
-      <div className="rb-dark bg-rb-graphite px-4 py-3 text-rb-label">
-        <h2 className="rb-stencil text-[20px] leading-none">Hoja de surtido</h2>
-        <p className="mt-1 text-[13px] text-rb-label/85">
+      <div className="bg-st-plum-tint px-4 py-3.5">
+        <h2 className="text-[18px] leading-none font-bold text-st-plum-ink">
+          Hoja de surtido
+        </h2>
+        <p className="mt-1.5 text-[13px] text-st-muted">
           Recoges en {warehouseName}
         </p>
       </div>
 
       {lines.length ? (
-        <ul className="min-h-0 flex-1 divide-y divide-rb-rule overflow-y-auto">
+        <ul className="min-h-0 flex-1 divide-y divide-st-line overflow-y-auto">
           {lines.map((line) => {
             const label = `${line.product.name}, ${line.presentation.name}`
             return (
@@ -41,12 +43,12 @@ export function PickListPanel({
                     <p className="line-clamp-2 text-[14px] leading-tight font-semibold">
                       {line.product.name}
                     </p>
-                    <p className="text-[13px] text-rb-muted">
+                    <p className="text-[13px] text-st-muted">
                       {line.presentation.name} ·{' '}
                       {formatCents(line.presentation.priceCents)}
                     </p>
                   </div>
-                  <span className="rb-num shrink-0 text-[17px]">
+                  <span className="st-num shrink-0 text-[16px]">
                     {formatCents(line.presentation.priceCents * line.quantity)}
                   </span>
                 </div>
@@ -61,28 +63,28 @@ export function PickListPanel({
           })}
         </ul>
       ) : (
-        <div className="m-3 border-2 border-dashed border-rb-rule p-5 text-center">
-          <p className="rb-stencil text-[17px]">Hoja vacía</p>
-          <p className="mt-1 text-[14px] text-rb-muted">
+        <div className="m-3 rounded-xl border border-dashed border-st-line p-5 text-center">
+          <p className="st-stencil text-[16px]">Hoja vacía</p>
+          <p className="mt-1 text-[14px] text-st-muted">
             Toca + en un producto de {warehouseName} y se suma aquí.
           </p>
         </div>
       )}
 
-      <div className="grid gap-2 border-t-2 border-rb-graphite p-3">
+      <div className="grid gap-2 border-t border-st-line p-3">
         <div className="flex items-baseline justify-between">
-          <span className="rb-label">Total de lista</span>
-          <span key={totalCents} className="rb-num rb-tick text-[28px]">
+          <span className="st-card">Total de lista</span>
+          <span key={totalCents} className="st-num st-tick text-[26px]">
             {formatCents(totalCents)}
           </span>
         </div>
-        <p className="text-[13px] leading-snug text-rb-muted">
+        <p className="text-[13px] leading-snug text-st-muted">
           Es un apartado: lo recoges y lo pagas en el almacén. Tus precios se
           aplican al revisar.
         </p>
         <button
           type="button"
-          className="rb-btn w-full"
+          className="st-btn w-full"
           disabled={lines.length === 0}
           onClick={onReview}
         >

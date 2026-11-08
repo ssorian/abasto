@@ -53,23 +53,21 @@ export function StoreLoginPage({ redirectTo }: { redirectTo: string }) {
       <form
         onSubmit={(event) => void submit(event)}
         noValidate
-        className="rb-door"
+        className="st-door"
       >
-        <span aria-hidden className="rb-screw top-2.5 left-2.5" />
-        <span aria-hidden className="rb-screw top-2.5 right-2.5" />
-        <div className="rb-plate border-x-0 border-t-0 px-8 py-5">
-          <h1 className="rb-stencil text-[34px] leading-none">
+        <div className="bg-st-plum-tint px-6 py-6">
+          <h1 className="text-[26px] leading-tight font-bold text-st-plum-ink">
             Entra para apartar
           </h1>
         </div>
         <div className="p-6 pt-5">
-          <p className="text-[15px] leading-snug text-rb-muted">
+          <p className="text-[15px] leading-snug text-st-muted">
             Tu cuenta te la da el almacén; aquí no hay registro. Si aún no
             tienes una, pídela cuando pases por tu pedido.
           </p>
 
           <div className="mt-6 grid gap-2">
-            <label htmlFor="email" className="rb-label">
+            <label htmlFor="email" className="st-card">
               Correo
             </label>
             <input
@@ -77,11 +75,11 @@ export function StoreLoginPage({ redirectTo }: { redirectTo: string }) {
               name="email"
               type="email"
               autoComplete="username"
-              className="rb-field"
+              className="st-field"
             />
           </div>
           <div className="mt-4 grid gap-2">
-            <label htmlFor="password" className="rb-label">
+            <label htmlFor="password" className="st-card">
               Contraseña
             </label>
             <input
@@ -89,14 +87,14 @@ export function StoreLoginPage({ redirectTo }: { redirectTo: string }) {
               name="password"
               type="password"
               autoComplete="current-password"
-              className="rb-field"
+              className="st-field"
             />
           </div>
 
           {error ? (
             <p
               role="alert"
-              className="mt-4 border-2 border-rb-beam-text bg-[#f6e3da] p-2.5 text-sm font-medium text-rb-beam-text"
+              className="mt-4 rounded-xl border border-st-danger/30 bg-st-danger-tint p-3 text-sm font-medium text-st-danger"
             >
               {error}
             </p>
@@ -105,18 +103,16 @@ export function StoreLoginPage({ redirectTo }: { redirectTo: string }) {
           <button
             type="submit"
             disabled={pending}
-            className="rb-btn mt-6 w-full"
+            className="st-btn mt-6 w-full"
           >
             {pending ? 'Entrando…' : 'Entrar'}
           </button>
         </div>
-        <span aria-hidden className="rb-screw bottom-2.5 left-2.5" />
-        <span aria-hidden className="rb-screw right-2.5 bottom-2.5" />
       </form>
       <Link
         to="/tienda"
         search={{}}
-        className="rb-btn rb-btn--quiet justify-self-center"
+        className="st-btn st-btn--quiet justify-self-center"
       >
         Seguir viendo el catálogo
       </Link>

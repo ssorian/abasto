@@ -27,9 +27,9 @@ type OrdersPageProps = {
 
 function Notice({ title, children }: { title: string; children: string }) {
   return (
-    <div className="grid justify-items-center gap-1 border-2 border-dashed border-rb-graphite-soft bg-rb-label p-8 text-center">
-      <p className="rb-stencil text-xl">{title}</p>
-      <p className="max-w-md text-sm text-rb-muted">{children}</p>
+    <div className="grid justify-items-center gap-1 rounded-2xl border border-dashed border-st-line-strong bg-st-card p-8 text-center">
+      <p className="st-stencil text-lg">{title}</p>
+      <p className="max-w-md text-sm text-st-muted">{children}</p>
     </div>
   )
 }
@@ -49,7 +49,7 @@ export function OrdersPage({ user, orders }: OrdersPageProps) {
         <Link
           to="/tienda/entrar"
           search={{ redirect: location.href }}
-          className="rb-btn justify-self-center"
+          className="st-btn justify-self-center"
         >
           Iniciar sesión
         </Link>
@@ -67,19 +67,21 @@ export function OrdersPage({ user, orders }: OrdersPageProps) {
 
   return (
     <div className="grid gap-5">
-      <h1 className="rb-stencil text-[32px] leading-none">Mis pedidos</h1>
+      <h1 className="text-[28px] leading-tight font-bold text-st-plum-ink">
+        Mis pedidos
+      </h1>
       {orders.length ? (
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {orders.map((order) => (
             <li
               key={order.id}
-              className="rb-block grid content-start gap-4 p-4"
+              className="st-block grid content-start gap-4 p-4"
             >
               <OrderSummary order={order} />
               {canCancelOrder(order.status) ? (
                 <button
                   type="button"
-                  className="rb-btn rb-btn--danger"
+                  className="st-btn st-btn--danger"
                   disabled={pendingId === order.id}
                   onClick={() => setTarget(order)}
                 >
@@ -102,23 +104,23 @@ export function OrdersPage({ user, orders }: OrdersPageProps) {
           if (!open) setTarget(null)
         }}
       >
-        <AlertDialogContent className="store rounded-none border-2 border-rb-graphite bg-rb-label ring-0">
+        <AlertDialogContent className="store rounded-2xl border border-st-line bg-st-card ring-0">
           <AlertDialogHeader>
-            <AlertDialogTitle className="rb-stencil text-xl">
+            <AlertDialogTitle className="st-stencil text-lg text-st-plum-ink">
               ¿Cancelar {target ? storeOrderCode(target.id) : 'el apartado'}?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-rb-muted">
+            <AlertDialogDescription className="text-st-muted">
               Los productos se liberan para otros clientes. Para volver a
               apartarlos tendrás que hacer un pedido nuevo.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogPrimitive.Cancel className="rb-btn rb-btn--outline">
+            <AlertDialogPrimitive.Cancel className="st-btn st-btn--outline">
               Conservar apartado
             </AlertDialogPrimitive.Cancel>
             <button
               type="button"
-              className="rb-btn rb-btn--danger"
+              className="st-btn st-btn--danger"
               onClick={() => {
                 const id = target?.id
                 setTarget(null)

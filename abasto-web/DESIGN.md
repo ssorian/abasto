@@ -1,219 +1,235 @@
 ---
-name: Rack-Bay Labels (customer store)
-description: The /tienda store reads like the rack an order is picked from: label strips, a dock plate, a pick list.
+name: Soft Rack-Bay (customer store)
+description: The /tienda store keeps the rack-bay layout (label strips, pick list) in the company palette: raspberry, plum and warm cream, soft radii, light borders.
 colors:
-  concrete: "#e9e6df"
-  concrete-deep: "#dad6cb"
-  label-stock: "#fbfaf6"
-  graphite: "#22252b"
-  graphite-soft: "#3a3e46"
-  muted-steel: "#5a5d65"
-  signal-yellow: "#f4c20d"
-  beam-orange: "#e8531d"
-  beam-text: "#b23a0c"
-  upright-cobalt: "#1f4aa8"
-  upright-cobalt-deep: "#173a86"
-  rack-rule: "#b9b4a6"
+  cream: "#fff8f0"
+  cream-deep: "#f6efe6"
+  card: "#ffffff"
+  ink: "#2a1d33"
+  ink-soft: "#503f45"
+  muted: "#6f6366"
+  raspberry: "#c81d4e"
+  raspberry-hover: "#a8173f"
+  raspberry-tint: "#f8e8ee"
+  plum: "#5b2a86"
+  plum-ink: "#4a2670"
+  plum-tint: "#f1eaf6"
+  line: "#ede3d6"
+  line-strong: "#e4d8ca"
+  control: "#9c8f92"
+  danger: "#a3173f"
+  danger-tint: "#fbeae7"
+  ok: "#2f6b5a"
+  ok-tint: "#e9f4ef"
+  low: "#7d5a14"
+  low-tint: "#fff0d1"
 typography:
-  stencil:
-    fontFamily: "'Arial Narrow', 'Nimbus Sans Narrow', 'Roboto Condensed', 'Liberation Sans Narrow', 'Avenir Next Condensed', 'sans-serif-condensed', 'Helvetica Neue', Arial, sans-serif"
-    fontSize: "18px"
+  title:
+    fontFamily: "Inter, 'Segoe UI', Arial, sans-serif"
+    fontSize: "28px"
     fontWeight: 700
-    lineHeight: 1.15
-    letterSpacing: "0.04em"
+    lineHeight: 1.2
+  name:
+    fontFamily: "Inter, 'Segoe UI', Arial, sans-serif"
+    fontSize: "16px"
+    fontWeight: 650
+    lineHeight: 1.35
   price:
-    fontFamily: "'Arial Narrow', 'Nimbus Sans Narrow', 'Roboto Condensed', Arial, sans-serif"
-    fontSize: "19px"
-    fontWeight: 700
+    fontFamily: "Inter, 'Segoe UI', Arial, sans-serif"
+    fontSize: "17px"
+    fontWeight: 650
     lineHeight: 1
-    letterSpacing: "0.01em"
     fontFeature: "tabular-nums lining-nums"
   body:
-    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+    fontFamily: "Inter, 'Segoe UI', Arial, sans-serif"
     fontSize: "15px"
     fontWeight: 400
     lineHeight: 1.5
   label:
-    fontFamily: "'Arial Narrow', 'Nimbus Sans Narrow', 'Roboto Condensed', Arial, sans-serif"
+    fontFamily: "Inter, 'Segoe UI', Arial, sans-serif"
     fontSize: "14px"
-    fontWeight: 700
-    letterSpacing: "0.06em"
+    fontWeight: 600
 rounded:
-  plate: "2px"
+  control: "10px"
+  panel: "16px"
+  pill: "999px"
 spacing:
   cell: "8px"
-  strip-x: "10px"
+  strip-x: "12px"
   gutter: "16px"
 components:
-  button-signal:
-    backgroundColor: "{colors.signal-yellow}"
-    textColor: "{colors.graphite}"
-    rounded: "{rounded.plate}"
-    padding: "0 18px"
+  button-primary:
+    backgroundColor: "{colors.raspberry}"
+    textColor: "#ffffff"
+    rounded: "{rounded.control}"
+    padding: "0 20px"
     height: "48px"
-  button-signal-pressed:
-    backgroundColor: "{colors.graphite}"
-    textColor: "{colors.signal-yellow}"
+  button-primary-hover:
+    backgroundColor: "{colors.raspberry-hover}"
   button-outline:
-    backgroundColor: "{colors.label-stock}"
-    textColor: "{colors.graphite}"
-    rounded: "{rounded.plate}"
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink-soft}"
+    rounded: "{rounded.control}"
     height: "48px"
   button-danger:
-    backgroundColor: "{colors.label-stock}"
-    textColor: "{colors.beam-text}"
-    rounded: "{rounded.plate}"
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.danger}"
+    rounded: "{rounded.control}"
     height: "48px"
-  dock-plate:
-    backgroundColor: "{colors.signal-yellow}"
-    textColor: "{colors.graphite}"
-    rounded: "{rounded.plate}"
+  warehouse-plate:
+    backgroundColor: "{colors.plum-tint}"
+    textColor: "{colors.ink}"
+    rounded: "14px"
     padding: "10px"
   label-block:
-    backgroundColor: "{colors.label-stock}"
-    textColor: "{colors.graphite}"
-    rounded: "{rounded.plate}"
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.panel}"
   availability-ok:
-    backgroundColor: "{colors.graphite}"
-    textColor: "{colors.label-stock}"
-    height: "22px"
+    backgroundColor: "{colors.ok-tint}"
+    textColor: "{colors.ok}"
+    rounded: "{rounded.pill}"
+    height: "24px"
+  availability-low:
+    backgroundColor: "{colors.low-tint}"
+    textColor: "{colors.low}"
+    rounded: "{rounded.pill}"
+    height: "24px"
+  availability-out:
+    backgroundColor: "{colors.cream-deep}"
+    textColor: "{colors.muted}"
+    rounded: "{rounded.pill}"
+    height: "24px"
   stepper:
     backgroundColor: "#ffffff"
-    textColor: "{colors.graphite}"
-    rounded: "{rounded.plate}"
+    textColor: "{colors.plum-ink}"
+    rounded: "{rounded.control}"
     height: "44px"
   field:
     backgroundColor: "#ffffff"
-    textColor: "{colors.graphite}"
-    rounded: "{rounded.plate}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.control}"
     height: "48px"
 ---
 
-# Design System: Rack-Bay Labels
+# Design System: Soft Rack-Bay
 
-**Scope: this file covers the customer store surface only (`/tienda`, `/tienda/pedidos`, `/tienda/entrar`, the cart sheet and the cancel dialog). The staff console keeps its own raspberry and plum look and is not described here.**
+**Scope: this file covers the customer store surface only (`/tienda`, `/tienda/pedidos`, `/tienda/entrar`, the cart sheet and the cancel dialog). The store reads the company palette from the staff console tokens in `src/styles.css` but does not change them or the console look.**
 
 ## Overview
 
-**Creative North Star: "The Rack Label"**
+**Creative North Star: "The Rack Label, softened"**
 
-The store looks like the rack the order is picked from. Every presentation is a label strip stuck on a beam; the pickup warehouse is a yellow dock plate; the cart is a pick list ("hoja de surtido") that is always in view; a reservation is a hang tag with a code and a deadline. It was chosen from the warehouse world the customers already work in, over the photo-card e-commerce grid and the dense admin table.
+The layout is still the rack the order is picked from: every presentation is a strip inside a product block, the pickup warehouse sits on a plate at the top, the cart is a pick list ("hoja de surtido") that is always in view, a reservation is a tag with a code and a deadline. The look is the company's: raspberry for the next action, plum for structure and headings, warm cream for the ground, white blocks with light borders and rounded corners. It is a little lighter and friendlier than the staff console but clearly the same company.
 
-Light, daylight-readable concrete ground with graphite for structure and one voice, signal yellow, for the thing to touch next. Density is high on the phone (strips about 70px tall) and relaxed on desktop (two columns of strips beside a permanent pick list). Corners are square, rules are hard, nothing floats.
+Density is high on the phone (strips about 70px tall) and relaxed on desktop (two columns of blocks beside a permanent pick list).
 
 **Key Characteristics:**
 
-- Label stock on concrete; graphite frames; yellow only for the next action, the picked state and the pickup plate.
-- Condensed stencilled caps for names, prices and actions; plain system sans for sentences.
-- The availability word is always printed; only the plate around it changes.
-- Quantity is drawn as length: a bar of whole cells grows under the stepper.
+- White blocks on cream, 1px warm borders, 10-16px radii. Elevation is declared once: a border on blocks and panels, a soft shadow only on things that float (pinned pick-list bar, login card).
+- Raspberry for the one thing to touch next (add, apply, reserve) and for picked quantities; plum for headings, tabs, selection and focus.
+- Semibold sentence case in the console font stack; no uppercase stencil.
+- The availability word is always printed inside a tinted pill.
+- Quantity is still drawn as length: a bar of rounded cells grows under the stepper.
 
 ## Colors
 
-Restrained with one voice. Neutrals carry the page, signal yellow is the single accent, cobalt and beam orange are structural rails.
+Restrained. Cream and white carry the page, plum gives the headings and rails, raspberry is the single action colour. All values come from the console tokens (`--background`, `--primary`, `--color-ink-heading`, `--border`, `--color-status-*`) with the status tones darkened for text contrast on their tints.
 
 ### Primary
 
-- **Signal Yellow** (#f4c20d): the action plate (Apartar, Ver hoja), the dock plate, the picked quantity cell, the pressed tab.
+- **Raspberry** (#c81d4e, hover #a8173f): primary buttons, the add plate, picked quantity cells, the selected tab's extent bar, current nav underline. **Raspberry Tint** (#f8e8ee): picked strips, picked quantity cell, the pickup deadline plate.
 
 ### Secondary
 
-- **Upright Cobalt** (#1f4aa8, deep #173a86): the brand rail and phone brand tabs only.
-- **Beam Orange** (#e8531d): the extent bar of the selected tab. Large marks only. As text on label stock use **Beam Text** (#b23a0c, 5:1) for errors and cancel.
+- **Plum** (#5b2a86) and **Plum Ink** (#4a2670): headings, nav, quiet buttons, brand tab text and extent tracks, focus ring. **Plum Tint** (#f1eaf6): the warehouse plate, the brand rail, pick-list header, selected category chip.
 
 ### Neutral
 
-- **Concrete** (#e9e6df): page ground. **Concrete Deep** (#dad6cb): hover and empty mats.
-- **Label Stock** (#fbfaf6): every strip, panel, plate body. **Graphite** (#22252b): top bar, text, frames. **Graphite Soft** (#3a3e46): hover on graphite.
-- **Muted Steel** (#5a5d65): secondary text (5:1 on concrete). **Rack Rule** (#b9b4a6): hairlines between strips.
+- **Cream** (#fff8f0): page ground. **Cream Deep** (#f6efe6): hover, disabled, Agotado pill.
+- **Card** (#ffffff): blocks, panels, header, sheet footer. **Ink** (#2a1d33): text. **Ink Soft** (#503f45): outline button text. **Muted** (#6f6366): secondary text (5.6:1 on cream).
+- **Line** (#ede3d6) and **Line Strong** (#e4d8ca): borders and dividers. **Control** (#9c8f92): input and stepper borders (3:1).
+
+### Status
+
+- **Ok** (#2f6b5a on #e9f4ef) Disponible; **Low** (#7d5a14 on #fff0d1) Pocas; **Muted on Cream Deep** Agotado; **Danger** (#a3173f on #fbeae7) errors and cancel.
 
 ### Named Rules
 
-**The One Voice Rule.** Yellow marks only what the customer should touch or what is already theirs (picked, pickup). If everything is yellow, nothing is.
-**The Hazard Hatch Rule.** Diagonal graphite/yellow hatching exists only on the "Pocas" tag. It never decorates anything else.
+**The One Action Rule.** Raspberry marks only what the customer should touch or what is already theirs (picked). If everything is raspberry, nothing is.
+**The Word Always Printed Rule.** Availability and order status are words first, tints second; colour never carries meaning alone.
 
 ## Typography
 
-**Display / label font:** system condensed stack (Arial Narrow, Nimbus Sans Narrow, Roboto Condensed, sans-serif-condensed, Helvetica Neue, Arial); no webfont ships.
-**Body font:** system-ui stack.
-
-**Character:** stencilled rack alphanumerics for anything that names or counts; calm system text for explanations. Layouts tolerate the Arial fallback width (verified at 390px).
+**Font:** the console stack (Inter, Segoe UI, Arial, sans-serif); no webfont ships. Display and body are the same family; hierarchy comes from weight and size.
 
 ### Hierarchy
 
-- **Page title** (700, 32-40px, 1, caps): "Mis pedidos", reservation code.
-- **Stencil name** (700, 18px, 1.15, caps, +0.04em): product names, sheet titles, buttons (17px).
-- **Price** (700, 19px, tabular lining numerals): every price registers to one numeric column.
+- **Page title** (700, 28px, 1.2): "Mis pedidos", sheet and login headings (22-26px).
+- **Name** (650, 16px, 1.35): product names, empty-state titles (18px), dialog titles (18px).
+- **Price** (650, 17px, tabular lining numerals): one numeric column per strip; totals 22-28px; reservation code 36px.
 - **Body** (400, 15px, 1.5; 13-14px for help): sentences, kept under 65ch.
-- **Label** (700, 14px, +0.06em, caps): field labels, tags (12px), counts.
-
-### Named Rules
-
-**The Word Always Printed Rule.** Availability and order status are words first, plates second; colour never carries meaning alone.
+- **Label** (600, 14px): field labels, counts, pills (12.5px), tab text (15px).
 
 ## Layout
 
-Phone-first, one column. Graphite bar (two rows on the phone: name and session, then Catálogo / Mis pedidos), dock plate with the pickup warehouse, brand tabs, search, category toggles, then label blocks, with the pick-list bar pinned at the bottom. From 1024px: 1360px max container; a 208px cobalt brand rail on the left, two columns of blocks (from 1280px), and a 352px sticky pick-list panel on the right. Spacing follows an 8px cell (strip padding 8px 10px, gutters 16px, block gaps 12px). Grid tracks use `minmax(0, 1fr)` so scrolling rows never widen the page.
+Unchanged from the rack-bay layout. Phone-first, one column: header (name and session, then Catálogo / Mis pedidos), warehouse plate, brand tabs, search, category chips, product blocks, pinned pick-list bar. From 1024px: 1360px max container; 208px brand rail on the left, two columns of blocks (from 1280px), 352px sticky pick-list panel on the right. Spacing follows an 8px cell (strip padding 8px 12px, gutters 16px, block gaps 12px). Grid tracks use `minmax(0, 1fr)`.
 
 ## Elevation & Depth
 
-Flat by contract. Depth is a 2px graphite frame and 1px rack rules; there are no shadows or blur on the store. The only layering is the sheet over a dimmed page (flat 45% graphite overlay, store scope overrides the shared blur).
-
-### Named Rules
-
-**The Flat-Plate Rule.** Surfaces are steel and paper, not floating cards: frame them with graphite, never shade them.
+Border or shadow, never both. Blocks, panels, the sheet edge and the dialog use a 1px Line border. The pinned phone bar and the login card float with one soft shadow (`0 -6px 20px` / `0 8px 28px`, ink at 9-10%). The sheet and dialog overlay is a plain 40% plum-ink dim (the shared blur is dropped in store scope).
 
 ## Shapes
 
-Square plates with a 2px radius, 2px graphite borders, 1px rules inside. Circles appear only as screws on the login door plate and the punched hole of the reservation tag. The tab extent bar and the quantity cells are the system's only data-driven shapes.
+Controls (buttons, fields, stepper, tabs, mat) use 10px, product blocks and panels 16px, the login card 20px; chips and availability pills are fully round. Cells of the quantity bar and the tab extent bar have 2-3px rounding.
 
 ## Components
 
 ### Buttons
 
-- **Signal (primary):** yellow plate, graphite 2px frame, stencil caps 17px, 48px high; hover lightens, pressed inverts to graphite with yellow text; disabled goes concrete-deep with grey text.
-- **Outline / Danger / Quiet:** label-stock plate; danger uses beam text and frame; quiet is underlined text with a yellow underline.
+- **Primary:** raspberry, white 15px semibold label, 48px high, 10px radius, console-style faint shadow that deepens on hover (hover #a8173f). Disabled goes Cream Deep with muted text.
+- **Outline / Danger / Quiet:** white with Line Strong border; danger uses Danger text and a 35% Danger border; quiet is plum text that tints on hover.
 
-### Pick-face stepper
+### Stepper
 
-Minus, typed quantity, plus in one 2px frame (44px high); the quantity cell turns yellow once above zero; under it a 12-cell bar fills graphite per unit (twelfth cell yellow past 12). Collapsed to a single yellow plus plate at zero. Steps change in 120ms hard steps, static under reduced motion. The total beside it ticks the same way.
+Minus, typed quantity, plus in one 1px Control border (44px high, 10px radius); the quantity cell takes Raspberry Tint with raspberry text once above zero; under it a 12-cell bar of rounded cells fills raspberry per unit (twelfth cell plum past 12). Collapsed to a single raspberry plus plate at zero. Changes ease in 160ms (exponential ease-out), static under reduced motion; the total fades in over 200ms the same way.
 
-### Label block and strip
+### Product block and strip
 
-A product is one framed block: photo mat (56px, white, 2px frame, dashed monogram fallback when the image is missing or broken), name and brand, then one strip per presentation: name and availability tag, price, stepper. Picked strips tint pale yellow; sold-out strips strike the name and price, dim, and print "Sin existencias".
+One white block per product: photo mat (56px, white, 12px radius, plum-tint monogram when the image is missing or broken), name and brand, then one strip per presentation: name and availability pill, price, stepper. Picked strips take a faint raspberry tint; sold-out strips go muted and print "Sin existencias".
 
-### Availability tag
+### Availability pill
 
-Disponible: solid graphite. Pocas: hazard-hatch frame around a label-stock chip. Agotado: dashed outline, muted.
+Disponible: green tint with a dot. Pocas: amber tint with a dot. Agotado: Cream Deep, muted text, hollow dot. The word is always printed.
 
 ### Brand tabs
 
-Tabs with a count; a 4px extent bar inside a visible track, inset 12px from the tab edge and filled to the brand's share of the whole catalog (the phone tab width is proportional to the largest brand). The phone strip fades at the right edge to show more tabs; focus is drawn inside the tab. Selected: yellow plate and beam-orange bar. Rail version on cobalt from 1024px.
+Rounded tabs with a count; a 4px rounded extent bar inside a visible track, filled to the brand's share of the whole catalog (phone tab width proportional to the largest brand). The rail is a plum-tint rounded panel (phone: a strip with a right fade to show more tabs); selected tab is a white card with a raspberry bar; focus is drawn inside the tab.
 
-### Dock plate, pick list, reservation tag, status strip, door plate
+### Warehouse plate, pick list, reservation tag, status strip, login card
 
-Yellow dock plate holds the native warehouse select. Pick list is a graphite-headed panel (desktop) or pinned bar (phone) with list-price total and the reservation sentence. Reservation tag: framed hang tag with punched hole, code at 40px, yellow deadline plate. Status strip: three bars (Reservado, Preparado, Recogido); Cancelado and Vencido strike the strip and print the word. Door plate: yellow header band with the heading, screws in the corners.
+The warehouse plate is plum tint with the native select. The pick list is a white panel with a plum-tint header (desktop) or a pinned white bar with a soft top shadow (phone), list-price total and the reservation sentence. The reservation tag is a bordered card with the code at 36px and a raspberry-tint deadline plate. The status strip is three rounded bars (Reservado, Preparado, Recogido: done plum, current raspberry); Cancelado and Vencido grey the strip, strike the labels and print the word. The login card is a floating white card with a plum-tint heading band.
 
 ### Inputs
 
-White, 2px graphite frame, 48px high, 16px text; focus is a 3px cobalt outline (yellow on graphite).
+White, 1px Control border, 10px radius, 48px high, 16px text; focus is a 3px plum outline with a 2px offset.
 
 ## Do's and Don'ts
 
 ### Do:
 
 - **Do** print the availability word and the order status every time.
-- **Do** keep prices in tabular condensed numerals, right-aligned in one column.
-- **Do** frame with 2px graphite and 1px rules; keep radii at 2px.
+- **Do** keep prices in tabular numerals, right-aligned in one column.
+- **Do** build colours from the console tokens; add store names for them in `store.css` rather than new hexes.
 - **Do** keep the pickup warehouse and the "reserve, not pay" sentence visible on every ordering step.
 
 ### Don't:
 
-- **Don't** use hatching anywhere except the Pocas tag.
-- **Don't** add shadows, gradients, glass or photo-card grids to the store.
+- **Don't** reintroduce hard plates: 2px dark borders, hatching, uppercase stencil, stepped motion.
+- **Don't** stack a border under a wide shadow, or add gradients or glass.
 - **Don't** present catalog index letters as physical rack locations.
-- **Don't** carry this look into the staff console.
+- **Don't** change global tokens or carry store-only classes into the staff console.
 
 ## Not canonized (build defects)
 
-The display voice is a system condensed stack, which the craft floor discourages for own-world pages; it stays only because the task forbids new dependencies. The label above the warehouse select ("Recoges tu pedido en") reads as a small eyebrow; it is the control's real label and should be revisited if a heading replaces it.
+Raspberry as a large fill covers the add plates and the primary button on every strip; if the catalog feels loud with many rows, the add plate could drop to a tinted outline. The label above the warehouse select ("Recoges tu pedido en") reads as a small eyebrow; it is the control's real label and should be revisited if a heading replaces it. `#fdf4f7` (picked strip tint) is the one literal not in the token list.

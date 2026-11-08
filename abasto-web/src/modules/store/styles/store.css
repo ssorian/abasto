@@ -1,255 +1,249 @@
 /*
- * Customer store layer: "Rack-Bay Labels".
+ * Customer store layer: "Soft Rack-Bay" on the company palette.
  * Everything element-level is scoped to `.store` (the shell, the cart sheet and
  * the dialogs of /tienda carry the class); the staff console never sees it.
- * Tokens live in @theme so Tailwind utilities (bg-rb-label…) can use them in
- * portals too; they only add names, they change no existing utility.
+ * Colours mirror the console tokens in src/styles.css (raspberry primary, plum
+ * ink, warm cream surfaces); the store only adds names for them so Tailwind
+ * utilities (bg-st-card…) work in portals too, it changes no existing utility.
  */
 @theme {
-  --color-rb-ground: #e9e6df; /* concrete floor */
-  --color-rb-ground-deep: #dad6cb;
-  --color-rb-label: #fbfaf6; /* label stock */
-  --color-rb-graphite: #22252b; /* pressed steel */
-  --color-rb-graphite-soft: #3a3e46;
-  --color-rb-muted: #5a5d65; /* 5.3:1 on ground */
-  --color-rb-signal: #f4c20d; /* the one voice */
-  --color-rb-beam: #e8531d; /* rack beam, large marks only */
-  --color-rb-beam-text: #b23a0c; /* beam as text on label stock */
-  --color-rb-cobalt: #1f4aa8; /* upright */
-  --color-rb-cobalt-deep: #173a86;
-  --color-rb-rule: #b9b4a6;
+  --color-st-ground: #fff8f0; /* console background */
+  --color-st-sunk: #f6efe6; /* console muted surface: hover, empty mats */
+  --color-st-card: #ffffff;
+  --color-st-ink: #2a1d33; /* console figure ink */
+  --color-st-ink-soft: #503f45;
+  --color-st-muted: #6f6366; /* 5.6:1 on ground */
+  --color-st-brand: #c81d4e; /* console primary */
+  --color-st-brand-hover: #a8173f;
+  --color-st-brand-tint: #f8e8ee;
+  --color-st-plum: #5b2a86; /* console secondary and focus */
+  --color-st-plum-ink: #4a2670; /* console heading ink */
+  --color-st-plum-tint: #f1eaf6;
+  --color-st-line: #ede3d6; /* console border */
+  --color-st-line-strong: #e4d8ca;
+  --color-st-control: #9c8f92; /* borders of inputs and steppers, 3:1 */
+  --color-st-danger: #a3173f;
+  --color-st-danger-tint: #fbeae7;
+  --color-st-ok: #2f6b5a;
+  --color-st-ok-tint: #e9f4ef;
+  --color-st-low: #7d5a14;
+  --color-st-low-tint: #fff0d1;
 
-  --font-rb-stencil:
-    'Arial Narrow', 'Nimbus Sans Narrow', 'Roboto Condensed',
-    'Liberation Sans Narrow', 'Avenir Next Condensed', 'sans-serif-condensed',
-    'Helvetica Neue', Arial, sans-serif;
-  --font-rb-body:
-    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
+  --font-st-sans: Inter, 'Segoe UI', Arial, sans-serif;
 }
 
 body:has(.store) {
-  background: var(--color-rb-ground);
+  background: var(--color-st-ground);
 }
 
 .store {
-  --rb-focus: var(--color-rb-cobalt);
-  --rb-cell: 8px;
-  font-family: var(--font-rb-body);
-  color: var(--color-rb-graphite);
-  caret-color: var(--color-rb-cobalt);
-  accent-color: var(--color-rb-graphite);
-  scrollbar-color: var(--color-rb-graphite-soft) transparent;
+  --st-focus: var(--color-st-plum);
+  --st-ease: cubic-bezier(0.25, 1, 0.5, 1);
+  font-family: var(--font-st-sans);
+  color: var(--color-st-ink);
+  caret-color: var(--color-st-brand);
+  accent-color: var(--color-st-brand);
+  scrollbar-color: var(--color-st-line-strong) transparent;
   scrollbar-width: thin;
 }
 
 .store ::selection {
-  background: var(--color-rb-signal);
-  color: var(--color-rb-graphite);
+  background: var(--color-st-brand-tint);
+  color: var(--color-st-ink);
 }
 
 .store :is(a, button, input, select, textarea):focus-visible {
-  outline: 3px solid var(--rb-focus);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
-  border-radius: 0;
-}
-
-.store .rb-dark {
-  --rb-focus: var(--color-rb-signal);
 }
 
 .store ::placeholder {
-  color: #6b6e75;
+  color: #7a6f72;
   opacity: 1;
 }
 
-/* Stencilled alphanumerics: condensed caps with open tracking. */
-.rb-stencil {
-  font-family: var(--font-rb-stencil);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+/* Names and headings: semibold sentence case. Numerals register in one column. */
+.st-stencil {
+  font-weight: 650;
+  letter-spacing: -0.005em;
 }
 
-.rb-num {
-  font-family: var(--font-rb-stencil);
-  font-weight: 700;
+.st-num {
+  font-weight: 650;
   font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: 0.01em;
 }
 
 /* Component classes sit in the components layer so Tailwind utilities can override them. */
 @layer components {
-  /* ---- Plates ------------------------------------------------------------ */
+  /* ---- Surfaces ---------------------------------------------------------- */
 
-  .rb-plate {
-    background: var(--color-rb-signal);
-    color: var(--color-rb-graphite);
-    border: 2px solid var(--color-rb-graphite);
+  .st-plate {
+    background: var(--color-st-plum-tint);
+    color: var(--color-st-ink);
+    border-radius: 14px;
   }
 
-  .rb-panel {
-    background: var(--color-rb-label);
-    border: 2px solid var(--color-rb-graphite);
+  .st-plate--brand {
+    background: var(--color-st-brand-tint);
   }
 
-  .rb-rule {
-    border-color: var(--color-rb-rule);
+  .st-panel {
+    background: var(--color-st-card);
+    border: 1px solid var(--color-st-line);
+    border-radius: 16px;
+    overflow: hidden;
   }
 
-  /* ---- Buttons: pressed steel and signal plates -------------------------- */
+  .st-block {
+    background: var(--color-st-card);
+    border: 1px solid var(--color-st-line);
+    border-radius: 16px;
+    overflow: hidden;
+  }
 
-  .rb-btn {
+  /* ---- Buttons: console raspberry, softened ------------------------------ */
+
+  .st-btn {
     display: inline-flex;
     min-height: 48px;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 0 18px;
-    border: 2px solid var(--color-rb-graphite);
-    border-radius: 2px;
-    background: var(--color-rb-signal);
-    color: var(--color-rb-graphite);
-    font-family: var(--font-rb-stencil);
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    padding: 0 20px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--color-st-brand);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 650;
     text-decoration: none;
-    transition: background-color 120ms steps(2);
+    box-shadow: 0 2px 3px rgb(200 29 78 / 0.04);
+    transition:
+      background-color 160ms var(--st-ease),
+      box-shadow 160ms var(--st-ease);
   }
 
-  .rb-btn:hover:not(:disabled) {
-    background: #ffd23a;
+  .st-btn:hover:not(:disabled) {
+    background: var(--color-st-brand-hover);
+    box-shadow: 0 3px 9px rgb(200 29 78 / 0.11);
   }
 
-  .rb-btn:active:not(:disabled) {
-    background: var(--color-rb-graphite);
-    color: var(--color-rb-signal);
-  }
-
-  .rb-btn:disabled {
-    border-color: var(--color-rb-rule);
-    background: var(--color-rb-ground-deep);
-    color: #6b6e75;
+  .st-btn:disabled {
+    background: var(--color-st-sunk);
+    color: #7a6f72;
+    box-shadow: none;
     cursor: not-allowed;
   }
 
-  .rb-btn--quiet {
+  .st-btn--quiet {
     background: transparent;
     border-color: transparent;
-    color: var(--color-rb-graphite);
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    text-decoration-thickness: 2px;
-    text-decoration-color: var(--color-rb-signal);
-    letter-spacing: 0.03em;
+    color: var(--color-st-plum-ink);
+    box-shadow: none;
   }
 
-  .rb-btn--quiet:hover:not(:disabled) {
-    background: var(--color-rb-ground-deep);
+  .st-btn--quiet:hover:not(:disabled) {
+    background: var(--color-st-plum-tint);
+    box-shadow: none;
   }
 
-  .rb-btn--outline {
-    background: var(--color-rb-label);
+  .st-btn--quiet:disabled {
+    background: transparent;
   }
 
-  .rb-btn--outline:hover:not(:disabled) {
-    background: var(--color-rb-ground-deep);
+  .st-btn--outline {
+    background: var(--color-st-card);
+    border-color: var(--color-st-line-strong);
+    color: var(--color-st-ink-soft);
+    box-shadow: none;
   }
 
-  .rb-btn--danger {
-    background: var(--color-rb-label);
-    border-color: var(--color-rb-beam-text);
-    color: var(--color-rb-beam-text);
+  .st-btn--outline:hover:not(:disabled) {
+    background: var(--color-st-sunk);
+    box-shadow: none;
   }
 
-  .rb-btn--danger:hover:not(:disabled) {
-    background: #f6e3da;
+  .st-btn--danger {
+    background: var(--color-st-card);
+    border-color: rgb(163 23 63 / 0.35);
+    color: var(--color-st-danger);
+    box-shadow: none;
   }
 
-  /* On the graphite bar, the same button inverts. */
-  .rb-dark .rb-btn--quiet {
-    color: var(--color-rb-label);
-  }
-
-  .rb-dark .rb-btn--quiet:hover:not(:disabled) {
-    background: var(--color-rb-graphite-soft);
+  .st-btn--danger:hover:not(:disabled) {
+    background: var(--color-st-danger-tint);
+    box-shadow: none;
   }
 
   /* ---- Inputs ------------------------------------------------------------ */
 
-  .rb-field {
+  .st-field {
     width: 100%;
     min-height: 48px;
-    border: 2px solid var(--color-rb-graphite);
-    border-radius: 2px;
-    background: #fff;
-    color: var(--color-rb-graphite);
+    border: 1px solid var(--color-st-control);
+    border-radius: 10px;
+    background: var(--color-st-card);
+    color: var(--color-st-ink);
     padding: 0 12px;
     font-size: 16px;
   }
 
-  textarea.rb-field {
+  textarea.st-field {
     padding: 10px 12px;
   }
 
-  .rb-label {
-    font-family: var(--font-rb-stencil);
+  .st-label {
     font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-st-plum-ink);
   }
 
-  /* ---- Availability tags: the word is always printed --------------------- */
+  /* ---- Availability pills: the word is always printed -------------------- */
 
-  .rb-tag {
+  .st-tag {
     display: inline-flex;
     align-items: center;
-    height: 22px;
-    padding: 0 7px;
-    font-family: var(--font-rb-stencil);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    gap: 6px;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
     white-space: nowrap;
   }
 
-  .rb-tag--ok {
-    background: var(--color-rb-graphite);
-    color: var(--color-rb-label);
+  .st-tag::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
   }
 
-  /* Hazard hatching appears here and nowhere else. */
-  .rb-tag--low {
-    padding: 3px;
-    height: 22px;
-    background: repeating-linear-gradient(
-      -45deg,
-      var(--color-rb-signal) 0 5px,
-      var(--color-rb-graphite) 5px 10px
-    );
+  .st-tag--ok {
+    background: var(--color-st-ok-tint);
+    color: var(--color-st-ok);
   }
 
-  .rb-tag--low > span {
-    display: inline-flex;
-    align-items: center;
-    height: 100%;
-    padding: 0 5px;
-    background: var(--color-rb-label);
-    color: var(--color-rb-graphite);
+  .st-tag--low {
+    background: var(--color-st-low-tint);
+    color: var(--color-st-low);
   }
 
-  .rb-tag--out {
-    border: 1.5px dashed var(--color-rb-muted);
-    color: var(--color-rb-muted);
+  .st-tag--out {
+    background: var(--color-st-sunk);
+    color: var(--color-st-muted);
+    font-weight: 500;
+  }
+
+  .st-tag--out::before {
+    background: transparent;
+    border: 1.5px solid currentColor;
   }
 
   /* ---- Product mat -------------------------------------------------------- */
 
-  .rb-mat {
+  .st-mat {
     position: relative;
     display: grid;
     place-items: center;
@@ -258,121 +252,120 @@ body:has(.store) {
     flex: none;
     overflow: hidden;
     background: #fff;
-    border: 2px solid var(--color-rb-graphite);
+    border: 1px solid var(--color-st-line);
+    border-radius: 12px;
   }
 
-  .rb-mat img {
+  .st-mat img {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     object-fit: contain;
-    padding: 3px;
+    padding: 4px;
   }
 
-  .rb-mat--empty {
-    background: var(--color-rb-ground-deep);
-    color: var(--color-rb-graphite-soft);
-    font-family: var(--font-rb-stencil);
-    font-size: 26px;
-    font-weight: 700;
-    border-style: dashed;
+  .st-mat--empty {
+    background: var(--color-st-plum-tint);
+    color: var(--color-st-plum-ink);
+    border-color: transparent;
+    font-size: 24px;
+    font-weight: 650;
   }
 
-  /* ---- Pick-face stepper: quantity as a growing bar of cells -------------- */
+  /* ---- Stepper: quantity as a growing bar of cells ------------------------ */
 
-  .rb-stepper {
+  .st-stepper {
     display: inline-grid;
     grid-template-columns: 44px 48px 44px;
-    border: 2px solid var(--color-rb-graphite);
-    border-radius: 2px;
+    border: 1px solid var(--color-st-control);
+    border-radius: 10px;
     background: #fff;
+    overflow: hidden;
   }
 
-  .rb-stepper button {
+  .st-stepper button {
     display: grid;
     place-items: center;
     height: 44px;
     background: transparent;
-    color: var(--color-rb-graphite);
-    transition: background-color 120ms steps(2);
+    color: var(--color-st-plum-ink);
+    transition: background-color 160ms var(--st-ease);
   }
 
-  .rb-stepper button:hover:not(:disabled) {
-    background: var(--color-rb-signal);
+  .st-stepper button:hover:not(:disabled) {
+    background: var(--color-st-plum-tint);
   }
 
-  .rb-stepper button:disabled {
-    color: #9a9a96;
+  .st-stepper button:disabled {
+    color: #b3a8aa;
   }
 
-  .rb-stepper input {
+  .st-stepper input {
     height: 44px;
     min-width: 0;
     border: 0;
-    border-inline: 2px solid var(--color-rb-graphite);
+    border-inline: 1px solid var(--color-st-line-strong);
     background: transparent;
     text-align: center;
-    font-family: var(--font-rb-stencil);
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 650;
     font-variant-numeric: tabular-nums;
+    transition: background-color 160ms var(--st-ease);
   }
 
-  .rb-stepper--set input {
-    background: var(--color-rb-signal);
+  .st-stepper--set input {
+    background: var(--color-st-brand-tint);
+    color: var(--color-st-brand-hover);
   }
 
-  .rb-cells {
+  .st-cells {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    gap: 2px;
-    height: 6px;
-    margin-top: 4px;
+    gap: 3px;
+    height: 5px;
+    margin-top: 5px;
   }
 
-  .rb-cells > i {
+  .st-cells > i {
     display: block;
-    background: transparent;
-    border: 1px solid var(--color-rb-rule);
-    transition: background-color 120ms steps(2);
+    border-radius: 3px;
+    background: var(--color-st-line);
+    transition: background-color 160ms var(--st-ease);
   }
 
-  .rb-cells > i[data-on] {
-    background: var(--color-rb-graphite);
-    border-color: var(--color-rb-graphite);
+  .st-cells > i[data-on] {
+    background: var(--color-st-brand);
   }
 
-  .rb-cells[data-over] > i:last-child {
-    background: var(--color-rb-signal);
-    border-color: var(--color-rb-graphite);
+  .st-cells[data-over] > i:last-child {
+    background: var(--color-st-plum);
   }
 
   /* Add: the collapsed stepper while the line is at zero. */
-  .rb-add {
+  .st-add {
     display: grid;
     place-items: center;
     width: 44px;
     height: 44px;
-    border: 2px solid var(--color-rb-graphite);
-    border-radius: 2px;
-    background: var(--color-rb-signal);
-    color: var(--color-rb-graphite);
-    transition: background-color 120ms steps(2);
+    border-radius: 10px;
+    background: var(--color-st-brand);
+    color: #fff;
+    transition: background-color 160ms var(--st-ease);
   }
 
-  .rb-add:hover {
-    background: #ffd23a;
-  }
-
-  .rb-add:active {
-    background: var(--color-rb-graphite);
-    color: var(--color-rb-signal);
+  .st-add:hover {
+    background: var(--color-st-brand-hover);
   }
 
   /* ---- Brand tabs: length is proportional to the product count ------------ */
 
-  .rb-tab {
+  .st-rail {
+    background: var(--color-st-plum-tint);
+    border-radius: 16px;
+  }
+
+  .st-tab {
     position: relative;
     display: flex;
     min-height: 48px;
@@ -381,255 +374,199 @@ body:has(.store) {
     gap: 10px;
     padding: 0 12px 10px;
     border: 0;
+    border-radius: 10px;
     background: transparent;
-    color: var(--color-rb-graphite);
-    font-family: var(--font-rb-stencil);
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    color: var(--color-st-plum-ink);
+    font-size: 15px;
+    font-weight: 600;
     text-align: left;
     white-space: nowrap;
+    transition: background-color 160ms var(--st-ease);
   }
 
   /* Extent: a track inset from the tab edge, filled to the brand's share of the catalog. */
-  .rb-tab::before {
+  .st-tab::before {
     content: '';
     position: absolute;
     left: 12px;
     right: 12px;
     bottom: 6px;
     height: 4px;
-    background: rgb(34 37 43 / 0.18);
+    border-radius: 2px;
+    background: rgb(91 42 134 / 0.14);
   }
 
-  .rb-tab > .rb-extent {
+  .st-tab > .st-extent {
     position: absolute;
     left: 12px;
     bottom: 6px;
     height: 4px;
-    background: var(--color-rb-graphite);
+    border-radius: 2px;
+    background: var(--color-st-plum);
     width: max(4px, calc((100% - 24px) * var(--extent, 1)));
   }
 
-  .rb-tab[aria-pressed='true'] {
-    background: var(--color-rb-signal);
+  .st-tab[aria-pressed='true'] {
+    background: var(--color-st-card);
+    color: var(--color-st-ink);
   }
 
-  .rb-tab[aria-pressed='true'] > .rb-extent {
-    background: var(--color-rb-beam);
+  .st-tab[aria-pressed='true'] > .st-extent {
+    background: var(--color-st-brand);
   }
 
-  .rb-tab:hover:not([aria-pressed='true']) {
-    background: var(--color-rb-ground-deep);
+  .st-tab:hover:not([aria-pressed='true']) {
+    background: rgb(255 255 255 / 0.6);
   }
 
-  .rb-tab:focus-visible {
+  .st-tab:focus-visible {
     outline-offset: -4px;
   }
 
-  .rb-tab .rb-count {
+  .st-tab .st-count {
     font-variant-numeric: tabular-nums;
-    opacity: 0.75;
-  }
-
-  .rb-rail {
-    background: var(--color-rb-cobalt);
-  }
-
-  .rb-rail .rb-tab {
-    color: var(--color-rb-label);
-  }
-
-  .rb-rail .rb-tab::before {
-    background: rgb(251 250 246 / 0.28);
-  }
-
-  .rb-rail .rb-tab > .rb-extent {
-    background: var(--color-rb-label);
-  }
-
-  .rb-rail .rb-tab[aria-pressed='true']::before {
-    background: rgb(34 37 43 / 0.2);
-  }
-
-  .rb-rail .rb-tab[aria-pressed='true'] {
-    color: var(--color-rb-graphite);
-  }
-
-  .rb-rail .rb-tab[aria-pressed='true'] > .rb-extent {
-    background: var(--color-rb-beam);
-  }
-
-  .rb-rail .rb-tab:hover:not([aria-pressed='true']) {
-    background: var(--color-rb-cobalt-deep);
-  }
-
-  .rb-rail {
-    --rb-focus: var(--color-rb-signal);
+    font-weight: 500;
+    opacity: 0.8;
   }
 
   /* ---- Strips ------------------------------------------------------------- */
 
-  .rb-block {
-    background: var(--color-rb-label);
-    border: 2px solid var(--color-rb-graphite);
-  }
-
-  .rb-strip {
+  .st-strip {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 76px auto;
     align-items: center;
     column-gap: 10px;
-    padding: 8px 10px;
-    border-top: 1px solid var(--color-rb-rule);
+    padding: 8px 12px;
+    border-top: 1px solid var(--color-st-line);
+    transition: background-color 160ms var(--st-ease);
   }
 
-  .rb-strip[data-picked] {
-    background: #fdf3c4;
+  .st-strip[data-picked] {
+    background: #fdf4f7;
   }
 
-  .rb-strip[data-out] .rb-strike {
-    text-decoration: line-through;
-    text-decoration-thickness: 2px;
-    color: var(--color-rb-muted);
+  .st-strip[data-out] {
+    color: var(--color-st-muted);
   }
 
-  .rb-strip[data-out] {
-    color: var(--color-rb-muted);
+  .st-strip[data-out] .st-strike {
+    font-weight: 500;
+    color: var(--color-st-muted);
   }
 
   /* ---- Pick list ---------------------------------------------------------- */
 
-  .rb-tick {
+  .st-tick {
     display: inline-block;
-    animation: rb-tick 120ms steps(3) 1;
+    animation: st-tick 200ms var(--st-ease) 1;
   }
 
-  @keyframes rb-tick {
+  @keyframes st-tick {
     from {
-      transform: translateY(5px);
+      opacity: 0.4;
+      transform: translateY(3px);
     }
     to {
+      opacity: 1;
       transform: translateY(0);
     }
   }
 
-  .rb-pinned {
+  .st-pinned {
     padding-bottom: env(safe-area-inset-bottom);
   }
 
   /* ---- Reservation tag ---------------------------------------------------- */
 
-  .rb-hangtag {
-    position: relative;
-    background: var(--color-rb-label);
-    border: 2px solid var(--color-rb-graphite);
-    padding-top: 34px;
-  }
-
-  .rb-hangtag::before {
-    content: '';
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    width: 16px;
-    height: 16px;
-    margin-left: -8px;
-    border: 2px solid var(--color-rb-graphite);
-    border-radius: 50%;
-    background: var(--color-rb-ground);
+  .st-hangtag {
+    background: var(--color-st-card);
+    border: 1px solid var(--color-st-line);
+    border-radius: 16px;
+    padding-top: 20px;
   }
 
   /* ---- Order status strip ------------------------------------------------- */
 
-  .rb-steps {
+  .st-steps {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 3px;
+    gap: 6px;
   }
 
-  .rb-steps > li {
+  .st-steps > li {
     display: grid;
-    gap: 4px;
-    font-family: var(--font-rb-stencil);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-rb-muted);
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-st-muted);
   }
 
-  .rb-steps > li::before {
+  .st-steps > li::before {
     content: '';
     display: block;
-    height: 10px;
-    border: 2px solid var(--color-rb-graphite);
-    background: transparent;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--color-st-line);
   }
 
-  .rb-steps > li[data-done]::before {
-    background: var(--color-rb-graphite);
+  .st-steps > li[data-done]::before {
+    background: var(--color-st-plum);
   }
 
-  .rb-steps > li[data-done] {
-    color: var(--color-rb-graphite);
+  .st-steps > li[data-done] {
+    color: var(--color-st-ink);
   }
 
-  .rb-steps > li[data-now]::before {
-    background: var(--color-rb-signal);
+  .st-steps > li[data-now]::before {
+    background: var(--color-st-brand);
   }
 
-  .rb-steps > li[data-now] {
-    color: var(--color-rb-graphite);
+  .st-steps > li[data-now] {
+    color: var(--color-st-ink);
+    font-weight: 650;
   }
 
-  .rb-steps[data-ended] > li::before {
-    border-color: var(--color-rb-rule);
-    background: transparent;
+  .st-steps[data-ended] > li::before {
+    background: var(--color-st-line);
   }
 
-  .rb-steps[data-ended] > li {
-    color: var(--color-rb-muted);
+  .st-steps[data-ended] > li {
+    color: var(--color-st-muted);
     text-decoration: line-through;
   }
 
-  /* ---- Door plate (login) -------------------------------------------------- */
+  /* ---- Login card ---------------------------------------------------------- */
 
-  .rb-door {
-    position: relative;
-    background: var(--color-rb-label);
-    border: 3px solid var(--color-rb-graphite);
-  }
-
-  .rb-screw {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--color-rb-graphite);
+  .st-door {
+    background: var(--color-st-card);
+    border-radius: 20px;
+    box-shadow: 0 8px 28px rgb(42 29 51 / 0.09);
+    overflow: hidden;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .rb-tick {
+    .st-tick {
       animation: none;
     }
 
-    .rb-btn,
-    .rb-add,
-    .rb-stepper button,
-    .rb-cells > i {
+    .st-btn,
+    .st-add,
+    .st-stepper button,
+    .st-stepper input,
+    .st-cells > i,
+    .st-tab,
+    .st-strip {
       transition: none;
     }
   }
 }
 
-/* The shared sheet and dialog overlays blur; the store is flat, so drop it here only. */
+/* The shared sheet and dialog overlays blur; the store stays clear, so drop it here only. */
 body:has(
     .store[data-slot='sheet-content'],
     .store[data-slot='alert-dialog-content']
   )
   :is([data-slot='sheet-overlay'], [data-slot='alert-dialog-overlay']) {
   backdrop-filter: none !important;
-  background: rgb(34 37 43 / 0.45) !important;
+  background: rgb(42 29 51 / 0.4) !important;
 }

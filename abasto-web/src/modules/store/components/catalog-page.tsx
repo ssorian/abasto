@@ -27,7 +27,7 @@ type CatalogPageProps = {
 }
 
 const chip =
-  'rb-stencil min-h-11 shrink-0 border-2 border-rb-graphite px-3.5 text-[15px] rounded-[2px]'
+  'min-h-11 shrink-0 rounded-full border px-4 text-[14px] font-semibold transition-colors duration-150 motion-reduce:transition-none'
 
 export function CatalogPage({
   catalog,
@@ -64,8 +64,8 @@ export function CatalogPage({
           <div className="relative">
             <SearchIcon
               aria-hidden
-              strokeWidth={2.5}
-              className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2"
+              strokeWidth={2}
+              className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-st-muted"
             />
             <input
               type="search"
@@ -73,7 +73,7 @@ export function CatalogPage({
               placeholder="Buscar producto o marca"
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
-              className="rb-field pr-12 pl-11 [&::-webkit-search-cancel-button]:hidden"
+              className="st-field pr-12 pl-11 [&::-webkit-search-cancel-button]:hidden"
             />
             {query ? (
               <button
@@ -82,7 +82,7 @@ export function CatalogPage({
                 onClick={() => onQueryChange('')}
                 className="absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 place-items-center"
               >
-                <XIcon className="size-5" strokeWidth={2.5} aria-hidden />
+                <XIcon className="size-5" strokeWidth={2} aria-hidden />
               </button>
             ) : null}
           </div>
@@ -104,8 +104,8 @@ export function CatalogPage({
                     className={cn(
                       chip,
                       pressed
-                        ? 'bg-rb-graphite text-rb-label'
-                        : 'bg-rb-label hover:bg-rb-ground-deep',
+                        ? 'border-st-plum/40 bg-st-plum-tint text-st-plum-ink'
+                        : 'border-st-line-strong bg-st-card text-st-ink-soft hover:bg-st-sunk',
                     )}
                   >
                     {name ?? 'Todas'}
@@ -116,10 +116,7 @@ export function CatalogPage({
           ) : null}
         </div>
 
-        <p
-          className="rb-stencil text-[14px] tracking-[0.06em] text-rb-muted"
-          aria-live="polite"
-        >
+        <p className="text-[14px] font-medium text-st-muted" aria-live="polite">
           {visible.length === 1 ? '1 producto' : `${visible.length} productos`}{' '}
           · {warehouseName}
         </p>
@@ -136,13 +133,13 @@ export function CatalogPage({
             ))}
           </div>
         ) : (
-          <div className="border-2 border-dashed border-rb-graphite-soft bg-rb-label p-8 text-center">
-            <p className="rb-stencil text-xl">
+          <div className="rounded-2xl border border-dashed border-st-line-strong bg-st-card p-8 text-center">
+            <p className="st-stencil text-lg">
               {catalog.length
                 ? 'Sin productos con ese filtro'
                 : 'Este almacén aún no tiene productos en la tienda'}
             </p>
-            <p className="mt-1 text-sm text-rb-muted">
+            <p className="mt-1 text-sm text-st-muted">
               {catalog.length
                 ? 'Prueba con otra palabra o quita la marca o la categoría.'
                 : 'Prueba con otro almacén o vuelve más tarde.'}
