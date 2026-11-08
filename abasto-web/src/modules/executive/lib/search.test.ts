@@ -8,7 +8,7 @@ describe('executive search params', () => {
   test('defaults and junk stay out of the URL', () => {
     expect(parseExecutiveSearch({})).toEqual({})
     expect(
-      parseExecutiveSearch({ periodo: '7', sinventa: '30', almacen: 'x' }),
+      parseExecutiveSearch({ periodo: '7', sinventa: '30', almacen: '' }),
     ).toEqual({})
     expect(parseExecutiveSearch({ periodo: 'year', sinventa: '45' })).toEqual(
       {},
@@ -31,5 +31,12 @@ describe('executive search params', () => {
     })
     expect(parseExecutiveSearch({ sinventa: 60 })).toEqual({ sinventa: 60 })
     expect(defaultNonMovingDays).toBe(30)
+  })
+
+  test('keeps the warehouse and supplier filters, and drops empty ones', () => {
+    expect(
+      parseExecutiveSearch({ almacen: 'w1', proveedor: 's1', tab: 'cajas' }),
+    ).toEqual({ almacen: 'w1', proveedor: 's1' })
+    expect(parseExecutiveSearch({ almacen: '', proveedor: 5 })).toEqual({})
   })
 })

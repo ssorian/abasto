@@ -64,7 +64,7 @@ export function OwnerReportsPage({
         description={
           warehouseCount === undefined
             ? 'Todo el negocio. Ventas, utilidad e inventario a costo.'
-            : `Todo el negocio · ${warehouseCount} ${warehouseCount === 1 ? 'almacén' : 'almacenes'}. Ventas, utilidad e inventario a costo.`
+            : `${search.almacen || search.proveedor ? 'Selección filtrada' : 'Todo el negocio'} · ${warehouseCount} ${warehouseCount === 1 ? 'almacén' : 'almacenes'}. Ventas, utilidad e inventario a costo.`
         }
         actions={
           data && (
@@ -86,10 +86,12 @@ export function OwnerReportsPage({
         search={search}
         range={data?.margin.range}
         previousRange={data?.ranking.previousRange}
+        warehouses={load.warehouses}
+        suppliers={load.suppliers}
         onChange={onSearch}
       />
       {load.error && <ReportEmpty>{load.error}</ReportEmpty>}
-      {data && <Dashboard data={data} onSearch={onSearch} />}
+      {data && <Dashboard data={data} search={search} onSearch={onSearch} />}
     </>
   )
 }
@@ -98,9 +100,11 @@ type Data = NonNullable<Extract<OwnerReportsLoad, { allowed: true }>['data']>
 
 function Dashboard({
   data,
+  search,
   onSearch,
 }: {
   data: Data
+  search: ExecutiveSearch
   onSearch: (patch: Partial<ExecutiveSearch>) => void
 }) {
   const { margin, ranking, inventory, nonMoving, stockAlerts } = data
@@ -163,12 +167,17 @@ function Dashboard({
           sentence={idleCapitalSentence(
             nonMoving.totalCents,
             inventory.totalCents,
+            Boolean(search.almacen || search.proveedor),
           )}
           onChange={onSearch}
         />
       </div>
       <div className="grid items-start gap-[18px] min-[1100px]:grid-cols-[1.5fr_1fr]">
-        <CashSection rows={data.cashCuts.rows} sentence={cashSentence(cash)} />
+        <CashSection
+          rows={data.cashCuts.rows}
+          sentence={cashSentence(cash)}
+          supplierFiltered={Boolean(search.proveedor)}
+        />
         <StockAlerts
           summary={stockAlertSummary(stockAlerts)}
           expiredCount={stockAlerts.expired.length}

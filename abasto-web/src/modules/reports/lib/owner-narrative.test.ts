@@ -112,6 +112,14 @@ describe('profitSentence', () => {
       ]),
     ).toBe('La utilidad subió 25.0 % frente al periodo anterior.')
   })
+
+  test('does not name a driver when a single warehouse is in view', () => {
+    expect(
+      profitSentence(metrics(130_000, 90_000, 1), metrics(120_000, 90_000, 1), [
+        row('Tejupilco', [130_000, 90_000], [120_000, 90_000]),
+      ]),
+    ).toBe('La utilidad subió 33.3 % frente al periodo anterior.')
+  })
 })
 
 describe('marginSentence', () => {
@@ -177,6 +185,15 @@ describe('idleCapitalSentence', () => {
   test('states the idle money and its share of the inventory', () => {
     expect(idleCapitalSentence(11_850_000, 106_150_000)).toBe(
       'Tienes $118,500.00 detenidos en producto que no se vende, el 11.2 % de tu inventario.',
+    )
+  })
+
+  test('speaks of the selection, not of the whole inventory, under filters', () => {
+    expect(idleCapitalSentence(11_850_000, 106_150_000, true)).toBe(
+      'Tienes $118,500.00 detenidos en producto que no se vende, el 11.2 % del inventario de esta selección.',
+    )
+    expect(idleCapitalSentence(0, 100, true)).toBe(
+      'Todo el inventario de esta selección tuvo ventas en este lapso.',
     )
   })
 

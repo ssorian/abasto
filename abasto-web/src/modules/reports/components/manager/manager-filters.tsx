@@ -6,6 +6,7 @@ import {
   FieldInput,
   FieldSelect,
 } from '#/modules/reports/components/report-fields'
+import { SupplierSelect } from '#/modules/reports/components/supplier-select'
 import { Chip } from '#/modules/reports/components/manager/manager-card'
 import { previousRange } from '#/modules/reports/lib/manager-chart-data'
 import type { ManagerReportsSearch } from '#/modules/reports/lib/manager-search'
@@ -15,6 +16,7 @@ import { hasWarehouseChoice } from '#/modules/warehouses/lib/warehouse-choice'
 import type {
   DateRange,
   PeriodPreset,
+  ReportSupplier,
   ReportWarehouse,
 } from '#/modules/reports/types/reports'
 
@@ -28,16 +30,18 @@ const presets: Array<{ value: PeriodPreset; label: string }> = [
 type ManagerFiltersProps = {
   search: ManagerReportsSearch
   warehouses: Array<ReportWarehouse>
+  suppliers: Array<ReportSupplier>
   /** Warehouse being shown. */
   current?: ReportWarehouse
   range?: DateRange
   onChange: (patch: Partial<ManagerReportsSearch>) => void
 }
 
-/** Period, comparison range and warehouse (selector only with more than one). */
+/** Period, comparison range, warehouse (selector only with more than one) and supplier. */
 export function ManagerFilters({
   search,
   warehouses,
+  suppliers,
   current,
   range,
   onChange,
@@ -101,6 +105,11 @@ export function ManagerFilters({
         ) : (
           current && <Chip tone="gray">{current.name} · tu almacén</Chip>
         )}
+        <SupplierSelect
+          suppliers={suppliers}
+          value={search.proveedor}
+          onChange={(proveedor) => onChange({ proveedor })}
+        />
         {range && before && (
           <span className="flex items-center gap-[9px] text-xs text-[#5d387e]">
             <CalendarDaysIcon size={15} aria-hidden="true" />

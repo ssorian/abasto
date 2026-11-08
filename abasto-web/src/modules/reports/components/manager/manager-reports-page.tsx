@@ -72,6 +72,7 @@ export function ManagerReportsPage({
       <ManagerFilters
         search={search}
         warehouses={load.warehouses}
+        suppliers={load.suppliers}
         current={dashboard?.warehouse}
         range={sales?.range}
         onChange={onSearch}
@@ -116,6 +117,7 @@ export function ManagerReportsPage({
           <CashCutsCard
             rows={dashboard.cash.rows}
             warehouse={dashboard.warehouse.name}
+            supplierFiltered={Boolean(search.proveedor)}
           />
         </div>
       )}

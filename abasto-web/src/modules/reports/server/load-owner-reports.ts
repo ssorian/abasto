@@ -18,11 +18,15 @@ import type {
 import { periodOf } from '#/modules/reports/lib/search'
 import {
   cashCutsFn,
+  reportScopeFn,
+  reportSuppliersFn,
   salesReportFn,
   stockAlertsFn,
 } from '#/modules/reports/server/reports'
 import type {
   CashCuts,
+  ReportSupplier,
+  ReportWarehouse,
   SalesReport,
   StockAlerts,
 } from '#/modules/reports/types/reports'
@@ -31,6 +35,9 @@ export type OwnerReportsLoad =
   | { allowed: false }
   | {
       allowed: true
+      /** Every warehouse and supplier, for the filter selects. */
+      warehouses: Array<ReportWarehouse>
+      suppliers: Array<ReportSupplier>
       /** Missing when the period was refused (bad dates); `error` says why. */
       data?: {
         margin: MarginReport
@@ -52,7 +59,24 @@ export type OwnerReportsLoad =
 export async function loadOwnerReports(
   search: ExecutiveSearch,
 ): Promise<OwnerReportsLoad> {
+  let options: {
+    warehouses: Array<ReportWarehouse>
+    suppliers: Array<ReportSupplier>
+  }
+  try {
+    const [scope, suppliers] = await Promise.all([
+      reportScopeFn(),
+      reportSuppliersFn(),
+    ])
+    options = { warehouses: unwrap(scope), suppliers: unwrap(suppliers) }
+  } catch (error) {
+    if (error instanceof ClientError && error.code === 'forbidden') {
+      return { allowed: false }
+    }
+    throw error
+  }
   const period = periodOf(search)
+  const filters = { warehouseId: search.almacen, supplierId: search.proveedor }
   try {
     const [
       margin,
@@ -63,15 +87,16 @@ export async function loadOwnerReports(
       cashCuts,
       stockAlerts,
     ] = await Promise.all([
-      marginReportFn({ data: { period } }),
-      warehouseRankingFn({ data: { period } }),
-      inventoryValueFn(),
+      marginReportFn({ data: { period, ...filters } }),
+      warehouseRankingFn({ data: { period, ...filters } }),
+      inventoryValueFn({ data: filters }),
       nonMovingCapitalFn({
-        data: { days: search.sinventa ?? defaultNonMovingDays },
+        data: { days: search.sinventa ?? defaultNonMovingDays, ...filters },
       }),
-      salesReportFn({ data: { period } }),
-      cashCutsFn({ data: { period } }),
-      stockAlertsFn({ data: {} }),
+      salesReportFn({ data: { period, ...filters } }),
+      // A cash session mixes suppliers: cash cuts follow the warehouse only.
+      cashCutsFn({ data: { period, warehouseId: filters.warehouseId } }),
+      stockAlertsFn({ data: filters }),
     ])
     const rankingData = unwrap(ranking)
     // The ranking already resolved the previous range on the server clock.
@@ -83,11 +108,13 @@ export async function loadOwnerReports(
             from: rankingData.previousRange.from,
             to: rankingData.previousRange.to,
           },
+          ...filters,
         },
       }),
     )
     return {
       allowed: true,
+      ...options,
       data: {
         margin: unwrap(margin),
         ranking: rankingData,
@@ -100,11 +127,12 @@ export async function loadOwnerReports(
       },
     }
   } catch (error) {
-    if (error instanceof ClientError && error.code === 'forbidden') {
-      return { allowed: false }
-    }
-    if (error instanceof ClientError && error.code === 'invalid') {
-      return { allowed: true, error: error.message }
+    // Bad dates, or a warehouse id that is not one: show it next to the filters.
+    if (
+      error instanceof ClientError &&
+      (error.code === 'invalid' || error.code === 'forbidden')
+    ) {
+      return { allowed: true, ...options, error: error.message }
     }
     throw error
   }

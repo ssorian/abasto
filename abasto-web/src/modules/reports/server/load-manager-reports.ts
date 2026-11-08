@@ -2,9 +2,15 @@ import { ClientError, unwrap } from '#/lib/boundary'
 import type { ManagerReportsSearch } from '#/modules/reports/lib/manager-search'
 import { periodOf } from '#/modules/reports/lib/search'
 import { managerDashboardFn } from '#/modules/reports/server/manager-reports'
-import { reportScopeFn } from '#/modules/reports/server/reports'
+import {
+  reportScopeFn,
+  reportSuppliersFn,
+} from '#/modules/reports/server/reports'
 import type { ManagerDashboard } from '#/modules/reports/types/manager-dashboard'
-import type { ReportWarehouse } from '#/modules/reports/types/reports'
+import type {
+  ReportSupplier,
+  ReportWarehouse,
+} from '#/modules/reports/types/reports'
 
 export type { ManagerDashboard }
 
@@ -14,6 +20,7 @@ export type ManagerReportsLoad =
       allowed: true
       /** Only the warehouses the actor manages; feeds the selector. */
       warehouses: Array<ReportWarehouse>
+      suppliers: Array<ReportSupplier>
       /** Missing when the filters were refused; `error` says why. */
       dashboard?: ManagerDashboard
       error?: string
@@ -28,20 +35,30 @@ export async function loadManagerReports(
     if (scope.code === 'forbidden') return { allowed: false }
     throw new ClientError(scope.code, scope.message)
   }
+  const suppliers = unwrap(await reportSuppliersFn())
   try {
     const dashboard = unwrap(
       await managerDashboardFn({
-        data: { period: periodOf(search), warehouseId: search.almacen },
+        data: {
+          period: periodOf(search),
+          warehouseId: search.almacen,
+          supplierId: search.proveedor,
+        },
       }),
     )
-    return { allowed: true, warehouses: scope.data, dashboard }
+    return { allowed: true, warehouses: scope.data, suppliers, dashboard }
   } catch (error) {
     // Bad dates or a warehouse that is not theirs: show it next to the filters.
     if (
       error instanceof ClientError &&
       (error.code === 'invalid' || error.code === 'forbidden')
     ) {
-      return { allowed: true, warehouses: scope.data, error: error.message }
+      return {
+        allowed: true,
+        warehouses: scope.data,
+        suppliers,
+        error: error.message,
+      }
     }
     throw error
   }

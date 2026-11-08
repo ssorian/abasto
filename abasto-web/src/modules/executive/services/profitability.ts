@@ -88,10 +88,11 @@ async function grouped(
   dimension: keyof typeof groupings,
   range: DateRange,
   warehouseIds: ReadonlyArray<string>,
+  supplierId?: string,
 ): Promise<Array<RawRow>> {
   const g = groupings[dimension]
   const result = await db.execute<RawRow>(sql`
-    with lines as (${pickedUpLines(range, warehouseIds)})
+    with lines as (${pickedUpLines(range, warehouseIds, supplierId)})
     select ${g.select}, ${aggregates}
     from ${g.from}
     group by ${g.groupBy}
@@ -102,31 +103,38 @@ async function grouped(
 async function summary(
   range: DateRange,
   warehouseIds: ReadonlyArray<string>,
+  supplierId?: string,
 ): Promise<MarginTotals> {
   const result = await db.execute<RawRow>(sql`
-    with lines as (${pickedUpLines(range, warehouseIds)})
+    with lines as (${pickedUpLines(range, warehouseIds, supplierId)})
     select ${aggregates} from lines s`)
   return totalsOf(result.rows[0])
 }
 
+/** Optional narrowing shared by the executive reports; both checked server-side. */
+export type ExecutiveFilters = {
+  warehouseIds?: ReadonlyArray<string>
+  supplierId?: string
+}
+
 /**
- * Gross margin of the picked-up orders in the period over every warehouse,
- * by product, supplier (no supplier = "Sin proveedor") and warehouse. Owner
+ * Gross margin of the picked-up orders in the period over every warehouse (or
+ * the requested ones, and one supplier's products), by product, supplier (no supplier = "Sin proveedor") and warehouse. Owner
  * only. Revenue and cost come from the sales report's own line query.
  */
 export async function getMarginReport(
   actor: Actor,
-  input: { period: PeriodInput },
+  input: { period: PeriodInput } & ExecutiveFilters,
 ): Promise<MarginReport> {
   requireOwner(actor)
-  const warehouses = await reportWarehouses(actor)
+  const warehouses = await reportWarehouses(actor, input.warehouseIds)
   const range = periodRange(input.period)
   const ids = warehouses.map((item) => item.id)
   const [total, byProduct, bySupplier, byWarehouse] = await Promise.all([
-    summary(range, ids),
-    grouped('product', range, ids),
-    grouped('supplier', range, ids),
-    grouped('warehouse', range, ids),
+    summary(range, ids, input.supplierId),
+    grouped('product', range, ids, input.supplierId),
+    grouped('supplier', range, ids, input.supplierId),
+    grouped('warehouse', range, ids, input.supplierId),
   ])
   const sold = new Map(byWarehouse.map((row) => [row.key, asRow(row)]))
   return {
@@ -166,8 +174,9 @@ export async function getMarginReport(
 async function metricsByWarehouse(
   range: DateRange,
   ids: ReadonlyArray<string>,
+  supplierId?: string,
 ): Promise<Map<string, WarehouseMetrics>> {
-  const rows = await grouped('warehouse', range, ids)
+  const rows = await grouped('warehouse', range, ids, supplierId)
   return new Map(
     rows.map((row) => [
       row.key,
@@ -183,16 +192,16 @@ async function metricsByWarehouse(
  */
 export async function getWarehouseRanking(
   actor: Actor,
-  input: { period: PeriodInput },
+  input: { period: PeriodInput } & ExecutiveFilters,
 ): Promise<WarehouseRanking> {
   requireOwner(actor)
-  const warehouses = await reportWarehouses(actor)
+  const warehouses = await reportWarehouses(actor, input.warehouseIds)
   const range = periodRange(input.period)
   const previous = previousRange(range)
   const ids = warehouses.map((item) => item.id)
   const [now, before] = await Promise.all([
-    metricsByWarehouse(range, ids),
-    metricsByWarehouse(previous, ids),
+    metricsByWarehouse(range, ids, input.supplierId),
+    metricsByWarehouse(previous, ids, input.supplierId),
   ])
   const rows = warehouses.map((w) => {
     const current = now.get(w.id) ?? metricsOf(0, 0, 0)

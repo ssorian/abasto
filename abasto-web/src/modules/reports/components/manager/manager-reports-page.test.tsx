@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import { ManagerReportsPage } from '#/modules/reports/components/manager/manager-reports-page'
+import type { ManagerReportsSearch } from '#/modules/reports/lib/manager-search'
 import type { ManagerReportsLoad } from '#/modules/reports/server/load-manager-reports'
 import type { ManagerDashboard } from '#/modules/reports/types/manager-dashboard'
 import type { SalesReport } from '#/modules/reports/types/reports'
@@ -55,9 +56,16 @@ const dashboard = (orders: number): ManagerDashboard => ({
   pendingOrders: [],
 })
 
-const render = (load: ManagerReportsLoad) =>
+const lala = { id: 's1', name: 'Grupo Lala', active: true }
+const alpura = { id: 's2', name: 'Alpura', active: false }
+
+const render = (load: ManagerReportsLoad, search: ManagerReportsSearch = {}) =>
   renderToStaticMarkup(
-    <ManagerReportsPage load={load} search={{}} onSearch={() => undefined} />,
+    <ManagerReportsPage
+      load={load}
+      search={search}
+      onSearch={() => undefined}
+    />,
   )
 
 describe('ManagerReportsPage', () => {
@@ -65,6 +73,7 @@ describe('ManagerReportsPage', () => {
     const html = render({
       allowed: true,
       warehouses: [tejupilco],
+      suppliers: [],
       dashboard: dashboard(0),
     })
     expect(html).toContain('Sin ventas en Tejupilco')
@@ -75,6 +84,7 @@ describe('ManagerReportsPage', () => {
     const one = render({
       allowed: true,
       warehouses: [tejupilco],
+      suppliers: [],
       dashboard: dashboard(2),
     })
     expect(one).toContain('$2,001.00')
@@ -83,6 +93,7 @@ describe('ManagerReportsPage', () => {
     const two = render({
       allowed: true,
       warehouses: [tejupilco, { id: 'w2', name: 'Sultepec' }],
+      suppliers: [],
       dashboard: dashboard(2),
     })
     expect(two).toContain('Almacén del reporte')
@@ -91,5 +102,23 @@ describe('ManagerReportsPage', () => {
 
   test('someone who manages nothing is told so', () => {
     expect(render({ allowed: false })).toContain('encargados de almacén')
+  })
+
+  test('offers every supplier, marks the chosen one, and says cash ignores it', () => {
+    const load: ManagerReportsLoad = {
+      allowed: true,
+      warehouses: [tejupilco],
+      suppliers: [lala, alpura],
+      dashboard: dashboard(2),
+    }
+    const all = render(load)
+    expect(all).toContain('Todos los proveedores')
+    expect(all).toContain('Grupo Lala')
+    expect(all).toContain('Alpura')
+    expect(all).not.toContain('La caja no se filtra por proveedor.')
+
+    const picked = render(load, { proveedor: 's1' })
+    expect(picked).toMatch(/<option value="s1" selected/)
+    expect(picked).toContain('La caja no se filtra por proveedor.')
   })
 })
