@@ -19,9 +19,12 @@ Decisions (parent): the `role` column is kept (single allowed value) instead of 
 - T1 [S1,S2,S4,S6] worker — schema, migration 0024, policy, labels, server input, assign dialog, test fixtures and clerk tests. Risk: items 1 and 2. Status: done. Commit: 004f351 (RED 2/16 in policy + staff-management; GREEN 707/710, the 3 failures are seed tests owned by T2; migration test runs the shipped SQL in a rolled-back transaction; db:migrate NOT applied: `.env.local` points at Supabase; `clerkA` renamed `staffA`, a second single-warehouse manager of A)
 - T2 [S3,S5,S6] worker — seed (one manager per warehouse) and docs. Status: done. Commit: a246994 (bun test 710/710, tsc clean, eslint/prettier clean on seed+docs, build OK; includes the user's Caja/no-Tarima seed edits; README also reformatted by prettier)
 
+Verification (independent, Risk items 1 and 2): S1-S3 pass, S4 pass with one gap (staff with no managed warehouse refused by report scope lost its only test) fixed by a pin test; S5 soft pass (README reformatted by prettier); S6 bun test 710/710 + tsc clean.
+
 ## Log
 
 - L1 (user): "Puedes modificar la seed para agregar un perfil por almacen y un perfil para el dueno?" → seed already had owner + one manager per warehouse + 2 clerks.
 - L2 (user): "elimina el rol de auxiliar, hace basicamente lo mismo que el encargado"
 - L3 (evidence): clerk differs from manager only by `warehouse.manage` (`access/lib/policy.ts:26-29`); UI label is "Mostrador" (`access/lib/role-labels.ts:13-14`); ~38 test files reference clerk; fixture `inventory/services/testing.ts:72-80`.
 - L4 (user): "si es base de desarrollo, solo que esta en suppabase" → parent ran `bun run db:migrate` on the Supabase dev DB: before `manager 4, clerk 2`, after `manager 6` (no row lost).
+- L5 (user): "haz merge" → feat/executive-console merged (67e82ae); this branch merged after its verifier.
