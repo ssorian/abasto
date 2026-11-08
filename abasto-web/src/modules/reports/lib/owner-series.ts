@@ -1,3 +1,4 @@
+import { businessDate } from '#/modules/orders/services/clock'
 import { metricsOf } from '#/modules/executive/lib/profitability'
 import type {
   MarginRow,
@@ -145,6 +146,34 @@ export function cashDifferenceSummary(
       0,
     ),
   }
+}
+
+export type ClosedCashCut = CashCutRow & {
+  closedAt: Date
+  differenceCents: number
+  /** Business day (Mexico City) the cut was closed. */
+  day: string
+}
+
+/**
+ * Closed cuts, oldest first. Server functions deliver dates as ISO strings,
+ * so they are revived here before any date math.
+ */
+export function closedCashCuts(
+  rows: ReadonlyArray<CashCutRow>,
+): Array<ClosedCashCut> {
+  return rows
+    .filter((row) => row.closedAt !== null && row.differenceCents !== null)
+    .map((row) => {
+      const closedAt = new Date(row.closedAt as Date | string)
+      return {
+        ...row,
+        closedAt,
+        differenceCents: row.differenceCents as number,
+        day: businessDate(closedAt),
+      }
+    })
+    .sort((a, b) => a.closedAt.getTime() - b.closedAt.getTime())
 }
 
 export type StockAlertSummary = {

@@ -15,7 +15,11 @@ import {
   Td,
   Th,
 } from '#/modules/reports/components/report-table'
-import { compactMoney, shortDay } from '#/modules/reports/lib/owner-series'
+import {
+  closedCashCuts,
+  compactMoney,
+  shortDay,
+} from '#/modules/reports/lib/owner-series'
 import type { CashCutRow } from '#/modules/reports/types/reports'
 
 const config = {
@@ -24,13 +28,6 @@ const config = {
 
 const chartCuts = 14
 const tableCuts = 8
-
-type Closed = CashCutRow & { closedAt: Date; differenceCents: number }
-
-const isClosed = (row: CashCutRow): row is Closed =>
-  row.closedAt !== null && row.differenceCents !== null
-
-const dayOf = (date: Date) => date.toISOString().slice(0, 10)
 
 const status = (difference: number) =>
   difference === 0
@@ -47,12 +44,10 @@ export function CashSection({
   rows: Array<CashCutRow>
   sentence: string
 }) {
-  const closed = rows
-    .filter(isClosed)
-    .sort((a, b) => a.closedAt.getTime() - b.closedAt.getTime())
+  const closed = closedCashCuts(rows)
   const data = closed.slice(-chartCuts).map((row) => ({
     id: row.sessionId,
-    name: `${shortDay(dayOf(row.closedAt))} · ${row.warehouseName}`,
+    name: `${shortDay(row.day)} · ${row.warehouseName}`,
     differenceCents: row.differenceCents,
   }))
   const latest = closed.slice(-tableCuts).reverse()
@@ -119,7 +114,7 @@ export function CashSection({
                   const state = status(row.differenceCents)
                   return (
                     <Row key={row.sessionId}>
-                      <Td>{shortDay(dayOf(row.closedAt))}</Td>
+                      <Td>{shortDay(row.day)}</Td>
                       <Td>{row.warehouseName}</Td>
                       <Td>{row.closedByName ?? '—'}</Td>
                       <Td className="text-right tabular-nums">

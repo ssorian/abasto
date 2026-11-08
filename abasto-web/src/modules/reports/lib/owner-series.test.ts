@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import {
   cashDifferenceSummary,
+  closedCashCuts,
   compactMoney,
   dailySeries,
   nonMovingBuckets,
@@ -255,5 +256,30 @@ describe('compactMoney and shortDay', () => {
   test('shortDay writes a business date as day and month', () => {
     expect(shortDay('2026-11-08')).toBe('8 nov')
     expect(shortDay('2026-01-31')).toBe('31 ene')
+  })
+})
+
+describe('closedCashCuts', () => {
+  const cut = (closedAt: string | null, differenceCents: number | null) =>
+    // Server functions deliver dates as ISO strings on the client.
+    ({
+      sessionId: closedAt ?? 'open',
+      warehouseName: 'Tejupilco',
+      openedAt: '2026-11-07T14:00:00.000Z',
+      closedAt,
+      differenceCents,
+    }) as unknown as CashCutRow
+
+  test('keeps closed cuts oldest first and dates them by business day, even from strings', () => {
+    const cuts = closedCashCuts([
+      cut('2026-11-08T03:30:00.000Z', -2000),
+      cut(null, null),
+      cut('2026-11-06T20:00:00.000Z', 500),
+    ])
+    expect(cuts.map((row) => [row.day, row.differenceCents])).toEqual([
+      ['2026-11-06', 500],
+      // 03:30 UTC is still Nov 7 in Mexico City.
+      ['2026-11-07', -2000],
+    ])
   })
 })
