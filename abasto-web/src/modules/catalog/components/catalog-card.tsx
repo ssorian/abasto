@@ -1,10 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import {
-  ArrowRightIcon,
-  CheckIcon,
-  PackageIcon,
-  ScanLineIcon,
-} from 'lucide-react'
+import { ArrowRightIcon, CheckIcon, PackageIcon, TagIcon } from 'lucide-react'
 
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
 import { presentationLabel } from '#/modules/catalog/lib/catalog-presentations'
@@ -19,9 +14,9 @@ type CatalogCardProps = {
   canManage: boolean
   /** Prices of the selected warehouse; omitted when the actor sees none. */
   prices?: ReactNode
-  onPresentations: () => void
+  /** Opens the Prices dialog; absent when the product has no prices to show. */
+  onPrices?: () => void
   onEdit: () => void
-  onTogglePublished: () => void
 }
 
 export function CatalogCard({
@@ -29,9 +24,8 @@ export function CatalogCard({
   supplierName,
   canManage,
   prices,
-  onPresentations,
+  onPrices,
   onEdit,
-  onTogglePublished,
 }: CatalogCardProps) {
   return (
     <article className="relative overflow-hidden rounded-xl border border-[#eee8e2] bg-white shadow-[0_3px_5px_#35145202] transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[#ddd4d7] hover:shadow-[0_7px_22px_#3712570b]">
@@ -64,7 +58,7 @@ export function CatalogCard({
         <h3 className="mt-1.5 text-base leading-normal font-[650] md:text-[17px]">
           {product.name}
         </h3>
-        <p className="mt-1 text-xs leading-[1.4] text-[#9f8f94] md:text-[13px]">
+        <p className="mt-1 line-clamp-2 text-xs leading-[1.4] text-[#9f8f94] md:text-[13px]">
           {product.description}
         </p>
         <div className="my-5 block border-b border-[#f4f1ed] pb-[18px] text-xs text-[#a29096] md:text-sm">
@@ -82,30 +76,26 @@ export function CatalogCard({
         <p className="mt-1 text-[11px] leading-[1.4] text-[#9f8f94]">
           El inventario se lleva en {product.unit}.
         </p>
-        {canManage ? (
-          <>
-            <CatalogButton
-              className="mt-3 mb-[5px] w-full"
-              onClick={onPresentations}
-            >
-              <ScanLineIcon className="size-4" />
-              Presentaciones y códigos
-            </CatalogButton>
-            <div className="my-3.5 flex flex-wrap gap-[9px]">
+        {onPrices || canManage ? (
+          <div className="my-3.5 flex flex-wrap gap-[9px]">
+            {onPrices ? (
+              <CatalogButton
+                className="min-h-9 flex-1 p-2 text-xs"
+                onClick={onPrices}
+              >
+                <TagIcon className="size-4" />
+                Precios
+              </CatalogButton>
+            ) : null}
+            {canManage ? (
               <CatalogButton
                 className="min-h-9 flex-1 p-2 text-xs"
                 onClick={onEdit}
               >
                 Editar
               </CatalogButton>
-              <CatalogButton
-                className="min-h-9 flex-1 p-2 text-xs"
-                onClick={onTogglePublished}
-              >
-                {product.published ? 'Pausar' : 'Publicar'}
-              </CatalogButton>
-            </div>
-          </>
+            ) : null}
+          </div>
         ) : null}
         <Link
           to="/inventario"

@@ -14,7 +14,6 @@ import {
 } from '#/modules/inventory/components/inventory-dialog'
 import { SearchBox } from '#/modules/inventory/components/search-box'
 import { OrderTable } from '#/modules/inventory/forms/order-table'
-import { PieceCostDialog } from '#/modules/inventory/forms/piece-cost-dialog'
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import { formatCents } from '#/modules/inventory/lib/cents'
 import {
@@ -28,6 +27,7 @@ import type {
   CatalogSupplier,
 } from '#/modules/catalog/lib/catalog-types'
 import type { WarehouseOption } from '#/modules/inventory/types/stock'
+import { WarehousePricesDialog } from '#/modules/pricing/forms/warehouse-prices-dialog'
 import { hasWarehouseChoice } from '#/modules/warehouses/lib/warehouse-choice'
 
 type OrderDialogProps = {
@@ -63,6 +63,7 @@ export function OrderDialog({
   const [standard, setStandard] = useState<Record<string, number>>({})
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [reloadStandard, setReloadStandard] = useState(0)
 
   // Standard prices are shown read-only; reload them for the receiving warehouse.
   useEffect(() => {
@@ -73,7 +74,7 @@ export function OrderDialog({
     return () => {
       current = false
     }
-  }, [draft.warehouseId])
+  }, [draft.warehouseId, reloadStandard])
 
   const own = useMemo(
     () => supplierProducts(products, draft.supplierId, ''),
@@ -220,9 +221,12 @@ export function OrderDialog({
       </InventoryDialog>
       {canEditProducts && editing && (
         // Saving reloads the products, so the rows recalculate with the new amounts and typed boxes stay.
-        <PieceCostDialog
-          key={editing.id}
+        <WarehousePricesDialog
+          key={`${draft.warehouseId}:${editing.id}`}
           product={editing}
+          warehouseId={draft.warehouseId}
+          canEditCost={canEditProducts}
+          onPricesSaved={() => setReloadStandard((count) => count + 1)}
           onClose={() => setEditingId(undefined)}
         />
       )}

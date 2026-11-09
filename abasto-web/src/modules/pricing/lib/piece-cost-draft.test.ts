@@ -4,7 +4,7 @@ import {
   pieceCostDraftOf,
   pieceCostErrors,
   pieceCostPatchOf,
-} from '#/modules/inventory/lib/piece-cost-draft'
+} from '#/modules/pricing/lib/piece-cost-draft'
 import { ABOVE_LIST_PRICE_MESSAGE } from '#/modules/catalog/lib/product-draft'
 
 const stored = {
