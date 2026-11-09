@@ -15,11 +15,13 @@ import {
   cancelSupplierOrderFn,
   createSupplierOrderFn,
   receiveSupplierOrderFn,
+  returnPendingsFn,
   supplierOrderFn,
   writeOffPendingsFn,
 } from '#/modules/inventory/server/supplier-orders'
 import type { OrderStock } from '#/modules/inventory/lib/order-rows'
 import { formatCents } from '#/modules/inventory/lib/cents'
+import type { ReturnRequest } from '#/modules/inventory/lib/pending-return'
 import type { ReceptionInput } from '#/modules/inventory/services/supplier-reception'
 import type {
   SupplierOrder,
@@ -32,7 +34,8 @@ const messageOf = (failure: unknown) =>
 
 /**
  * Write actions of Inventario. Each resolves to `{ data }` on success (the page
- * reloads), or to `undefined` after showing the server message as a toast.
+ * reloads), or to `undefined` after showing the server message as a toast, or
+ * through `onError` when the dialog shows it inline.
  */
 export function useInventoryActions() {
   const router = useRouter()
@@ -40,6 +43,7 @@ export function useInventoryActions() {
   async function run<T>(
     action: () => Promise<Result<T>>,
     success?: (data: T) => string,
+    onError?: (message: string) => void,
   ): Promise<{ data: T } | undefined> {
     try {
       const data = unwrap(await action())
@@ -47,36 +51,57 @@ export function useInventoryActions() {
       if (success) toast.success(success(data))
       return { data }
     } catch (failure) {
-      toast.error(messageOf(failure))
+      if (onError) onError(messageOf(failure))
+      else toast.error(messageOf(failure))
       return undefined
     }
   }
 
   return {
-    createOrder: (input: SupplierOrderInput) =>
+    createOrder: (
+      input: SupplierOrderInput,
+      onError?: (message: string) => void,
+    ) =>
       run(
         () => createSupplierOrderFn({ data: input }),
         () => 'Pedido registrado. Quedó en «Por recibir».',
+        onError,
       ),
     cancelOrder: (purchaseId: string) =>
       run(
         () => cancelSupplierOrderFn({ data: { purchaseId } }),
         () => 'Pedido cancelado.',
       ),
-    receiveOrder: (input: ReceptionInput) =>
+    receiveOrder: (
+      input: ReceptionInput,
+      onError?: (message: string) => void,
+    ) =>
       run(
         () => receiveSupplierOrderFn({ data: input }),
         () => 'Pedido recibido. Las existencias ya están actualizadas.',
+        onError,
       ),
-    writeOff: (input: {
-      supplierId: string
-      productId: string
-      boxes: number
-    }) =>
+    writeOff: (
+      input: { pendingId: string; boxes: number },
+      onError?: (message: string) => void,
+    ) =>
       run(
         () => writeOffPendingsFn({ data: input }),
         ({ valueCents }) =>
           `Se descontaron ${formatCents(valueCents)} del pago al proveedor.`,
+        onError,
+      ),
+    returnPending: (
+      input: ReturnRequest,
+      onError?: (message: string) => void,
+    ) =>
+      run(
+        () => returnPendingsFn({ data: input }),
+        ({ creditCents }) =>
+          creditCents === null
+            ? 'Devolución registrada: el proveedor repondrá las cajas.'
+            : `Devolución registrada con descuento de ${formatCents(creditCents)}.`,
+        onError,
       ),
     /** Lines of an order; a failure shows the message and resolves to undefined. */
     async loadOrder(purchaseId: string): Promise<SupplierOrder | undefined> {

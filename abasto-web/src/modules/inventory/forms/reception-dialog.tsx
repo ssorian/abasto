@@ -22,11 +22,14 @@ import {
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import { formatCents } from '#/modules/inventory/lib/cents'
 import {
+  goodBoxes,
   initialReception,
-  missingBoxes,
   receptionInputFromDraft,
   receptionIssues,
   receptionSummary,
+  receptionSummaryText,
+  replacementBoxes,
+  toggleReceived,
 } from '#/modules/inventory/lib/reception-draft'
 import type {
   ReceptionDraft,
@@ -36,22 +39,22 @@ import type {
   SupplierOrder,
   SupplierOrderSummary,
 } from '#/modules/inventory/services/supplier-orders'
-import type { OwedPending } from '#/modules/inventory/services/supplier-pendings'
+import type { PendingBalance } from '#/modules/inventory/services/supplier-pendings'
 
 type ReceptionDialogProps = {
   order: SupplierOrderSummary
-  /** Everything every supplier owes; the dialog keeps this order's supplier. */
-  owed: ReadonlyArray<OwedPending>
+  /** Open "Por reponer" balances of every supplier; the dialog keeps this order's supplier. */
+  restock: ReadonlyArray<PendingBalance>
   onClose: () => void
 }
 
 const compact = 'min-h-[38px] px-2 py-1.5'
 const boxes = (count: number) => `${count} ${count === 1 ? 'caja' : 'cajas'}`
 
-/** Verifies a waiting order: good, damaged and missing boxes per line, plus replacements. */
+/** Verifies a waiting order from its exceptions only, plus earlier missing boxes that arrived with it. */
 export function ReceptionDialog({
   order,
-  owed,
+  restock,
   onClose,
 }: ReceptionDialogProps) {
   const actions = useInventoryActions()
@@ -78,17 +81,21 @@ export function ReceptionDialog({
   }, [order.id])
 
   const owedHere = useMemo(
-    () => owed.filter((row) => row.supplierId === order.supplierId),
-    [owed, order.supplierId],
+    () => restock.filter((row) => row.supplierId === order.supplierId),
+    [restock, order.supplierId],
   )
   const owedBoxes = useMemo(
     () =>
-      Object.fromEntries(owedHere.map((row) => [row.productId, row.owedBoxes])),
+      Object.fromEntries(owedHere.map((row) => [row.pendingId, row.owedBoxes])),
     [owedHere],
   )
   const lines = detail ? receptionLines(detail) : []
   const issues = receptionIssues(lines, draft, owedBoxes)
   const summary = receptionSummary(lines, draft)
+  const summaryText = receptionSummaryText({
+    ...summary,
+    replaced: replacementBoxes(draft),
+  })
 
   const patchLine = (
     lineId: string,
@@ -99,9 +106,8 @@ export function ReceptionDialog({
       lines: {
         ...current.lines,
         [lineId]: {
-          good: '',
-          damaged: '',
-          lotCode: '',
+          missing: '0',
+          damaged: '0',
           expiresOn: '',
           ...current.lines[lineId],
           ...patch,
@@ -109,18 +115,17 @@ export function ReceptionDialog({
       },
     }))
   const patchReplacement = (
-    productId: string,
+    pendingId: string,
     patch: Partial<NonNullable<ReceptionDraft['replacements'][string]>>,
   ) =>
     setDraft((current) => ({
       ...current,
       replacements: {
         ...current.replacements,
-        [productId]: {
+        [pendingId]: {
           boxes: '',
-          lotCode: '',
           expiresOn: '',
-          ...current.replacements[productId],
+          ...current.replacements[pendingId],
           ...patch,
         },
       },
@@ -131,16 +136,9 @@ export function ReceptionDialog({
     if (!parsed.ok) return setError(parsed.message)
     setError(null)
     setPending(true)
-    const saved = await actions.receiveOrder(parsed.value)
+    const saved = await actions.receiveOrder(parsed.value, setError)
     setPending(false)
-    if (!saved) return
-    const entered = saved.data.lots.length + saved.data.replacementLots.length
-    setDone(
-      `Entraron ${boxes(summary.good)} buenas${entered ? ` en ${entered} ${entered === 1 ? 'lote' : 'lotes'}` : ''}. ` +
-        (summary.damaged + summary.missing
-          ? `Quedaron pendientes con el proveedor: ${boxes(summary.damaged)} dañadas o caducadas y ${boxes(summary.missing)} faltantes.`
-          : 'No quedó nada pendiente con el proveedor.'),
-    )
+    if (saved) setDone(`${summaryText}.`)
   }
 
   if (done) {
@@ -164,7 +162,7 @@ export function ReceptionDialog({
     <InventoryDialog
       title="Recibir pedido"
       eyebrow={order.supplierName.toUpperCase()}
-      description="Revisa lo que llegó de cada producto. Lo dañado, caducado o faltante queda como saldo del proveedor. Cada línea con cajas buenas crea su lote."
+      description={`Todo llega bien salvo lo que captures. Lote automático: ${order.code}. Las faltantes quedan «Por reponer» con el proveedor; las dañadas o caducadas quedan «Por devolver» y no entran al inventario.`}
       size="wide"
       onClose={onClose}
     >
@@ -179,15 +177,14 @@ export function ReceptionDialog({
           }}
         >
           <ListPanel className="max-h-[360px] overflow-auto">
-            <ListTable className="min-w-[860px]">
+            <ListTable className="min-w-[820px]">
               <ListHead>
                 {[
                   'Producto',
                   'Pedidas',
-                  'Buenas',
-                  'Dañadas / caducadas',
                   'Faltantes',
-                  'Lote',
+                  'Dañadas / caducadas',
+                  'Buenas',
                   'Caducidad',
                 ]}
               </ListHead>
@@ -212,12 +209,12 @@ export function ReceptionDialog({
                       <ListCell>
                         <FieldInput
                           inputMode="numeric"
-                          aria-label={`Cajas buenas de ${line.productName}`}
+                          aria-label={`Cajas faltantes de ${line.productName}`}
                           aria-invalid={issue ? true : undefined}
                           className={`${compact} w-[76px]`}
-                          value={entry?.good ?? ''}
+                          value={entry?.missing ?? ''}
                           onChange={(event) =>
-                            patchLine(line.id, { good: event.target.value })
+                            patchLine(line.id, { missing: event.target.value })
                           }
                         />
                       </ListCell>
@@ -234,21 +231,15 @@ export function ReceptionDialog({
                         />
                       </ListCell>
                       <ListCell>
-                        {missingBoxes(
-                          line.boxes,
-                          entry?.good ?? '',
-                          entry?.damaged ?? '',
-                        )}
-                      </ListCell>
-                      <ListCell>
-                        <FieldInput
-                          aria-label={`Lote de ${line.productName}`}
-                          className={`${compact} w-[100px]`}
-                          value={entry?.lotCode ?? ''}
-                          onChange={(event) =>
-                            patchLine(line.id, { lotCode: event.target.value })
-                          }
-                        />
+                        <strong
+                          aria-label={`Cajas buenas de ${line.productName}`}
+                        >
+                          {goodBoxes(
+                            line.boxes,
+                            entry?.missing ?? '',
+                            entry?.damaged ?? '',
+                          )}
+                        </strong>
                       </ListCell>
                       <ListCell>
                         <FieldInput
@@ -273,30 +264,33 @@ export function ReceptionDialog({
           {owedHere.length > 0 && (
             <section className="grid gap-2.5">
               <h3 className="text-sm font-[650] text-[#5f4a51]">
-                Reposiciones
+                Faltantes de pedidos anteriores
               </h3>
               <p className="text-xs text-[#9c898f]">
-                {order.supplierName} te debe estas cajas. Si en este pedido
-                llegó producto para reponerlas, escribe cuántas. Entran como
+                {order.supplierName} te debe estas cajas. Si llegaron con este
+                pedido, escribe cuántas o márcalas como recibidas. Entran como
                 lote al costo original.
               </p>
               <ListPanel className="overflow-auto">
-                <ListTable className="min-w-[720px]">
+                <ListTable className="min-w-[760px]">
                   <ListHead>
                     {[
                       'Producto',
+                      'Pedido',
                       'Debe',
-                      'Cajas repuestas',
-                      'Lote',
+                      'Llegaron',
                       'Caducidad',
+                      '',
                     ]}
                   </ListHead>
                   <ListBody>
                     {owedHere.map((row) => {
-                      const entry = draft.replacements[row.productId]
-                      const issue = issues[row.productId]
+                      const entry = draft.replacements[row.pendingId]
+                      const issue = issues[row.pendingId]
+                      const received =
+                        entry?.boxes.trim() === String(row.owedBoxes)
                       return (
-                        <ListRow key={row.productId} className="align-top">
+                        <ListRow key={row.pendingId} className="align-top">
                           <ListCell>
                             <strong>{row.productName}</strong>
                             {issue && (
@@ -305,6 +299,7 @@ export function ReceptionDialog({
                               </small>
                             )}
                           </ListCell>
+                          <ListCell>{row.originCode}</ListCell>
                           <ListCell>
                             {boxes(row.owedBoxes)}
                             <small className="block text-[#907e84]">
@@ -314,13 +309,13 @@ export function ReceptionDialog({
                           <ListCell>
                             <FieldInput
                               inputMode="numeric"
-                              aria-label={`Cajas repuestas de ${row.productName}`}
+                              aria-label={`Llegaron cajas de ${row.productName} (${row.originCode})`}
                               aria-invalid={issue ? true : undefined}
                               className={`${compact} w-[76px]`}
                               placeholder="0"
                               value={entry?.boxes ?? ''}
                               onChange={(event) =>
-                                patchReplacement(row.productId, {
+                                patchReplacement(row.pendingId, {
                                   boxes: event.target.value,
                                 })
                               }
@@ -328,28 +323,36 @@ export function ReceptionDialog({
                           </ListCell>
                           <ListCell>
                             <FieldInput
-                              aria-label={`Lote de reposición de ${row.productName}`}
-                              className={`${compact} w-[100px]`}
-                              value={entry?.lotCode ?? ''}
+                              type="date"
+                              aria-label={`Caducidad de reposición de ${row.productName} (${row.originCode})`}
+                              className={`${compact} w-[140px]`}
+                              value={entry?.expiresOn ?? ''}
                               onChange={(event) =>
-                                patchReplacement(row.productId, {
-                                  lotCode: event.target.value,
+                                patchReplacement(row.pendingId, {
+                                  expiresOn: event.target.value,
                                 })
                               }
                             />
                           </ListCell>
                           <ListCell>
-                            <FieldInput
-                              type="date"
-                              aria-label={`Caducidad de reposición de ${row.productName}`}
-                              className={`${compact} w-[140px]`}
-                              value={entry?.expiresOn ?? ''}
-                              onChange={(event) =>
-                                patchReplacement(row.productId, {
-                                  expiresOn: event.target.value,
-                                })
+                            <ActionButton
+                              type="button"
+                              aria-pressed={received}
+                              className="min-h-9 px-3"
+                              tone={received ? 'primary' : 'secondary'}
+                              onClick={() =>
+                                setDraft((current) => ({
+                                  ...current,
+                                  replacements: toggleReceived(
+                                    current.replacements,
+                                    row.pendingId,
+                                    row.owedBoxes,
+                                  ),
+                                }))
                               }
-                            />
+                            >
+                              {received ? 'Recibido ✓' : 'Recibido'}
+                            </ActionButton>
                           </ListCell>
                         </ListRow>
                       )
@@ -361,10 +364,8 @@ export function ReceptionDialog({
           )}
 
           <WarningInline className="mt-0">
-            Entran {boxes(summary.good)} buenas. Quedarán pendientes con el
-            proveedor: {boxes(summary.damaged)} dañadas o caducadas y{' '}
-            {boxes(summary.missing)} faltantes. Al confirmar, el pedido se
-            cierra y ya no se puede editar.
+            {summaryText}. Al confirmar, el pedido se cierra y ya no se puede
+            editar.
           </WarningInline>
           {error && <FormError>{error}</FormError>}
           <DialogActions>

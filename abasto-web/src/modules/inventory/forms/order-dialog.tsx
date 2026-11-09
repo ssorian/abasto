@@ -12,10 +12,25 @@ import {
   DialogActions,
   InventoryDialog,
 } from '#/modules/inventory/components/inventory-dialog'
+import {
+  ListBody,
+  ListCell,
+  ListHead,
+  ListPanel,
+  ListRow,
+  ListTable,
+} from '#/modules/inventory/components/list-panel'
 import { SearchBox } from '#/modules/inventory/components/search-box'
 import { OrderTable } from '#/modules/inventory/forms/order-table'
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import { formatCents } from '#/modules/inventory/lib/cents'
+import {
+  discountIssue,
+  discountsInput,
+  discountTotalCents,
+  orderTotalsText,
+  toggleDiscount,
+} from '#/modules/inventory/lib/order-discounts'
 import {
   onlyWithBoxes,
   sortBelowMinimumFirst,
@@ -31,6 +46,7 @@ import type {
   CatalogProduct,
   CatalogSupplier,
 } from '#/modules/catalog/lib/catalog-types'
+import type { PendingBalance } from '#/modules/inventory/services/supplier-pendings'
 import type { WarehouseOption } from '#/modules/inventory/types/stock'
 import { WarehousePricesDialog } from '#/modules/pricing/forms/warehouse-prices-dialog'
 import { hasWarehouseChoice } from '#/modules/warehouses/lib/warehouse-choice'
@@ -43,6 +59,8 @@ type OrderDialogProps = {
   products: ReadonlyArray<CatalogProduct>
   /** Whether the actor may edit catalog products (owner). */
   canEditProducts: boolean
+  /** Open "Por reponer" balances of every supplier; the dialog keeps the chosen supplier's. */
+  restock: ReadonlyArray<PendingBalance>
   onClose: () => void
 }
 
@@ -53,6 +71,7 @@ export function OrderDialog({
   suppliers,
   products,
   canEditProducts,
+  restock,
   onClose,
 }: OrderDialogProps) {
   const actions = useInventoryActions()
@@ -72,6 +91,8 @@ export function OrderDialog({
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [reloadStandard, setReloadStandard] = useState(0)
+  // Pending ids of the balances to discount; chosen only until the order is registered.
+  const [discounted, setDiscounted] = useState<ReadonlyArray<string>>([])
 
   // Standard prices are shown read-only; reload them for the receiving warehouse.
   useEffect(() => {
@@ -107,13 +128,24 @@ export function OrderDialog({
     return sortBelowMinimumFirst(shown, stock)
   }, [products, draft.supplierId, draft.boxes, query, onlyBoxes, stock])
   const total = orderTotalCents(own, draft)
+  const owedHere = useMemo(
+    () => restock.filter((row) => row.supplierId === draft.supplierId),
+    [restock, draft.supplierId],
+  )
+  const discountCents = discountTotalCents(owedHere, discounted)
+  const tooMuch = discountIssue(total, discountCents)
 
   async function submit() {
     const parsed = orderInputFromDraft(draft, own)
     if (!parsed.ok) return setError(parsed.message)
+    if (tooMuch) return setError(tooMuch)
     setError(null)
     setPending(true)
-    const saved = await actions.createOrder(parsed.value)
+    const chosen = discountsInput(discounted)
+    const saved = await actions.createOrder(
+      chosen ? { ...parsed.value, discounts: chosen } : parsed.value,
+      setError,
+    )
     setPending(false)
     if (saved) onClose()
   }
@@ -142,6 +174,7 @@ export function OrderDialog({
                 value={draft.supplierId}
                 onChange={(event) => {
                   setQuery('')
+                  setDiscounted([])
                   setDraft({
                     ...draft,
                     supplierId: event.target.value,
@@ -195,6 +228,64 @@ export function OrderDialog({
           </Field>
           {draft.supplierId ? (
             <>
+              {owedHere.length > 0 && (
+                <section className="grid gap-2.5">
+                  <h3 className="text-sm font-[650] text-[#5f4a51]">
+                    Faltantes por reponer
+                  </h3>
+                  <p className="text-xs text-[#9c898f]">
+                    Descontar cierra el faltante: su valor se resta del pago de
+                    este pedido y las cajas ya no se esperan. Se aplica al
+                    registrar el pedido.
+                  </p>
+                  <ListPanel>
+                    <ListTable>
+                      <ListHead>
+                        {['Producto', 'Pedido', 'Debe', 'Valor', '']}
+                      </ListHead>
+                      <ListBody>
+                        {owedHere.map((row) => {
+                          const chosen = discounted.includes(row.pendingId)
+                          return (
+                            <ListRow key={row.pendingId}>
+                              <ListCell>
+                                <strong>{row.productName}</strong>
+                              </ListCell>
+                              <ListCell>{row.originCode}</ListCell>
+                              <ListCell>
+                                {row.owedBoxes}{' '}
+                                {row.owedBoxes === 1 ? 'caja' : 'cajas'}
+                              </ListCell>
+                              <ListCell>
+                                {formatCents(row.owedValueCents)}
+                              </ListCell>
+                              <ListCell>
+                                <span className="flex justify-end">
+                                  <ActionButton
+                                    type="button"
+                                    aria-pressed={chosen}
+                                    className="min-h-9 px-3"
+                                    tone={chosen ? 'primary' : 'secondary'}
+                                    onClick={() =>
+                                      setDiscounted((current) =>
+                                        toggleDiscount(current, row.pendingId),
+                                      )
+                                    }
+                                  >
+                                    {chosen
+                                      ? 'Descontado · Deshacer'
+                                      : 'Descontar'}
+                                  </ActionButton>
+                                </span>
+                              </ListCell>
+                            </ListRow>
+                          )
+                        })}
+                      </ListBody>
+                    </ListTable>
+                  </ListPanel>
+                </section>
+              )}
               <div className="flex flex-wrap items-end gap-3">
                 <div className="min-w-[240px] flex-1">
                   <SearchBox
@@ -242,10 +333,12 @@ export function OrderDialog({
               Selecciona un proveedor para ver sus productos.
             </p>
           )}
-          {error && <FormError>{error}</FormError>}
+          {(error ?? tooMuch) && (
+            <FormError>{error ?? tooMuch ?? ''}</FormError>
+          )}
           <DialogActions>
             <strong className="text-base text-[#5f4a51]">
-              Total del pedido (neto): {formatCents(total)}
+              {orderTotalsText(total, discountCents)}
             </strong>
             <span className="flex gap-3">
               <ActionButton type="button" onClick={onClose}>

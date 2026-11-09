@@ -16,76 +16,56 @@ import { dateLabel } from '#/modules/inventory/lib/format'
 import { pendingTypeLabels } from '#/modules/inventory/lib/pending-labels'
 import type { ProductLabel } from '#/modules/inventory/components/movement-table'
 import type {
-  OwedPending,
+  PendingBalance,
   PendingEntry,
 } from '#/modules/inventory/services/supplier-pendings'
 
 type SupplierPendingsTabProps = {
-  owed: ReadonlyArray<OwedPending>
+  restock: ReadonlyArray<PendingBalance>
+  returns: ReadonlyArray<PendingBalance>
   history: ReadonlyArray<PendingEntry>
   suppliers: ReadonlyMap<string, string>
   products: ReadonlyMap<string, ProductLabel>
-  onWriteOff: (pending: OwedPending) => void
+  onWriteOff: (pending: PendingBalance) => void
+  onReturn: (pending: PendingBalance) => void
 }
 
 const boxes = (count: number) => `${count} ${count === 1 ? 'caja' : 'cajas'}`
 
-/** What each supplier owes us (damaged, expired or missing boxes) and how it was settled. */
+/** What each supplier owes us, split in boxes to replenish and boxes to return, and how it was settled. */
 export function SupplierPendingsTab({
-  owed,
+  restock,
+  returns,
   history,
   suppliers,
   products,
   onWriteOff,
+  onReturn,
 }: SupplierPendingsTabProps) {
   return (
     <>
       <SectionRow
         title="Saldos de proveedores"
-        description="Cajas dañadas, caducadas o faltantes que el proveedor te debe. Se saldan reponiéndolas en un pedido próximo o descontándolas del pago."
+        description="Lo faltante se repone en una recepción o se descuenta de un pago. Lo dañado o caducado se devuelve al proveedor."
       />
-      {owed.length ? (
-        <ListPanel>
-          <ListTable>
-            <ListHead>
-              {['Proveedor', 'Producto', 'Debe', 'Valor', '']}
-            </ListHead>
-            <ListBody>
-              {owed.map((row) => (
-                <ListRow key={`${row.supplierId}:${row.productId}`}>
-                  <ListCell>
-                    <strong className="text-[#5f4a51]">
-                      {row.supplierName}
-                    </strong>
-                  </ListCell>
-                  <ListCell>
-                    {row.productName}
-                    <small className="block text-[#907e84]">{row.sku}</small>
-                  </ListCell>
-                  <ListCell>{boxes(row.owedBoxes)}</ListCell>
-                  <ListCell>{formatCents(row.owedValueCents)}</ListCell>
-                  <ListCell>
-                    <span className="flex justify-end">
-                      <ActionButton
-                        className="min-h-9 px-3"
-                        onClick={() => onWriteOff(row)}
-                      >
-                        Descontar del pago (a lo chino)
-                      </ActionButton>
-                    </span>
-                  </ListCell>
-                </ListRow>
-              ))}
-            </ListBody>
-          </ListTable>
-        </ListPanel>
-      ) : (
-        <EmptyPanel
-          icon={ScaleIcon}
-          title="Ningún proveedor te debe nada"
-          description="Lo dañado, caducado o faltante de un pedido recibido aparecerá aquí."
-        />
-      )}
+      <BalanceSection
+        title="Por reponer"
+        description="Cajas que nunca llegaron."
+        emptyTitle="Ningún proveedor te debe cajas"
+        emptyDescription="Lo faltante de un pedido recibido aparecerá aquí."
+        action="Descontar del pago (a lo chino)"
+        rows={restock}
+        onAction={onWriteOff}
+      />
+      <BalanceSection
+        title="Por devolver"
+        description="Cajas dañadas o caducadas que siguen contigo; no son inventario."
+        emptyTitle="No tienes cajas por devolver"
+        emptyDescription="Lo dañado o caducado de un pedido recibido aparecerá aquí."
+        action="Marcar como devuelto"
+        rows={returns}
+        onAction={onReturn}
+      />
       {history.length > 0 && (
         <>
           <h3 className="mt-8 mb-3 text-base font-[650] text-[#5f4a51]">
@@ -135,5 +115,75 @@ export function SupplierPendingsTab({
         </>
       )}
     </>
+  )
+}
+
+type BalanceSectionProps = {
+  title: string
+  description: string
+  emptyTitle: string
+  emptyDescription: string
+  action: string
+  rows: ReadonlyArray<PendingBalance>
+  onAction: (pending: PendingBalance) => void
+}
+
+function BalanceSection({
+  title,
+  description,
+  emptyTitle,
+  emptyDescription,
+  action,
+  rows,
+  onAction,
+}: BalanceSectionProps) {
+  return (
+    <section className="mt-6 first-of-type:mt-0">
+      <h3 className="mb-1 text-base font-[650] text-[#5f4a51]">{title}</h3>
+      <p className="mb-3 text-xs text-[#9c898f]">{description}</p>
+      {rows.length ? (
+        <ListPanel>
+          <ListTable>
+            <ListHead>
+              {['Proveedor', 'Producto', 'Pedido', 'Debe', 'Valor', '']}
+            </ListHead>
+            <ListBody>
+              {rows.map((row) => (
+                <ListRow key={row.pendingId}>
+                  <ListCell>
+                    <strong className="text-[#5f4a51]">
+                      {row.supplierName}
+                    </strong>
+                  </ListCell>
+                  <ListCell>
+                    {row.productName}
+                    <small className="block text-[#907e84]">{row.sku}</small>
+                  </ListCell>
+                  <ListCell>{row.originCode}</ListCell>
+                  <ListCell>{boxes(row.owedBoxes)}</ListCell>
+                  <ListCell>{formatCents(row.owedValueCents)}</ListCell>
+                  <ListCell>
+                    <span className="flex justify-end">
+                      <ActionButton
+                        className="min-h-9 px-3"
+                        onClick={() => onAction(row)}
+                      >
+                        {action}
+                      </ActionButton>
+                    </span>
+                  </ListCell>
+                </ListRow>
+              ))}
+            </ListBody>
+          </ListTable>
+        </ListPanel>
+      ) : (
+        <EmptyPanel
+          icon={ScaleIcon}
+          title={emptyTitle}
+          description={emptyDescription}
+        />
+      )}
+    </section>
   )
 }

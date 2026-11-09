@@ -53,8 +53,10 @@ export const Route = createFileRoute('/inventario')({
         ? await Promise.all([
             supplierOrdersFn({ data: { warehouseId: loaded.selectedId } }),
             supplierPendingsFn({ data: {} }),
-          ]).then(([orders, owed]) => [unwrap(orders), unwrap(owed)] as const)
-        : ([[], { owed: [], history: [] }] as const)
+          ]).then(
+            ([orders, balances]) => [unwrap(orders), unwrap(balances)] as const,
+          )
+        : ([[], { restock: [], returns: [], history: [] }] as const)
     return {
       overview: loaded,
       supplierOrders,
@@ -83,7 +85,11 @@ function InventoryRoute() {
       canEditProducts={user?.role === 'owner'}
       transfers={transfers}
       supplierOrders={[...supplierOrders]}
-      pendings={{ owed: [...pendings.owed], history: [...pendings.history] }}
+      pendings={{
+        restock: [...pendings.restock],
+        returns: [...pendings.returns],
+        history: [...pendings.history],
+      }}
       initialQuery={q ?? ''}
       onSelectWarehouse={(almacen) =>
         void navigate({ search: (current) => ({ ...current, almacen }) })

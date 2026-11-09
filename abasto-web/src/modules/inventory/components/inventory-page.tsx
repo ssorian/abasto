@@ -28,6 +28,7 @@ import { MinimumDialog } from '#/modules/inventory/forms/minimum-dialog'
 import { CancelOrderDialog } from '#/modules/inventory/forms/cancel-order-dialog'
 import { OrderDialog } from '#/modules/inventory/forms/order-dialog'
 import { ReceptionDialog } from '#/modules/inventory/forms/reception-dialog'
+import { ReturnDialog } from '#/modules/inventory/forms/return-dialog'
 import { WriteOffDialog } from '#/modules/inventory/forms/write-off-dialog'
 import {
   packInfoOf,
@@ -52,7 +53,7 @@ import type {
 import type { ProductStock } from '#/modules/inventory/services/stock-reads'
 import type { SupplierOrderSummary } from '#/modules/inventory/services/supplier-orders'
 import type {
-  OwedPending,
+  PendingBalance,
   PendingEntry,
 } from '#/modules/inventory/services/supplier-pendings'
 
@@ -66,7 +67,11 @@ type InventoryPageProps = {
   /** Supplier orders of the selected warehouse, newest first. */
   supplierOrders: Array<SupplierOrderSummary>
   /** What suppliers owe, with its ledger history. */
-  pendings: { owed: Array<OwedPending>; history: Array<PendingEntry> }
+  pendings: {
+    restock: Array<PendingBalance>
+    returns: Array<PendingBalance>
+    history: Array<PendingEntry>
+  }
   /** Pre-filled product search, e.g. from Catálogo "Consultar inventario". */
   initialQuery: string
   onSelectWarehouse: (warehouseId: string) => void
@@ -89,7 +94,8 @@ type Dialog =
   | { kind: 'order' }
   | { kind: 'receiveOrder'; order: SupplierOrderSummary }
   | { kind: 'cancelOrder'; order: SupplierOrderSummary }
-  | { kind: 'writeOff'; pending: OwedPending }
+  | { kind: 'writeOff'; pending: PendingBalance }
+  | { kind: 'return'; pending: PendingBalance }
   | { kind: 'count' }
   | { kind: 'transfer' }
   | { kind: 'receive'; transfer: TransferListItem }
@@ -280,11 +286,13 @@ export function InventoryPage({
         </TabsContent>
         <TabsContent value="Saldos" className="text-base">
           <SupplierPendingsTab
-            owed={pendings.owed}
+            restock={pendings.restock}
+            returns={pendings.returns}
             history={pendings.history}
             suppliers={supplierNames}
             products={labels}
             onWriteOff={(pending) => setDialog({ kind: 'writeOff', pending })}
+            onReturn={(pending) => setDialog({ kind: 'return', pending })}
           />
         </TabsContent>
         <TabsContent value="Movimientos" className="text-base">
@@ -324,13 +332,14 @@ export function InventoryPage({
           suppliers={suppliers}
           products={products}
           canEditProducts={canEditProducts}
+          restock={pendings.restock}
           onClose={() => setDialog(null)}
         />
       )}
       {dialog?.kind === 'receiveOrder' && (
         <ReceptionDialog
           order={dialog.order}
-          owed={pendings.owed}
+          restock={pendings.restock}
           onClose={() => setDialog(null)}
         />
       )}
@@ -342,6 +351,12 @@ export function InventoryPage({
       )}
       {dialog?.kind === 'writeOff' && (
         <WriteOffDialog
+          pending={dialog.pending}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'return' && (
+        <ReturnDialog
           pending={dialog.pending}
           onClose={() => setDialog(null)}
         />

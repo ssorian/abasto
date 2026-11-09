@@ -5,6 +5,9 @@ import {
   receptionInputFromDraft,
   receptionIssues,
   receptionSummary,
+  receptionSummaryText,
+  replacementBoxes,
+  toggleReceived,
 } from '#/modules/inventory/lib/reception-draft'
 import type {
   ReceptionDraft,
@@ -190,5 +193,67 @@ describe('receptionInputFromDraft', () => {
       { m1: 2 },
     )
     expect(parsed.ok).toBe(false)
+  })
+})
+
+describe('replacementBoxes', () => {
+  test('adds the typed replacement boxes, ignoring invalid text', () => {
+    expect(
+      replacementBoxes(
+        draft({
+          replacements: {
+            m1: { boxes: '3', expiresOn: '' },
+            m2: { boxes: '1', expiresOn: '' },
+            m3: { boxes: 'x', expiresOn: '' },
+          },
+        }),
+      ),
+    ).toBe(4)
+    expect(replacementBoxes(draft())).toBe(0)
+  })
+})
+
+describe('toggleReceived', () => {
+  test('marks everything owed as arrived', () => {
+    expect(toggleReceived({}, 'm1', 3)).toEqual({
+      m1: { boxes: '3', expiresOn: '' },
+    })
+  })
+
+  test('keeps the expiry date already typed', () => {
+    expect(
+      toggleReceived({ m1: { boxes: '1', expiresOn: '2027-05-01' } }, 'm1', 3),
+    ).toEqual({ m1: { boxes: '3', expiresOn: '2027-05-01' } })
+  })
+
+  test('undoes the mark when all of it was already marked', () => {
+    expect(
+      toggleReceived({ m1: { boxes: '3', expiresOn: '' } }, 'm1', 3).m1?.boxes,
+    ).toBe('')
+  })
+})
+
+describe('receptionSummaryText', () => {
+  test('lists entering, replacement, new missing and damaged boxes', () => {
+    expect(
+      receptionSummaryText({ good: 63, replaced: 4, missing: 5, damaged: 2 }),
+    ).toBe(
+      'Entran 63 cajas + 4 de reposición · 5 faltantes nuevos · 2 dañadas por devolver',
+    )
+  })
+
+  test('leaves out what is zero and uses singulars', () => {
+    expect(
+      receptionSummaryText({ good: 1, replaced: 0, missing: 1, damaged: 1 }),
+    ).toBe('Entra 1 caja · 1 faltante nuevo · 1 dañada por devolver')
+    expect(
+      receptionSummaryText({ good: 10, replaced: 0, missing: 0, damaged: 0 }),
+    ).toBe('Entran 10 cajas')
+  })
+
+  test('says so when nothing enters', () => {
+    expect(
+      receptionSummaryText({ good: 0, replaced: 0, missing: 3, damaged: 0 }),
+    ).toBe('No entra ninguna caja · 3 faltantes nuevos')
   })
 })

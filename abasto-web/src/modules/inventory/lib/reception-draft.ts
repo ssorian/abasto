@@ -149,3 +149,59 @@ export function receptionInputFromDraft(
     },
   }
 }
+
+/** Boxes typed across all replacements; invalid text counts as zero. */
+export const replacementBoxes = (draft: ReceptionDraft) =>
+  Object.values(draft.replacements).reduce(
+    (total, item) => total + (item ? count(item.boxes) : 0),
+    0,
+  )
+
+/**
+ * "Recibido" on an owed balance: everything owed arrived. Marking it again
+ * undoes it. Any expiry date already typed stays.
+ */
+export function toggleReceived(
+  replacements: ReceptionDraft['replacements'],
+  pendingId: string,
+  owedBoxes: number,
+): ReceptionDraft['replacements'] {
+  const current = replacements[pendingId]
+  const all = String(owedBoxes)
+  return {
+    ...replacements,
+    [pendingId]: {
+      expiresOn: current?.expiresOn ?? '',
+      boxes: current?.boxes.trim() === all ? '' : all,
+    },
+  }
+}
+
+const plural = (amount: number, one: string, many: string) =>
+  `${amount} ${amount === 1 ? one : many}`
+
+/** One line for the confirmation: what enters stock and what stays with the supplier. */
+export function receptionSummaryText(totals: {
+  good: number
+  replaced: number
+  missing: number
+  damaged: number
+}) {
+  const entering =
+    totals.good === 0 && totals.replaced === 0
+      ? 'No entra ninguna caja'
+      : `${totals.good === 1 ? 'Entra' : 'Entran'} ${plural(totals.good, 'caja', 'cajas')}`
+  return [
+    totals.replaced > 0
+      ? `${entering} + ${totals.replaced} de reposición`
+      : entering,
+    totals.missing > 0
+      ? plural(totals.missing, 'faltante nuevo', 'faltantes nuevos')
+      : null,
+    totals.damaged > 0
+      ? `${totals.damaged} ${totals.damaged === 1 ? 'dañada' : 'dañadas'} por devolver`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
