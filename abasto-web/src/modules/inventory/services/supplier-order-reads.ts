@@ -6,7 +6,6 @@ import type { Actor } from '#/modules/access/lib/policy'
 import { products, suppliers } from '#/modules/catalog/db/schema'
 import { purchaseLines, purchases } from '#/modules/inventory/db/schema'
 import type { PurchaseStatus } from '#/modules/inventory/db/schema'
-import { listPricePerPieceOf } from '#/lib/utils/supplier-cost'
 import { divideHalfUp } from '#/modules/inventory/lib/pending-value'
 import { requireWarehouse } from '#/modules/pricing/services/price-reads'
 
@@ -73,11 +72,10 @@ export type SupplierOrderLine = {
   boxes: number
   /** Ordered base units. */
   quantity: number
-  /** Cost typed in the order in cents, before the fixed discount and promotion. */
+  /** Quantity × list price in cents, before the fixed discount and promotion. */
   grossCostCents: number
-  /** Gross ÷ pieces in ten-thousandths of a peso; derived, never stored. */
+  /** Price, discount and promotion per piece (ten-thousandths) frozen with the order. */
   listPricePerPiece: number
-  /** Discount and promotion per piece (ten-thousandths) frozen with the order. */
   fixedDiscountPerPiece: number
   promotionPerPiece: number
   totalCostCents: number
@@ -135,6 +133,7 @@ export async function getSupplierOrder(
       boxFactor: purchaseLines.boxFactor,
       quantity: purchaseLines.quantity,
       grossCostCents: purchaseLines.grossCostCents,
+      listPricePerPiece: purchaseLines.listPricePerPiece,
       fixedDiscountPerPiece: purchaseLines.fixedDiscountPerPiece,
       promotionPerPiece: purchaseLines.promotionPerPiece,
       totalCostCents: purchaseLines.totalCostCents,
@@ -152,7 +151,6 @@ export async function getSupplierOrder(
     const received = row.goodQuantity !== null && row.damagedQuantity !== null
     return {
       ...row,
-      listPricePerPiece: listPricePerPieceOf(row.grossCostCents, row.quantity),
       boxes,
       costPerBoxCents: divideHalfUp(
         BigInt(row.totalCostCents),

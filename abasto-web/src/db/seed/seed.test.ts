@@ -12,6 +12,7 @@ import { presentations, suppliers, products } from '#/modules/catalog/db/schema'
 import { customers } from '#/modules/customers/db/schema'
 import {
   lots,
+  purchaseLines,
   purchases,
   stockMovements,
   supplierPendings,
@@ -84,6 +85,7 @@ describe('seedDatabase', () => {
       expect(crema.row).toMatchObject({
         brand: 'Alpura',
         supplierCode: 'CRAC215',
+        listPricePerPiece: 168100,
         fixedDiscountPerPiece: 840,
         promotionPerPiece: 12055,
       })
@@ -100,6 +102,7 @@ describe('seedDatabase', () => {
       const nutri = await productBySku('13455')
       expect(nutri.row).toMatchObject({
         supplierCode: '13455',
+        listPricePerPiece: 176700,
         fixedDiscountPerPiece: 0,
         promotionPerPiece: 0,
       })
@@ -189,6 +192,23 @@ describe('seedDatabase', () => {
         expect(lot.price! * lot.quantity).toBeGreaterThanOrEqual(
           lot.cost * lot.boxFactor,
         )
+      }
+
+      // Order lines are boxes only: each one snapshots the catalog price of its product.
+      const orderLinesWithPrice = await db
+        .select({
+          line: purchaseLines.listPricePerPiece,
+          product: products.listPricePerPiece,
+          quantity: purchaseLines.quantity,
+          gross: purchaseLines.grossCostCents,
+        })
+        .from(purchaseLines)
+        .innerJoin(products, eq(products.id, purchaseLines.productId))
+      expect(orderLinesWithPrice.length).toBeGreaterThan(0)
+      for (const row of orderLinesWithPrice) {
+        expect(row.product).toBeGreaterThan(0)
+        expect(row.line).toBe(row.product)
+        expect(row.gross).toBe(Math.round((row.quantity * row.line) / 100))
       }
 
       // Stock invariants hold for every lot.

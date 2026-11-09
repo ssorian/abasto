@@ -36,6 +36,7 @@ export type ProductFields = {
   /** The supplier's own code for the product. */
   supplierCode?: string
   /** Supplier amounts per piece, in ten-thousandths of a peso. */
+  listPricePerPiece?: number
   fixedDiscountPerPiece?: number
   promotionPerPiece?: number
 }
@@ -48,13 +49,37 @@ const required = () =>
     'Completa nombre, SKU, presentación, unidad y categoría.',
   )
 
-const amountKeys = ['fixedDiscountPerPiece', 'promotionPerPiece'] as const
+const amountKeys = [
+  'listPricePerPiece',
+  'fixedDiscountPerPiece',
+  'promotionPerPiece',
+] as const
 
 const badAmount = () =>
   new AppError(
     'invalid',
     'Los montos del proveedor deben ser enteros en diezmilésimas, de cero o más.',
   )
+
+const aboveListPrice = () =>
+  new AppError(
+    'invalid',
+    'El descuento y la promoción no pueden superar el precio por pieza.',
+  )
+
+/** Discount plus promotion may not exceed the list price (all in ten-thousandths). */
+function requireNetCost(amounts: {
+  listPricePerPiece: number
+  fixedDiscountPerPiece: number
+  promotionPerPiece: number
+}) {
+  if (
+    amounts.fixedDiscountPerPiece + amounts.promotionPerPiece >
+    amounts.listPricePerPiece
+  ) {
+    throw aboveListPrice()
+  }
+}
 
 const requiredKeys = ['name', 'sku', 'unit', 'category'] as const
 
@@ -143,6 +168,11 @@ export async function createProduct(
     new Map(),
     'El código de barras ya existe.',
   )
+  requireNetCost({
+    listPricePerPiece: values.listPricePerPiece ?? 0,
+    fixedDiscountPerPiece: values.fixedDiscountPerPiece ?? 0,
+    promotionPerPiece: values.promotionPerPiece ?? 0,
+  })
   try {
     return await db.transaction(async (tx) => {
       await requireSupplier(tx, values.supplierId)
@@ -164,8 +194,19 @@ export async function updateProduct(
   const values = cleaned(patch)
   try {
     return await db.transaction(async (tx) => {
-      await loadProduct(tx, id)
+      const stored = await loadProduct(tx, id)
       await requireSupplier(tx, values.supplierId)
+      // Only a patch that touches an amount is checked, merged with the stored ones.
+      if (amountKeys.some((key) => values[key] !== undefined)) {
+        requireNetCost({
+          listPricePerPiece:
+            values.listPricePerPiece ?? stored.listPricePerPiece,
+          fixedDiscountPerPiece:
+            values.fixedDiscountPerPiece ?? stored.fixedDiscountPerPiece,
+          promotionPerPiece:
+            values.promotionPerPiece ?? stored.promotionPerPiece,
+        })
+      }
       if (Object.keys(values).length) {
         const updated = await tx
           .update(products)

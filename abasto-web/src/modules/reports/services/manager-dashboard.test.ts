@@ -33,7 +33,7 @@ async function orderFor(
     warehouseId,
     expectedOn: '2099-01-10',
     reference,
-    lines: [{ productId: fx.milk.id, boxes: 2, grossCostCents: 10000 }],
+    lines: [lineFor(fx.milk, 2)],
   })
 }
 

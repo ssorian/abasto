@@ -42,7 +42,7 @@ type OrderDialogProps = {
   onClose: () => void
 }
 
-/** Order to a supplier: its products, boxes and the cost before discounts per product; discounts and promotions come from the catalog. */
+/** Order to a supplier: its products and the boxes of each; price, discount and promotion come from the catalog. */
 export function OrderDialog({
   warehouses,
   initialWarehouseId,
@@ -59,7 +59,6 @@ export function OrderDialog({
     expectedOn: '',
     reference: '',
     boxes: {},
-    costs: {},
   }))
   const [editingId, setEditingId] = useState<string>()
   const [query, setQuery] = useState('')
@@ -105,7 +104,7 @@ export function OrderDialog({
       <InventoryDialog
         title="Nuevo pedido al proveedor"
         eyebrow="POR RECIBIR"
-        description="Elige el proveedor y escribe las cajas y el costo antes de descuentos de cada producto. El descuento y la promoción vienen del catálogo y se descuentan para obtener el costo neto. El pedido no mueve existencias: espera en «Por recibir» hasta que llegue y lo verifiques."
+        description="Elige el proveedor y escribe las cajas de cada producto. El precio por pieza, el descuento y la promoción vienen del catálogo y definen el costo neto. El pedido no mueve existencias: espera en «Por recibir» hasta que llegue y lo verifiques."
         size="wide"
         onClose={onClose}
       >
@@ -126,7 +125,6 @@ export function OrderDialog({
                     ...draft,
                     supplierId: event.target.value,
                     boxes: {},
-                    costs: {},
                   })
                 }}
               >
@@ -186,18 +184,11 @@ export function OrderDialog({
                 <OrderTable
                   products={visible}
                   boxes={draft.boxes}
-                  costs={draft.costs}
                   standardByProductId={standard}
                   onBoxes={(productId, boxes) =>
                     setDraft((current) => ({
                       ...current,
                       boxes: { ...current.boxes, [productId]: boxes },
-                    }))
-                  }
-                  onCost={(productId, cost) =>
-                    setDraft((current) => ({
-                      ...current,
-                      costs: { ...current.costs, [productId]: cost },
                     }))
                   }
                   onEdit={canEditProducts ? setEditingId : undefined}

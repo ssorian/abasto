@@ -14,6 +14,7 @@ const productFields = z.object({
   supplierId: z.string().nullish(),
   published: z.boolean().optional(),
   supplierCode: z.string().optional(),
+  listPricePerPiece: z.number().optional(),
   fixedDiscountPerPiece: z.number().optional(),
   promotionPerPiece: z.number().optional(),
 })

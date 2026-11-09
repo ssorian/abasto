@@ -18,6 +18,7 @@ const product: CatalogProduct = {
   unit: 'piezas',
   supplierId: null,
   supplierCode: '',
+  listPricePerPiece: 0,
   fixedDiscountPerPiece: 0,
   promotionPerPiece: 0,
   published: true,

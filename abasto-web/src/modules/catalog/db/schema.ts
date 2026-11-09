@@ -43,9 +43,11 @@ export const products = pgTable(
     /** The supplier's own code for this product. */
     supplierCode: text('supplier_code').notNull().default(''),
     /**
-     * Supplier discount and promotion per piece, in ten-thousandths of a peso
-     * (0.1055 → 1055). The list price is typed in each order line.
+     * Supplier list price, discount and promotion per piece, in ten-thousandths
+     * of a peso (0.1055 → 1055). The net cost per piece is list − discount −
+     * promotion; supplier orders only take boxes and copy these amounts.
      */
+    listPricePerPiece: integer('list_price_per_piece').notNull().default(0),
     fixedDiscountPerPiece: integer('fixed_discount_per_piece')
       .notNull()
       .default(0),
@@ -57,7 +59,7 @@ export const products = pgTable(
     uniqueIndex('products_sku_unique').on(sql`lower(${table.sku})`),
     check(
       'products_supplier_amounts_min',
-      sql`${table.fixedDiscountPerPiece} >= 0 and ${table.promotionPerPiece} >= 0`,
+      sql`${table.listPricePerPiece} >= 0 and ${table.fixedDiscountPerPiece} >= 0 and ${table.promotionPerPiece} >= 0`,
     ),
   ],
 )

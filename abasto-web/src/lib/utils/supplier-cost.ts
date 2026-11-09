@@ -52,10 +52,9 @@ export function netCostPerBoxCents(netPerPiece: number, factor: number) {
 const divideHalfUp = (numerator: bigint, divisor: bigint) =>
   Number((numerator * 2n + divisor) / (divisor * 2n))
 
-/** List price per piece in ten-thousandths from the gross line cost in cents, half up. */
-export function listPricePerPieceOf(grossCents: number, quantity: number) {
-  if (quantity <= 0) return 0
-  return divideHalfUp(BigInt(grossCents) * 100n, BigInt(quantity))
+/** Gross line cost in cents: pieces × list price per piece (ten-thousandths), rounded half up. */
+export function grossLineCents(quantity: number, listPrice: number) {
+  return divideHalfUp(BigInt(quantity) * BigInt(listPrice), 100n)
 }
 
 /**

@@ -4,6 +4,7 @@ import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import type { AppErrorCode } from '#/lib/errors'
 import type { Actor } from '#/modules/access/lib/policy'
+import { updateProduct } from '#/modules/catalog/services/products'
 import { savePresentations } from '#/modules/catalog/services/presentations'
 import {
   lots,
@@ -44,12 +45,16 @@ async function receiveMilk(
   good: number,
   damaged: number,
   replacements?: Array<{ productId: string; boxes: number }>,
-  grossCostCents?: number,
+  listPricePerPiece?: number,
 ) {
+  // A catalog price change before ordering; the order snapshots it.
+  if (listPricePerPiece !== undefined) {
+    await updateProduct(fx.owner, fx.milk.id, { listPricePerPiece })
+  }
   const created = await createSupplierOrder(fx.owner, {
     supplierId: fx.supplier.id,
     warehouseId: fx.a.id,
-    lines: [lineFor(fx.milk, boxes, grossCostCents)],
+    lines: [lineFor(fx.milk, boxes)],
   })
   const order = await getSupplierOrder(fx.owner, created.id)
   return receiveSupplierOrder(fx.owner, {
@@ -105,14 +110,14 @@ describe('replacements', () => {
   test('replaced boxes enter as a lot at the original cost per box', async () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 10, 5, 2)
-    // The next order is priced at 2304 per box (above the 2000 standard price).
+    // The catalog price moves to 2.0000 a piece: the next order costs 2304 a box (above the 2000 standard price).
     const result = await receiveMilk(
       fx,
       4,
       4,
       0,
       [{ productId: fx.milk.id, boxes: 2 }],
-      9600,
+      20000,
     )
     expect(result.lots[0]).toMatchObject({
       receivedCostCents: 9216,
@@ -155,7 +160,7 @@ describe('replacements', () => {
   test('values replacements with the oldest owed entries first', async () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 6, 1, 0) // 5 boxes missing at 1344
-    await receiveMilk(fx, 4, 0, 2, undefined, 9600) // 2 damaged + 2 missing at 2304
+    await receiveMilk(fx, 4, 0, 2, undefined, 20000) // 2 damaged + 2 missing at 2304
     expect(await owedMilk(fx)).toMatchObject({
       owedBoxes: 9,
       owedValueCents: 6720 + 4 * 2304,

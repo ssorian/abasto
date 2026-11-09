@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import {
   formatTenThousandths,
-  listPricePerPieceOf,
+  grossLineCents,
   netCostPerBoxCents,
   netCostPerPiece,
   netLineCents,
@@ -73,26 +73,26 @@ describe('net cost', () => {
   })
 })
 
-describe('gross line cost breakdown', () => {
-  // Factor 12, 192 boxes, discount 0.08 + promotion 2.28 per piece, gross 77000.00.
+describe('line cost from the piece price', () => {
+  // Factor 12, 192 boxes, list 33.4201, discount 0.08 + promotion 2.28 per piece.
   const quantity = 12 * 192
-  const gross = 7_700_000
+  const list = 334201
 
-  test('worked example: list 33.4201, net line 71562.56, net per box 372.72', () => {
-    const list = listPricePerPieceOf(gross, quantity)
-    expect(list).toBe(334201)
+  test('worked example: gross 76999.91, net line 71562.47, net per box 372.72', () => {
+    const gross = grossLineCents(quantity, list)
+    expect(gross).toBe(7_699_991) // 2304 × 33.4201 = 76999.9104
     expect(formatTenThousandths(list)).toBe('33.4201')
     const net = netLineCents(gross, quantity, 800, 22800)
-    expect(net).toBe(7_156_256)
+    expect(net).toBe(7_156_247)
     expect(netPerBoxOfLineCents(net, 192)).toBe(37272)
   })
 
-  test('list price per piece rounds half up in ten-thousandths', () => {
-    // 0.01 peso over 4 pieces = 0.0025 exactly; over 8 pieces = 0.00125 → 13 (half up).
-    expect(listPricePerPieceOf(1, 4)).toBe(25)
-    expect(listPricePerPieceOf(1, 8)).toBe(13)
-    expect(listPricePerPieceOf(0, 8)).toBe(0)
-    expect(listPricePerPieceOf(100, 0)).toBe(0)
+  test('gross line rounds half up in cents', () => {
+    // 2 pieces × 0.0025 = 0.0050 pesos = 0.5 cents → 1; 1 piece × 0.0049 → 0.
+    expect(grossLineCents(2, 25)).toBe(1)
+    expect(grossLineCents(1, 49)).toBe(0)
+    expect(grossLineCents(12, 0)).toBe(0)
+    expect(grossLineCents(120, 12000)).toBe(14400)
   })
 
   test('net line rounds the discount once, half up, and can go negative', () => {

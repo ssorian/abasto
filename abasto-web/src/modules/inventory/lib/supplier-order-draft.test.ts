@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
-  NET_ABOVE_GROSS_MESSAGE,
+  NET_ABOVE_LIST_PRICE_MESSAGE,
   PRICE_BELOW_COST_MESSAGE,
   boxFactorOf,
   orderInputFromDraft,
@@ -19,38 +19,36 @@ const presentations = (factor: number) => [
   { id: 'b', name: 'Caja', factor, active: true, isDefault: true },
 ]
 
-/** Milk: 12 pieces; no discount. */
+/** Milk: 12 pieces at 5.0000; no discount. */
 const milk: OrderProduct = {
   id: 'milk',
   name: 'Leche 1L',
   sku: 'LAL-001',
   supplierId: 's1',
+  listPricePerPiece: 50000,
   fixedDiscountPerPiece: 0,
   promotionPerPiece: 0,
   presentations: presentations(12),
 }
-/** Yoghurt: 6 pieces with 1.0000 discount and 0.5000 promotion per piece on the product. */
+/** Yoghurt: 6 pieces at 5.5556 with 1.0000 discount and 0.5000 promotion per piece on the product. */
 const yoghurt: OrderProduct = {
   ...milk,
   id: 'yog',
   name: 'Yoghurt',
   sku: 'LAL-005',
+  listPricePerPiece: 55556,
   fixedDiscountPerPiece: 10000,
   promotionPerPiece: 5000,
   presentations: presentations(6),
 }
 const other: OrderProduct = { ...milk, id: 'alp', supplierId: 's2' }
 
-const draft = (
-  boxes: OrderDraft['boxes'],
-  costs: OrderDraft['costs'] = {},
-): OrderDraft => ({
+const draft = (boxes: OrderDraft['boxes']): OrderDraft => ({
   supplierId: 's1',
   warehouseId: 'w1',
   expectedOn: '2026-11-10',
   reference: ' P-1 ',
   boxes,
-  costs,
 })
 
 describe('boxFactorOf', () => {
@@ -79,75 +77,75 @@ describe('boxFactorOf', () => {
 })
 
 describe('rowOf', () => {
-  test('breaks the typed gross cost down like the server', () => {
-    // 2 boxes × 12 = 24 pieces; gross 144.00; 24 × 0 discount.
-    expect(rowOf(milk, '2', '144')).toEqual({
+  test('derives the row from the boxes and the catalog price, like the server', () => {
+    // 2 boxes × 12 = 24 pieces at 5.0000; no discount.
+    expect(rowOf(milk, '2')).toEqual({
       boxes: 2,
-      grossCents: 14400,
-      listPrice: 60000,
-      netLineCents: 14400,
-      netPerBoxCents: 7200,
-      exceedsGross: false,
+      grossCents: 12000,
+      listPrice: 50000,
+      netLineCents: 12000,
+      netPerBoxCents: 6000,
+      exceedsList: false,
     })
   })
 
-  test('worked example: 192 boxes of 12 for 77000.00', () => {
+  test('worked example: 192 boxes of 12 at 33.4201 a piece', () => {
     const product = {
       ...milk,
+      listPricePerPiece: 334201,
       fixedDiscountPerPiece: 800,
       promotionPerPiece: 22800,
     }
-    expect(rowOf(product, '192', '77000')).toEqual({
+    expect(rowOf(product, '192')).toEqual({
       boxes: 192,
-      grossCents: 7_700_000,
+      grossCents: 7_699_991,
       listPrice: 334201,
-      netLineCents: 7_156_256,
+      netLineCents: 7_156_247,
       netPerBoxCents: 37272,
-      exceedsGross: false,
+      exceedsList: false,
     })
   })
 
-  test('recalculates when the product discount or promotion change', () => {
-    // Yoghurt: 3 boxes × 6 = 18 pieces; gross 100.00.
-    const before = rowOf(yoghurt, '3', '100')
-    // 18 × 1.5000 = 27.00 off.
-    expect(before).toMatchObject({ netLineCents: 7300, netPerBoxCents: 2433 })
+  test('recalculates when the product price, discount or promotion change', () => {
+    // Yoghurt: 3 boxes × 6 = 18 pieces at 5.5556 less 1.5000 each.
+    const before = rowOf(yoghurt, '3')
+    expect(before).toMatchObject({ grossCents: 10000, netLineCents: 7300 })
     const edited = {
       ...yoghurt,
       fixedDiscountPerPiece: 20000,
       promotionPerPiece: 0,
     }
     // 18 × 2.0000 = 36.00 off.
-    expect(rowOf(edited, '3', '100')).toMatchObject({
+    expect(rowOf(edited, '3')).toMatchObject({
       netLineCents: 6400,
       netPerBoxCents: 2133,
-      exceedsGross: false,
+      exceedsList: false,
     })
-    expect(orderTotalCents([edited], draft({ yog: '3' }, { yog: '100' }))).toBe(
-      6400,
-    )
+    expect(orderTotalCents([edited], draft({ yog: '3' }))).toBe(6400)
   })
 
-  test('flags a discount above the gross cost and shows no negative cost', () => {
-    // 18 × 1.5000 = 27.00 off a gross of 26.99.
-    expect(rowOf(yoghurt, '3', '26.99')).toMatchObject({
-      exceedsGross: true,
+  test('flags a discount above the list price and shows no negative cost', () => {
+    const above = { ...yoghurt, listPricePerPiece: 14000 }
+    expect(rowOf(above, '3')).toMatchObject({
+      exceedsList: true,
       netLineCents: 0,
       netPerBoxCents: 0,
     })
-    expect(rowOf(yoghurt, '3', '27')).toMatchObject({ exceedsGross: false })
-    expect(rowOf(yoghurt, '3', '')).toMatchObject({ exceedsGross: true })
+    expect(rowOf({ ...above, listPricePerPiece: 15000 }, '3')).toMatchObject({
+      exceedsList: false,
+    })
+    expect(rowOf({ ...yoghurt, listPricePerPiece: 0 }, '3')).toMatchObject({
+      exceedsList: true,
+    })
   })
 
-  test('unparsable or blank fields count as zero', () => {
-    expect(rowOf(milk, 'x', '22')).toMatchObject({ boxes: 0, netLineCents: 0 })
-    expect(rowOf(milk, '2', '')).toMatchObject({
-      grossCents: 0,
-      listPrice: 0,
+  test('unparsable or blank boxes cost nothing', () => {
+    expect(rowOf(milk, 'x')).toMatchObject({ boxes: 0, netLineCents: 0 })
+    expect(rowOf(yoghurt, '')).toMatchObject({
+      boxes: 0,
       netLineCents: 0,
+      exceedsList: false,
     })
-    expect(rowOf(milk, '2', '1,5')).toMatchObject({ grossCents: 0 })
-    expect(rowOf(milk, '2', '1.234')).toMatchObject({ grossCents: 0 })
   })
 })
 
@@ -204,26 +202,21 @@ describe('supplierProducts', () => {
 describe('orderTotalCents', () => {
   test('adds the net line costs of the supplier products', () => {
     expect(
-      orderTotalCents(
-        [milk, yoghurt],
-        draft({ milk: '2', yog: '10' }, { milk: '144', yog: '300' }),
-      ),
-    ).toBe(14400 + 30000 - 9000) // yoghurt: 60 pieces × 1.5000 off
+      orderTotalCents([milk, yoghurt], draft({ milk: '2', yog: '10' })),
+    ).toBe(12000 + 33334 - 9000) // yoghurt: 60 pieces × 5.5556 less 1.5000 each
   })
 
   test('ignores blank, invalid and unknown rows', () => {
-    expect(
-      orderTotalCents([milk], draft({ milk: 'x', ghost: '5' }, { milk: '22' })),
-    ).toBe(0)
+    expect(orderTotalCents([milk], draft({ milk: 'x', ghost: '5' }))).toBe(0)
   })
 })
 
 describe('orderInputFromDraft', () => {
-  test('keeps rows with boxes, their gross cost, and trims the reference', () => {
-    const parsed = orderInputFromDraft(
-      draft({ milk: '3', yog: '' }, { milk: '220', yog: '9' }),
-      [milk, yoghurt],
-    )
+  test('keeps rows with boxes only and trims the reference', () => {
+    const parsed = orderInputFromDraft(draft({ milk: '3', yog: '' }), [
+      milk,
+      yoghurt,
+    ])
     expect(parsed).toEqual({
       ok: true,
       value: {
@@ -231,12 +224,12 @@ describe('orderInputFromDraft', () => {
         warehouseId: 'w1',
         expectedOn: '2026-11-10',
         reference: 'P-1',
-        lines: [{ productId: 'milk', boxes: 3, grossCostCents: 22000 }],
+        lines: [{ productId: 'milk', boxes: 3 }],
       },
     })
   })
 
-  test('omits blank optional fields and sends a blank cost as zero', () => {
+  test('omits blank optional fields', () => {
     const parsed = orderInputFromDraft(
       { ...draft({ milk: '1' }), expectedOn: '', reference: '  ' },
       [milk],
@@ -246,16 +239,15 @@ describe('orderInputFromDraft', () => {
       value: {
         supplierId: 's1',
         warehouseId: 'w1',
-        lines: [{ productId: 'milk', boxes: 1, grossCostCents: 0 }],
+        lines: [{ productId: 'milk', boxes: 1 }],
       },
     })
   })
 
-  test('never sends discounts, promotions or totals: the server takes them from the catalog', () => {
-    const parsed = orderInputFromDraft(draft({ yog: '1' }, { yog: '10' }), [
-      yoghurt,
-    ])
+  test('never sends costs, discounts, promotions or totals: the server takes them from the catalog', () => {
+    const parsed = orderInputFromDraft(draft({ yog: '1' }), [yoghurt])
     const json = JSON.stringify(parsed)
+    expect(json).not.toContain('gross')
     expect(json).not.toContain('Discount')
     expect(json).not.toContain('promotion')
     expect(json).not.toContain('totalCost')
@@ -271,40 +263,32 @@ describe('orderInputFromDraft', () => {
     expect(orderInputFromDraft(draft({ milk: '0' }), [milk]).ok).toBe(false)
   })
 
-  test('names the product with invalid boxes or cost', () => {
+  test('names the product with invalid boxes', () => {
     const boxes = orderInputFromDraft(draft({ milk: '1.5' }), [milk])
     expect(boxes.ok).toBe(false)
     if (!boxes.ok) expect(boxes.message).toContain('Leche 1L')
-    const price = orderInputFromDraft(
-      draft({ milk: '1' }, { milk: '1.23456' }),
-      [milk],
-    )
-    expect(price).toEqual({
-      ok: false,
-      message: 'Leche 1L: Usa máximo 2 decimales.',
-    })
   })
 
-  test('rejects discount plus promotion above the typed gross cost', () => {
-    const parsed = orderInputFromDraft(draft({ yog: '1' }, { yog: '8.99' }), [
-      yoghurt,
-    ])
-    expect(parsed).toEqual({
+  test('rejects discount plus promotion above the list price', () => {
+    const above = { ...yoghurt, listPricePerPiece: 14000 }
+    expect(orderInputFromDraft(draft({ yog: '1' }), [above])).toEqual({
       ok: false,
-      message: `Yoghurt: ${NET_ABOVE_GROSS_MESSAGE}`,
+      message: `Yoghurt: ${NET_ABOVE_LIST_PRICE_MESSAGE}`,
     })
     expect(
-      orderInputFromDraft(draft({ yog: '1' }, { yog: '9' }), [yoghurt]).ok,
+      orderInputFromDraft(draft({ yog: '1' }), [
+        { ...yoghurt, listPricePerPiece: 15000 },
+      ]).ok,
     ).toBe(true)
   })
 
-  test('ignores rows without boxes even when their price is wrong', () => {
-    const parsed = orderInputFromDraft(
-      draft({ milk: '1', yog: '0' }, { milk: '22', yog: 'abc' }),
-      [milk, yoghurt],
-    )
+  test('ignores rows without boxes even when their catalog price is wrong', () => {
+    const parsed = orderInputFromDraft(draft({ milk: '1', yog: '0' }), [
+      milk,
+      { ...yoghurt, listPricePerPiece: 0 },
+    ])
     expect(parsed.ok && parsed.value.lines).toEqual([
-      { productId: 'milk', boxes: 1, grossCostCents: 2200 },
+      { productId: 'milk', boxes: 1 },
     ])
   })
 
@@ -314,7 +298,7 @@ describe('orderInputFromDraft', () => {
       other,
     ])
     expect(parsed.ok && parsed.value.lines).toEqual([
-      { productId: 'milk', boxes: 1, grossCostCents: 0 },
+      { productId: 'milk', boxes: 1 },
     ])
   })
 })

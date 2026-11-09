@@ -23,6 +23,7 @@ export const emptyProductDraft = (): ProductDraft => ({
   supplierId: '',
   published: true,
   supplierCode: '',
+  listPrice: '',
   fixedDiscount: '',
   promotion: '',
 })
@@ -39,24 +40,42 @@ export const draftFromProduct = (product: CatalogProduct): ProductDraft => ({
   supplierId: product.supplierId ?? '',
   published: product.published,
   supplierCode: product.supplierCode,
+  listPrice: formatTenThousandths(product.listPricePerPiece),
   fixedDiscount: formatTenThousandths(product.fixedDiscountPerPiece),
   promotion: formatTenThousandths(product.promotionPerPiece),
 })
 
-type CostKey = 'fixedDiscount' | 'promotion'
-const costKeys: ReadonlyArray<CostKey> = ['fixedDiscount', 'promotion']
+type CostKey = 'listPrice' | 'fixedDiscount' | 'promotion'
+const costKeys: ReadonlyArray<CostKey> = [
+  'listPrice',
+  'fixedDiscount',
+  'promotion',
+]
+
+export const ABOVE_LIST_PRICE_MESSAGE =
+  'El descuento y la promoción no pueden superar el precio por pieza.'
 
 const amountOf = (text: string) => {
   const parsed = parseTenThousandths(text)
   return parsed.ok ? parsed.value : 0
 }
 
-/** Per-field parse errors of the typed discount and promotion. */
+/**
+ * Per-field errors of the typed list price, discount and promotion: parse
+ * messages, and the discount when it plus the promotion exceed the list price.
+ */
 export function supplierCostErrors(draft: ProductDraft) {
   const errors: Partial<Record<CostKey, string>> = {}
   for (const key of costKeys) {
     const parsed = parseTenThousandths(draft[key])
     if (!parsed.ok) errors[key] = parsed.message
+  }
+  if (
+    !Object.keys(errors).length &&
+    amountOf(draft.fixedDiscount) + amountOf(draft.promotion) >
+      amountOf(draft.listPrice)
+  ) {
+    errors.fixedDiscount = ABOVE_LIST_PRICE_MESSAGE
   }
   return errors
 }
@@ -72,6 +91,7 @@ const fieldsFromDraft = (draft: ProductDraft) => ({
   supplierId: draft.supplierId || null,
   published: draft.published,
   supplierCode: draft.supplierCode,
+  listPricePerPiece: amountOf(draft.listPrice),
   fixedDiscountPerPiece: amountOf(draft.fixedDiscount),
   promotionPerPiece: amountOf(draft.promotion),
 })

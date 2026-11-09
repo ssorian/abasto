@@ -183,6 +183,13 @@
       "when": 1794164747862,
       "tag": "0025_medical_annihilus",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794184066675,
+      "tag": "0026_piece_list_price",
+      "breakpoints": true
     }
   ]
 }
