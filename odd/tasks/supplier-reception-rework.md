@@ -26,3 +26,4 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - L4 (user choice): "Restar del pago" — Descontar subtracts the missing value from this order's payment, closes the balance, boxes no longer expected.
 - L5 (parent, accepted): consolidated design; parent assumption that L3 confirmed the two inputs and damaged as return.
 - L6 (user): "Implementalo asi"
+- L7 (user): "que si sea en supabase, ahi esta la db dev" → migration 0027 is applied to the Supabase dev DB (.env.local) once tests pass; worker reports before/after counts.
