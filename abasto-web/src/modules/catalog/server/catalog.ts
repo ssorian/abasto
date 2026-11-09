@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { setResponseHeader } from '@tanstack/react-start/server'
 import { parseInput } from '#/lib/boundary'
 import { runWithActor } from '#/lib/server-actor'
 import { presentationSetInput } from '#/modules/catalog/schemas/presentations-schema'
@@ -30,13 +31,21 @@ import type {
   SupplierPatch,
 } from '#/modules/catalog/services/suppliers'
 
-export const listProductsFn = createServerFn({ method: 'GET' }).handler(() =>
-  runWithActor((actor) => listProducts(actor)),
-)
+/**
+ * GET server functions have a stable URL, so a browser may answer a reload
+ * after a save from its HTTP cache; reads must always reach the database.
+ */
+const neverCached = () => setResponseHeader('Cache-Control', 'no-store')
 
-export const listSuppliersFn = createServerFn({ method: 'GET' }).handler(() =>
-  runWithActor((actor) => listSuppliers(actor)),
-)
+export const listProductsFn = createServerFn({ method: 'GET' }).handler(() => {
+  neverCached()
+  return runWithActor((actor) => listProducts(actor))
+})
+
+export const listSuppliersFn = createServerFn({ method: 'GET' }).handler(() => {
+  neverCached()
+  return runWithActor((actor) => listSuppliers(actor))
+})
 
 export const createProductFn = createServerFn({ method: 'POST' })
   .validator((data: ProductInput) => data)
