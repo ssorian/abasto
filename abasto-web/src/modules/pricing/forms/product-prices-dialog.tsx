@@ -24,6 +24,7 @@ import type {
 } from '#/modules/pricing/lib/price-table'
 import {
   costPatchIfChanged,
+  grossCostOf,
   netCostOf,
   saleCheck,
 } from '#/modules/pricing/lib/product-costs'
@@ -81,6 +82,7 @@ export function ProductPricesDialog({
   const boxFactor = packInfoOf(product).factor
   const costErrors = pieceCostErrors(cost)
   const net = netCostOf(cost, boxFactor)
+  const gross = grossCostOf(cost, boxFactor)
   const costPatch = canEditCost ? costPatchIfChanged(cost, product) : null
   const costDirty = !costPatch || !costPatch.ok || costPatch.value !== null
   const pending = canEdit
@@ -162,6 +164,20 @@ export function ProductPricesDialog({
             ))}
           </div>
           <dl className="grid gap-x-4 gap-y-1 rounded-xl bg-[#faf6f1] px-3.5 py-3 text-sm sm:grid-cols-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <dt className="text-[#89747b]">Antes de descuentos por pieza</dt>
+              <dd className="font-semibold text-[#5d4a52]">
+                {gross ? `$${formatTenThousandths(gross.perPiece)}` : '—'}
+              </dd>
+            </div>
+            {boxFactor > 1 && (
+              <div className="flex items-baseline justify-between gap-2">
+                <dt className="text-[#89747b]">Antes de descuentos por caja</dt>
+                <dd className="font-semibold text-[#5d4a52]">
+                  {gross ? formatCents(gross.perBoxCents) : '—'}
+                </dd>
+              </div>
+            )}
             <div className="flex items-baseline justify-between gap-2">
               <dt className="text-[#89747b]">Costo neto por pieza</dt>
               <dd className="font-bold text-[#4d2b6a]">

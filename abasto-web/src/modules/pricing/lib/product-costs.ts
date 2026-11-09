@@ -35,6 +35,20 @@ export function netCostOf(draft: PieceCostDraft, boxFactor: number) {
   return { perPiece, perBoxCents: netCostPerBoxCents(perPiece, boxFactor) }
 }
 
+/**
+ * Cost before the fixed discount and promotion: the typed price per piece in
+ * ten-thousandths and price × pieces per box in cents. Null while the price
+ * per piece is invalid; it does not depend on the discounts being valid.
+ */
+export function grossCostOf(draft: PieceCostDraft, boxFactor: number) {
+  const parsed = parseTenThousandths(draft.listPrice)
+  if (!parsed.ok) return null
+  return {
+    perPiece: parsed.value,
+    perBoxCents: netCostPerBoxCents(parsed.value, boxFactor),
+  }
+}
+
 /** Patch with the three amounts, null when they equal the stored ones, or the first error. */
 export function costPatchIfChanged(draft: PieceCostDraft, stored: StoredCost) {
   const patch = pieceCostPatchOf(draft)

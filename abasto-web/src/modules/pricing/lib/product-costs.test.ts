@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   costPatchIfChanged,
   formatPieceCost,
+  grossCostOf,
   netCostOf,
   saleCheck,
 } from '#/modules/pricing/lib/product-costs'
@@ -28,6 +29,27 @@ describe('net cost of a draft', () => {
     ).toBeNull()
     expect(
       netCostOf({ listPrice: '1', fixedDiscount: '0.8', promotion: '0.3' }, 1),
+    ).toBeNull()
+  })
+})
+
+describe('gross cost of a draft', () => {
+  test('is the price per piece and price × pieces per box, before discounts', () => {
+    const draft = { listPrice: '2.0001', fixedDiscount: '0.1', promotion: '' }
+    expect(grossCostOf(draft, 12)).toEqual({
+      perPiece: 20001,
+      perBoxCents: 2400,
+    })
+  })
+
+  test('shows even when the discounts exceed the price', () => {
+    const draft = { listPrice: '1', fixedDiscount: '0.8', promotion: '0.3' }
+    expect(grossCostOf(draft, 8)).toEqual({ perPiece: 10000, perBoxCents: 800 })
+  })
+
+  test('is null while the price per piece is invalid', () => {
+    expect(
+      grossCostOf({ listPrice: '1,5', fixedDiscount: '', promotion: '' }, 8),
     ).toBeNull()
   })
 })
