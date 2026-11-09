@@ -17,6 +17,11 @@ import { OrderTable } from '#/modules/inventory/forms/order-table'
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import { formatCents } from '#/modules/inventory/lib/cents'
 import {
+  onlyWithBoxes,
+  sortBelowMinimumFirst,
+} from '#/modules/inventory/lib/order-rows'
+import type { OrderStock } from '#/modules/inventory/lib/order-rows'
+import {
   orderInputFromDraft,
   orderTotalCents,
   supplierProducts,
@@ -60,7 +65,10 @@ export function OrderDialog({
   }))
   const [editingId, setEditingId] = useState<string>()
   const [query, setQuery] = useState('')
-  const [standard, setStandard] = useState<Record<string, number>>({})
+  const [onlyBoxes, setOnlyBoxes] = useState(false)
+  // Undefined while loading, so rows neither warn nor show stock until they arrive.
+  const [standard, setStandard] = useState<Record<string, number>>()
+  const [stock, setStock] = useState<Record<string, OrderStock>>()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [reloadStandard, setReloadStandard] = useState(0)
@@ -68,6 +76,7 @@ export function OrderDialog({
   // Standard prices are shown read-only; reload them for the receiving warehouse.
   useEffect(() => {
     let current = true
+    setStandard(undefined)
     void actions.loadStandardPrices(draft.warehouseId).then((prices) => {
       if (current) setStandard(prices)
     })
@@ -76,14 +85,27 @@ export function OrderDialog({
     }
   }, [draft.warehouseId, reloadStandard])
 
+  // Stock and minimums of the receiving warehouse; reloaded when it changes.
+  useEffect(() => {
+    let current = true
+    setStock(undefined)
+    void actions.loadWarehouseStock(draft.warehouseId).then((loaded) => {
+      if (current) setStock(loaded)
+    })
+    return () => {
+      current = false
+    }
+  }, [draft.warehouseId])
+
   const own = useMemo(
     () => supplierProducts(products, draft.supplierId, ''),
     [products, draft.supplierId],
   )
-  const visible = useMemo(
-    () => supplierProducts(products, draft.supplierId, query),
-    [products, draft.supplierId, query],
-  )
+  const visible = useMemo(() => {
+    const matching = supplierProducts(products, draft.supplierId, query)
+    const shown = onlyBoxes ? onlyWithBoxes(matching, draft.boxes) : matching
+    return sortBelowMinimumFirst(shown, stock)
+  }, [products, draft.supplierId, draft.boxes, query, onlyBoxes, stock])
   const total = orderTotalCents(own, draft)
 
   async function submit() {
@@ -173,17 +195,34 @@ export function OrderDialog({
           </Field>
           {draft.supplierId ? (
             <>
-              <SearchBox
-                label="Buscar producto"
-                placeholder="Buscar por nombre o SKU"
-                value={query}
-                onChange={setQuery}
-              />
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="min-w-[240px] flex-1">
+                  <SearchBox
+                    label="Buscar producto"
+                    placeholder="Buscar por nombre o SKU"
+                    value={query}
+                    onChange={setQuery}
+                  />
+                </div>
+                <button
+                  type="button"
+                  aria-pressed={onlyBoxes}
+                  className={`min-h-[42px] rounded-[10px] border px-3.5 text-sm ${
+                    onlyBoxes
+                      ? 'border-[#785e67] bg-[#785e67] text-white'
+                      : 'border-[#eee7e0] bg-white text-[#785e67] hover:bg-[#f4eef0]'
+                  }`}
+                  onClick={() => setOnlyBoxes((current) => !current)}
+                >
+                  Solo con cajas
+                </button>
+              </div>
               {own.length ? (
                 <OrderTable
                   products={visible}
                   boxes={draft.boxes}
                   standardByProductId={standard}
+                  stockByProductId={stock}
                   onBoxes={(productId, boxes) =>
                     setDraft((current) => ({
                       ...current,

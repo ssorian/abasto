@@ -9,6 +9,7 @@ import {
   purchaseStandardPricesFn,
   registerLossFn,
   setMinimumFn,
+  warehouseStockFn,
 } from '#/modules/inventory/server/inventory'
 import {
   cancelSupplierOrderFn,
@@ -17,6 +18,7 @@ import {
   supplierOrderFn,
   writeOffPendingsFn,
 } from '#/modules/inventory/server/supplier-orders'
+import type { OrderStock } from '#/modules/inventory/lib/order-rows'
 import { formatCents } from '#/modules/inventory/lib/cents'
 import type { ReceptionInput } from '#/modules/inventory/services/supplier-reception'
 import type {
@@ -41,7 +43,7 @@ export function useInventoryActions() {
   ): Promise<{ data: T } | undefined> {
     try {
       const data = unwrap(await action())
-      await router.invalidate()
+      await router.invalidate({ sync: true })
       if (success) toast.success(success(data))
       return { data }
     } catch (failure) {
@@ -85,10 +87,13 @@ export function useInventoryActions() {
         return undefined
       }
     },
-    /** Standard prices are shown read-only: a failure must not block the order. */
+    /**
+     * Standard prices are shown read-only: a failure must not block the order.
+     * It resolves to undefined so the rows stay quiet instead of claiming there is no price.
+     */
     async loadStandardPrices(
       warehouseId: string,
-    ): Promise<Record<string, number>> {
+    ): Promise<Record<string, number> | undefined> {
       try {
         const prices = unwrap(
           await purchaseStandardPricesFn({ data: { warehouseId } }),
@@ -98,7 +103,24 @@ export function useInventoryActions() {
         )
       } catch (failure) {
         toast.error(messageOf(failure))
-        return {}
+        return undefined
+      }
+    },
+    /** Sellable stock and minimum (pieces) by product in a warehouse; undefined on failure. */
+    async loadWarehouseStock(
+      warehouseId: string,
+    ): Promise<Record<string, OrderStock> | undefined> {
+      try {
+        const stock = unwrap(await warehouseStockFn({ data: { warehouseId } }))
+        return Object.fromEntries(
+          stock.map(({ productId, available, minimum }) => [
+            productId,
+            { available, minimum },
+          ]),
+        )
+      } catch (failure) {
+        toast.error(messageOf(failure))
+        return undefined
       }
     },
     setMinimum: (input: {

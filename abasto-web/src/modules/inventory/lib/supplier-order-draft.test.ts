@@ -1,17 +1,22 @@
 import { describe, expect, test } from 'bun:test'
 import {
   NET_ABOVE_LIST_PRICE_MESSAGE,
+  NO_LIST_PRICE_MESSAGE,
+  NO_STANDARD_PRICE_MESSAGE,
   PRICE_BELOW_COST_MESSAGE,
   boxFactorOf,
   orderInputFromDraft,
   orderTotalCents,
   rowOf,
   rowWarnings,
+  standardPriceOf,
   supplierProducts,
+  unitCostOf,
 } from '#/modules/inventory/lib/supplier-order-draft'
 import type {
   OrderDraft,
   OrderProduct,
+  StandardPrice,
 } from '#/modules/inventory/lib/supplier-order-draft'
 
 const presentations = (factor: number) => [
@@ -150,31 +155,96 @@ describe('rowOf', () => {
 })
 
 describe('rowWarnings', () => {
-  const row = (boxes: number, netPerBoxCents: number) => ({
+  const row = (boxes: number, netPerBoxCents: number, listPrice = 50000) => ({
     boxes,
     netPerBoxCents,
+    listPrice,
+  })
+  const known = (priceCents: number): StandardPrice => ({
+    state: 'known',
+    priceCents,
+  })
+
+  test('texts are exact', () => {
+    expect(PRICE_BELOW_COST_MESSAGE).toBe(
+      'El costo por caja supera el precio estándar. Actualiza el precio estándar del producto en el catálogo.',
+    )
+    expect(NO_STANDARD_PRICE_MESSAGE).toBe(
+      'Sin precio estándar en este almacén',
+    )
+    expect(NO_LIST_PRICE_MESSAGE).toBe('Sin precio por pieza')
   })
 
   test('warns when the cost per box exceeds the standard price', () => {
-    expect(rowWarnings(row(2, 25001), 25000)).toEqual([
+    expect(rowWarnings(row(2, 25001), known(25000))).toEqual([
       PRICE_BELOW_COST_MESSAGE,
     ])
   })
 
-  test('warns when there is no standard price', () => {
-    expect(rowWarnings(row(1, 100), undefined)).toEqual([
-      PRICE_BELOW_COST_MESSAGE,
+  test('warns with its own text when there is no standard price after loading', () => {
+    expect(rowWarnings(row(1, 100), { state: 'missing' })).toEqual([
+      NO_STANDARD_PRICE_MESSAGE,
     ])
+  })
+
+  test('is quiet while the standard prices are still loading', () => {
+    expect(rowWarnings(row(1, 100), { state: 'loading' })).toEqual([])
+    expect(rowWarnings(row(3, 99999), { state: 'loading' })).toEqual([])
   })
 
   test('is quiet when the standard price covers the cost', () => {
-    expect(rowWarnings(row(1, 26400), 26400)).toEqual([])
-    expect(rowWarnings(row(1, 26400), 30000)).toEqual([])
+    expect(rowWarnings(row(1, 26400), known(26400))).toEqual([])
+    expect(rowWarnings(row(1, 26400), known(30000))).toEqual([])
   })
 
-  test('is quiet on rows without boxes', () => {
-    expect(rowWarnings(row(0, 99999), 100)).toEqual([])
-    expect(rowWarnings(row(0, 99999), undefined)).toEqual([])
+  test('is quiet on rows without boxes for standard price warnings', () => {
+    expect(rowWarnings(row(0, 99999), known(100))).toEqual([])
+    expect(rowWarnings(row(0, 99999), { state: 'missing' })).toEqual([])
+  })
+
+  test('warns about a missing list price even without boxes, first', () => {
+    expect(rowWarnings(row(0, 0, 0), { state: 'loading' })).toEqual([
+      NO_LIST_PRICE_MESSAGE,
+    ])
+    expect(rowWarnings(row(1, 0, 0), { state: 'missing' })).toEqual([
+      NO_LIST_PRICE_MESSAGE,
+      NO_STANDARD_PRICE_MESSAGE,
+    ])
+  })
+})
+
+describe('standardPriceOf', () => {
+  test('is loading until the prices arrive, then known or missing', () => {
+    expect(standardPriceOf(undefined, 'milk')).toEqual({ state: 'loading' })
+    expect(standardPriceOf({ milk: 26400 }, 'milk')).toEqual({
+      state: 'known',
+      priceCents: 26400,
+    })
+    expect(standardPriceOf({ milk: 26400 }, 'yog')).toEqual({
+      state: 'missing',
+    })
+    expect(standardPriceOf({}, 'milk')).toEqual({ state: 'missing' })
+  })
+})
+
+describe('unitCostOf', () => {
+  test('net cost per piece and per box regardless of boxes', () => {
+    // Yoghurt: 5.5556 − 1.0000 − 0.5000 = 4.0556 a piece; × 6 = 24.3336 → 2433 cents.
+    expect(unitCostOf(yoghurt)).toEqual({
+      netPerPiece: 40556,
+      netPerBoxCents: 2433,
+    })
+    expect(unitCostOf(milk)).toEqual({
+      netPerPiece: 50000,
+      netPerBoxCents: 6000,
+    })
+  })
+
+  test('shows no negative cost when the discounts exceed the price', () => {
+    expect(unitCostOf({ ...yoghurt, listPricePerPiece: 14000 })).toEqual({
+      netPerPiece: 0,
+      netPerBoxCents: 0,
+    })
   })
 })
 
