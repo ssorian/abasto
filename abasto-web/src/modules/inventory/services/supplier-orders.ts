@@ -6,7 +6,14 @@ import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { grossLineCents, netLineCents } from '#/lib/utils/supplier-cost'
 import { purchaseLines, purchases } from '#/modules/inventory/db/schema'
+import { openOf } from '#/modules/inventory/lib/pending-value'
 import { loadBoxProducts } from '#/modules/inventory/services/box-products'
+import {
+  discountBalance,
+  loadSupplierBalances,
+  lockSupplier,
+  reopenDiscounts,
+} from '#/modules/inventory/services/supplier-balance'
 import { orderNotFound } from '#/modules/inventory/services/supplier-order-reads'
 import {
   fitsInt4,
@@ -35,6 +42,11 @@ export type SupplierOrderInput = {
   reference?: string
   /** Boxes only: price, discount and promotion come from the catalog product. */
   lines: Array<{ productId: string; boxes: number }>
+  /**
+   * Open "Por reponer" balances of this supplier closed "a lo chino" by this
+   * order: their remaining value is no longer paid and is stored on the order.
+   */
+  discounts?: Array<{ pendingId: string }>
 }
 
 const tooBig = () => new AppError('invalid', 'El pedido es demasiado grande.')
@@ -62,6 +74,16 @@ function validate(input: SupplierOrderInput) {
     }
     seen.add(line.productId)
   }
+  const discounted = new Set<string>()
+  for (const discount of input.discounts ?? []) {
+    if (discounted.has(discount.pendingId)) {
+      throw new AppError(
+        'invalid',
+        'Cada saldo solo se puede descontar una vez en el pedido.',
+      )
+    }
+    discounted.add(discount.pendingId)
+  }
 }
 
 /**
@@ -74,12 +96,35 @@ function validate(input: SupplierOrderInput) {
 export async function createSupplierOrder(
   actor: Actor,
   input: SupplierOrderInput,
-): Promise<{ id: string }> {
+): Promise<{ id: string; discountCents: number }> {
   authorize(actor, 'warehouse.manage', input.warehouseId)
   validate(input)
+  const discounts = input.discounts ?? []
   return db.transaction(async (tx) => {
     await requireSupplier(tx, input.supplierId)
     await requireWarehouse(tx, input.warehouseId)
+    // Locked before reading the balances so two orders cannot discount one twice.
+    if (discounts.length) await lockSupplier(tx, input.supplierId)
+    const balances = await loadSupplierBalances(
+      tx,
+      input.supplierId,
+      discounts.map((item) => item.pendingId),
+    )
+    for (const balance of balances) {
+      if (balance.kind !== 'restock') {
+        throw new AppError(
+          'invalid',
+          'Solo se pueden descontar faltantes por reponer.',
+        )
+      }
+      if (openOf(balance).units === 0) {
+        throw new AppError('invalid', 'Ese saldo ya está cerrado.')
+      }
+    }
+    const discountCents = balances.reduce(
+      (sum, balance) => sum + balance.valueCents - balance.settledValueCents,
+      0,
+    )
     const found = await loadBoxProducts(
       tx,
       input.lines.map((line) => line.productId),
@@ -122,6 +167,13 @@ export async function createSupplierOrder(
         promotionPerPiece: product.promotionPerPiece,
       }
     })
+    const netCents = values.reduce((sum, line) => sum + line.totalCostCents, 0)
+    if (discountCents > netCents) {
+      throw new AppError(
+        'invalid',
+        'Los descuentos no pueden superar el total del pedido.',
+      )
+    }
     const [purchase] = await tx
       .insert(purchases)
       .values({
@@ -132,21 +184,32 @@ export async function createSupplierOrder(
         expectedOn: input.expectedOn || null,
         status: 'Pedido',
         createdBy: actor.userId,
+        discountCents,
       })
       .returning({ id: purchases.id })
     await tx
       .insert(purchaseLines)
       .values(values.map((line) => ({ ...line, purchaseId: purchase.id })))
-    return { id: purchase.id }
+    for (const balance of balances) {
+      await discountBalance(tx, balance, purchase.id, actor.userId)
+    }
+    return { id: purchase.id, discountCents }
   })
 }
 
-/** Cancels an order that is still waiting; stock was never touched. */
+/**
+ * Cancels an order that is still waiting; stock was never touched. The
+ * balances it discounted are reopened and its discount goes back to zero.
+ */
 export async function cancelSupplierOrder(actor: Actor, purchaseId: string) {
   await db.transaction(async (tx) => {
     const order = (
       await tx
-        .select({ warehouseId: purchases.warehouseId })
+        .select({
+          warehouseId: purchases.warehouseId,
+          supplierId: purchases.supplierId,
+          discountCents: purchases.discountCents,
+        })
         .from(purchases)
         .where(eq(purchases.id, purchaseId))
         .for('update')
@@ -155,7 +218,7 @@ export async function cancelSupplierOrder(actor: Actor, purchaseId: string) {
     authorize(actor, 'warehouse.manage', order.warehouseId)
     const cancelled = await tx
       .update(purchases)
-      .set({ status: 'Cancelado' })
+      .set({ status: 'Cancelado', discountCents: 0 })
       .where(and(eq(purchases.id, purchaseId), eq(purchases.status, 'Pedido')))
       .returning({ id: purchases.id })
     if (!cancelled.length) {
@@ -164,5 +227,9 @@ export async function cancelSupplierOrder(actor: Actor, purchaseId: string) {
         'Solo se puede cancelar un pedido pendiente de recibir.',
       )
     }
+    // Discounted balances can be worth zero, so reopen by the ledger entries,
+    // not by the stored amount.
+    await lockSupplier(tx, order.supplierId)
+    await reopenDiscounts(tx, purchaseId, actor.userId)
   })
 }

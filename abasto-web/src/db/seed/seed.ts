@@ -239,7 +239,6 @@ export async function seedDatabase({
     return {
       productId: product.id,
       boxes,
-      lotCode: `${sku}-${addDays(today, expiresInDays).replaceAll('-', '')}`,
       expiresOn: addDays(today, expiresInDays),
       warehouse,
       seed,
@@ -272,9 +271,8 @@ export async function seedDatabase({
         const line = lines.find((entry) => entry.productId === stock.productId)!
         return {
           lineId: stock.id,
-          goodBoxes: line.boxes,
+          missingBoxes: 0,
           damagedBoxes: damaged[line.seed.sku] ?? 0,
-          lotCode: line.lotCode,
           expiresOn: line.expiresOn,
         }
       }),

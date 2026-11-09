@@ -8,6 +8,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uuid,
 } from 'drizzle-orm/pg-core'
 import type { AnyPgColumn } from 'drizzle-orm/pg-core'
@@ -38,8 +39,25 @@ export const pendingTypes = [
   'missing',
   'replaced',
   'written_off',
+  'discounted',
+  'returned',
+  'reopened',
 ] as const
 export type PendingType = (typeof pendingTypes)[number]
+
+/**
+ * Balance kinds: `missing` entries are "Por reponer" (the supplier owes boxes
+ * that never arrived), `damaged` entries are "Por devolver" (boxes that
+ * arrived unsellable and go back to the supplier).
+ */
+export const pendingKinds = ['restock', 'return'] as const
+export type PendingKind = (typeof pendingKinds)[number]
+export const pendingKindOf = (type: 'missing' | 'damaged'): PendingKind =>
+  type === 'missing' ? 'restock' : 'return'
+
+/** How the supplier closed a "Por devolver" balance. */
+export const returnResolutions = ['replacement', 'discount'] as const
+export type ReturnResolution = (typeof returnResolutions)[number]
 
 /**
  * A supplier order: `Pedido` waits in the queue (no stock moved), `Recibido`
@@ -69,8 +87,14 @@ export const purchases = pgTable(
     expectedOn: date('expected_on', { mode: 'string' }),
     receivedAt: timestamp('received_at'),
     receivedBy: text('received_by').references(() => user.id),
+    /** Sequential order number, shown as `PED-0001` when there is no reference. */
+    folio: integer('folio').notNull().generatedByDefaultAsIdentity(),
+    /** Cents of "Por reponer" balances discounted on this order; 0 once cancelled. */
+    discountCents: integer('discount_cents').notNull().default(0),
   },
   (table) => [
+    unique('purchases_folio_unique').on(table.folio),
+    check('purchases_discount_min', sql`${table.discountCents} >= 0`),
     check(
       'purchases_status_check',
       sql`${table.status} in ('Pedido', 'Recibido', 'Cancelado')`,
@@ -251,9 +275,13 @@ export const stockMinimums = pgTable(
 )
 
 /**
- * Append-only supplier balance: boxes the supplier owes us (positive: damaged
- * or missing on reception) and boxes settled (negative: replaced by a later
- * delivery or written off "a lo chino"). A database trigger rejects UPDATE and DELETE.
+ * Append-only supplier balance. Origin entries (`missing` = "Por reponer",
+ * `damaged` = "Por devolver") are positive and have no `settlesId`. Every
+ * other entry points at the origin it settles: negative when it closes boxes
+ * (`replaced` by a delivery, `written_off` "a lo chino", `discounted` on a new
+ * order, `returned` to the supplier), positive `reopened` when a discounting
+ * order is cancelled. An origin's balance is its quantity plus its settlements.
+ * A database trigger rejects UPDATE and DELETE.
  */
 export const supplierPendings = pgTable(
   'supplier_pendings',
@@ -265,13 +293,21 @@ export const supplierPendings = pgTable(
     productId: uuid('product_id')
       .notNull()
       .references(() => products.id),
-    /** Order that caused the entry; null for write-offs. */
+    /** Order that caused the entry; the discounting or receiving order for settlements, null for write-offs. */
     purchaseId: uuid('purchase_id').references(() => purchases.id),
+    /** Origin entry this one settles or reopens; null on origin entries. */
+    settlesId: uuid('settles_id').references(
+      (): AnyPgColumn => supplierPendings.id,
+    ),
     type: text('type', { enum: pendingTypes }).notNull(),
     /** Signed base units: positive owed, negative settled. */
     quantity: integer('quantity').notNull(),
     /** Signed value in cents at the original cost; same sign as `quantity`. */
     valueCents: integer('value_cents').notNull(),
+    /** Only on `returned`: replacement or discount. */
+    resolution: text('resolution', { enum: returnResolutions }),
+    /** Only on a `returned` discount: the amount the supplier credited, in cents. */
+    creditCents: integer('credit_cents'),
     actorId: text('actor_id')
       .notNull()
       .references(() => user.id),
@@ -282,15 +318,24 @@ export const supplierPendings = pgTable(
   (table) => [
     check(
       'supplier_pendings_type_check',
-      sql`${table.type} in ('damaged', 'missing', 'replaced', 'written_off')`,
+      sql`${table.type} in ('damaged', 'missing', 'replaced', 'written_off', 'discounted', 'returned', 'reopened')`,
     ),
     check(
       'supplier_pendings_sign',
-      sql`(${table.type} in ('damaged', 'missing') and ${table.quantity} > 0 and ${table.valueCents} >= 0) or (${table.type} in ('replaced', 'written_off') and ${table.quantity} < 0 and ${table.valueCents} <= 0)`,
+      sql`(${table.type} in ('damaged', 'missing', 'reopened') and ${table.quantity} > 0 and ${table.valueCents} >= 0) or (${table.type} in ('replaced', 'written_off', 'discounted', 'returned') and ${table.quantity} < 0 and ${table.valueCents} <= 0)`,
+    ),
+    check(
+      'supplier_pendings_origin',
+      sql`(${table.type} in ('damaged', 'missing') and ${table.settlesId} is null) or (${table.type} not in ('damaged', 'missing') and ${table.settlesId} is not null)`,
+    ),
+    check(
+      'supplier_pendings_resolution',
+      sql`(${table.type} = 'returned' and ${table.resolution} is not null and (${table.resolution} = 'discount' or ${table.creditCents} is null) and (${table.creditCents} is null or ${table.creditCents} >= 0)) or (${table.type} <> 'returned' and ${table.resolution} is null and ${table.creditCents} is null)`,
     ),
     index('supplier_pendings_supplier_product_idx').on(
       table.supplierId,
       table.productId,
     ),
+    index('supplier_pendings_settles_idx').on(table.settlesId),
   ],
 )

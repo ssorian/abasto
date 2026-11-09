@@ -64,7 +64,7 @@ describe('createSupplierOrder', () => {
   test('stores a Pedido from the catalog list price, netting the discounts, and moves no stock', async () => {
     const fx = await setupSupplierOrders()
     const created = await createSupplierOrder(fx.managerA, orderOf(fx))
-    expect(created).toEqual({ id: expect.any(String) })
+    expect(created).toEqual({ id: expect.any(String), discountCents: 0 })
     const order = await getSupplierOrder(fx.managerA, created.id)
     expect(order).toMatchObject({
       status: 'Pedido',
@@ -327,7 +327,7 @@ describe('cancelSupplierOrder', () => {
       purchaseId: second.id,
       lines: order.lines.map((line) => ({
         lineId: line.id,
-        goodBoxes: line.boxes,
+        missingBoxes: 0,
         damagedBoxes: 0,
       })),
     })
@@ -352,7 +352,7 @@ async function pendingOrder(fx: SupplierFixture, boxes = 10) {
 
 const arrive = (
   order: Awaited<ReturnType<typeof pendingOrder>>,
-  perLine: Array<{ goodBoxes: number; damagedBoxes: number }>,
+  perLine: Array<{ missingBoxes: number; damagedBoxes: number }>,
   extra: Record<string, unknown> = {},
 ) => ({
   purchaseId: order.id,
@@ -368,12 +368,11 @@ describe('receiveSupplierOrder', () => {
     const fx = await setupSupplierOrders()
     const order = await pendingOrder(fx)
     const input = arrive(order, [
-      { goodBoxes: 10, damagedBoxes: 0 },
-      { goodBoxes: 2, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
     ])
     input.lines[0] = {
       ...input.lines[0],
-      lotCode: 'L-9',
       expiresOn: '2026-12-01',
     } as (typeof input.lines)[number]
     const result = await receiveSupplierOrder(fx.managerA, input)
@@ -382,7 +381,7 @@ describe('receiveSupplierOrder', () => {
     expect(milkLot).toMatchObject({
       productId: fx.milk.id,
       warehouseId: fx.a.id,
-      code: 'L-9',
+      code: 'PED-1',
       expiresOn: '2026-12-01',
       receivedQuantity: 120,
       receivedCostCents: 13440,
@@ -413,7 +412,7 @@ describe('receiveSupplierOrder', () => {
     expect(stored.lines[0]).toMatchObject({
       goodQuantity: 120,
       damagedQuantity: 0,
-      lotCode: 'L-9',
+      lotCode: 'PED-1',
     })
     expect((await supplierState()).pendings).toEqual([])
   })
@@ -424,8 +423,8 @@ describe('receiveSupplierOrder', () => {
     const result = await receiveSupplierOrder(
       fx.owner,
       arrive(order, [
-        { goodBoxes: 5, damagedBoxes: 2 },
-        { goodBoxes: 0, damagedBoxes: 2 },
+        { missingBoxes: 3, damagedBoxes: 2 },
+        { missingBoxes: 0, damagedBoxes: 2 },
       ]),
     )
     // Only the milk line has good boxes: one lot of 5 boxes.
@@ -476,8 +475,8 @@ describe('receiveSupplierOrder', () => {
     await receiveSupplierOrder(
       fx.owner,
       arrive(order, [
-        { goodBoxes: 4, damagedBoxes: 1 },
-        { goodBoxes: 2, damagedBoxes: 0 },
+        { missingBoxes: 0, damagedBoxes: 1 },
+        { missingBoxes: 0, damagedBoxes: 0 },
       ]),
     )
     const rows = await db.select().from(supplierPendings)
@@ -485,28 +484,116 @@ describe('receiveSupplierOrder', () => {
     expect(rows[0]).toMatchObject({ type: 'damaged', valueCents: 1344 })
   })
 
+  test('every lot of the order takes its reference as the code', async () => {
+    const fx = await setupSupplierOrders()
+    const order = await pendingOrder(fx)
+    const result = await receiveSupplierOrder(
+      fx.owner,
+      arrive(order, [
+        { missingBoxes: 0, damagedBoxes: 0 },
+        { missingBoxes: 0, damagedBoxes: 0 },
+      ]),
+    )
+    expect(order.code).toBe('PED-1')
+    expect(result.lots.map((lot) => lot.code)).toEqual(['PED-1', 'PED-1'])
+  })
+
+  test('without a reference the code is PED- plus the order folio, stable and shared', async () => {
+    const fx = await setupSupplierOrders()
+    const first = await createSupplierOrder(
+      fx.owner,
+      orderOf(fx, { reference: '' }),
+    )
+    const second = await createSupplierOrder(
+      fx.owner,
+      orderOf(fx, { reference: '   ' }),
+    )
+    const [a, b] = [
+      await getSupplierOrder(fx.owner, first.id),
+      await getSupplierOrder(fx.owner, second.id),
+    ]
+    expect(a.folio).toBeGreaterThan(0)
+    expect(b.folio).toBe(a.folio + 1)
+    expect(a.code).toBe(`PED-${String(a.folio).padStart(4, '0')}`)
+    expect(b.code).toBe(`PED-${String(b.folio).padStart(4, '0')}`)
+    expect(a.code).not.toBe(b.code)
+    const result = await receiveSupplierOrder(
+      fx.owner,
+      arrive(b, [
+        { missingBoxes: 0, damagedBoxes: 0 },
+        { missingBoxes: 0, damagedBoxes: 0 },
+      ]),
+    )
+    expect(result.lots.map((lot) => lot.code)).toEqual([b.code, b.code])
+    const stored = await getSupplierOrder(fx.owner, b.id)
+    expect(stored.code).toBe(b.code)
+    expect(stored.lines.map((line) => line.lotCode)).toEqual([b.code, b.code])
+    // Listings carry the same code.
+    const listed = await listSupplierOrders(fx.owner, { warehouseId: fx.a.id })
+    expect(listed.find((row) => row.id === b.id)?.code).toBe(b.code)
+  })
+
+  test('all zero exceptions mean everything arrived well; the expiry goes to the line lot', async () => {
+    const fx = await setupSupplierOrders()
+    const order = await pendingOrder(fx)
+    const input = arrive(order, [
+      { missingBoxes: 0, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
+    ])
+    input.lines[1] = {
+      ...input.lines[1],
+      expiresOn: '2027-01-15',
+    } as (typeof input.lines)[number]
+    const result = await receiveSupplierOrder(fx.owner, input)
+    expect(result.lots.map((lot) => lot.receivedQuantity)).toEqual([120, 48])
+    expect(result.lots.map((lot) => lot.expiresOn)).toEqual([
+      null,
+      '2027-01-15',
+    ])
+    expect((await supplierState()).pendings).toEqual([])
+  })
+
+  test('a line can be all missing or all damaged: no lot and the whole line is owed', async () => {
+    const fx = await setupSupplierOrders()
+    const order = await pendingOrder(fx)
+    const result = await receiveSupplierOrder(
+      fx.owner,
+      arrive(order, [
+        { missingBoxes: 10, damagedBoxes: 0 },
+        { missingBoxes: 0, damagedBoxes: 2 },
+      ]),
+    )
+    expect(result.lots).toEqual([])
+    expect(await db.select().from(lots)).toHaveLength(0)
+    const pendings = (await supplierState()).pendings
+    expect(pendings.map((row) => [row.type, row.quantity]).sort()).toEqual([
+      ['damaged', 48],
+      ['missing', 120],
+    ])
+  })
+
   test('rejects wrong reception input and leaves everything unchanged', async () => {
     const fx = await setupSupplierOrders()
     const order = await pendingOrder(fx)
     const ok = [
-      { goodBoxes: 10, damagedBoxes: 0 },
-      { goodBoxes: 2, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
     ]
     const cases: Array<[Record<string, unknown>, AppErrorCode, string]> = [
       [
-        arrive(order, [{ goodBoxes: 8, damagedBoxes: 3 }, ok[1]]),
+        arrive(order, [{ missingBoxes: 8, damagedBoxes: 3 }, ok[1]]),
         'invalid',
-        'Las cajas buenas y dañadas no pueden superar las cajas pedidas.',
+        'Las cajas faltantes y dañadas no pueden superar las cajas pedidas.',
       ],
       [
-        arrive(order, [{ goodBoxes: -1, damagedBoxes: 0 }, ok[1]]),
+        arrive(order, [{ missingBoxes: -1, damagedBoxes: 0 }, ok[1]]),
         'invalid',
-        'Las cajas recibidas deben ser enteros de cero o más.',
+        'Las cajas faltantes y dañadas deben ser enteros de cero o más.',
       ],
       [
-        arrive(order, [{ goodBoxes: 1.5, damagedBoxes: 0 }, ok[1]]),
+        arrive(order, [{ missingBoxes: 0, damagedBoxes: 1.5 }, ok[1]]),
         'invalid',
-        'Las cajas recibidas deben ser enteros de cero o más.',
+        'Las cajas faltantes y dañadas deben ser enteros de cero o más.',
       ],
       [
         { ...arrive(order, ok), lines: arrive(order, ok).lines.slice(0, 1) },
@@ -526,7 +613,7 @@ describe('receiveSupplierOrder', () => {
           ...arrive(order, ok),
           lines: [
             arrive(order, ok).lines[0],
-            { lineId: crypto.randomUUID(), goodBoxes: 1, damagedBoxes: 0 },
+            { lineId: crypto.randomUUID(), missingBoxes: 0, damagedBoxes: 0 },
           ],
         },
         'invalid',
@@ -550,10 +637,10 @@ describe('receiveSupplierOrder', () => {
       ],
       [
         arrive(order, ok, {
-          replacements: [lineFor(fx.milk, 1)],
+          replacements: [{ pendingId: crypto.randomUUID(), boxes: 1 }],
         }),
-        'invalid',
-        'Las cajas de reposición superan el saldo del proveedor.',
+        'not_found',
+        'No encontramos ese saldo.',
       ],
     ]
     for (const [input, code, message] of cases) {
@@ -570,8 +657,8 @@ describe('receiveSupplierOrder', () => {
     const fx = await setupSupplierOrders()
     const order = await pendingOrder(fx)
     const input = arrive(order, [
-      { goodBoxes: 10, damagedBoxes: 0 },
-      { goodBoxes: 2, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
     ])
     const before = await supplierState()
     for (const actor of [fx.managerB]) {
@@ -585,8 +672,8 @@ describe('receiveSupplierOrder', () => {
     const fx = await setupSupplierOrders()
     const order = await pendingOrder(fx)
     const input = arrive(order, [
-      { goodBoxes: 10, damagedBoxes: 0 },
-      { goodBoxes: 2, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
     ])
     await receiveSupplierOrder(fx.owner, input)
     const received = await supplierState()
@@ -604,8 +691,8 @@ describe('receiveSupplierOrder', () => {
       receiveSupplierOrder(
         fx.owner,
         arrive(other, [
-          { goodBoxes: 1, damagedBoxes: 0 },
-          { goodBoxes: 1, damagedBoxes: 0 },
+          { missingBoxes: 0, damagedBoxes: 0 },
+          { missingBoxes: 0, damagedBoxes: 0 },
         ]),
       ),
     )
@@ -617,8 +704,8 @@ describe('receiveSupplierOrder', () => {
     const fx = await setupSupplierOrders()
     const order = await pendingOrder(fx)
     const input = arrive(order, [
-      { goodBoxes: 10, damagedBoxes: 0 },
-      { goodBoxes: 2, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
     ])
     const results = await Promise.allSettled([
       receiveSupplierOrder(fx.owner, input),
@@ -639,8 +726,8 @@ describe('receiveSupplierOrder', () => {
     const result = await receiveSupplierOrder(
       fx.owner,
       arrive(order, [
-        { goodBoxes: 10, damagedBoxes: 0 },
-        { goodBoxes: 2, damagedBoxes: 0 },
+        { missingBoxes: 0, damagedBoxes: 0 },
+        { missingBoxes: 0, damagedBoxes: 0 },
       ]),
     )
     expect(result.lots[0].reserved).toBe(0)
@@ -726,8 +813,8 @@ describe('legacy and listing', () => {
     const result = await receiveSupplierOrder(
       fx.owner,
       arrive(order, [
-        { goodBoxes: 10, damagedBoxes: 0 },
-        { goodBoxes: 2, damagedBoxes: 0 },
+        { missingBoxes: 0, damagedBoxes: 0 },
+        { missingBoxes: 0, damagedBoxes: 0 },
       ]),
     )
     expect(result.lots[0].receivedCostCents).toBe(13440)

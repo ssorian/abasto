@@ -10,16 +10,15 @@ export type ReceptionLine = {
   orderedBoxes: number
 }
 
+/** Only the exceptions are typed; the good boxes are derived. */
 export type ReceptionLineDraft = {
-  good: string
+  missing: string
   damaged: string
-  lotCode: string
   expiresOn: string
 }
 
 export type ReplacementDraft = {
   boxes: string
-  lotCode: string
   expiresOn: string
 }
 
@@ -27,31 +26,25 @@ export type ReplacementDraft = {
 export type ReceptionDraft = {
   /** By line id. */
   lines: Readonly<Record<string, ReceptionLineDraft | undefined>>
-  /** By product id; only for products the supplier owes. */
+  /** By pending id; only for open "Por reponer" balances of the supplier. */
   replacements: Readonly<Record<string, ReplacementDraft | undefined>>
 }
 
-/** Owed boxes by product id for the order's supplier. */
+/** Open "Por reponer" boxes by pending id for the order's supplier. */
 export type OwedBoxes = Readonly<Record<string, number | undefined>>
 
 const emptyLine = (): ReceptionLineDraft => ({
-  good: '0',
+  missing: '0',
   damaged: '0',
-  lotCode: '',
   expiresOn: '',
 })
 
-/** Starts from "everything arrived good"; the user edits the exceptions. */
+/** Starts from "everything arrived good"; the user types the exceptions. */
 export function initialReception(
   lines: ReadonlyArray<ReceptionLine>,
 ): ReceptionDraft {
   return {
-    lines: Object.fromEntries(
-      lines.map((line) => [
-        line.lineId,
-        { ...emptyLine(), good: String(line.orderedBoxes) },
-      ]),
-    ),
+    lines: Object.fromEntries(lines.map((line) => [line.lineId, emptyLine()])),
     replacements: {},
   }
 }
@@ -61,11 +54,11 @@ const count = (text: string) => {
   return parsed.ok ? parsed.value : 0
 }
 
-/** Ordered − good − damaged, never below zero. */
-export const missingBoxes = (ordered: number, good: string, damaged: string) =>
-  Math.max(ordered - count(good) - count(damaged), 0)
+/** Ordered − missing − damaged, never below zero. */
+export const goodBoxes = (ordered: number, missing: string, damaged: string) =>
+  Math.max(ordered - count(missing) - count(damaged), 0)
 
-/** Problems by line id (and by product id for replacements); empty when valid. */
+/** Problems by line id (and by pending id for replacements); empty when valid. */
 export function receptionIssues(
   lines: ReadonlyArray<ReceptionLine>,
   draft: ReceptionDraft,
@@ -74,22 +67,22 @@ export function receptionIssues(
   const issues: Record<string, string> = {}
   for (const line of lines) {
     const entry = draft.lines[line.lineId] ?? emptyLine()
-    const good = parseBoxCount(entry.good)
+    const missing = parseBoxCount(entry.missing)
     const damaged = parseBoxCount(entry.damaged)
-    if (!good.ok) issues[line.lineId] = good.message
+    if (!missing.ok) issues[line.lineId] = missing.message
     else if (!damaged.ok) issues[line.lineId] = damaged.message
-    else if (good.value + damaged.value > line.orderedBoxes) {
+    else if (missing.value + damaged.value > line.orderedBoxes) {
       issues[line.lineId] =
-        'Las buenas y dañadas no pueden superar las cajas pedidas.'
+        'Las faltantes y dañadas no pueden superar las cajas pedidas.'
     }
   }
-  for (const [productId, item] of Object.entries(draft.replacements)) {
+  for (const [pendingId, item] of Object.entries(draft.replacements)) {
     if (!item) continue
     const boxes = parseBoxCount(item.boxes)
-    const limit = owed[productId] ?? 0
-    if (!boxes.ok) issues[productId] = boxes.message
+    const limit = owed[pendingId] ?? 0
+    if (!boxes.ok) issues[pendingId] = boxes.message
     else if (boxes.value > limit) {
-      issues[productId] =
+      issues[pendingId] =
         `El proveedor debe ${limit} ${limit === 1 ? 'caja' : 'cajas'}.`
     }
   }
@@ -105,11 +98,11 @@ export function receptionSummary(
     (total, line) => {
       const entry = draft.lines[line.lineId] ?? emptyLine()
       return {
-        good: total.good + count(entry.good),
+        good:
+          total.good +
+          goodBoxes(line.orderedBoxes, entry.missing, entry.damaged),
         damaged: total.damaged + count(entry.damaged),
-        missing:
-          total.missing +
-          missingBoxes(line.orderedBoxes, entry.good, entry.damaged),
+        missing: total.missing + count(entry.missing),
       }
     },
     { good: 0, damaged: 0, missing: 0 },
@@ -127,25 +120,21 @@ export function receptionInputFromDraft(
   if (issue) return fail(issue)
   const entries = lines.map((line) => {
     const entry = draft.lines[line.lineId] ?? emptyLine()
-    const lotCode = entry.lotCode.trim()
     return {
       lineId: line.lineId,
-      goodBoxes: count(entry.good),
+      missingBoxes: count(entry.missing),
       damagedBoxes: count(entry.damaged),
-      ...(lotCode ? { lotCode } : {}),
       ...(entry.expiresOn ? { expiresOn: entry.expiresOn } : {}),
     }
   })
   const replacements = Object.entries(draft.replacements).flatMap(
-    ([productId, item]) => {
+    ([pendingId, item]) => {
       const boxes = item ? count(item.boxes) : 0
       if (!item || boxes === 0) return []
-      const lotCode = item.lotCode.trim()
       return [
         {
-          productId,
+          pendingId,
           boxes,
-          ...(lotCode ? { lotCode } : {}),
           ...(item.expiresOn ? { expiresOn: item.expiresOn } : {}),
         },
       ]
@@ -159,4 +148,60 @@ export function receptionInputFromDraft(
       ...(replacements.length ? { replacements } : {}),
     },
   }
+}
+
+/** Boxes typed across all replacements; invalid text counts as zero. */
+export const replacementBoxes = (draft: ReceptionDraft) =>
+  Object.values(draft.replacements).reduce(
+    (total, item) => total + (item ? count(item.boxes) : 0),
+    0,
+  )
+
+/**
+ * "Recibido" on an owed balance: everything owed arrived. Marking it again
+ * undoes it. Any expiry date already typed stays.
+ */
+export function toggleReceived(
+  replacements: ReceptionDraft['replacements'],
+  pendingId: string,
+  owedBoxes: number,
+): ReceptionDraft['replacements'] {
+  const current = replacements[pendingId]
+  const all = String(owedBoxes)
+  return {
+    ...replacements,
+    [pendingId]: {
+      expiresOn: current?.expiresOn ?? '',
+      boxes: current?.boxes.trim() === all ? '' : all,
+    },
+  }
+}
+
+const plural = (amount: number, one: string, many: string) =>
+  `${amount} ${amount === 1 ? one : many}`
+
+/** One line for the confirmation: what enters stock and what stays with the supplier. */
+export function receptionSummaryText(totals: {
+  good: number
+  replaced: number
+  missing: number
+  damaged: number
+}) {
+  const entering =
+    totals.good === 0 && totals.replaced === 0
+      ? 'No entra ninguna caja'
+      : `${totals.good === 1 ? 'Entra' : 'Entran'} ${plural(totals.good, 'caja', 'cajas')}`
+  return [
+    totals.replaced > 0
+      ? `${entering} + ${totals.replaced} de reposición`
+      : entering,
+    totals.missing > 0
+      ? plural(totals.missing, 'faltante nuevo', 'faltantes nuevos')
+      : null,
+    totals.damaged > 0
+      ? `${totals.damaged} ${totals.damaged === 1 ? 'dañada' : 'dañadas'} por devolver`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }

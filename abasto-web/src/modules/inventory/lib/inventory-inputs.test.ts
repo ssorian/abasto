@@ -10,6 +10,7 @@ import {
   overviewInput,
   pendingsInput,
   receiveOrderInput,
+  returnInput,
   supplierOrderInput,
   supplierOrdersInput,
   writeOffInput,
@@ -108,8 +109,8 @@ describe('supplier order input shapes', () => {
   test('reception takes boxes per line and optional replacements', () => {
     const valid = {
       purchaseId: 'o1',
-      lines: [{ lineId: 'l1', goodBoxes: 4, damagedBoxes: 1 }],
-      replacements: [{ productId: 'p1', boxes: 2 }],
+      lines: [{ lineId: 'l1', missingBoxes: 4, damagedBoxes: 1 }],
+      replacements: [{ pendingId: 'b1', boxes: 2 }],
     }
     expect(parseInput(receiveOrderInput, valid)).toEqual(valid)
     expect(
@@ -118,7 +119,7 @@ describe('supplier order input shapes', () => {
     expect(
       fails(receiveOrderInput, {
         ...valid,
-        lines: [{ lineId: 'l1', goodBoxes: 1.5, damagedBoxes: 0 }],
+        lines: [{ lineId: 'l1', missingBoxes: 1.5, damagedBoxes: 0 }],
       }),
     ).toBe(true)
   })
@@ -135,8 +136,24 @@ describe('supplier order input shapes', () => {
     })
     expect(fails(orderIdInput, {})).toBe(true)
     expect(parseInput(pendingsInput, {})).toEqual({})
-    const writeOff = { supplierId: 's1', productId: 'p1', boxes: 2 }
+    const writeOff = { pendingId: 'b1', boxes: 2 }
     expect(parseInput(writeOffInput, writeOff)).toEqual(writeOff)
     expect(fails(writeOffInput, { ...writeOff, boxes: 0.5 })).toBe(true)
+    const giveBack = {
+      pendingId: 'b2',
+      boxes: 1,
+      resolution: 'discount' as const,
+      creditCents: 500,
+    }
+    expect(parseInput(returnInput, giveBack)).toEqual(giveBack)
+    expect(fails(returnInput, { ...giveBack, resolution: 'gift' })).toBe(true)
+    expect(
+      parseInput(supplierOrderInput, {
+        supplierId: 's1',
+        warehouseId: 'w1',
+        lines: [{ productId: 'p1', boxes: 1 }],
+        discounts: [{ pendingId: 'b1' }],
+      }).discounts,
+    ).toEqual([{ pendingId: 'b1' }])
   })
 })

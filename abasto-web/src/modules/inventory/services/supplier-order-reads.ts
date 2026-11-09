@@ -6,6 +6,7 @@ import type { Actor } from '#/modules/access/lib/policy'
 import { products, suppliers } from '#/modules/catalog/db/schema'
 import { purchaseLines, purchases } from '#/modules/inventory/db/schema'
 import type { PurchaseStatus } from '#/modules/inventory/db/schema'
+import { orderCode } from '#/modules/inventory/lib/order-code'
 import { divideHalfUp } from '#/modules/inventory/lib/pending-value'
 import { requireWarehouse } from '#/modules/pricing/services/price-reads'
 
@@ -20,13 +21,37 @@ export type SupplierOrderSummary = {
   warehouseId: string
   status: PurchaseStatus
   reference: string
+  /** Sequential order number. */
+  folio: number
+  /** Lot code of everything this order receives: the reference, else `PED-0001`. */
+  code: string
   purchasedOn: string
   expectedOn: string | null
   createdAt: Date
   receivedAt: Date | null
   lineCount: number
+  /** Net total of the lines (after the supplier's own discounts and promotions). */
   totalCostCents: number
+  /** "Por reponer" balances discounted on this order, in cents. */
+  discountCents: number
+  /** Net total − discounts: what is paid. */
+  payableCents: number
 }
+
+const withCode = <
+  T extends {
+    reference: string
+    folio: number
+    totalCostCents: number
+    discountCents: number
+  },
+>(
+  row: T,
+) => ({
+  ...row,
+  code: orderCode(row),
+  payableCents: row.totalCostCents - row.discountCents,
+})
 
 export async function listSupplierOrders(
   actor: Actor,
@@ -34,7 +59,7 @@ export async function listSupplierOrders(
 ): Promise<Array<SupplierOrderSummary>> {
   authorize(actor, 'warehouse.manage', input.warehouseId)
   await requireWarehouse(db, input.warehouseId)
-  return db
+  const rows = await db
     .select({
       id: purchases.id,
       supplierId: purchases.supplierId,
@@ -42,10 +67,12 @@ export async function listSupplierOrders(
       warehouseId: purchases.warehouseId,
       status: purchases.status,
       reference: purchases.reference,
+      folio: purchases.folio,
       purchasedOn: purchases.purchasedOn,
       expectedOn: purchases.expectedOn,
       createdAt: purchases.createdAt,
       receivedAt: purchases.receivedAt,
+      discountCents: purchases.discountCents,
       lineCount: sql<number>`count(${purchaseLines.id})::int`,
       totalCostCents: sql<number>`coalesce(sum(${purchaseLines.totalCostCents}), 0)::int`,
     })
@@ -60,6 +87,7 @@ export async function listSupplierOrders(
     )
     .groupBy(purchases.id, suppliers.name)
     .orderBy(desc(purchases.createdAt), asc(purchases.id))
+  return rows.map(withCode)
 }
 
 export type SupplierOrderLine = {
@@ -88,10 +116,7 @@ export type SupplierOrderLine = {
   expiresOn: string | null
 }
 
-export type SupplierOrder = Omit<
-  SupplierOrderSummary,
-  'supplierName' | 'lineCount' | 'totalCostCents'
-> & {
+export type SupplierOrder = Omit<SupplierOrderSummary, 'lineCount'> & {
   supplierName: string
   createdBy: string
   receivedBy: string | null
@@ -111,6 +136,8 @@ export async function getSupplierOrder(
         warehouseId: purchases.warehouseId,
         status: purchases.status,
         reference: purchases.reference,
+        folio: purchases.folio,
+        discountCents: purchases.discountCents,
         purchasedOn: purchases.purchasedOn,
         expectedOn: purchases.expectedOn,
         createdAt: purchases.createdAt,
@@ -161,5 +188,9 @@ export async function getSupplierOrder(
         : null,
     }
   })
-  return { ...order, lines }
+  const totalCostCents = lines.reduce(
+    (sum, line) => sum + line.totalCostCents,
+    0,
+  )
+  return { ...withCode({ ...order, totalCostCents }), lines }
 }

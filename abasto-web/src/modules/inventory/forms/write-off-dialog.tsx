@@ -11,10 +11,10 @@ import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-act
 import { formatCents } from '#/modules/inventory/lib/cents'
 import { parseBoxCount } from '#/modules/inventory/lib/box-count'
 import { writeOffError } from '#/modules/inventory/lib/pending-writeoff'
-import type { OwedPending } from '#/modules/inventory/services/supplier-pendings'
+import type { PendingBalance } from '#/modules/inventory/services/supplier-pendings'
 
 type WriteOffDialogProps = {
-  pending: OwedPending
+  pending: PendingBalance
   onClose: () => void
 }
 
@@ -37,11 +37,10 @@ export function WriteOffDialog({ pending, onClose }: WriteOffDialogProps) {
     if (problem) return setError(problem)
     setError(null)
     setSaving(true)
-    const result = await actions.writeOff({
-      supplierId: pending.supplierId,
-      productId: pending.productId,
-      boxes: typed.ok ? typed.value : 0,
-    })
+    const result = await actions.writeOff(
+      { pendingId: pending.pendingId, boxes: typed.ok ? typed.value : 0 },
+      setError,
+    )
     setSaving(false)
     if (result) onClose()
   }
@@ -50,7 +49,7 @@ export function WriteOffDialog({ pending, onClose }: WriteOffDialogProps) {
     <InventoryDialog
       title="Descontar del pago (a lo chino)"
       eyebrow={pending.supplierName.toUpperCase()}
-      description={`${pending.productName}: el proveedor debe ${pending.owedBoxes} ${pending.owedBoxes === 1 ? 'caja' : 'cajas'}. Las que descuentes ya no se le pagan ni se esperan como reposición. No se puede deshacer.`}
+      description={`${pending.productName} (${pending.originCode}): el proveedor debe ${pending.owedBoxes} ${pending.owedBoxes === 1 ? 'caja' : 'cajas'}. Las que descuentes ya no se le pagan ni se esperan como reposición. No se puede deshacer.`}
       onClose={onClose}
     >
       <form
