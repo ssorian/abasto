@@ -70,3 +70,24 @@ describe('decideRouteAccess', () => {
     }
   })
 })
+
+describe('Repartos route', () => {
+  test('owner and managers open /repartos', () => {
+    for (const role of ['owner', 'staff'] as const) {
+      expect(decideRouteAccess(role, '/repartos')).toEqual({ kind: 'allow' })
+    }
+  })
+
+  test('anonymous goes to login keeping the target; customers to the store', () => {
+    expect(decideRouteAccess(null, '/repartos')).toEqual({
+      kind: 'redirect',
+      to: '/login',
+      keepTarget: true,
+    })
+    expect(decideRouteAccess('customer', '/repartos')).toEqual({
+      kind: 'redirect',
+      to: '/tienda',
+      keepTarget: false,
+    })
+  })
+})

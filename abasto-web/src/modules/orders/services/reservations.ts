@@ -32,6 +32,17 @@ export async function allocationsOf(tx: Tx, orderId: string) {
     .orderBy(asc(orderAllocations.id))
 }
 
+/** Gives reserved units back to their lots (`lotId → units`), locking the lots in id order. */
+export async function releaseLots(tx: Tx, perLot: ReadonlyMap<string, number>) {
+  await lockLotsInOrder(tx, [...perLot.keys()])
+  for (const [lotId, quantity] of perLot) {
+    await tx
+      .update(lots)
+      .set({ reserved: sql`${lots.reserved} - ${quantity}` })
+      .where(eq(lots.id, lotId))
+  }
+}
+
 /** Gives the reserved units of these orders back to their lots (locked in id order). */
 export async function releaseReserved(tx: Tx, orderIds: Array<string>) {
   const perLot = new Map<string, number>()
@@ -40,13 +51,7 @@ export async function releaseReserved(tx: Tx, orderIds: Array<string>) {
       perLot.set(lotId, (perLot.get(lotId) ?? 0) + quantity)
     }
   }
-  await lockLotsInOrder(tx, [...perLot.keys()])
-  for (const [lotId, quantity] of perLot) {
-    await tx
-      .update(lots)
-      .set({ reserved: sql`${lots.reserved} - ${quantity}` })
-      .where(eq(lots.id, lotId))
-  }
+  await releaseLots(tx, perLot)
 }
 
 /** Whether any lot allocated to the order is past its expiry day (business calendar). */

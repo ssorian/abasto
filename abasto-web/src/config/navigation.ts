@@ -6,6 +6,7 @@ import {
   LayoutGrid,
   ScanLine,
   Settings2,
+  Truck,
   Users,
   Warehouse,
 } from 'lucide-react'
@@ -23,6 +24,7 @@ export type NavItem = {
     | '/clientes'
     | '/catalogo'
     | '/inventario'
+    | '/repartos'
     | '/almacenes'
     | '/configuracion'
     | '/reportes'
@@ -34,6 +36,7 @@ export const primaryNav: Array<NavItem> = [
   { label: 'Clientes', icon: Users, to: '/clientes' },
   { label: 'Catálogo', icon: LayoutGrid, to: '/catalogo' },
   { label: 'Inventario', icon: Boxes, to: '/inventario' },
+  { label: 'Repartos', icon: Truck, to: '/repartos' },
   { label: 'Almacenes', icon: Warehouse, to: '/almacenes' },
   { label: 'Reportes', icon: ChartColumn, to: '/reportes' },
 ]
