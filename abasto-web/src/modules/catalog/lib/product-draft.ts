@@ -64,7 +64,9 @@ const amountOf = (text: string) => {
  * Per-field errors of the typed list price, discount and promotion: parse
  * messages, and the discount when it plus the promotion exceed the list price.
  */
-export function supplierCostErrors(draft: ProductDraft) {
+export function supplierCostErrors(
+  draft: Pick<ProductDraft, 'listPrice' | 'fixedDiscount' | 'promotion'>,
+) {
   const errors: Partial<Record<CostKey, string>> = {}
   for (const key of costKeys) {
     const parsed = parseTenThousandths(draft[key])

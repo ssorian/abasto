@@ -27,7 +27,7 @@ type OrderTableProps = {
   /** Standard price per box by product id; only drives the warning, it is never shown. */
   standardByProductId: Readonly<Partial<Record<string, number>>>
   onBoxes: (productId: string, boxes: string) => void
-  /** Opens the catalog editor of a product; absent for users who cannot edit products. */
+  /** Opens the piece cost editor of a product; absent for users who cannot edit products. */
   onEdit?: (productId: string) => void
 }
 
@@ -86,8 +86,8 @@ export function OrderTable({
                     {onEdit && (
                       <button
                         type="button"
-                        aria-label={`Editar ${product.name}`}
-                        title="Editar producto"
+                        aria-label={`Editar costo por pieza de ${product.name}`}
+                        title="Editar costo por pieza"
                         className="shrink-0 rounded-md p-1.5 text-[#907e84] hover:bg-[#f4eef0] hover:text-[#5f4a51]"
                         onClick={() => onEdit(product.id)}
                       >

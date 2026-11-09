@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { ProductFormDialog } from '#/modules/catalog/forms/product-form-dialog'
-import { useCatalogActions } from '#/modules/catalog/hooks/use-catalog'
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import {
   Field,
@@ -16,6 +14,7 @@ import {
 } from '#/modules/inventory/components/inventory-dialog'
 import { SearchBox } from '#/modules/inventory/components/search-box'
 import { OrderTable } from '#/modules/inventory/forms/order-table'
+import { PieceCostDialog } from '#/modules/inventory/forms/piece-cost-dialog'
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import { formatCents } from '#/modules/inventory/lib/cents'
 import {
@@ -52,7 +51,6 @@ export function OrderDialog({
   onClose,
 }: OrderDialogProps) {
   const actions = useInventoryActions()
-  const catalogActions = useCatalogActions()
   const [draft, setDraft] = useState<OrderDraft>(() => ({
     supplierId: '',
     warehouseId: initialWarehouseId,
@@ -221,12 +219,10 @@ export function OrderDialog({
         </form>
       </InventoryDialog>
       {canEditProducts && editing && (
-        // Saving reloads the products, so the rows recalculate with the new discount and promotion.
-        <ProductFormDialog
+        // Saving reloads the products, so the rows recalculate with the new amounts and typed boxes stay.
+        <PieceCostDialog
           key={editing.id}
           product={editing}
-          suppliers={suppliers}
-          onSubmit={(edited) => catalogActions.saveProduct(editing.id, edited)}
           onClose={() => setEditingId(undefined)}
         />
       )}
