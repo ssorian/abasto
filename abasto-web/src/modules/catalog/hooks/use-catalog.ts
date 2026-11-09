@@ -21,6 +21,7 @@ import {
   updateProductFn,
   updateSupplierFn,
 } from '#/modules/catalog/server/catalog'
+import type { ProductPatch } from '#/modules/catalog/services/products'
 import type { CatalogImportProduct } from '#/modules/product-import/lib/import-types'
 
 const messageOf = (failure: unknown) =>
@@ -56,6 +57,26 @@ export function useCatalogActions() {
             : createProductFn({ data: productInputFromDraft(draft) }),
         'Producto guardado.',
       ),
+    /**
+     * Saves only the supplier amounts of a product. Resolves to the error
+     * message (shown by the caller in its dialog, no toast) or null on success.
+     */
+    savePieceCost: async (
+      productId: string,
+      patch: Pick<
+        ProductPatch,
+        'listPricePerPiece' | 'fixedDiscountPerPiece' | 'promotionPerPiece'
+      >,
+    ): Promise<string | null> => {
+      try {
+        unwrap(await updateProductFn({ data: { id: productId, patch } }))
+        await router.invalidate()
+        toast.success('Costo por pieza guardado.')
+        return null
+      } catch (failure) {
+        return messageOf(failure)
+      }
+    },
     setPublished: (productId: string, published: boolean) =>
       run(
         () =>

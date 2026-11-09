@@ -20,6 +20,7 @@ const stored: CatalogProduct = {
   unit: 'piezas',
   supplierId: 's1',
   supplierCode: 'ORA-77',
+  listPricePerPiece: 12055,
   fixedDiscountPerPiece: 1000,
   promotionPerPiece: 500,
   published: false,
@@ -68,6 +69,7 @@ describe('product draft ↔ service input', () => {
       supplierId: 's1',
       published: false,
       supplierCode: 'ORA-77',
+      listPricePerPiece: 12055,
       fixedDiscountPerPiece: 1000,
       promotionPerPiece: 500,
     })
@@ -103,33 +105,36 @@ describe('product draft ↔ service input', () => {
     const draft = draftFromProduct(stored)
     expect(draft).toMatchObject({
       supplierCode: 'ORA-77',
+      listPrice: '1.2055',
       fixedDiscount: '0.1000',
       promotion: '0.0500',
     })
-    expect(draft).not.toHaveProperty('listPrice')
     const input = productInputFromDraft({
       ...draft,
       supplierCode: 'X1',
+      listPrice: '2.5',
       fixedDiscount: '',
       promotion: '0.01',
     })
     expect(input).toMatchObject({
       supplierCode: 'X1',
+      listPricePerPiece: 25000,
       fixedDiscountPerPiece: 0,
       promotionPerPiece: 100,
     })
-    expect(input).not.toHaveProperty('listPricePerPiece')
-    expect(productPatchFromDraft(draft)).not.toHaveProperty('listPricePerPiece')
+    expect(productPatchFromDraft(draft)).toMatchObject({
+      listPricePerPiece: 12055,
+    })
   })
 
   test('a new draft has no supplier terms', () => {
     const empty = emptyProductDraft()
     expect(empty).toMatchObject({
       supplierCode: '',
+      listPrice: '',
       fixedDiscount: '',
       promotion: '',
     })
-    expect(empty).not.toHaveProperty('listPrice')
   })
 })
 
@@ -139,7 +144,12 @@ describe('supplier terms validation', () => {
   test('accepts blank and valid amounts', () => {
     expect(supplierCostErrors(draft)).toEqual({})
     expect(
-      supplierCostErrors({ ...draft, fixedDiscount: '0.2', promotion: '0.1' }),
+      supplierCostErrors({
+        ...draft,
+        listPrice: '1.5',
+        fixedDiscount: '0.2',
+        promotion: '0.1',
+      }),
     ).toEqual({})
   })
 
@@ -150,5 +160,22 @@ describe('supplier terms validation', () => {
     expect(supplierCostErrors({ ...draft, promotion: '-1' })).toEqual({
       promotion: 'El monto no puede ser negativo.',
     })
+    expect(supplierCostErrors({ ...draft, listPrice: '1,5' })).toEqual({
+      listPrice: 'Usa punto para los decimales, sin comas.',
+    })
+  })
+
+  test('discount plus promotion above the list price is reported on the discount', () => {
+    const above = {
+      ...draft,
+      listPrice: '1',
+      fixedDiscount: '0.6',
+      promotion: '0.41',
+    }
+    expect(supplierCostErrors(above)).toEqual({
+      fixedDiscount:
+        'El descuento y la promoción no pueden superar el precio por pieza.',
+    })
+    expect(supplierCostErrors({ ...above, promotion: '0.4' })).toEqual({})
   })
 })

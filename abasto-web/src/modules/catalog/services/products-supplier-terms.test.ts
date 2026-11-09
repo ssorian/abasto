@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
+import { eq } from 'drizzle-orm'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
+import { products } from '#/modules/catalog/db/schema'
 import {
   createProduct,
   getProduct,
@@ -24,18 +26,20 @@ const base = {
 }
 const badAmount =
   'Los montos del proveedor deben ser enteros en diezmilésimas, de cero o más.'
+const aboveList =
+  'El descuento y la promoción no pueden superar el precio por pieza.'
 const empty = { suppliers: 0, products: 0, presentations: 0 }
 
 describe('supplier terms on createProduct', () => {
-  test('defaults to no code and zero discount and promotion, and holds no list price', async () => {
+  test('defaults to no code and zero list price, discount and promotion', async () => {
     const { owner } = await setupActors()
     const created = await createProduct(owner, base)
     expect(created).toMatchObject({
       supplierCode: '',
+      listPricePerPiece: 0,
       fixedDiscountPerPiece: 0,
       promotionPerPiece: 0,
     })
-    expect(created).not.toHaveProperty('listPricePerPiece')
   })
 
   test('stores a trimmed code and the amounts in ten-thousandths', async () => {
@@ -43,19 +47,24 @@ describe('supplier terms on createProduct', () => {
     const created = await createProduct(owner, {
       ...base,
       supplierCode: '  ORA-77 ',
+      listPricePerPiece: 123456,
       fixedDiscountPerPiece: 1000,
       promotionPerPiece: 11055,
     })
     expect(created).toMatchObject({
       supplierCode: 'ORA-77',
+      listPricePerPiece: 123456,
       fixedDiscountPerPiece: 1000,
       promotionPerPiece: 11055,
     })
-    expect(created).not.toHaveProperty('listPricePerPiece')
     expect(await getProduct(staff, created.id)).toEqual(created)
   })
 
   test.each([
+    ['negative list price', { listPricePerPiece: -1 }],
+    ['fractional list price', { listPricePerPiece: 0.5 }],
+    ['infinite list price', { listPricePerPiece: Infinity }],
+    ['list price above the column range', { listPricePerPiece: 2_147_483_648 }],
     ['negative discount', { fixedDiscountPerPiece: -1 }],
     ['fractional discount', { fixedDiscountPerPiece: 1.5 }],
     ['NaN promotion', { promotionPerPiece: Number.NaN }],
@@ -71,17 +80,42 @@ describe('supplier terms on createProduct', () => {
     expect(await counts()).toEqual(empty)
   })
 
-  test('no list price to compare: any non-negative discount and promotion are stored', async () => {
+  test('stores discount plus promotion equal to the list price', async () => {
     const { owner } = await setupActors()
     const created = await createProduct(owner, {
       ...base,
+      listPricePerPiece: 1500,
       fixedDiscountPerPiece: 600,
       promotionPerPiece: 900,
     })
     expect(created).toMatchObject({
+      listPricePerPiece: 1500,
       fixedDiscountPerPiece: 600,
       promotionPerPiece: 900,
     })
+  })
+
+  test.each([
+    [
+      'discount and promotion without a list price',
+      { fixedDiscountPerPiece: 1 },
+    ],
+    [
+      'discount plus promotion above the list price',
+      {
+        listPricePerPiece: 1500,
+        fixedDiscountPerPiece: 600,
+        promotionPerPiece: 901,
+      },
+    ],
+  ])('rejects %s and stores nothing', async (_case, amounts) => {
+    const { owner } = await setupActors()
+    const error = await errorOf(() =>
+      createProduct(owner, { ...base, ...amounts }),
+    )
+    expect(error.code).toBe('invalid')
+    expect(error.message).toBe(aboveList)
+    expect(await counts()).toEqual(empty)
   })
 
   test('staff cannot set supplier terms', async () => {
@@ -100,6 +134,7 @@ describe('supplier terms on updateProduct', () => {
     const product = await createProduct(owner, {
       ...base,
       supplierCode: 'A1',
+      listPricePerPiece: 12000,
       fixedDiscountPerPiece: 5000,
     })
     const updated = await updateProduct(owner, product.id, {
@@ -107,6 +142,7 @@ describe('supplier terms on updateProduct', () => {
     })
     expect(updated).toMatchObject({
       supplierCode: 'A1',
+      listPricePerPiece: 12000,
       fixedDiscountPerPiece: 5000,
       promotionPerPiece: 500,
     })
@@ -124,11 +160,65 @@ describe('supplier terms on updateProduct', () => {
     expect(await getProduct(owner, product.id)).toEqual(product)
   })
 
+  test('the list price alone can be edited, and lowering it is checked against the stored discounts', async () => {
+    const { owner } = await setupActors()
+    const product = await createProduct(owner, {
+      ...base,
+      listPricePerPiece: 12000,
+      fixedDiscountPerPiece: 5000,
+      promotionPerPiece: 3000,
+    })
+    const raised = await updateProduct(owner, product.id, {
+      listPricePerPiece: 15000,
+    })
+    expect(raised).toMatchObject({ listPricePerPiece: 15000 })
+    const equal = await updateProduct(owner, product.id, {
+      listPricePerPiece: 8000,
+    })
+    expect(equal.listPricePerPiece).toBe(8000)
+    const error = await errorOf(() =>
+      updateProduct(owner, product.id, { listPricePerPiece: 7999 }),
+    )
+    expect(error.code).toBe('invalid')
+    expect(error.message).toBe(aboveList)
+    expect(await getProduct(owner, product.id)).toEqual(equal)
+  })
+
+  test('raising a discount above the stored list price is rejected without applying other fields', async () => {
+    const { owner } = await setupActors()
+    const product = await createProduct(owner, {
+      ...base,
+      listPricePerPiece: 1000,
+      fixedDiscountPerPiece: 400,
+    })
+    const error = await errorOf(() =>
+      updateProduct(owner, product.id, {
+        name: 'Otro',
+        promotionPerPiece: 601,
+      }),
+    )
+    expect(error.code).toBe('invalid')
+    expect(error.message).toBe(aboveList)
+    expect(await getProduct(owner, product.id)).toEqual(product)
+  })
+
+  test('a patch that touches no amount is not checked against legacy data', async () => {
+    const { owner } = await setupActors()
+    const product = await createProduct(owner, base)
+    // Legacy state: discounts stored with a zero list price (products before the list price existed).
+    await db
+      .update(products)
+      .set({ fixedDiscountPerPiece: 500 })
+      .where(eq(products.id, product.id))
+    const updated = await updateProduct(owner, product.id, { name: 'Otro' })
+    expect(updated).toMatchObject({ name: 'Otro', fixedDiscountPerPiece: 500 })
+  })
+
   test('staff cannot update the amounts', async () => {
     const { owner, staff } = await setupActors()
     const product = await createProduct(owner, base)
     const error = await errorOf(() =>
-      updateProduct(staff, product.id, { fixedDiscountPerPiece: 100 }),
+      updateProduct(staff, product.id, { listPricePerPiece: 100 }),
     )
     expect(error.code).toBe('forbidden')
     expect(await getProduct(owner, product.id)).toEqual(product)

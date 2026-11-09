@@ -65,9 +65,13 @@ export function ProductFormDialog({
   ]
 
   const costFields: Array<
-    readonly ['supplierCode' | 'fixedDiscount' | 'promotion', string]
+    readonly [
+      'supplierCode' | 'listPrice' | 'fixedDiscount' | 'promotion',
+      string,
+    ]
   > = [
     ['supplierCode', 'Clave del proveedor'],
+    ['listPrice', 'Precio por pieza'],
     ['fixedDiscount', 'Descuento fijo por pieza'],
     ['promotion', 'Promoción por pieza'],
   ]

@@ -1,10 +1,9 @@
 import {
-  listPricePerPieceOf,
+  grossLineCents,
   netLineCents,
   netPerBoxOfLineCents,
 } from '#/lib/utils/supplier-cost'
 import { parseBoxCount } from '#/modules/inventory/lib/box-count'
-import { parsePesosToCents } from '#/modules/inventory/lib/cents'
 import { normalize } from '#/modules/inventory/lib/format'
 import { fail } from '#/modules/inventory/lib/parsed'
 import type { Parsed } from '#/modules/inventory/lib/parsed'
@@ -18,27 +17,26 @@ export type OrderProduct = {
   name: string
   sku: string
   supplierId: string | null
-  /** Supplier discount and promotion per piece, in ten-thousandths of a peso. */
+  /** Supplier list price, discount and promotion per piece, in ten-thousandths of a peso. */
+  listPricePerPiece: number
   fixedDiscountPerPiece: number
   promotionPerPiece: number
   presentations: ReadonlyArray<PresentationLike>
 }
 
-/** Order form state; boxes and gross costs stay as typed text by product id. */
+/** Order form state; boxes stay as typed text by product id. */
 export type OrderDraft = {
   supplierId: string
   warehouseId: string
   expectedOn: string
   reference: string
   boxes: Readonly<Record<string, string | undefined>>
-  /** Line cost before discounts in pesos, up to 2 decimals. */
-  costs: Readonly<Record<string, string | undefined>>
 }
 
 export const PRICE_BELOW_COST_MESSAGE =
   'El costo por caja supera el precio estándar. Actualiza el precio estándar del producto en el catálogo.'
-export const NET_ABOVE_GROSS_MESSAGE =
-  'El descuento y la promoción no pueden superar el costo antes de descuentos.'
+export const NET_ABOVE_LIST_PRICE_MESSAGE =
+  'El descuento y la promoción no pueden superar el precio por pieza.'
 
 /** Pieces per box: the default presentation, active or not (the server's rule), else 1. */
 export const boxFactorOf = (product: OrderProduct) =>
@@ -49,31 +47,16 @@ const boxesOf = (text: string | undefined) => {
   return parsed.ok ? parsed.value : 0
 }
 
-/** Pesos typed with up to 2 decimals → cents; blank means zero. */
-const parseGrossCents = (text: string | undefined): Parsed<number> =>
-  (text ?? '').trim() === ''
-    ? { ok: true, value: 0 }
-    : parsePesosToCents(text ?? '', { allowZero: true })
-
-const grossOf = (text: string | undefined) => {
-  const parsed = parseGrossCents(text)
-  return parsed.ok ? parsed.value : 0
-}
-
 /**
- * Figures of a row from the typed text (same rules as the server); unparsable
- * fields count as zero, and rows without boxes cost nothing. `exceedsGross` marks discounts above the gross cost;
- * the net figures then show zero instead of a negative cost.
+ * Figures of a row from the typed boxes and the product's catalog amounts (same
+ * rules as the server); unparsable boxes count as zero and rows without boxes
+ * cost nothing. `exceedsList` marks discounts above the list price; the net
+ * figures then show zero instead of a negative cost.
  */
-export function rowOf(
-  product: OrderProduct,
-  boxesText: string | undefined,
-  costText: string | undefined,
-) {
+export function rowOf(product: OrderProduct, boxesText: string | undefined) {
   const boxes = boxesOf(boxesText)
-  const grossCents = grossOf(costText)
   const quantity = boxes * boxFactorOf(product)
-  // A row without boxes is not ordered: its typed cost counts for nothing.
+  const grossCents = grossLineCents(quantity, product.listPricePerPiece)
   const net =
     boxes > 0
       ? netLineCents(
@@ -83,15 +66,15 @@ export function rowOf(
           product.promotionPerPiece,
         )
       : 0
-  const exceedsGross = net < 0
+  const exceedsList = net < 0
   const netCents = Math.max(net, 0)
   return {
     boxes,
     grossCents,
-    listPrice: listPricePerPieceOf(grossCents, quantity),
+    listPrice: product.listPricePerPiece,
     netLineCents: netCents,
     netPerBoxCents: netPerBoxOfLineCents(netCents, boxes),
-    exceedsGross,
+    exceedsList,
   }
 }
 
@@ -129,18 +112,16 @@ export function supplierProducts<TProduct extends OrderProduct>(
 /** Sum of the net line costs of the typed rows. */
 export function orderTotalCents(
   products: ReadonlyArray<OrderProduct>,
-  draft: Pick<OrderDraft, 'boxes' | 'costs'>,
+  draft: Pick<OrderDraft, 'boxes'>,
 ): number {
   return products.reduce(
     (total, product) =>
-      total +
-      rowOf(product, draft.boxes[product.id], draft.costs[product.id])
-        .netLineCents,
+      total + rowOf(product, draft.boxes[product.id]).netLineCents,
     0,
   )
 }
 
-/** Order form → server input: rows with boxes of the chosen supplier and their gross cost. */
+/** Order form → server input: the rows with boxes of the chosen supplier. */
 export function orderInputFromDraft(
   draft: OrderDraft,
   products: ReadonlyArray<OrderProduct>,
@@ -153,19 +134,10 @@ export function orderInputFromDraft(
     const boxes = parseBoxCount(draft.boxes[product.id] ?? '')
     if (!boxes.ok) return fail(`${product.name}: ${boxes.message}`)
     if (boxes.value <= 0) continue
-    const gross = parseGrossCents(draft.costs[product.id])
-    if (!gross.ok) return fail(`${product.name}: ${gross.message}`)
-    if (
-      rowOf(product, draft.boxes[product.id], draft.costs[product.id])
-        .exceedsGross
-    ) {
-      return fail(`${product.name}: ${NET_ABOVE_GROSS_MESSAGE}`)
+    if (rowOf(product, draft.boxes[product.id]).exceedsList) {
+      return fail(`${product.name}: ${NET_ABOVE_LIST_PRICE_MESSAGE}`)
     }
-    lines.push({
-      productId: product.id,
-      boxes: boxes.value,
-      grossCostCents: gross.value,
-    })
+    lines.push({ productId: product.id, boxes: boxes.value })
   }
   if (!lines.length) return fail('Escribe las cajas de al menos un producto.')
   const reference = draft.reference.trim()

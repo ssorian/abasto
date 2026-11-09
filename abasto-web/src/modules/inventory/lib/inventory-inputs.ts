@@ -44,7 +44,6 @@ export const supplierOrderInput = z.object({
     z.object({
       productId: id,
       boxes: whole,
-      grossCostCents: z.number(),
     }),
   ),
 })

@@ -13,7 +13,7 @@ import {
 import { formatCents } from '#/modules/inventory/lib/cents'
 import { packInfoOf } from '#/modules/inventory/lib/pack-info'
 import {
-  NET_ABOVE_GROSS_MESSAGE,
+  NET_ABOVE_LIST_PRICE_MESSAGE,
   rowOf,
   rowWarnings,
 } from '#/modules/inventory/lib/supplier-order-draft'
@@ -24,12 +24,10 @@ type OrderTableProps = {
   /** Products of the chosen supplier, already filtered by the search. */
   products: ReadonlyArray<CatalogProduct>
   boxes: OrderDraft['boxes']
-  costs: OrderDraft['costs']
   /** Standard price per box by product id; only drives the warning, it is never shown. */
   standardByProductId: Readonly<Partial<Record<string, number>>>
   onBoxes: (productId: string, boxes: string) => void
-  onCost: (productId: string, cost: string) => void
-  /** Opens the catalog editor of a product; absent for users who cannot edit products. */
+  /** Opens the piece cost editor of a product; absent for users who cannot edit products. */
   onEdit?: (productId: string) => void
 }
 
@@ -41,14 +39,12 @@ function boxLabel(product: CatalogProduct) {
   return factor === 1 ? packName : `${packName} · ${factor} ${unit}`
 }
 
-/** One row per supplier product: boxes and the cost before discounts typed; the rest is derived. */
+/** One row per supplier product: only the boxes are typed; the rest comes from the catalog. */
 export function OrderTable({
   products,
   boxes,
-  costs,
   standardByProductId,
   onBoxes,
-  onCost,
   onEdit,
 }: OrderTableProps) {
   if (!products.length) {
@@ -65,7 +61,6 @@ export function OrderTable({
           {[
             'Producto',
             'Cajas',
-            'Costo antes de descuentos',
             'Precio x pieza',
             'Desc. fijo',
             'Promo',
@@ -76,7 +71,7 @@ export function OrderTable({
         <ListBody>
           {products.map((product) => {
             const standard = standardByProductId[product.id]
-            const row = rowOf(product, boxes[product.id], costs[product.id])
+            const row = rowOf(product, boxes[product.id])
             const warnings = rowWarnings(row, standard)
             return (
               <ListRow key={product.id} className="align-top">
@@ -91,8 +86,8 @@ export function OrderTable({
                     {onEdit && (
                       <button
                         type="button"
-                        aria-label={`Editar ${product.name}`}
-                        title="Editar producto"
+                        aria-label={`Editar costo por pieza de ${product.name}`}
+                        title="Editar costo por pieza"
                         className="shrink-0 rounded-md p-1.5 text-[#907e84] hover:bg-[#f4eef0] hover:text-[#5f4a51]"
                         onClick={() => onEdit(product.id)}
                       >
@@ -125,24 +120,13 @@ export function OrderTable({
                     }
                   />
                 </ListCell>
-                <ListCell>
-                  <FieldInput
-                    inputMode="decimal"
-                    aria-label={`Costo antes de descuentos de ${product.name}`}
-                    aria-invalid={row.exceedsGross || undefined}
-                    className={`${compact} w-[120px]`}
-                    placeholder="0.00"
-                    value={costs[product.id] ?? ''}
-                    onChange={(event) => onCost(product.id, event.target.value)}
-                  />
-                  {row.exceedsGross && (
-                    <small className="mt-1 block max-w-[200px] text-[#b3414b]">
-                      {NET_ABOVE_GROSS_MESSAGE}
-                    </small>
-                  )}
-                </ListCell>
                 <ListCell className="whitespace-nowrap">
                   {formatTenThousandths(row.listPrice)}
+                  {row.exceedsList && (
+                    <small className="mt-1 block max-w-[200px] whitespace-normal text-[#b3414b]">
+                      {NET_ABOVE_LIST_PRICE_MESSAGE}
+                    </small>
+                  )}
                 </ListCell>
                 <ListCell className="whitespace-nowrap">
                   {formatTenThousandths(product.fixedDiscountPerPiece)}

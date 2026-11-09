@@ -193,6 +193,7 @@ export async function seedDatabase({
       unit: 'piezas',
       supplierId: supplierId[seed.supplier],
       supplierCode: seed.supplierCode,
+      listPricePerPiece: seed.listPricePerPiece,
       fixedDiscountPerPiece: seed.fixedDiscountPerPiece,
       promotionPerPiece: seed.promotionPerPiece,
       presentations: seed.presentations,
@@ -203,10 +204,6 @@ export async function seedDatabase({
     catalog.set(seed.sku, { seed, product })
   }
   const item = (sku: string) => catalog.get(sku)!
-  // Cost typed in the orders before discounts (cents): the list cost per box × boxes. The
-  // order applies each product's fixed discount and promotion on top.
-  const grossCostOf = (seed: SeedProduct, boxes: number) =>
-    seed.boxCostCents * boxes
   const boxOf = (sku: string) =>
     item(sku).product.presentations.find(
       (p) => p.factor === item(sku).seed.boxFactor,
@@ -265,11 +262,7 @@ export async function seedDatabase({
       reference,
       lines: lines.map((line) => {
         const boxes = line.boxes + (damaged[line.seed.sku] ?? 0)
-        return {
-          productId: line.productId,
-          boxes,
-          grossCostCents: grossCostOf(line.seed, boxes),
-        }
+        return { productId: line.productId, boxes }
       }),
     })
     const stored = await getSupplierOrder(actor, order.id)
@@ -331,7 +324,6 @@ export async function seedDatabase({
     lines: waiting.slice(0, 2).map((seed) => ({
       productId: item(seed.sku).product.id,
       boxes: 4,
-      grossCostCents: grossCostOf(seed, 4),
     })),
   })
 

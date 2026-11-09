@@ -5,6 +5,8 @@ import type { Tx } from '#/modules/inventory/services/stock-ledger'
 export type BoxProduct = {
   id: string
   supplierId: string | null
+  /** Supplier list price, discount and promotion per piece (ten-thousandths of a peso). */
+  listPricePerPiece: number
   fixedDiscountPerPiece: number
   promotionPerPiece: number
   /** Base units per box (default presentation); 1 without one. */
@@ -22,6 +24,7 @@ export async function loadBoxProducts(
     .select({
       id: products.id,
       supplierId: products.supplierId,
+      listPricePerPiece: products.listPricePerPiece,
       fixedDiscountPerPiece: products.fixedDiscountPerPiece,
       promotionPerPiece: products.promotionPerPiece,
       factor: presentations.factor,

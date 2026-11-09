@@ -4,7 +4,7 @@ import { AppError } from '#/lib/errors'
 import { businessDate } from '#/lib/utils/format'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
-import { netLineCents } from '#/lib/utils/supplier-cost'
+import { grossLineCents, netLineCents } from '#/lib/utils/supplier-cost'
 import { purchaseLines, purchases } from '#/modules/inventory/db/schema'
 import { loadBoxProducts } from '#/modules/inventory/services/box-products'
 import { orderNotFound } from '#/modules/inventory/services/supplier-order-reads'
@@ -33,18 +33,11 @@ export type SupplierOrderInput = {
   /** YYYY-MM-DD the supplier should deliver. */
   expectedOn?: string
   reference?: string
-  lines: Array<{
-    productId: string
-    boxes: number
-    /** Cost typed in the order in cents, before the fixed discount and promotion. */
-    grossCostCents: number
-  }>
+  /** Boxes only: price, discount and promotion come from the catalog product. */
+  lines: Array<{ productId: string; boxes: number }>
 }
 
 const tooBig = () => new AppError('invalid', 'El pedido es demasiado grande.')
-
-const isAmount = (value: number) =>
-  isWholeNumber(value) && value >= 0 && fitsInt4(value)
 
 function validate(input: SupplierOrderInput) {
   if (input.expectedOn && !isIsoDate(input.expectedOn)) {
@@ -67,22 +60,16 @@ function validate(input: SupplierOrderInput) {
         'Cada producto solo puede aparecer una vez en el pedido.',
       )
     }
-    if (!isAmount(line.grossCostCents)) {
-      throw new AppError(
-        'invalid',
-        'El costo antes de descuentos debe ser un entero en centavos, de cero o más.',
-      )
-    }
     seen.add(line.productId)
   }
 }
 
 /**
- * Queues an order with status Pedido: no lots, no movements. Each line carries
- * the typed gross cost (before discounts); the product's fixed discount and
- * promotion are copied into the line, so later catalog changes never alter the
- * order. The lot cost is the net line cost: gross − pieces × (discount +
- * promotion), rounded half up to cents once.
+ * Queues an order with status Pedido: no lots, no movements. A line is only
+ * boxes: the product's list price, fixed discount and promotion per piece are
+ * copied into it, so later catalog changes never alter the order. The gross
+ * cost is pieces × list price and the lot cost the net line cost: gross −
+ * pieces × (discount + promotion), each rounded half up to cents once.
  */
 export async function createSupplierOrder(
   actor: Actor,
@@ -110,8 +97,10 @@ export async function createSupplierOrder(
       }
       const quantity = line.boxes * product.factor
       if (!fitsInt4(quantity)) throw tooBig()
+      const grossCostCents = grossLineCents(quantity, product.listPricePerPiece)
+      if (!fitsInt4(grossCostCents)) throw tooBig()
       const totalCostCents = netLineCents(
-        line.grossCostCents,
+        grossCostCents,
         quantity,
         product.fixedDiscountPerPiece,
         product.promotionPerPiece,
@@ -119,7 +108,7 @@ export async function createSupplierOrder(
       if (totalCostCents < 0) {
         throw new AppError(
           'invalid',
-          'El descuento y la promoción no pueden superar el costo antes de descuentos.',
+          'El descuento y la promoción no pueden superar el precio por pieza.',
         )
       }
       return {
@@ -127,7 +116,8 @@ export async function createSupplierOrder(
         quantity,
         totalCostCents,
         boxFactor: product.factor,
-        grossCostCents: line.grossCostCents,
+        listPricePerPiece: product.listPricePerPiece,
+        grossCostCents,
         fixedDiscountPerPiece: product.fixedDiscountPerPiece,
         promotionPerPiece: product.promotionPerPiece,
       }

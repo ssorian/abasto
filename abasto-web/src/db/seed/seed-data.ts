@@ -64,6 +64,8 @@ export type SeedProduct = {
   /** The supplier's own code (Lala SKU, Alpura Oracle key). */
   supplierCode: string
   /** Supplier amounts per piece, in ten-thousandths of a peso. */
+  /** Supplier list price per piece, ten-thousandths of a peso. */
+  listPricePerPiece: number
   fixedDiscountPerPiece: number
   promotionPerPiece: number
   /** Sale presentation (default), e.g. "Caja" with `boxFactor` piezas. */
@@ -112,6 +114,7 @@ function lalaProduct(row: LalaRow): SeedProduct {
     supplier: 'lala',
     imageUrl: productImages[row.sku],
     supplierCode: row.sku,
+    listPricePerPiece: tenThousandths(row.pieceCost),
     fixedDiscountPerPiece: 0,
     promotionPerPiece: 0,
     boxName: box > 1 ? 'Caja' : 'Pieza',
@@ -146,6 +149,7 @@ function alpuraProduct(row: AlpuraRow): SeedProduct {
     supplier: 'alpura',
     imageUrl: productImages[row.id],
     supplierCode: row.oracle,
+    listPricePerPiece: tenThousandths(row.listPrice),
     fixedDiscountPerPiece: tenThousandths(row.fixedDiscount),
     promotionPerPiece: tenThousandths(row.promotion),
     boxName: box > 1 ? 'Caja' : 'Pieza',

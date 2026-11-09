@@ -86,27 +86,22 @@ describe('supplier order input shapes', () => {
       supplierId: 's1',
       warehouseId: 'w1',
       expectedOn: '2026-11-10',
-      lines: [{ productId: 'p1', boxes: 3, grossCostCents: 12055 }],
+      lines: [{ productId: 'p1', boxes: 3 }],
     }
     expect(parseInput(supplierOrderInput, valid)).toEqual(valid)
     expect(
       fails(supplierOrderInput, {
         ...valid,
-        lines: [{ productId: 'p1', boxes: 1.5, grossCostCents: 1 }],
+        lines: [{ productId: 'p1', boxes: 1.5 }],
       }),
     ).toBe(true)
+    // A typed cost is not part of the shape: it never reaches the service.
     expect(
-      fails(supplierOrderInput, {
+      parseInput(supplierOrderInput, {
         ...valid,
-        lines: [{ productId: 'p1', boxes: 1 }],
+        lines: [{ productId: 'p1', boxes: 1, grossCostCents: 12055 }],
       }),
-    ).toBe(true)
-    expect(
-      fails(supplierOrderInput, {
-        ...valid,
-        lines: [{ productId: 'p1', boxes: 1, grossCostCents: '1.2' }],
-      }),
-    ).toBe(true)
+    ).toEqual({ ...valid, lines: [{ productId: 'p1', boxes: 1 }] })
     expect(fails(supplierOrderInput, { ...valid, supplierId: '' })).toBe(true)
   })
 

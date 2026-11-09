@@ -28,7 +28,11 @@ const boxedProduct = (
   name: string,
   factor: number,
   supplierId: string,
-  terms: { fixedDiscountPerPiece?: number; promotionPerPiece?: number } = {},
+  terms: {
+    listPricePerPiece?: number
+    fixedDiscountPerPiece?: number
+    promotionPerPiece?: number
+  } = {},
 ) => ({
   name,
   sku,
@@ -44,28 +48,19 @@ const boxedProduct = (
   defaultIndex: 1,
 })
 
-/** Gross cost of one box typed in the order, by product SKU (cents, before discounts). */
-export const grossPerBoxBySku: Record<string, number> = {
-  'ALP-1': 1440,
-  'ALP-2': 2016,
-  'ALP-3': 0,
-  'COL-1': 2400,
-}
-
-/** An order line for a fixture product, at its usual gross cost per box unless overridden. */
-export const lineFor = (
-  product: { id: string; sku: string },
-  boxes: number,
-  grossCostCents = grossPerBoxBySku[product.sku] * boxes,
-) => ({ productId: product.id, boxes, grossCostCents })
+/** An order line for a fixture product: boxes only, the cost comes from the catalog. */
+export const lineFor = (product: { id: string }, boxes: number) => ({
+  productId: product.id,
+  boxes,
+})
 
 /**
  * Inventory fixture plus products sold by boxes:
- * - milk (Alpura, box of 12; discount 0.0500 and promotion 0.0300 on the product): ordered at 14.40 a box
+ * - milk (Alpura, box of 12; list price 1.2000 a piece, discount 0.0500 and promotion 0.0300): 14.40 a box
  *   before discounts, net 13.44 a box (96 cents of discount); standard price 2000 in A.
- * - soda (Alpura, box of 24): ordered at 20.16 a box, no discounts; standard price 1500 in A (below cost).
- * - free (Alpura, box of 6): ordered at 0.
- * - cola (Coca-Cola, box of 24): another supplier's product.
+ * - soda (Alpura, box of 24): list 0.8400 a piece, 20.16 a box, no discounts; standard price 1500 in A (below cost).
+ * - free (Alpura, box of 6): list price zero.
+ * - cola (Coca-Cola, box of 24): list 1.0000 a piece, another supplier's product.
  */
 export async function setupSupplierOrders() {
   const fx = await setupInventory()
@@ -73,13 +68,16 @@ export async function setupSupplierOrders() {
   const milk = await createProduct(
     fx.owner,
     boxedProduct('ALP-1', 'Leche Alpura 1L', 12, fx.supplier.id, {
+      listPricePerPiece: 12000,
       fixedDiscountPerPiece: 500,
       promotionPerPiece: 300,
     }),
   )
   const soda = await createProduct(
     fx.owner,
-    boxedProduct('ALP-2', 'Refresco Alpura', 24, fx.supplier.id),
+    boxedProduct('ALP-2', 'Refresco Alpura', 24, fx.supplier.id, {
+      listPricePerPiece: 8400,
+    }),
   )
   const free = await createProduct(
     fx.owner,
@@ -87,7 +85,9 @@ export async function setupSupplierOrders() {
   )
   const cola = await createProduct(
     fx.owner,
-    boxedProduct('COL-1', 'Cola 600ml', 24, cocaCola.id),
+    boxedProduct('COL-1', 'Cola 600ml', 24, cocaCola.id, {
+      listPricePerPiece: 10000,
+    }),
   )
   await setPrices(fx.owner, {
     warehouseId: fx.a.id,
