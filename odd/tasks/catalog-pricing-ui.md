@@ -16,8 +16,9 @@ Parent assumption: "Osea si" answered the open question with the sketched option
 
 ## Tasks
 
-- T1 [S1,S2,S3,S5,S6] worker A — Prices dialog with cost section, card layout and buttons, catalog page wiring, order row reuse. Status: in_progress.
-- T2 [S1,S4,S6] worker B — Edit dialog identity-only with embedded presentations, edit patch without cost amounts. Status: in_progress.
+- T1 [S1,S2,S3,S5,S6] worker A — Prices dialog with cost section, card layout and buttons, catalog page wiring, order row reuse. Status: done. Commit: 84c8bfe (RED missing product-costs module; GREEN pricing/lib 28/28, full 891/891; cost visible to owner only).
+- T2 [S1,S4,S6] worker B — Edit dialog identity-only with embedded presentations, edit patch without cost amounts. Status: done. Commit: 779fced (RED 3 fail; GREEN product-draft 12/12, catalog 78/78; tabs Datos del producto / Presentaciones y códigos via optional onSubmitPresentations prop; full suite pending T1, 37 DB failures likely from concurrent workers on the shared test DB).
+- T4 [S2,S3] worker — Fix stale card/dialog after a Prices save. Status: in_progress.
 - T3 [S6] parent — Playwright check on :3000. Status: pending.
 
 ## Log
@@ -25,3 +26,5 @@ Parent assumption: "Osea si" answered the open question with the sketched option
 - L1 (user, screenshots of "Editar producto" and the catalog card): "Necesito que pulas la ui y donde va cada cosa ... ocupo un solo boton de editar y un boton de precios, en el boton de precios viene el precio de venta unitario y por caja y el costo unitario al igual que el descuento y promocion. Como quedaria?"
 - L2 (parent proposal): card [Precios] [Editar]; Edit = identity + status + presentations + supplier code; Prices = cost (global) on top, sale price per warehouse below with margin and below-cost warning; order pencil opens Prices.
 - L3 (user): "Osea si, pero en la tarjeta de catalogo no metas costo neto por caja solo deja costo de pieza y dejalo arribita de los precios."
+- L4 (Playwright on :3000, T3 partial): card shows only Precios/Editar, "Costo por pieza $7.69" above prices, description clamped; Prices dialog shows cost (7.9500/0.0169/0.2452 → $7.6879/pz, $184.51/caja) and Amatepec sale rows with margins; box 150 → "Está por debajo del costo neto ($184.51). Puedes guardarlo."; discount 9 → "El descuento y la promoción no pueden superar el precio por pieza."; Edit shows tabs "Datos del producto" / "Presentaciones y códigos" without cost fields. Bug: after saving in Precios the DB persists but the card and a reopened dialog lag one save behind (save 0.3000 → card $7.69; restore 0.2452 → card $7.63, dialog prefilled 0.3000); full reload shows the right value (promo 0.2452 restored). → T4.
+- L5 (T4 first attempt 1c24273): Cache-Control no-store on loader GETs; browser re-check: header present, bug persists (card lags one save; reopened dialog prefills the stale value so "Guardar precios" compares against it). Direct SQL read confirms each save persists immediately; full reload shows the right value. Second worker on root cause of the client refresh. Vaquitas promotion restored to 2452 (SQL-verified).
