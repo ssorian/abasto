@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   initialReception,
-  missingBoxes,
+  goodBoxes,
   receptionInputFromDraft,
   receptionIssues,
   receptionSummary,
@@ -18,34 +18,33 @@ const lines: Array<ReceptionLine> = [
 
 const draft = (patch: Partial<ReceptionDraft> = {}): ReceptionDraft => ({
   lines: {
-    l1: { good: '10', damaged: '0', lotCode: '', expiresOn: '' },
-    l2: { good: '4', damaged: '0', lotCode: '', expiresOn: '' },
+    l1: { missing: '0', damaged: '0', expiresOn: '' },
+    l2: { missing: '0', damaged: '0', expiresOn: '' },
   },
   replacements: {},
   ...patch,
 })
 
-describe('missingBoxes', () => {
-  test('is ordered − good − damaged', () => {
-    expect(missingBoxes(10, '7', '2')).toBe(1)
-    expect(missingBoxes(10, '', '')).toBe(10)
+describe('goodBoxes', () => {
+  test('is ordered − missing − damaged', () => {
+    expect(goodBoxes(10, '1', '2')).toBe(7)
+    expect(goodBoxes(10, '', '')).toBe(10)
   })
 
   test('never goes negative', () => {
-    expect(missingBoxes(10, '8', '5')).toBe(0)
+    expect(goodBoxes(10, '8', '5')).toBe(0)
   })
 
-  test('treats invalid text as zero received', () => {
-    expect(missingBoxes(10, 'x', '2')).toBe(8)
+  test('treats invalid text as no exception', () => {
+    expect(goodBoxes(10, 'x', '2')).toBe(8)
   })
 })
 
 describe('initialReception', () => {
-  test('starts with everything good and nothing damaged', () => {
+  test('starts with everything good: no exceptions and no lot to type', () => {
     expect(initialReception(lines).lines.l1).toEqual({
-      good: '10',
+      missing: '0',
       damaged: '0',
-      lotCode: '',
       expiresOn: '',
     })
   })
@@ -56,13 +55,13 @@ describe('receptionIssues', () => {
     expect(receptionIssues(lines, draft(), {})).toEqual({})
   })
 
-  test('rejects good + damaged above the ordered boxes', () => {
+  test('rejects missing + damaged above the ordered boxes', () => {
     const issues = receptionIssues(
       lines,
       draft({
         lines: {
           ...draft().lines,
-          l1: { good: '8', damaged: '3', lotCode: '', expiresOn: '' },
+          l1: { missing: '8', damaged: '3', expiresOn: '' },
         },
       }),
       {},
@@ -77,7 +76,7 @@ describe('receptionIssues', () => {
       draft({
         lines: {
           ...draft().lines,
-          l2: { good: '-1', damaged: '0', lotCode: '', expiresOn: '' },
+          l2: { missing: '-1', damaged: '0', expiresOn: '' },
         },
       }),
       {},
@@ -89,11 +88,11 @@ describe('receptionIssues', () => {
     const issues = receptionIssues(
       lines,
       draft({
-        replacements: { milk: { boxes: '3', lotCode: '', expiresOn: '' } },
+        replacements: { m1: { boxes: '3', expiresOn: '' } },
       }),
-      { milk: 2 },
+      { m1: 2 },
     )
-    expect(issues.milk).toContain('debe')
+    expect(issues.m1).toContain('debe')
   })
 })
 
@@ -103,8 +102,8 @@ describe('receptionSummary', () => {
       lines,
       draft({
         lines: {
-          l1: { good: '7', damaged: '2', lotCode: '', expiresOn: '' },
-          l2: { good: '4', damaged: '0', lotCode: '', expiresOn: '' },
+          l1: { missing: '1', damaged: '2', expiresOn: '' },
+          l2: { missing: '0', damaged: '0', expiresOn: '' },
         },
       }),
     )
@@ -113,7 +112,7 @@ describe('receptionSummary', () => {
 })
 
 describe('receptionInputFromDraft', () => {
-  test('builds one entry per line with trimmed lot codes', () => {
+  test('builds one entry per line with the exceptions and no lot code', () => {
     const parsed = receptionInputFromDraft(
       'po1',
       lines,
@@ -121,12 +120,7 @@ describe('receptionInputFromDraft', () => {
         ...draft(),
         lines: {
           ...draft().lines,
-          l1: {
-            good: '9',
-            damaged: '1',
-            lotCode: ' A1 ',
-            expiresOn: '2027-01-01',
-          },
+          l1: { missing: '0', damaged: '1', expiresOn: '2027-01-01' },
         },
       },
       {},
@@ -138,12 +132,11 @@ describe('receptionInputFromDraft', () => {
         lines: [
           {
             lineId: 'l1',
-            goodBoxes: 9,
+            missingBoxes: 0,
             damagedBoxes: 1,
-            lotCode: 'A1',
             expiresOn: '2027-01-01',
           },
-          { lineId: 'l2', goodBoxes: 4, damagedBoxes: 0 },
+          { lineId: 'l2', missingBoxes: 0, damagedBoxes: 0 },
         ],
       },
     })
@@ -155,15 +148,15 @@ describe('receptionInputFromDraft', () => {
       lines,
       draft({
         replacements: {
-          milk: { boxes: '2', lotCode: 'R1', expiresOn: '' },
-          yog: { boxes: '', lotCode: '', expiresOn: '' },
-          other: { boxes: '0', lotCode: '', expiresOn: '' },
+          m1: { boxes: '2', expiresOn: '2027-02-01' },
+          y1: { boxes: '', expiresOn: '' },
+          o1: { boxes: '0', expiresOn: '' },
         },
       }),
-      { milk: 3, yog: 1, other: 1 },
+      { m1: 3, y1: 1, o1: 1 },
     )
     expect(parsed.ok && parsed.value.replacements).toEqual([
-      { productId: 'milk', boxes: 2, lotCode: 'R1' },
+      { pendingId: 'm1', boxes: 2, expiresOn: '2027-02-01' },
     ])
   })
 
@@ -179,7 +172,7 @@ describe('receptionInputFromDraft', () => {
       draft({
         lines: {
           ...draft().lines,
-          l1: { good: '10', damaged: '1', lotCode: '', expiresOn: '' },
+          l1: { missing: '10', damaged: '1', expiresOn: '' },
         },
       }),
       {},
@@ -192,9 +185,9 @@ describe('receptionInputFromDraft', () => {
       'po1',
       lines,
       draft({
-        replacements: { milk: { boxes: '5', lotCode: '', expiresOn: '' } },
+        replacements: { m1: { boxes: '5', expiresOn: '' } },
       }),
-      { milk: 2 },
+      { m1: 2 },
     )
     expect(parsed.ok).toBe(false)
   })

@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import {
   divideHalfUp,
-  fifoValueCents,
   lineShareCents,
-  owedBoxesOf,
-  unitsOfBoxes,
+  openOf,
+  settleBoxes,
+  valueUpTo,
 } from '#/modules/inventory/lib/pending-value'
+import { orderCode } from '#/modules/inventory/lib/order-code'
 
 describe('divideHalfUp', () => {
   test('rounds halves up', () => {
@@ -23,54 +24,56 @@ describe('lineShareCents', () => {
   })
 })
 
-describe('fifoValueCents', () => {
-  const entries = [
-    { quantity: 12, valueCents: 1200 },
-    { quantity: 12, valueCents: 2400 },
-  ]
-  test('takes the oldest units at their own cost', () => {
-    expect(fifoValueCents(entries, 0, 6)).toBe(600)
-    expect(fifoValueCents(entries, 6, 12)).toBe(600 + 1200)
-  })
-  test('settling everything adds up to the owed total', () => {
-    const odd = [{ quantity: 3, valueCents: 100 }]
-    const parts = [1, 1, 1].reduce(
-      (sum, units) => ({
-        total: sum.total + fifoValueCents(odd, sum.settled, units),
-        settled: sum.settled + units,
-      }),
-      { total: 0, settled: 0 },
-    )
-    expect(parts.total).toBe(100)
-  })
-  test('is zero when nothing is taken', () => {
-    expect(fifoValueCents(entries, 0, 0)).toBe(0)
+describe('valueUpTo', () => {
+  test('the whole value at the end, a half-up share before', () => {
+    expect(valueUpTo(3, 100, 0)).toBe(0)
+    expect(valueUpTo(3, 100, 1)).toBe(33)
+    expect(valueUpTo(3, 100, 2)).toBe(67)
+    expect(valueUpTo(3, 100, 3)).toBe(100)
   })
 })
 
-describe('boxes of mixed factors', () => {
-  // 3 boxes of 12 owed first, then 2 boxes of 24.
-  const entries = [
-    { quantity: 36, valueCents: 100, boxFactor: 12 },
-    { quantity: 48, valueCents: 200, boxFactor: 24 },
-  ]
+describe('settling boxes of an origin entry', () => {
+  const entry = {
+    quantity: 36,
+    valueCents: 100,
+    settledUnits: 0,
+    settledValueCents: 0,
+    boxFactor: 12,
+  }
 
-  test('counts each entry with its own box factor', () => {
-    expect(owedBoxesOf(entries, 0)).toBe(5)
-    expect(owedBoxesOf(entries, 12)).toBe(4)
-    expect(owedBoxesOf(entries, 36)).toBe(2)
-    expect(owedBoxesOf(entries, 84)).toBe(0)
+  test('counts open units and boxes', () => {
+    expect(openOf(entry)).toEqual({ units: 36, boxes: 3 })
+    expect(openOf({ ...entry, settledUnits: 12 })).toEqual({
+      units: 24,
+      boxes: 2,
+    })
   })
 
-  test('turns boxes into units oldest first', () => {
-    expect(unitsOfBoxes(entries, 0, 2)).toBe(24)
-    expect(unitsOfBoxes(entries, 0, 4)).toBe(36 + 24)
-    expect(unitsOfBoxes(entries, 24, 2)).toBe(12 + 24)
-    expect(unitsOfBoxes(entries, 0, 5)).toBe(84)
+  test('settling in pieces adds up to the exact value', () => {
+    let settledUnits = 0
+    let settledValueCents = 0
+    for (let i = 0; i < 3; i++) {
+      const next = settleBoxes(
+        { ...entry, settledUnits, settledValueCents },
+        1,
+      )!
+      settledUnits += next.units
+      settledValueCents += next.valueCents
+    }
+    expect([settledUnits, settledValueCents]).toEqual([36, 100])
   })
 
-  test('refuses more boxes than are owed', () => {
-    expect(unitsOfBoxes(entries, 0, 6)).toBeNull()
-    expect(unitsOfBoxes(entries, 84, 1)).toBeNull()
+  test('refuses more boxes than are open and keeps the factor of the entry', () => {
+    expect(settleBoxes(entry, 4)).toBeNull()
+    expect(settleBoxes(entry, 2)).toEqual({ units: 24, valueCents: 67 })
+  })
+})
+
+describe('orderCode', () => {
+  test('is the reference, else PED- plus the padded folio', () => {
+    expect(orderCode({ reference: ' F-12 ', folio: 3 })).toBe('F-12')
+    expect(orderCode({ reference: '', folio: 3 })).toBe('PED-0003')
+    expect(orderCode({ reference: '  ', folio: 12345 })).toBe('PED-12345')
   })
 })

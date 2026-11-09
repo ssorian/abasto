@@ -5,6 +5,9 @@ export const pendingTypeLabels: Record<PendingType, string> = {
   missing: 'Faltante',
   replaced: 'Repuesto',
   written_off: 'Descontado (a lo chino)',
+  discounted: 'Descontado en un pedido',
+  returned: 'Devuelto al proveedor',
+  reopened: 'Reabierto',
 }
 
 /** Order statuses in the filter of "Por recibir". */

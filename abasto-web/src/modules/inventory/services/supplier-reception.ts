@@ -9,7 +9,7 @@ import {
   purchases,
   supplierPendings,
 } from '#/modules/inventory/db/schema'
-import type { PendingType } from '#/modules/inventory/db/schema'
+import { orderCode } from '#/modules/inventory/lib/order-code'
 import { lineShareCents } from '#/modules/inventory/lib/pending-value'
 import { loadBoxProducts } from '#/modules/inventory/services/box-products'
 import {
@@ -19,28 +19,31 @@ import {
 } from '#/modules/inventory/services/reception-lots'
 import { orderNotFound } from '#/modules/inventory/services/supplier-order-reads'
 import {
+  loadSupplierBalances,
   lockSupplier,
-  settleOwed,
+  settleBalance,
 } from '#/modules/inventory/services/supplier-balance'
+import type { Balance } from '#/modules/inventory/services/supplier-balance'
 import { isIsoDate } from '#/modules/inventory/services/stock-ledger'
 import type { Lot } from '#/modules/inventory/services/stock-ledger'
 
 export type ReceptionLineInput = {
   lineId: string
-  goodBoxes: number
+  /** Whole boxes that never arrived: they become a "Por reponer" balance. */
+  missingBoxes: number
+  /** Whole boxes that arrived damaged or expired: a "Por devolver" balance, never stock. */
   damagedBoxes: number
-  lotCode?: string
   /** YYYY-MM-DD */
   expiresOn?: string
 }
 export type ReceptionInput = {
   purchaseId: string
+  /** Good boxes are derived: ordered − missing − damaged. */
   lines: Array<ReceptionLineInput>
-  /** Boxes the supplier sends to settle earlier pendings of the same supplier. */
+  /** Open "Por reponer" balances of the same supplier (other orders) that arrived with this delivery. */
   replacements?: Array<{
-    productId: string
+    pendingId: string
     boxes: number
-    lotCode?: string
     expiresOn?: string
   }>
 }
@@ -66,16 +69,16 @@ function validateLines(
     stored.map((line) => [line.id, line.quantity / line.boxFactor]),
   )
   for (const line of input.lines) {
-    if (!isCount(line.goodBoxes) || !isCount(line.damagedBoxes)) {
+    if (!isCount(line.missingBoxes) || !isCount(line.damagedBoxes)) {
       throw new AppError(
         'invalid',
-        'Las cajas recibidas deben ser enteros de cero o más.',
+        'Las cajas faltantes y dañadas deben ser enteros de cero o más.',
       )
     }
-    if (line.goodBoxes + line.damagedBoxes > ordered.get(line.lineId)!) {
+    if (line.missingBoxes + line.damagedBoxes > ordered.get(line.lineId)!) {
       throw new AppError(
         'invalid',
-        'Las cajas buenas y dañadas no pueden superar las cajas pedidas.',
+        'Las cajas faltantes y dañadas no pueden superar las cajas pedidas.',
       )
     }
     if (line.expiresOn && !isIsoDate(line.expiresOn)) {
@@ -93,23 +96,27 @@ function validateReplacements(input: ReceptionInput) {
         'Las cajas de reposición deben ser un número entero mayor que cero.',
       )
     }
-    if (seen.has(item.productId)) {
+    if (seen.has(item.pendingId)) {
       throw new AppError(
         'invalid',
-        'Cada producto solo puede aparecer una vez en la reposición.',
+        'Cada saldo solo puede aparecer una vez en la reposición.',
       )
     }
     if (item.expiresOn && !isIsoDate(item.expiresOn)) {
       throw new AppError('invalid', 'La fecha de caducidad no es válida.')
     }
-    seen.add(item.productId)
+    seen.add(item.pendingId)
   }
 }
 
 /**
- * Verifies a waiting order: one lot per line with good boxes, damaged and
- * missing boxes become supplier pendings, replacements settle earlier
- * pendings at their original cost. Stock changes only here, atomically; the
+ * Verifies a waiting order from its exceptions only: per line the missing and
+ * damaged boxes (the good ones are ordered − missing − damaged). Every lot of
+ * the order gets the order's code (its reference, else `PED-` + folio). Good
+ * boxes become one lot per line; missing boxes become a "Por reponer" balance
+ * and damaged ones a "Por devolver" balance, never stock. Replacements settle
+ * open "Por reponer" balances of the same supplier (other orders) and enter as
+ * lots at their original cost. Stock changes only here, atomically; the
  * purchase row is locked so an order cannot be received twice.
  */
 export async function receiveSupplierOrder(
@@ -140,28 +147,45 @@ export async function receiveSupplierOrder(
     validateReplacements(input)
     await expireOverdueOrders(tx, order.warehouseId)
 
+    const code = orderCode(order)
     const replacements = input.replacements ?? []
+    // Replacements settle balances of earlier orders of this supplier only.
+    let balances: Array<Balance> = []
+    if (replacements.length) {
+      await lockSupplier(tx, order.supplierId)
+      balances = await loadSupplierBalances(
+        tx,
+        order.supplierId,
+        replacements.map((item) => item.pendingId),
+      )
+      for (const balance of balances) {
+        if (balance.kind !== 'restock') {
+          throw new AppError(
+            'invalid',
+            'Ese saldo no es un faltante por reponer.',
+          )
+        }
+      }
+    }
     const boxProducts = await loadBoxProducts(tx, [
       ...stored.map((line) => line.productId),
-      ...replacements.map((item) => item.productId),
+      ...balances.map((balance) => balance.productId),
     ])
     const prices = await standardBoxPrices(
       tx,
       order.warehouseId,
       boxProducts.values(),
     )
-    // Replacements first: they settle pendings from earlier orders only.
     const replacementLots: Array<Lot> = []
-    if (replacements.length) await lockSupplier(tx, order.supplierId)
-    for (const item of replacements) {
-      const { valueCents: costCents, units } = await settleOwed(
+    for (const [index, item] of replacements.entries()) {
+      const balance = balances[index]
+      const { valueCents: costCents, units } = await settleBalance(
         tx,
         {
-          supplierId: order.supplierId,
-          productId: item.productId,
-          purchaseId: order.id,
-          type: 'replaced',
+          balance,
           boxes: item.boxes,
+          type: 'replaced',
+          purchaseId: order.id,
           actorId: actor.userId,
         },
         () =>
@@ -172,16 +196,16 @@ export async function receiveSupplierOrder(
       )
       replacementLots.push(
         await receiveLot(tx, {
-          productId: item.productId,
+          productId: balance.productId,
           warehouseId: order.warehouseId,
           purchaseLineId: null,
           purchaseId: order.id,
-          code: item.lotCode?.trim() ?? '',
+          code,
           expiresOn: item.expiresOn || null,
           units,
           costCents,
           salePriceCents: lotSalePrice(
-            prices.get(item.productId),
+            prices.get(balance.productId),
             costCents,
             item.boxes,
           ),
@@ -194,16 +218,16 @@ export async function receiveSupplierOrder(
     const lots: Array<Lot> = []
     const owed: Array<{
       productId: string
-      type: PendingType
+      type: 'missing' | 'damaged'
       quantity: number
       valueCents: number
     }> = []
     for (const entry of input.lines) {
       const line = stored.find((item) => item.id === entry.lineId)!
-      const goodUnits = entry.goodBoxes * line.boxFactor
+      const missingUnits = entry.missingBoxes * line.boxFactor
       const damagedUnits = entry.damagedBoxes * line.boxFactor
-      const missingUnits = line.quantity - goodUnits - damagedUnits
-      const code = entry.lotCode?.trim() ?? ''
+      const goodUnits = line.quantity - missingUnits - damagedUnits
+      const goodBoxes = goodUnits / line.boxFactor
       const expiresOn = entry.expiresOn || null
       await tx
         .update(purchaseLines)
@@ -233,7 +257,7 @@ export async function receiveSupplierOrder(
             salePriceCents: lotSalePrice(
               prices.get(line.productId),
               costCents,
-              entry.goodBoxes,
+              goodBoxes,
             ),
             reason: 'Compra',
             actorId: actor.userId,

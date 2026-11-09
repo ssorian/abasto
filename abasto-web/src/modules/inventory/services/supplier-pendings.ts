@@ -1,33 +1,45 @@
-import { and, asc, desc, eq, gt, sql } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import type { Actor } from '#/modules/access/lib/policy'
-import { products, suppliers } from '#/modules/catalog/db/schema'
-import { purchaseLines, supplierPendings } from '#/modules/inventory/db/schema'
-import type { PendingType } from '#/modules/inventory/db/schema'
-import {
-  owedBoxesOf,
-  remainingEntries,
-} from '#/modules/inventory/lib/pending-value'
+import { supplierPendings } from '#/modules/inventory/db/schema'
+import type {
+  PendingKind,
+  PendingType,
+  ReturnResolution,
+} from '#/modules/inventory/db/schema'
+import { openOf, settleBoxes } from '#/modules/inventory/lib/pending-value'
 import {
   authorizeSupplierBalance,
+  balanceNotFound,
+  loadBalances,
   lockSupplier,
-  settleOwed,
+  settleBalance,
 } from '#/modules/inventory/services/supplier-balance'
-import { requireProduct } from '#/modules/inventory/services/stock-ledger'
+import type { Balance } from '#/modules/inventory/services/supplier-balance'
 
-export type OwedPending = {
+/** An open "Por reponer" (kind restock) or "Por devolver" (kind return) balance. */
+export type PendingBalance = {
+  /** Id of the origin ledger entry: what replacements, discounts, write-offs and returns refer to. */
+  pendingId: string
+  kind: PendingKind
   supplierId: string
   supplierName: string
   productId: string
   productName: string
   sku: string
-  /** Pieces per box of the order lines that owe it (the oldest owed one). */
+  /** Order that caused it and its lot code (reference or `PED-0001`). */
+  purchaseId: string | null
+  originCode: string
+  /** Pieces per box of the order line that owes it. */
   boxFactor: number
-  /** Base units the supplier owes; always positive here. */
+  /** Boxes it started with. */
+  originalBoxes: number
+  /** Base units still open; always positive here. */
   owedQuantity: number
   owedBoxes: number
   owedValueCents: number
+  createdAt: Date
 }
 
 export type PendingEntry = {
@@ -35,117 +47,113 @@ export type PendingEntry = {
   supplierId: string
   productId: string
   purchaseId: string | null
+  settlesId: string | null
   type: PendingType
   quantity: number
   valueCents: number
+  resolution: ReturnResolution | null
+  creditCents: number | null
   actorId: string
   createdAt: Date
 }
 
-/** What each supplier owes per product, plus the ledger entries behind it (newest first). */
+function toPendingBalance(balance: Balance): PendingBalance {
+  const open = openOf(balance)
+  return {
+    pendingId: balance.id,
+    kind: balance.kind,
+    supplierId: balance.supplierId,
+    supplierName: balance.supplierName,
+    productId: balance.productId,
+    productName: balance.productName,
+    sku: balance.sku,
+    purchaseId: balance.purchaseId,
+    originCode: balance.originCode,
+    boxFactor: balance.boxFactor,
+    originalBoxes: Math.floor(balance.quantity / balance.boxFactor),
+    owedQuantity: open.units,
+    owedBoxes: open.boxes,
+    owedValueCents: balance.valueCents - balance.settledValueCents,
+    createdAt: balance.createdAt,
+  }
+}
+
+/**
+ * Open balances of a supplier (all suppliers without `supplierId`), split into
+ * "Por reponer" (`restock`: boxes that never arrived) and "Por devolver"
+ * (`returns`: boxes that arrived unsellable), oldest first, plus the ledger
+ * entries behind them (newest first). Balances of fully settled entries are
+ * not listed.
+ */
 export async function listSupplierPendings(
   actor: Actor,
   supplierId?: string,
-): Promise<{ owed: Array<OwedPending>; history: Array<PendingEntry> }> {
+): Promise<{
+  restock: Array<PendingBalance>
+  returns: Array<PendingBalance>
+  history: Array<PendingEntry>
+}> {
   authorizeSupplierBalance(actor)
-  const scope = supplierId
-    ? eq(supplierPendings.supplierId, supplierId)
-    : undefined
-  const owed = await db
-    .select({
-      supplierId: supplierPendings.supplierId,
-      supplierName: suppliers.name,
-      productId: supplierPendings.productId,
-      productName: products.name,
-      sku: products.sku,
-      owedQuantity: sql<number>`sum(${supplierPendings.quantity})::int`,
-      owedValueCents: sql<number>`sum(${supplierPendings.valueCents})::int`,
-    })
-    .from(supplierPendings)
-    .innerJoin(suppliers, eq(suppliers.id, supplierPendings.supplierId))
-    .innerJoin(products, eq(products.id, supplierPendings.productId))
-    .where(scope)
-    .groupBy(
-      supplierPendings.supplierId,
-      suppliers.name,
-      supplierPendings.productId,
-      products.name,
-      products.sku,
-    )
-    .having(sql`sum(${supplierPendings.quantity}) > 0`)
-    .orderBy(suppliers.name, products.name, products.sku)
-  // Boxes count with the factor of the order line that owes them, not the
-  // product's current default presentation.
-  const entries = await db
-    .select({
-      supplierId: supplierPendings.supplierId,
-      productId: supplierPendings.productId,
-      quantity: supplierPendings.quantity,
-      valueCents: supplierPendings.valueCents,
-      boxFactor: sql<number>`coalesce(${purchaseLines.boxFactor}, 1)::int`,
-    })
-    .from(supplierPendings)
-    .leftJoin(
-      purchaseLines,
-      and(
-        eq(purchaseLines.purchaseId, supplierPendings.purchaseId),
-        eq(purchaseLines.productId, supplierPendings.productId),
-      ),
-    )
-    .where(and(scope, gt(supplierPendings.quantity, 0)))
-    .orderBy(asc(supplierPendings.createdAt), asc(supplierPendings.id))
+  const open = (await loadBalances(db, { supplierId }))
+    .filter((balance) => openOf(balance).units > 0)
+    .map(toPendingBalance)
   const history = await db
     .select()
     .from(supplierPendings)
-    .where(scope)
+    .where(supplierId ? eq(supplierPendings.supplierId, supplierId) : undefined)
     .orderBy(desc(supplierPendings.createdAt), desc(supplierPendings.id))
   return {
-    owed: owed.map((row) => {
-      const own = entries.filter(
-        (entry) =>
-          entry.supplierId === row.supplierId &&
-          entry.productId === row.productId,
-      )
-      const settledUnits =
-        own.reduce((sum, entry) => sum + entry.quantity, 0) - row.owedQuantity
-      return {
-        ...row,
-        boxFactor: remainingEntries(own, settledUnits)[0]?.boxFactor ?? 1,
-        owedBoxes: owedBoxesOf(own, settledUnits),
-      }
-    }),
+    restock: open.filter((row) => row.kind === 'restock'),
+    returns: open.filter((row) => row.kind === 'return'),
     history,
   }
 }
 
-const badBoxes = () =>
+/** Finds the origin entry, then locks its supplier and reads it again under the lock. */
+async function lockedBalance(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  pendingId: string,
+) {
+  const first = (await loadBalances(tx, { ids: [pendingId] })).at(0)
+  if (!first) throw balanceNotFound()
+  await lockSupplier(tx, first.supplierId)
+  return (await loadBalances(tx, { ids: [pendingId] }))[0]
+}
+
+const badBoxes = (verb: string) =>
   new AppError(
     'invalid',
-    'Las cajas a cancelar deben ser un número entero mayor que cero.',
+    `Las cajas a ${verb} deben ser un número entero mayor que cero.`,
   )
 
 /**
- * "A lo chino": the supplier no longer owes these boxes and the value is
- * discounted from what we pay. Only the owner or a warehouse manager
- * (supplier balances are not tied to one warehouse).
+ * "A lo chino": the supplier no longer owes these missing boxes and the value
+ * is discounted from what we pay. Only for "Por reponer" balances. Only the
+ * owner or a warehouse manager (supplier balances are not tied to one warehouse).
  */
 export async function writeOffPendings(
   actor: Actor,
-  input: { supplierId: string; productId: string; boxes: number },
+  input: { pendingId: string; boxes: number },
 ): Promise<{ valueCents: number }> {
   authorizeSupplierBalance(actor)
-  if (!Number.isSafeInteger(input.boxes) || input.boxes <= 0) throw badBoxes()
+  if (!Number.isSafeInteger(input.boxes) || input.boxes <= 0) {
+    throw badBoxes('cancelar')
+  }
   return db.transaction(async (tx) => {
-    await lockSupplier(tx, input.supplierId)
-    await requireProduct(tx, input.productId)
-    const { valueCents } = await settleOwed(
+    const balance = await lockedBalance(tx, input.pendingId)
+    if (balance.kind !== 'restock') {
+      throw new AppError(
+        'invalid',
+        'Solo se pueden cancelar faltantes por reponer.',
+      )
+    }
+    const { valueCents } = await settleBalance(
       tx,
       {
-        supplierId: input.supplierId,
-        productId: input.productId,
-        purchaseId: null,
-        type: 'written_off',
+        balance,
         boxes: input.boxes,
+        type: 'written_off',
+        purchaseId: null,
         actorId: actor.userId,
       },
       () =>
@@ -155,5 +163,72 @@ export async function writeOffPendings(
         ),
     )
     return { valueCents }
+  })
+}
+
+/**
+ * Closes boxes of a "Por devolver" balance because the supplier took them
+ * back, either replacing them or crediting an amount (a discount; by default
+ * the original value of the boxes). Nothing enters stock here.
+ */
+export async function returnPendings(
+  actor: Actor,
+  input: {
+    pendingId: string
+    boxes: number
+    resolution: ReturnResolution
+    /** Discount only: the amount the supplier credited, in cents. */
+    creditCents?: number
+  },
+): Promise<{ valueCents: number; creditCents: number | null }> {
+  authorizeSupplierBalance(actor)
+  if (!Number.isSafeInteger(input.boxes) || input.boxes <= 0) {
+    throw badBoxes('devolver')
+  }
+  if (input.resolution !== 'discount' && input.creditCents !== undefined) {
+    throw new AppError('invalid', 'Solo un descuento lleva monto.')
+  }
+  if (
+    input.creditCents !== undefined &&
+    (!Number.isSafeInteger(input.creditCents) || input.creditCents < 0)
+  ) {
+    throw new AppError(
+      'invalid',
+      'El monto del descuento debe ser un entero de cero o más.',
+    )
+  }
+  return db.transaction(async (tx) => {
+    const balance = await lockedBalance(tx, input.pendingId)
+    if (balance.kind !== 'return') {
+      throw new AppError(
+        'invalid',
+        'Solo se pueden devolver cajas dañadas o caducadas.',
+      )
+    }
+    const tooMany = () =>
+      new AppError(
+        'invalid',
+        'Las cajas a devolver superan el saldo del proveedor.',
+      )
+    const preview = settleBoxes(balance, input.boxes)
+    if (!preview) throw tooMany()
+    const creditCents =
+      input.resolution === 'discount'
+        ? (input.creditCents ?? preview.valueCents)
+        : null
+    const { valueCents } = await settleBalance(
+      tx,
+      {
+        balance,
+        boxes: input.boxes,
+        type: 'returned',
+        purchaseId: null,
+        actorId: actor.userId,
+        resolution: input.resolution,
+        creditCents,
+      },
+      tooMany,
+    )
+    return { valueCents, creditCents }
   })
 }

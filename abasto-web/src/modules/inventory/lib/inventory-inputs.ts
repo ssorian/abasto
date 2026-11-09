@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import { purchaseStatuses } from '#/modules/inventory/db/schema'
+import {
+  purchaseStatuses,
+  returnResolutions,
+} from '#/modules/inventory/db/schema'
 import { lossCategoryValues } from '#/modules/inventory/lib/loss-categories'
 
 const id = z.string().min(1)
@@ -48,6 +51,8 @@ export const supplierOrderInput = z.object({
       boxes: whole,
     }),
   ),
+  /** Open "Por reponer" balances of the supplier closed "a lo chino" by this order. */
+  discounts: z.array(z.object({ pendingId: id })).optional(),
 })
 
 export const orderIdInput = z.object({ purchaseId: id })
@@ -62,18 +67,16 @@ export const receiveOrderInput = z.object({
   lines: z.array(
     z.object({
       lineId: id,
-      goodBoxes: whole,
+      missingBoxes: whole,
       damagedBoxes: whole,
-      lotCode: z.string().optional(),
       expiresOn: z.string().optional(),
     }),
   ),
   replacements: z
     .array(
       z.object({
-        productId: id,
+        pendingId: id,
         boxes: whole,
-        lotCode: z.string().optional(),
         expiresOn: z.string().optional(),
       }),
     )
@@ -83,7 +86,13 @@ export const receiveOrderInput = z.object({
 export const pendingsInput = z.object({ supplierId: id.optional() })
 
 export const writeOffInput = z.object({
-  supplierId: id,
-  productId: id,
+  pendingId: id,
   boxes: whole,
+})
+
+export const returnInput = z.object({
+  pendingId: id,
+  boxes: whole,
+  resolution: z.enum(returnResolutions),
+  creditCents: whole.optional(),
 })
