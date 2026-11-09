@@ -14,7 +14,7 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 
 ## Tasks
 
-- T1 [S1-S6 server] worker — Schema/migration, services and server functions: reception input (missing, damaged, expiry), automatic lot code, split balances, replacement reception, order discounts with cancel reopen. Status: in_progress.
+- T1 [S1-S6 server] worker — Schema/migration, services and server functions: reception input (missing, damaged, expiry), automatic lot code, split balances, replacement reception, order discounts with cancel reopen. Status: done. Commit: ef8296c (worker stalled twice on network/timeout; parent finished: fixed orders/supplier-lots.test.ts to the new input; migration test 5/5; full suite 929/929 after restarting the stopped docker DBs; UI tsc errors left to T2).
 - T2 [S1-S5 UI, S6] worker — Reception dialog, Saldos sections, new order discount list and totals. Status: pending.
 - T3 [S6] verify + parent Playwright. Status: pending.
 
@@ -27,3 +27,4 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - L5 (parent, accepted): consolidated design; parent assumption that L3 confirmed the two inputs and damaged as return.
 - L6 (user): "Implementalo asi"
 - L7 (user): "que si sea en supabase, ahi esta la db dev" → migration 0027 is applied to the Supabase dev DB (.env.local) once tests pass; worker reports before/after counts.
+- L8 (parent, migration 0027 on Supabase dev DB): before 27 migrations, pendings: damaged 1 row, 24 pieces, 34200 cents; after 28 migrations, identical (damaged 1 / 24 / 34200); purchases 13 with folio 13, discount_cents total 0. Nothing lost, no balance status changed.
