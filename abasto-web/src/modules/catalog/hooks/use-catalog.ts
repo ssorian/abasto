@@ -34,10 +34,12 @@ const messageOf = (failure: unknown) =>
 export function useCatalogActions() {
   const router = useRouter()
 
+  // `sync: true` makes the invalidate wait for the reloaded loader data; the
+  // default revalidates in the background and resolves with the old data.
   async function run(action: () => Promise<Result<unknown>>, success: string) {
     try {
       unwrap(await action())
-      await router.invalidate()
+      await router.invalidate({ sync: true })
       toast.success(success)
       return true
     } catch (failure) {
@@ -70,7 +72,7 @@ export function useCatalogActions() {
     ): Promise<string | null> => {
       try {
         unwrap(await updateProductFn({ data: { id: productId, patch } }))
-        await router.invalidate()
+        await router.invalidate({ sync: true })
         toast.success('Costo por pieza guardado.')
         return null
       } catch (failure) {
@@ -117,7 +119,7 @@ export function useCatalogActions() {
           toast.error(`${row.sku}: ${messageOf(failure)}`)
         }
       }
-      await router.invalidate()
+      await router.invalidate({ sync: true })
       if (created)
         toast.success(`Importación CSV: ${created} productos nuevos.`)
     },

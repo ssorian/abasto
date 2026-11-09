@@ -24,7 +24,7 @@ export function usePricingActions(warehouseId: string | null) {
   ): Promise<Outcome> {
     try {
       const data = unwrap(await action())
-      await router.invalidate()
+      await router.invalidate({ sync: true })
       toast.success(success(data))
       return { ok: true }
     } catch (failure) {
