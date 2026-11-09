@@ -16,7 +16,7 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 
 - T1 [S1-S6] explore — Map current cost model. Status: done (L4).
 - T2 [S1,S2,S3 server,S5,S6] worker — Backend: product list price per piece (schema, migration with backfill, validation, product form), order lines from boxes only with snapshot. Status: done (e9e27b6; RED 59 failing → GREEN 874 pass / 0 fail).
-- T3 [S3,S4,S6] worker — UI: order table boxes-only, price dialog with persistence. Status: pending.
+- T3 [S3,S4,S6] worker — UI: order table boxes-only, price dialog with persistence. Status: done (8f431bc; RED 1 failing file → GREEN 879 pass / 0 fail).
 
 ## Log
 
@@ -35,3 +35,4 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - L6 (T2 worker): commit e9e27b6. Covered S1, S2, S3 (server), S5, S6. RED: 59 failing in catalog/inventory/dashboard tests before implementation; GREEN: full `bun test` 874 pass, 0 fail; `eslint src`, prettier and `bun run build` clean. Migration 0026_piece_list_price applied with `bun run db:migrate` to the database in abasto-web/.env.local (remote, not the local docker `abasto` db): 27 migrations, 73 products (32 with list price), 52 lines (all with list price).
 - L7 (T2 decisions): the order rejects net < 0 (legacy products with discounts and zero list) with "El descuento y la promoción no pueden superar el precio por pieza."; a derived gross above int4 gives "El pedido es demasiado grande."; `listPricePerPieceOf` replaced by `grossLineCents(quantity, listPrice)`. Order UI minimally adapted for T3: draft/table lose the cost input (`rowOf(product, boxesText)`, `OrderProduct.listPricePerPiece`).
 - L8 (parent design for T3): the order row's pencil button opens a focused "Costo por pieza" dialog (price per piece, fixed discount, promotion — 4 decimals, same parse/validation messages as the product form, ABOVE_LIST_PRICE_MESSAGE) instead of the full product dialog; saving calls the existing product update with only those three fields, refreshes catalog data, and the row recalculates. Draft logic lives in a pure lib with tests. Shown only when canEditProducts.
+- L9 (T3 worker): commit 8f431bc. Covered S3, S4, S6. New `PieceCostDialog` (inventory/forms) replaces ProductFormDialog in the order; pure `piece-cost-draft.ts` (draft/errors/patch, reusing `supplierCostErrors`, now typed on the three cost fields) with 5 tests, RED = module missing, GREEN = 5 pass. `savePieceCost` in `useCatalogActions` returns the server error message (shown inside the dialog, no toast) or null, then invalidates the router so rows recalculate; boxes live in the order draft so they survive. Full `bun test` 879 pass / 0 fail; eslint 0 errors; prettier, tsc, build clean. No browser check done.
