@@ -24,7 +24,7 @@ export function usePricingActions(warehouseId: string | null) {
   ): Promise<Outcome> {
     try {
       const data = unwrap(await action())
-      await router.invalidate()
+      await router.invalidate({ sync: true })
       toast.success(success(data))
       return { ok: true }
     } catch (failure) {
@@ -32,24 +32,17 @@ export function usePricingActions(warehouseId: string | null) {
     }
   }
 
-  const withToast = async (outcome: Promise<Outcome>) => {
-    const result = await outcome
-    if (!result.ok) toast.error(result.message)
-    return result.ok
-  }
-
   return {
-    savePrices: (
+    /** Resolves to the server message when it failed (shown inline by the dialog), or null. */
+    savePrices: async (
       prices: Array<{ presentationId: string; priceCents: number }>,
-    ) =>
-      withToast(
-        run(
-          () =>
-            setPricesFn({ data: { warehouseId: warehouseId ?? '', prices } }),
-          () =>
-            prices.length === 1 ? 'Precio guardado.' : 'Precios guardados.',
-        ),
-      ),
+    ): Promise<string | null> => {
+      const result = await run(
+        () => setPricesFn({ data: { warehouseId: warehouseId ?? '', prices } }),
+        () => (prices.length === 1 ? 'Precio guardado.' : 'Precios guardados.'),
+      )
+      return result.ok ? null : result.message
+    },
     bulkChange: (input: BulkChangeInput) =>
       run(
         () => bulkChangePricesFn({ data: input }),

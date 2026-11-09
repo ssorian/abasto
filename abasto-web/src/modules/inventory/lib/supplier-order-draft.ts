@@ -1,5 +1,7 @@
 import {
   grossLineCents,
+  netCostPerBoxCents,
+  netCostPerPiece,
   netLineCents,
   netPerBoxOfLineCents,
 } from '#/lib/utils/supplier-cost'
@@ -35,6 +37,8 @@ export type OrderDraft = {
 
 export const PRICE_BELOW_COST_MESSAGE =
   'El costo por caja supera el precio estándar. Actualiza el precio estándar del producto en el catálogo.'
+export const NO_STANDARD_PRICE_MESSAGE = 'Sin precio estándar en este almacén'
+export const NO_LIST_PRICE_MESSAGE = 'Sin precio por pieza'
 export const NET_ABOVE_LIST_PRICE_MESSAGE =
   'El descuento y la promoción no pueden superar el precio por pieza.'
 
@@ -78,18 +82,58 @@ export function rowOf(product: OrderProduct, boxesText: string | undefined) {
   }
 }
 
+/** Standard box price of a product in the receiving warehouse. */
+export type StandardPrice =
+  | { state: 'loading' }
+  | { state: 'missing' }
+  | { state: 'known'; priceCents: number }
+
+/** `prices` is undefined while they load; after that a product without an entry has none. */
+export function standardPriceOf(
+  prices: Readonly<Partial<Record<string, number>>> | undefined,
+  productId: string,
+): StandardPrice {
+  if (!prices) return { state: 'loading' }
+  const priceCents = prices[productId]
+  return priceCents === undefined
+    ? { state: 'missing' }
+    : { state: 'known', priceCents }
+}
+
+/** Net cost per piece (ten-thousandths) and per box (cents) from the catalog, whatever the boxes typed. */
+export function unitCostOf(product: OrderProduct) {
+  const netPerPiece = Math.max(
+    netCostPerPiece(
+      product.listPricePerPiece,
+      product.fixedDiscountPerPiece,
+      product.promotionPerPiece,
+    ),
+    0,
+  )
+  return {
+    netPerPiece,
+    netPerBoxCents: netCostPerBoxCents(netPerPiece, boxFactorOf(product)),
+  }
+}
+
 /**
- * Non-blocking warnings of a row; `standardCents` is the box price in the
- * warehouse. Only rows being ordered warn.
+ * Non-blocking warnings of a row. A missing list price warns on every row; the
+ * standard price checks only apply to rows being ordered and stay quiet while
+ * the standard prices load.
  */
 export function rowWarnings(
-  row: { boxes: number; netPerBoxCents: number },
-  standardCents: number | undefined,
+  row: { boxes: number; netPerBoxCents: number; listPrice: number },
+  standard: StandardPrice,
 ): Array<string> {
-  if (row.boxes <= 0) return []
-  return standardCents === undefined || row.netPerBoxCents > standardCents
-    ? [PRICE_BELOW_COST_MESSAGE]
-    : []
+  const warnings: Array<string> = []
+  if (row.listPrice <= 0) warnings.push(NO_LIST_PRICE_MESSAGE)
+  if (row.boxes <= 0 || standard.state === 'loading') return warnings
+  if (standard.state === 'missing') {
+    warnings.push(NO_STANDARD_PRICE_MESSAGE)
+  } else if (row.netPerBoxCents > standard.priceCents) {
+    warnings.push(PRICE_BELOW_COST_MESSAGE)
+  }
+  return warnings
 }
 
 /** Products of one supplier matching the search by name or SKU. */

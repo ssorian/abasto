@@ -7,7 +7,6 @@ import { CatalogButton } from '#/modules/catalog/components/catalog-button'
 import { CatalogCard } from '#/modules/catalog/components/catalog-card'
 import { CatalogEmpty } from '#/modules/catalog/components/catalog-empty'
 import { CatalogToolbar } from '#/modules/catalog/components/catalog-toolbar'
-import { PresentationsDialog } from '#/modules/catalog/forms/presentations-dialog'
 import { ProductFormDialog } from '#/modules/catalog/forms/product-form-dialog'
 import { SuppliersDialog } from '#/modules/catalog/forms/suppliers-dialog'
 import { useCatalogActions } from '#/modules/catalog/hooks/use-catalog'
@@ -16,6 +15,7 @@ import {
   filterCatalog,
   publicationCounts,
 } from '#/modules/catalog/lib/catalog-search'
+import { netCostPerPieceOf } from '#/modules/pricing/lib/product-costs'
 import { CardPrices } from '#/modules/pricing/components/card-prices'
 import { PriceHistorySheet } from '#/modules/pricing/components/price-history-sheet'
 import { WarehouseSelect } from '#/modules/pricing/components/warehouse-select'
@@ -68,7 +68,6 @@ export function CatalogPage({
   const [query, setQuery] = useState('')
   const [supplierId, setSupplierId] = useState('')
   const [editor, setEditor] = useState<Editor>()
-  const [presentationsId, setPresentationsId] = useState<string>()
   const [suppliersOpen, setSuppliersOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [pricesId, setPricesId] = useState<string>()
@@ -76,7 +75,6 @@ export function CatalogPage({
   const [bulkOpen, setBulkOpen] = useState(false)
 
   const editing = products.find(({ id }) => id === editor?.productId)
-  const presenting = products.find(({ id }) => id === presentationsId)
   const visible = filterCatalog(products, query, supplierId)
   const { published, paused } = publicationCounts(products)
   const supplierNames = new Map(suppliers.map(({ id, name }) => [id, name]))
@@ -94,6 +92,7 @@ export function CatalogPage({
     .filter(Boolean)
     .sort()
   const openPrices = pricesId ? priceGroups.get(pricesId) : undefined
+  const openProduct = products.find(({ id }) => id === pricesId)
 
   return (
     <>
@@ -176,26 +175,31 @@ export function CatalogPage({
                 <CardPrices
                   group={priceGroups.get(product.id)}
                   warehouseName={warehouse.name}
-                  canEdit={warehouse.canManage}
-                  onOpen={() => setPricesId(product.id)}
+                  netCostPerPiece={
+                    canManage ? netCostPerPieceOf(product) : undefined
+                  }
                 />
               ) : undefined
             }
-            onPresentations={() => setPresentationsId(product.id)}
-            onEdit={() => setEditor({ productId: product.id })}
-            onTogglePublished={() =>
-              void actions.setPublished(product.id, !product.published)
+            onPrices={
+              warehouse && priceGroups.get(product.id)?.rows.length
+                ? () => setPricesId(product.id)
+                : undefined
             }
+            onEdit={() => setEditor({ productId: product.id })}
           />
         ))}
       </div>
       {visible.length === 0 && <CatalogEmpty />}
-      {warehouse && openPrices && (
+      {warehouse && openPrices && openProduct && (
         <ProductPricesDialog
           key={`${warehouse.id}:${openPrices.productId}`}
+          product={openProduct}
           group={openPrices}
           warehouseName={warehouse.name}
           canEdit={warehouse.canManage}
+          canEditCost={canManage}
+          onSaveCost={(patch) => actions.savePieceCost(openProduct.id, patch)}
           onSavePrices={pricingActions.savePrices}
           onHistory={(row) => {
             setPricesId(undefined)
@@ -232,17 +236,13 @@ export function CatalogPage({
           product={editing}
           suppliers={suppliers}
           onSubmit={(draft) => actions.saveProduct(editor.productId, draft)}
-          onClose={() => setEditor(undefined)}
-        />
-      )}
-      {canManage && presenting && (
-        <PresentationsDialog
-          key={presenting.id}
-          product={presenting}
-          onSubmit={(rows, defaultKey) =>
-            actions.savePresentations(presenting.id, rows, defaultKey)
+          onSubmitPresentations={
+            editing
+              ? (rows, defaultKey) =>
+                  actions.savePresentations(editing.id, rows, defaultKey)
+              : undefined
           }
-          onClose={() => setPresentationsId(undefined)}
+          onClose={() => setEditor(undefined)}
         />
       )}
       {canManage && suppliersOpen && (

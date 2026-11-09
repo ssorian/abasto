@@ -9,6 +9,8 @@ export const overviewInput = z.object({ warehouseId: id.optional() })
 
 export const standardPricesInput = z.object({ warehouseId: id })
 
+export const warehouseStockInput = z.object({ warehouseId: id })
+
 export const minimumInput = z.object({
   productId: id,
   warehouseId: id,

@@ -15,7 +15,7 @@ export type PieceCostDraft = Pick<
 >
 
 /** The three supplier amounts of a product, in ten-thousandths of a peso. */
-type PieceCostAmounts = {
+export type PieceCostAmounts = {
   listPricePerPiece: number
   fixedDiscountPerPiece: number
   promotionPerPiece: number

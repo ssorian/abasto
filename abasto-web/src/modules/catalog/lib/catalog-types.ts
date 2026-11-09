@@ -26,7 +26,11 @@ export type ProductDraft = {
   published: boolean
   /** The supplier's own code for the product. */
   supplierCode: string
-  /** Pesos per piece as typed, up to 4 decimals; blank means zero. */
+  /**
+   * Cost amounts as typed (pesos per piece, up to 4 decimals; blank means
+   * zero). The product form no longer edits them; they feed the shared
+   * cost validation used by the Prices dialog.
+   */
   listPrice: string
   fixedDiscount: string
   promotion: string

@@ -69,10 +69,26 @@ describe('product draft ↔ service input', () => {
       supplierId: 's1',
       published: false,
       supplierCode: 'ORA-77',
-      listPricePerPiece: 12055,
-      fixedDiscountPerPiece: 1000,
-      promotionPerPiece: 500,
     })
+  })
+
+  test('saving an edit never carries cost amounts, so Prices stays the source', () => {
+    const patch = productPatchFromDraft(draftFromProduct(stored))
+    expect(patch).not.toHaveProperty('listPricePerPiece')
+    expect(patch).not.toHaveProperty('fixedDiscountPerPiece')
+    expect(patch).not.toHaveProperty('promotionPerPiece')
+  })
+
+  test('a new product leaves cost amounts to the server defaults', () => {
+    const input = productInputFromDraft({
+      ...emptyProductDraft(),
+      name: 'Leche',
+      sku: 'X',
+      listPrice: '2.5',
+    })
+    expect(input).not.toHaveProperty('listPricePerPiece')
+    expect(input).not.toHaveProperty('fixedDiscountPerPiece')
+    expect(input).not.toHaveProperty('promotionPerPiece')
   })
 
   test('a product without photo edits as an empty field; blank saves as none', () => {
@@ -101,30 +117,12 @@ describe('product draft ↔ service input', () => {
     ).toBeNull()
   })
 
-  test('supplier terms show as 4-decimal pesos and save as ten-thousandths', () => {
+  test('the supplier code loads into the draft and saves with the edit', () => {
     const draft = draftFromProduct(stored)
-    expect(draft).toMatchObject({
-      supplierCode: 'ORA-77',
-      listPrice: '1.2055',
-      fixedDiscount: '0.1000',
-      promotion: '0.0500',
-    })
-    const input = productInputFromDraft({
-      ...draft,
-      supplierCode: 'X1',
-      listPrice: '2.5',
-      fixedDiscount: '',
-      promotion: '0.01',
-    })
-    expect(input).toMatchObject({
-      supplierCode: 'X1',
-      listPricePerPiece: 25000,
-      fixedDiscountPerPiece: 0,
-      promotionPerPiece: 100,
-    })
-    expect(productPatchFromDraft(draft)).toMatchObject({
-      listPricePerPiece: 12055,
-    })
+    expect(draft.supplierCode).toBe('ORA-77')
+    expect(
+      productPatchFromDraft({ ...draft, supplierCode: ' X1 ' }).supplierCode,
+    ).toBe(' X1 ')
   })
 
   test('a new draft has no supplier terms', () => {

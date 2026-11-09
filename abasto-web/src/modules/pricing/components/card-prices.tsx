@@ -1,6 +1,4 @@
-import { TagIcon } from 'lucide-react'
-
-import { CatalogButton } from '#/modules/catalog/components/catalog-button'
+import { formatPieceCost } from '#/modules/pricing/lib/product-costs'
 import { formatCents } from '#/modules/pricing/lib/money'
 import type { ProductGroup } from '#/modules/pricing/lib/price-table'
 
@@ -8,20 +6,26 @@ type CardPricesProps = {
   /** Undefined when the product has no presentations in the price list. */
   group: ProductGroup | undefined
   warehouseName: string
-  /** Manager of this warehouse or owner; everyone else only reads. */
-  canEdit: boolean
-  onOpen: () => void
+  /** Net cost per piece in ten-thousandths; omitted for anyone who may not see costs. */
+  netCostPerPiece?: number
 }
 
 /** Current price of each presentation of one product in the selected warehouse. */
 export function CardPrices({
   group,
   warehouseName,
-  canEdit,
-  onOpen,
+  netCostPerPiece,
 }: CardPricesProps) {
   return (
     <div className="mb-3 border-b border-[#f4f1ed] pb-[15px] text-xs text-[#a29096] md:text-sm">
+      {netCostPerPiece !== undefined && (
+        <p className="mb-3 flex items-baseline justify-between gap-2">
+          <span>Costo por pieza</span>
+          <strong className="font-semibold text-[#513f45]">
+            {formatPieceCost(netCostPerPiece)}
+          </strong>
+        </p>
+      )}
       <span>Precio estándar en {warehouseName}</span>
       {group?.rows.length ? (
         <ul className="mt-[7px] space-y-1">
@@ -54,12 +58,6 @@ export function CardPrices({
         <p className="mt-2 text-[11px] leading-snug text-[#ae9fa4]">
           Es una referencia: cada lote puede venderse más caro al darle entrada.
         </p>
-      ) : null}
-      {group?.rows.length ? (
-        <CatalogButton className="mt-3 w-full" onClick={onOpen}>
-          <TagIcon className="size-4" />
-          {canEdit ? 'Cambiar precios' : 'Ver precios'}
-        </CatalogButton>
       ) : null}
     </div>
   )

@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { setResponseHeader } from '@tanstack/react-start/server'
 import { parseInput } from '#/lib/boundary'
 import { runWithActor } from '#/lib/server-actor'
 import { can } from '#/modules/access/lib/policy'
@@ -19,8 +20,10 @@ import { listWarehouses } from '#/modules/warehouses/services/warehouses'
 /** Warehouses the actor sees, flagged with whether they may change prices there. */
 export const pricingOverviewFn = createServerFn({ method: 'GET' })
   .validator((data: { warehouseId?: string }) => data)
-  .handler(({ data }) =>
-    runWithActor(async (actor) => {
+  .handler(({ data }) => {
+    // Stable URL per warehouse: never let the browser replay a pre-save read.
+    setResponseHeader('Cache-Control', 'no-store')
+    return runWithActor(async (actor) => {
       const { warehouseId } = parseInput(pricingOverviewInput, data)
       const visible = await listWarehouses(actor)
       const warehouses = visible.map((warehouse) => ({
@@ -31,8 +34,8 @@ export const pricingOverviewFn = createServerFn({ method: 'GET' })
         warehouses.find(({ id }) => id === warehouseId) ?? warehouses.at(0)
       const rows = selected ? await listWarehousePrices(actor, selected.id) : []
       return { warehouses, selectedId: selected?.id ?? null, rows }
-    }),
-  )
+    })
+  })
 
 export const setPricesFn = createServerFn({ method: 'POST' })
   .validator((data: unknown) => data)
@@ -50,8 +53,9 @@ export const bulkChangePricesFn = createServerFn({ method: 'POST' })
 
 export const priceHistoryFn = createServerFn({ method: 'GET' })
   .validator((data: unknown) => data)
-  .handler(({ data }) =>
-    runWithActor((actor) =>
+  .handler(({ data }) => {
+    setResponseHeader('Cache-Control', 'no-store')
+    return runWithActor((actor) =>
       getPriceHistory(actor, parseInput(historyInput, data)),
-    ),
-  )
+    )
+  })

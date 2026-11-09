@@ -9,6 +9,7 @@ import {
   minimumInput,
   overviewInput,
   standardPricesInput,
+  warehouseStockInput,
 } from '#/modules/inventory/lib/inventory-inputs'
 import { withProducts } from '#/modules/inventory/server/movement-products'
 import {
@@ -59,6 +60,21 @@ export const inventoryOverviewFn = createServerFn({ method: 'GET' })
         stock,
         movements: await withProducts(movements),
       }
+    }),
+  )
+
+/** Stock and minimums of every product in one warehouse (the order table's Existencia column). */
+export const warehouseStockFn = createServerFn({ method: 'POST' })
+  .validator((data: unknown) => data)
+  .handler(({ data }) =>
+    runWithActor(async (actor) => {
+      const { warehouseId } = parseInput(warehouseStockInput, data)
+      const stock = await getWarehouseStock(actor, warehouseId)
+      return stock.map(({ productId, available, minimum }) => ({
+        productId,
+        available,
+        minimum,
+      }))
     }),
   )
 

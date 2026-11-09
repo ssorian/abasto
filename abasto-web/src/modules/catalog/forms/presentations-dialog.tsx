@@ -19,21 +19,27 @@ import type {
   PresentationDraft,
 } from '#/modules/catalog/lib/catalog-types'
 
-type PresentationsDialogProps = {
+export type SavePresentations = (
+  rows: Array<PresentationDraft>,
+  defaultKey: string,
+) => Promise<boolean>
+
+type PresentationsEditorProps = {
   product: CatalogProduct
-  /** Resolves to whether the save worked; the dialog closes only then. */
-  onSubmit: (
-    rows: Array<PresentationDraft>,
-    defaultKey: string,
-  ) => Promise<boolean>
-  onClose: () => void
+  /** Resolves to whether the save worked; `onSaved` runs only then. */
+  onSubmit: SavePresentations
+  onSaved: () => void
+  /** Columns of each row: the wide dialog fits four, the edit tab two. */
+  compact?: boolean
 }
 
-export function PresentationsDialog({
+/** Presentations and barcodes of an existing product, with its own save. */
+export function PresentationsEditor({
   product,
   onSubmit,
-  onClose,
-}: PresentationsDialogProps) {
+  onSaved,
+  compact = false,
+}: PresentationsEditorProps) {
   const [rows, setRows] = useState(() => draftsFromProduct(product))
   const [defaultKey, setDefaultKey] = useState(() => defaultKeyOf(product))
   const [saving, setSaving] = useState(false)
@@ -46,26 +52,28 @@ export function PresentationsDialog({
     setSaving(true)
     const saved = await onSubmit(rows, defaultKey)
     setSaving(false)
-    if (saved) onClose()
+    if (saved) onSaved()
   }
 
   return (
-    <CatalogModal
-      size="wide"
-      title={`Presentaciones · ${product.name}`}
-      description={`Inventario en ${product.unit}. Cada venta descuenta sus equivalencias del mismo lote.`}
-      onClose={onClose}
-    >
-      <p className="my-[15px] rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972]">
-        Los precios se capturan por almacén; aquí sólo se definen nombre,
-        equivalencia y código de cada presentación.
+    <div className="grid gap-[15px]">
+      <p className="rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972]">
+        Inventario en {product.unit}. Cada venta descuenta sus equivalencias del
+        mismo lote. Aquí sólo se definen nombre, equivalencia y código de cada
+        presentación; los precios se capturan por almacén en «Precios».
       </p>
       {rows.map((row) => (
         <div
           key={row.key}
-          className="rounded-[10px] border border-[#efe8e0] bg-white p-4 [&+&]:mt-2.5"
+          className="rounded-[10px] border border-[#efe8e0] bg-white p-4"
         >
-          <div className="grid grid-cols-1 gap-4 tablet:grid-cols-4 md:grid-cols-2">
+          <div
+            className={
+              compact
+                ? 'grid grid-cols-1 gap-4 sm:grid-cols-2'
+                : 'grid grid-cols-1 gap-4 tablet:grid-cols-4 md:grid-cols-2'
+            }
+          >
             <Field label="Nombre">
               <TextInput
                 value={row.name}
@@ -108,14 +116,16 @@ export function PresentationsDialog({
           </div>
         </div>
       ))}
-      <CatalogButton
-        onClick={() =>
-          setRows((current) => [...current, newPresentationDraft()])
-        }
-      >
-        <PlusIcon className="size-4" />
-        Agregar presentación
-      </CatalogButton>
+      <div>
+        <CatalogButton
+          onClick={() =>
+            setRows((current) => [...current, newPresentationDraft()])
+          }
+        >
+          <PlusIcon className="size-4" />
+          Agregar presentación
+        </CatalogButton>
+      </div>
       <Field label="Presentación predeterminada al vender">
         <SelectInput
           value={defaultKey}
@@ -130,17 +140,47 @@ export function PresentationsDialog({
             ))}
         </SelectInput>
       </Field>
-      <p className="mt-3 mb-5 text-xs leading-[1.8] text-[#a49197] md:text-sm">
+      <p className="text-xs leading-[1.8] text-[#a49197] md:text-sm">
         Las equivalencias existentes no se cambian: desactiva la presentación y
         crea otra para conservar el historial. Las presentaciones no se borran.
       </p>
-      <CatalogButton
-        tone="primary"
-        disabled={saving}
-        onClick={() => void save()}
-      >
-        {saving ? 'Guardando…' : 'Guardar presentaciones'}
-      </CatalogButton>
+      <div>
+        <CatalogButton
+          tone="primary"
+          disabled={saving}
+          onClick={() => void save()}
+        >
+          {saving ? 'Guardando…' : 'Guardar presentaciones'}
+        </CatalogButton>
+      </div>
+    </div>
+  )
+}
+
+type PresentationsDialogProps = {
+  product: CatalogProduct
+  onSubmit: SavePresentations
+  onClose: () => void
+}
+
+/** Standalone presentations dialog; the edit dialog embeds the editor instead. */
+export function PresentationsDialog({
+  product,
+  onSubmit,
+  onClose,
+}: PresentationsDialogProps) {
+  return (
+    <CatalogModal
+      size="wide"
+      title={`Presentaciones · ${product.name}`}
+      description={`Inventario en ${product.unit}. Cada venta descuenta sus equivalencias del mismo lote.`}
+      onClose={onClose}
+    >
+      <PresentationsEditor
+        product={product}
+        onSubmit={onSubmit}
+        onSaved={onClose}
+      />
     </CatalogModal>
   )
 }
