@@ -417,6 +417,37 @@ describe('discounts on a new order', () => {
     })
   })
 
+  test('cancelling reopens a discounted balance worth nothing', async () => {
+    const fx = await setupSupplierOrders()
+    const free = await createSupplierOrder(fx.owner, {
+      supplierId: fx.supplier.id,
+      warehouseId: fx.a.id,
+      lines: [lineFor(fx.free, 10)],
+    })
+    const freeOrder = await getSupplierOrder(fx.owner, free.id)
+    await receiveSupplierOrder(fx.owner, {
+      purchaseId: freeOrder.id,
+      lines: [
+        { lineId: freeOrder.lines[0].id, missingBoxes: 3, damagedBoxes: 0 },
+      ],
+    })
+    const restockFree = async () =>
+      (await view(fx)).restock.find((row) => row.productId === fx.free.id)
+    const balance = (await restockFree())!
+    expect(balance).toMatchObject({ owedBoxes: 3, owedValueCents: 0 })
+    const order = await orderMilk(fx, 5, {
+      discounts: [{ pendingId: balance.pendingId }],
+    })
+    expect(order.discountCents).toBe(0)
+    expect(await restockFree()).toBeUndefined()
+    await cancelSupplierOrder(fx.owner, order.id)
+    expect(await restockFree()).toMatchObject({
+      pendingId: balance.pendingId,
+      owedBoxes: 3,
+      owedValueCents: 0,
+    })
+  })
+
   test('cancelling the order reopens the balances and zeroes the discount', async () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 10, 3, 0)

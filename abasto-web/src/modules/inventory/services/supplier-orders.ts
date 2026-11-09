@@ -227,9 +227,9 @@ export async function cancelSupplierOrder(actor: Actor, purchaseId: string) {
         'Solo se puede cancelar un pedido pendiente de recibir.',
       )
     }
-    if (order.discountCents > 0) {
-      await lockSupplier(tx, order.supplierId)
-      await reopenDiscounts(tx, purchaseId, actor.userId)
-    }
+    // Discounted balances can be worth zero, so reopen by the ledger entries,
+    // not by the stored amount.
+    await lockSupplier(tx, order.supplierId)
+    await reopenDiscounts(tx, purchaseId, actor.userId)
   })
 }
