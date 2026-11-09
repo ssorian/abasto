@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
-import { db } from '#/db'
+import type { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import type { Actor } from '#/modules/access/lib/policy'
 import { products, suppliers } from '#/modules/catalog/db/schema'
