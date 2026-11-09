@@ -82,7 +82,11 @@ export function supplierCostErrors(
   return errors
 }
 
-/** Fields shared by creating and editing; the server trims and validates them. */
+/**
+ * Fields shared by creating and editing; the server trims and validates them.
+ * Cost amounts are left out on purpose: they are edited in the Prices dialog,
+ * so saving the product form can never overwrite them.
+ */
 const fieldsFromDraft = (draft: ProductDraft) => ({
   name: draft.name,
   sku: draft.sku,
@@ -93,9 +97,6 @@ const fieldsFromDraft = (draft: ProductDraft) => ({
   supplierId: draft.supplierId || null,
   published: draft.published,
   supplierCode: draft.supplierCode,
-  listPricePerPiece: amountOf(draft.listPrice),
-  fixedDiscountPerPiece: amountOf(draft.fixedDiscount),
-  promotionPerPiece: amountOf(draft.promotion),
 })
 
 /** New product: one active base-unit presentation (factor 1) that is the default. */
@@ -113,6 +114,6 @@ export const productInputFromDraft = (draft: ProductDraft): ProductInput => ({
   defaultIndex: 0,
 })
 
-/** Edit: identity fields only. Unit and presentations are fixed or edited elsewhere. */
+/** Edit: identity fields only. Unit is fixed; presentations are saved on their own. */
 export const productPatchFromDraft = (draft: ProductDraft): ProductPatch =>
   fieldsFromDraft(draft)
