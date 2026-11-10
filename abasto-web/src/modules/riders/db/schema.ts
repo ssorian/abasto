@@ -68,7 +68,7 @@ export const riderAssignments = pgTable(
     deliveredCents: integer('delivered_cents'),
     /** Delivered − expected: negative is a shortage, positive a surplus. */
     differenceCents: integer('difference_cents'),
-    /** The `sale` drawer movement of the settlement (none when nothing sold). */
+    /** The `sale` drawer movement with the cash handed in (none when nothing was handed in). */
     cashMovementId: uuid('cash_movement_id').references(() => cashMovements.id),
   },
   (table) => [

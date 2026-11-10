@@ -70,6 +70,7 @@ export const receiveOrderInput = z.object({
       missingBoxes: whole,
       damagedBoxes: whole,
       expiresOn: z.string().optional(),
+      noExpiry: z.boolean().optional(),
     }),
   ),
   replacements: z
@@ -78,6 +79,7 @@ export const receiveOrderInput = z.object({
         pendingId: id,
         boxes: whole,
         expiresOn: z.string().optional(),
+        noExpiry: z.boolean().optional(),
       }),
     )
     .optional(),

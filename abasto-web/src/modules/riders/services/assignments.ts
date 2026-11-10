@@ -413,11 +413,13 @@ export async function settleAssignment(
     if (!fitsInt4(expectedCents)) {
       throw new AppError('invalid', 'El total del reparto es demasiado grande.')
     }
+    // The drawer gets the cash actually handed in; any shortage or surplus
+    // stays on the assignment as its difference.
     const sale =
-      expectedCents > 0
+      input.deliveredCents > 0
         ? await postCashMovement(tx, session, {
             type: 'sale',
-            amountCents: expectedCents,
+            amountCents: input.deliveredCents,
             reason: 'Reparto liquidado',
             actorId: actor.userId,
           })

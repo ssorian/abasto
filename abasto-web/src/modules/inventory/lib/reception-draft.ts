@@ -15,12 +15,31 @@ export type ReceptionLineDraft = {
   missing: string
   damaged: string
   expiresOn: string
+  /** Checked when the good boxes carry no expiry date. */
+  noExpiry?: boolean
 }
 
 export type ReplacementDraft = {
   boxes: string
   expiresOn: string
+  /** Checked when the replaced boxes carry no expiry date. */
+  noExpiry?: boolean
 }
+
+/** Shown only after a confirmation attempt, so an untouched form is not all red. */
+export const missingExpiry = 'Indica la caducidad o marca «Sin caducidad».'
+
+/** Stock that enters must carry a date or an explicit "no expiry". */
+const declaresExpiry = (entry: { expiresOn: string; noExpiry?: boolean }) =>
+  Boolean(entry.expiresOn) || entry.noExpiry === true
+
+/** Server fields for the expiry: the date wins over the "no expiry" mark. */
+const expiryFields = (entry: { expiresOn: string; noExpiry?: boolean }) =>
+  entry.expiresOn
+    ? { expiresOn: entry.expiresOn }
+    : entry.noExpiry
+      ? { noExpiry: true }
+      : {}
 
 /** Reception form state; every field stays as typed text. */
 export type ReceptionDraft = {
@@ -37,6 +56,7 @@ const emptyLine = (): ReceptionLineDraft => ({
   missing: '0',
   damaged: '0',
   expiresOn: '',
+  noExpiry: false,
 })
 
 /** Starts from "everything arrived good"; the user types the exceptions. */
@@ -74,6 +94,11 @@ export function receptionIssues(
     else if (missing.value + damaged.value > line.orderedBoxes) {
       issues[line.lineId] =
         'Las faltantes y dañadas no pueden superar las cajas pedidas.'
+    } else if (
+      line.orderedBoxes - missing.value - damaged.value > 0 &&
+      !declaresExpiry(entry)
+    ) {
+      issues[line.lineId] = missingExpiry
     }
   }
   for (const [pendingId, item] of Object.entries(draft.replacements)) {
@@ -84,6 +109,8 @@ export function receptionIssues(
     else if (boxes.value > limit) {
       issues[pendingId] =
         `El proveedor debe ${limit} ${limit === 1 ? 'caja' : 'cajas'}.`
+    } else if (boxes.value > 0 && !declaresExpiry(item)) {
+      issues[pendingId] = missingExpiry
     }
   }
   return issues
@@ -124,7 +151,7 @@ export function receptionInputFromDraft(
       lineId: line.lineId,
       missingBoxes: count(entry.missing),
       damagedBoxes: count(entry.damaged),
-      ...(entry.expiresOn ? { expiresOn: entry.expiresOn } : {}),
+      ...expiryFields(entry),
     }
   })
   const replacements = Object.entries(draft.replacements).flatMap(
@@ -135,7 +162,7 @@ export function receptionInputFromDraft(
         {
           pendingId,
           boxes,
-          ...(item.expiresOn ? { expiresOn: item.expiresOn } : {}),
+          ...expiryFields(item),
         },
       ]
     },
@@ -159,7 +186,7 @@ export const replacementBoxes = (draft: ReceptionDraft) =>
 
 /**
  * "Recibido" on an owed balance: everything owed arrived. Marking it again
- * undoes it. Any expiry date already typed stays.
+ * undoes it. Any expiry date or "no expiry" mark already set stays.
  */
 export function toggleReceived(
   replacements: ReceptionDraft['replacements'],
@@ -171,6 +198,7 @@ export function toggleReceived(
   return {
     ...replacements,
     [pendingId]: {
+      ...current,
       expiresOn: current?.expiresOn ?? '',
       boxes: current?.boxes.trim() === all ? '' : all,
     },

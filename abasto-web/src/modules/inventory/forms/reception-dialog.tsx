@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { ActionButton } from '#/modules/inventory/components/action-button'
+import { ExpiryField } from '#/modules/inventory/components/expiry-field'
 import { FieldInput } from '#/modules/inventory/components/form-controls'
 import {
   FormError,
@@ -25,6 +26,7 @@ import {
   goodBoxes,
   initialReception,
   receptionInputFromDraft,
+  missingExpiry,
   receptionIssues,
   receptionSummary,
   receptionSummaryText,
@@ -66,6 +68,7 @@ export function ReceptionDialog({
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [done, setDone] = useState<string | null>(null)
+  const [attempted, setAttempted] = useState(false)
 
   useEffect(() => {
     let current = true
@@ -90,7 +93,13 @@ export function ReceptionDialog({
     [owedHere],
   )
   const lines = detail ? receptionLines(detail) : []
-  const issues = receptionIssues(lines, draft, owedBoxes)
+  const allIssues = receptionIssues(lines, draft, owedBoxes)
+  // A missing expiry is only flagged once the user tries to confirm.
+  const issues = Object.fromEntries(
+    Object.entries(allIssues).filter(
+      ([, issue]) => attempted || issue !== missingExpiry,
+    ),
+  )
   const summary = receptionSummary(lines, draft)
   const summaryText = receptionSummaryText({
     ...summary,
@@ -132,6 +141,7 @@ export function ReceptionDialog({
     }))
 
   async function submit() {
+    setAttempted(true)
     const parsed = receptionInputFromDraft(order.id, lines, draft, owedBoxes)
     if (!parsed.ok) return setError(parsed.message)
     setError(null)
@@ -162,7 +172,7 @@ export function ReceptionDialog({
     <InventoryDialog
       title="Recibir pedido"
       eyebrow={order.supplierName.toUpperCase()}
-      description={`Todo llega bien salvo lo que captures. Lote automático: ${order.code}. Las faltantes quedan «Por reponer» con el proveedor; las dañadas o caducadas quedan «Por devolver» y no entran al inventario.`}
+      description={`Todo llega bien salvo lo que captures. Lote automático: ${order.code}. Indica la caducidad de lo que entra o marca «Sin caducidad». Las faltantes quedan «Por reponer» con el proveedor; las dañadas o caducadas quedan «Por devolver» y no entran al inventario.`}
       size="wide"
       onClose={onClose}
     >
@@ -242,16 +252,13 @@ export function ReceptionDialog({
                         </strong>
                       </ListCell>
                       <ListCell>
-                        <FieldInput
-                          type="date"
-                          aria-label={`Caducidad de ${line.productName}`}
+                        <ExpiryField
+                          label={line.productName}
                           className={`${compact} w-[140px]`}
-                          value={entry?.expiresOn ?? ''}
-                          onChange={(event) =>
-                            patchLine(line.id, {
-                              expiresOn: event.target.value,
-                            })
-                          }
+                          expiresOn={entry?.expiresOn ?? ''}
+                          noExpiry={entry?.noExpiry ?? false}
+                          invalid={Boolean(issue)}
+                          onChange={(value) => patchLine(line.id, value)}
                         />
                       </ListCell>
                     </ListRow>
@@ -322,15 +329,14 @@ export function ReceptionDialog({
                             />
                           </ListCell>
                           <ListCell>
-                            <FieldInput
-                              type="date"
-                              aria-label={`Caducidad de reposición de ${row.productName} (${row.originCode})`}
+                            <ExpiryField
+                              label={`reposición de ${row.productName} (${row.originCode})`}
                               className={`${compact} w-[140px]`}
-                              value={entry?.expiresOn ?? ''}
-                              onChange={(event) =>
-                                patchReplacement(row.pendingId, {
-                                  expiresOn: event.target.value,
-                                })
+                              expiresOn={entry?.expiresOn ?? ''}
+                              noExpiry={entry?.noExpiry ?? false}
+                              invalid={Boolean(issue)}
+                              onChange={(value) =>
+                                patchReplacement(row.pendingId, value)
                               }
                             />
                           </ListCell>

@@ -79,7 +79,7 @@ export function SettleDialog({
   return (
     <InventoryDialog
       title={`Liquidar reparto de ${assignment.riderName}`}
-      description="Escribe lo que regresó de cada producto y el dinero que entregó. Lo que regresó vuelve al almacén; el resto se vende y entra a la caja."
+      description="Escribe lo que regresó de cada producto y el dinero que entregó. Lo que regresó vuelve al almacén y el resto se vende. A la caja entra el dinero entregado; la diferencia queda en el reparto."
       onClose={onClose}
       size="count"
     >

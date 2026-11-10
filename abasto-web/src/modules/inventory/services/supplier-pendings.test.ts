@@ -42,7 +42,12 @@ const unassigned = (actor: Actor): Actor => ({
   assignments: new Map(),
 })
 
-type Replacement = { pendingId: string; boxes: number }
+type Replacement = {
+  pendingId: string
+  boxes: number
+  expiresOn?: string
+  noExpiry?: boolean
+}
 
 /** Orders milk (no reference, so the folio is the code) and returns the stored order. */
 async function orderMilk(
@@ -86,6 +91,7 @@ async function receiveMilk(
         lineId: order.lines[0].id,
         missingBoxes: missing,
         damagedBoxes: damaged,
+        noExpiry: true,
       },
     ],
     replacements,
@@ -177,7 +183,7 @@ describe('replacements at reception', () => {
       4,
       0,
       0,
-      [{ pendingId: balance.pendingId, boxes: 2 }],
+      [{ pendingId: balance.pendingId, boxes: 2, noExpiry: true }],
       20000,
     )
     expect(result.lots[0]).toMatchObject({
@@ -239,7 +245,9 @@ describe('replacements at reception', () => {
     const balance = (await restockMilk(fx))!
     const total = balance.owedValueCents
     for (const boxes of [1, 1, 1]) {
-      await receiveMilk(fx, 1, 0, 0, [{ pendingId: balance.pendingId, boxes }])
+      await receiveMilk(fx, 1, 0, 0, [
+        { pendingId: balance.pendingId, boxes, noExpiry: true },
+      ])
     }
     const settled = await db
       .select()
@@ -265,50 +273,65 @@ describe('replacements at reception', () => {
     await receiveSupplierOrder(fx.owner, {
       purchaseId: colaOrder.id,
       lines: [
-        { lineId: colaStored.lines[0].id, missingBoxes: 2, damagedBoxes: 0 },
+        {
+          lineId: colaStored.lines[0].id,
+          missingBoxes: 2,
+          damagedBoxes: 0,
+          noExpiry: true,
+        },
       ],
     })
     const foreign = (await view(fx, fx.cocaCola.id)).restock[0]
     const order = await orderMilk(fx, 1)
     const lines = [
-      { lineId: order.lines[0].id, missingBoxes: 0, damagedBoxes: 0 },
+      {
+        lineId: order.lines[0].id,
+        missingBoxes: 0,
+        damagedBoxes: 0,
+        noExpiry: true,
+      },
     ]
     const cases: Array<[Array<Replacement>, AppErrorCode, string]> = [
       [
-        [{ pendingId: balance.pendingId, boxes: 4 }],
+        [{ pendingId: balance.pendingId, boxes: 4, noExpiry: true }],
         'invalid',
         'Las cajas de reposición superan el saldo del proveedor.',
       ],
       [
-        [{ pendingId: balance.pendingId, boxes: 0 }],
+        [{ pendingId: balance.pendingId, boxes: 0, noExpiry: true }],
         'invalid',
         'Las cajas de reposición deben ser un número entero mayor que cero.',
       ],
       [
-        [{ pendingId: balance.pendingId, boxes: 1.5 }],
+        [{ pendingId: balance.pendingId, boxes: 1.5, noExpiry: true }],
         'invalid',
         'Las cajas de reposición deben ser un número entero mayor que cero.',
+      ],
+      [
+        [{ pendingId: balance.pendingId, boxes: 1 }],
+        'invalid',
+        'Indica la caducidad de cada producto que entra o marca «Sin caducidad».',
       ],
       [
         [
-          { pendingId: balance.pendingId, boxes: 1 },
-          { pendingId: balance.pendingId, boxes: 1 },
+          { pendingId: balance.pendingId, boxes: 1, noExpiry: true },
+          { pendingId: balance.pendingId, boxes: 1, noExpiry: true },
         ],
         'invalid',
         'Cada saldo solo puede aparecer una vez en la reposición.',
       ],
       [
-        [{ pendingId: crypto.randomUUID(), boxes: 1 }],
+        [{ pendingId: crypto.randomUUID(), boxes: 1, noExpiry: true }],
         'not_found',
         'No encontramos ese saldo.',
       ],
       [
-        [{ pendingId: foreign.pendingId, boxes: 1 }],
+        [{ pendingId: foreign.pendingId, boxes: 1, noExpiry: true }],
         'invalid',
         'Ese saldo no pertenece a este proveedor.',
       ],
       [
-        [{ pendingId: damaged.pendingId, boxes: 1 }],
+        [{ pendingId: damaged.pendingId, boxes: 1, noExpiry: true }],
         'invalid',
         'Ese saldo no es un faltante por reponer.',
       ],
@@ -331,16 +354,26 @@ describe('replacements at reception', () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 10, 3, 0)
     const balance = (await restockMilk(fx))!
-    await writeOffPendings(fx.owner, { pendingId: balance.pendingId, boxes: 3 })
+    await writeOffPendings(fx.owner, {
+      pendingId: balance.pendingId,
+      boxes: 3,
+    })
     const order = await orderMilk(fx, 1)
     const before = await supplierState()
     const error = await errorOf(() =>
       receiveSupplierOrder(fx.owner, {
         purchaseId: order.id,
         lines: [
-          { lineId: order.lines[0].id, missingBoxes: 0, damagedBoxes: 0 },
+          {
+            lineId: order.lines[0].id,
+            missingBoxes: 0,
+            damagedBoxes: 0,
+            noExpiry: true,
+          },
         ],
-        replacements: [{ pendingId: balance.pendingId, boxes: 1 }],
+        replacements: [
+          { pendingId: balance.pendingId, boxes: 1, noExpiry: true },
+        ],
       }),
     )
     expect([error.code, error.message]).toEqual([
@@ -399,7 +432,9 @@ describe('discounts on a new order', () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 10, 3, 0)
     const balance = (await restockMilk(fx))!
-    await receiveMilk(fx, 1, 0, 0, [{ pendingId: balance.pendingId, boxes: 1 }])
+    await receiveMilk(fx, 1, 0, 0, [
+      { pendingId: balance.pendingId, boxes: 1, noExpiry: true },
+    ])
     const order = await orderMilk(fx, 5, {
       discounts: [{ pendingId: balance.pendingId }],
     })
@@ -428,7 +463,12 @@ describe('discounts on a new order', () => {
     await receiveSupplierOrder(fx.owner, {
       purchaseId: freeOrder.id,
       lines: [
-        { lineId: freeOrder.lines[0].id, missingBoxes: 3, damagedBoxes: 0 },
+        {
+          lineId: freeOrder.lines[0].id,
+          missingBoxes: 3,
+          damagedBoxes: 0,
+          noExpiry: true,
+        },
       ],
     })
     const restockFree = async () =>
@@ -506,7 +546,12 @@ describe('discounts on a new order', () => {
     await receiveSupplierOrder(fx.owner, {
       purchaseId: colaOrder.id,
       lines: [
-        { lineId: colaStored.lines[0].id, missingBoxes: 2, damagedBoxes: 0 },
+        {
+          lineId: colaStored.lines[0].id,
+          missingBoxes: 2,
+          damagedBoxes: 0,
+          noExpiry: true,
+        },
       ],
     })
     const foreign = (await view(fx, fx.cocaCola.id)).restock[0]
@@ -514,7 +559,10 @@ describe('discounts on a new order', () => {
     const second = (await view(fx)).restock.find(
       (row) => row.pendingId !== balance.pendingId,
     )!
-    await writeOffPendings(fx.owner, { pendingId: second.pendingId, boxes: 1 })
+    await writeOffPendings(fx.owner, {
+      pendingId: second.pendingId,
+      boxes: 1,
+    })
     const cases: Array<
       [Array<{ pendingId: string }>, number, AppErrorCode, string]
     > = [
@@ -641,7 +689,10 @@ describe('writeOffPendings', () => {
       owedBoxes: 1,
       owedValueCents: 1344,
     })
-    await writeOffPendings(fx.owner, { pendingId: balance.pendingId, boxes: 1 })
+    await writeOffPendings(fx.owner, {
+      pendingId: balance.pendingId,
+      boxes: 1,
+    })
     expect(await restockMilk(fx)).toBeUndefined()
   })
 
@@ -650,7 +701,7 @@ describe('writeOffPendings', () => {
     await receiveMilk(fx, 10, 3, 2)
     const balance = (await restockMilk(fx))!
     const damaged = (await returnMilk(fx))!
-    const input = { pendingId: balance.pendingId, boxes: 1 }
+    const input = { pendingId: balance.pendingId, boxes: 1, noExpiry: true }
     const cases: Array<
       [
         Parameters<typeof writeOffPendings>[0],
@@ -703,7 +754,7 @@ describe('writeOffPendings', () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 10, 3, 0)
     const balance = (await restockMilk(fx))!
-    const input = { pendingId: balance.pendingId, boxes: 2 }
+    const input = { pendingId: balance.pendingId, boxes: 2, noExpiry: true }
     const results = await Promise.allSettled([
       writeOffPendings(fx.owner, input),
       writeOffPendings(fx.owner, input),
@@ -876,7 +927,7 @@ describe('boxes use the factor of the order line, not the current default', () =
     await switchMilkToBoxOf24(fx)
     const balance = (await restockMilk(fx))!
     const result = await receiveMilk(fx, 1, 0, 0, [
-      { pendingId: balance.pendingId, boxes: 5 },
+      { pendingId: balance.pendingId, boxes: 5, noExpiry: true },
     ])
     expect(result.replacementLots[0]).toMatchObject({
       receivedQuantity: 60,
@@ -892,7 +943,10 @@ describe('boxes use the factor of the order line, not the current default', () =
     const balance = (await restockMilk(fx))!
     const before = await supplierState()
     const error = await errorOf(() =>
-      writeOffPendings(fx.owner, { pendingId: balance.pendingId, boxes: 4 }),
+      writeOffPendings(fx.owner, {
+        pendingId: balance.pendingId,
+        boxes: 4,
+      }),
     )
     expect([error.code, error.message]).toEqual([
       'invalid',

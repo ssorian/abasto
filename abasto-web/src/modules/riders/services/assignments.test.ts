@@ -5,6 +5,7 @@ import { resetDatabase } from '#/db/testing'
 import { cashMovements } from '#/modules/cash/db/schema'
 import { closeCashSession } from '#/modules/cash/services/cash-sessions'
 import { lots, stockMovements } from '#/modules/inventory/db/schema'
+import { getWarehouseStock } from '#/modules/inventory/services/stock-reads'
 import { ledgerSum } from '#/modules/inventory/services/testing'
 import { setPrices } from '#/modules/pricing/services/prices'
 import {
@@ -115,6 +116,31 @@ describe('assignRider', () => {
     const error = await errorOf(() => assign(0, 101, fx.other.id))
     expect(error.code).toBe('conflict')
     await assign(0, 100, fx.other.id)
+  })
+
+  test('warehouse stock reports the units in route apart from order reservations', async () => {
+    const { fx, assign } = await setup()
+    const detail = await assign(40, 20)
+    const stockOf = async () =>
+      (await getWarehouseStock(fx.staffA, fx.a.id)).find(
+        (row) => row.productId === fx.milkBox.id,
+      )
+    expect(await stockOf()).toMatchObject({
+      onHand: 600,
+      inRoute: 500,
+      reserved: 0,
+      available: 100,
+    })
+    await settleAssignment(fx.staffA, {
+      assignmentId: detail.id,
+      deliveredCents: 0,
+      lines: [{ lineId: detail.lines[0].id, boxes: 0, units: 500 }],
+    })
+    expect(await stockOf()).toMatchObject({
+      onHand: 600,
+      inRoute: 0,
+      available: 600,
+    })
   })
 
   test('refuses a second open assignment for the same rider and an inactive rider', async () => {
@@ -245,11 +271,28 @@ describe('settleAssignment', () => {
       lines: [{ lineId: b.lines[0].id, boxes: 0, units: 0 }],
     })
     expect(over.differenceCents).toBe(500)
-    // The drawer records the sold amount, not the cash handed in.
+    // The drawer records the cash handed in; the difference stays on the assignment.
     const amounts = (await db.select().from(cashMovements)).map(
       (m) => m.amountCents,
     )
-    expect(amounts).toEqual([10_000, 10_000])
+    expect(amounts.sort((x, y) => x - y)).toEqual([9_000, 10_500])
+  })
+
+  test('nothing handed in: the shortage is recorded but no cash enters the drawer', async () => {
+    const { fx, assign } = await setup()
+    const a = await assign(0, 10)
+    const settled = await settleAssignment(fx.staffA, {
+      assignmentId: a.id,
+      deliveredCents: 0,
+      lines: [{ lineId: a.lines[0].id, boxes: 0, units: 0 }],
+    })
+    expect(settled).toMatchObject({
+      expectedCents: 10_000,
+      deliveredCents: 0,
+      differenceCents: -10_000,
+      cashMovementId: null,
+    })
+    expect(await db.select().from(cashMovements)).toHaveLength(0)
   })
 
   test('everything back: all units released, no sale, no cash movement', async () => {

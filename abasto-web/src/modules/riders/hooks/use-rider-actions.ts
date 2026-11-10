@@ -45,7 +45,7 @@ export function useRiderActions() {
     settle: (input: SettleInput) =>
       run(
         () => settleAssignmentFn({ data: input }),
-        'Reparto liquidado. La venta quedó en la caja.',
+        'Reparto liquidado. El dinero entregado quedó en la caja.',
       ),
     cancel: (assignmentId: string) =>
       run(

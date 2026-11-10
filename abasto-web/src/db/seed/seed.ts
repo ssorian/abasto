@@ -274,6 +274,7 @@ export async function seedDatabase({
           missingBoxes: 0,
           damagedBoxes: damaged[line.seed.sku] ?? 0,
           expiresOn: line.expiresOn,
+          noExpiry: !line.expiresOn,
         }
       }),
     })
