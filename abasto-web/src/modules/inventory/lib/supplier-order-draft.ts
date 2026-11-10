@@ -165,21 +165,31 @@ export function orderTotalCents(
   )
 }
 
+/** Parse result of an order; a failure caused by one row names its product. */
+export type OrderParsed =
+  Parsed<SupplierOrderInput> | { ok: false; message: string; productId: string }
+
+const rowFail = (product: OrderProduct, message: string): OrderParsed => ({
+  ok: false,
+  message: `${product.name}: ${message}`,
+  productId: product.id,
+})
+
 /** Order form → server input: the rows with boxes of the chosen supplier. */
 export function orderInputFromDraft(
   draft: OrderDraft,
   products: ReadonlyArray<OrderProduct>,
-): Parsed<SupplierOrderInput> {
+): OrderParsed {
   if (!draft.supplierId) return fail('Selecciona el proveedor.')
   if (!draft.warehouseId) return fail('Selecciona el almacén.')
   const lines: SupplierOrderInput['lines'] = []
   for (const product of products) {
     if (product.supplierId !== draft.supplierId) continue
     const boxes = parseBoxCount(draft.boxes[product.id] ?? '')
-    if (!boxes.ok) return fail(`${product.name}: ${boxes.message}`)
+    if (!boxes.ok) return rowFail(product, boxes.message)
     if (boxes.value <= 0) continue
     if (rowOf(product, draft.boxes[product.id]).exceedsList) {
-      return fail(`${product.name}: ${NET_ABOVE_LIST_PRICE_MESSAGE}`)
+      return rowFail(product, NET_ABOVE_LIST_PRICE_MESSAGE)
     }
     lines.push({ productId: product.id, boxes: boxes.value })
   }

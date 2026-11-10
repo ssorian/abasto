@@ -337,6 +337,16 @@ describe('orderInputFromDraft', () => {
     const boxes = orderInputFromDraft(draft({ milk: '1.5' }), [milk])
     expect(boxes.ok).toBe(false)
     if (!boxes.ok) expect(boxes.message).toContain('Leche 1L')
+    expect(boxes).toMatchObject({ productId: 'milk' })
+  })
+
+  test('points to no product when the failure is not a row', () => {
+    const parsed = orderInputFromDraft({ ...draft({}), supplierId: '' }, [])
+    expect(parsed).toEqual({ ok: false, message: 'Selecciona el proveedor.' })
+    expect(orderInputFromDraft(draft({ milk: '0' }), [milk])).toEqual({
+      ok: false,
+      message: 'Escribe las cajas de al menos un producto.',
+    })
   })
 
   test('rejects discount plus promotion above the list price', () => {
@@ -344,6 +354,7 @@ describe('orderInputFromDraft', () => {
     expect(orderInputFromDraft(draft({ yog: '1' }), [above])).toEqual({
       ok: false,
       message: `Yoghurt: ${NET_ABOVE_LIST_PRICE_MESSAGE}`,
+      productId: 'yog',
     })
     expect(
       orderInputFromDraft(draft({ yog: '1' }), [

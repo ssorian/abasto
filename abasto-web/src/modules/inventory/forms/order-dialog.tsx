@@ -89,6 +89,8 @@ export function OrderDialog({
   const [standard, setStandard] = useState<Record<string, number>>()
   const [stock, setStock] = useState<Record<string, OrderStock>>()
   const [error, setError] = useState<string | null>(null)
+  // Row the last save failed on; `request` re-triggers the scroll on each attempt.
+  const [failed, setFailed] = useState<{ productId: string; request: number }>()
   const [pending, setPending] = useState(false)
   const [reloadStandard, setReloadStandard] = useState(0)
   // Pending ids of the balances to discount; chosen only until the order is registered.
@@ -135,9 +137,25 @@ export function OrderDialog({
   const discountCents = discountTotalCents(owedHere, discounted)
   const tooMuch = discountIssue(total, discountCents)
 
+  /** Brings the failing product on screen: clears the filters that hide it, then the table scrolls to it. */
+  function showFailedRow(productId: string) {
+    if (!visible.some(({ id }) => id === productId)) {
+      setQuery('')
+      setOnlyBoxes(false)
+    }
+    setFailed((current) => ({
+      productId,
+      request: (current?.request ?? 0) + 1,
+    }))
+  }
+
   async function submit() {
     const parsed = orderInputFromDraft(draft, own)
-    if (!parsed.ok) return setError(parsed.message)
+    if (!parsed.ok) {
+      if ('productId' in parsed) showFailedRow(parsed.productId)
+      return setError(parsed.message)
+    }
+    setFailed(undefined)
     if (tooMuch) return setError(tooMuch)
     setError(null)
     setPending(true)
@@ -321,6 +339,7 @@ export function OrderDialog({
                     }))
                   }
                   onEdit={canEditProducts ? setEditingId : undefined}
+                  failed={failed}
                 />
               ) : (
                 <p className="py-6 text-center text-sm text-[#907e84]">
