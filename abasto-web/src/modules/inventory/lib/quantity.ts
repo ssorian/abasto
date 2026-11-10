@@ -58,7 +58,23 @@ const singulars: Record<string, string> = {
   bultos: 'bulto',
   paquetes: 'paquete',
 }
-const singular = (name: string) => singulars[name] ?? name
+const plurals = Object.fromEntries(
+  Object.entries(singulars).map(([plural, one]) => [one, plural]),
+)
+
+/** Presentation names arrive as `Caja` or `cajas`; print them as a counted noun. */
+function countedNoun(name: string, count: number): string {
+  const word = name.toLowerCase()
+  const one = singulars[word] ?? word
+  if (count === 1) return one
+  return plurals[one] ?? pluralize(word)
+}
+
+/** Pluralizes one plain Spanish word; anything else is printed as given. */
+const pluralize = (word: string) => {
+  if (!/^[a-záéíóúñ]+$/.test(word) || word.endsWith('s')) return word
+  return /[aeiou]$/.test(word) ? `${word}s` : `${word}es`
+}
 
 /** `3 cajas + 5 piezas`; negative quantities lead with a minus sign. */
 export function formatQuantity(quantity: number, pack: PackInfo): string {
@@ -66,13 +82,11 @@ export function formatQuantity(quantity: number, pack: PackInfo): string {
   const { packs, loose } = splitBaseUnits(Math.abs(quantity), pack.factor)
   const parts: Array<string> = []
   if (pack.factor > 1 && packs > 0) {
-    parts.push(
-      `${packs} ${packs === 1 ? singular(pack.packName) : pack.packName}`,
-    )
+    parts.push(`${packs} ${countedNoun(pack.packName, packs)}`)
   }
   const units = pack.factor > 1 ? loose : packs + loose
   if (units > 0 || !parts.length) {
-    parts.push(`${units} ${units === 1 ? singular(pack.unit) : pack.unit}`)
+    parts.push(`${units} ${countedNoun(pack.unit, units)}`)
   }
   return `${sign}${parts.join(' + ')}`
 }

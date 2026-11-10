@@ -118,7 +118,7 @@ export function CashSection({
                   const state = status(row.differenceCents)
                   return (
                     <Row key={row.sessionId}>
-                      <Td>{shortDay(row.day)}</Td>
+                      <Td className="first:min-w-0">{shortDay(row.day)}</Td>
                       <Td>{row.warehouseName}</Td>
                       <Td>{row.closedByName ?? '—'}</Td>
                       <Td className="text-right tabular-nums">

@@ -79,19 +79,13 @@ export function CatalogCard({
         {onPrices || canManage ? (
           <div className="my-3.5 flex flex-wrap gap-[9px]">
             {onPrices ? (
-              <CatalogButton
-                className="min-h-9 flex-1 p-2 text-xs"
-                onClick={onPrices}
-              >
+              <CatalogButton className="flex-1 px-3" onClick={onPrices}>
                 <TagIcon className="size-4" />
                 Precios
               </CatalogButton>
             ) : null}
             {canManage ? (
-              <CatalogButton
-                className="min-h-9 flex-1 p-2 text-xs"
-                onClick={onEdit}
-              >
+              <CatalogButton className="flex-1 px-3" onClick={onEdit}>
                 Editar
               </CatalogButton>
             ) : null}
@@ -100,7 +94,7 @@ export function CatalogCard({
         <Link
           to="/inventario"
           search={{ q: product.name }}
-          className="mt-3 inline-flex min-h-9 items-center justify-center gap-[7px] text-center text-xs leading-normal md:min-h-0 md:justify-start md:text-left font-[650] text-[#52247b] hover:underline md:text-sm"
+          className="mt-3 inline-flex min-h-9 items-center gap-[7px] text-sm font-[650] text-ink-link hover:underline md:min-h-0"
         >
           Consultar inventario <ArrowRightIcon size={15} />
         </Link>

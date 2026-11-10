@@ -109,10 +109,13 @@ export function ProductsTab({
                     </ListCell>
                     <ListCell>
                       <strong>{formatQuantity(row.onHand, pack)}</strong>
-                      {formatQuantity(row.onHand, pack) !==
-                        `${row.onHand} ${row.unit}` && (
+                      {pack.factor > 1 && row.onHand >= pack.factor && (
                         <small className="block text-[#907e84]">
-                          {row.onHand} {row.unit}
+                          {formatQuantity(row.onHand, {
+                            packName: row.unit,
+                            factor: 1,
+                            unit: row.unit,
+                          })}
                         </small>
                       )}
                       <HeldBreakdown row={row} pack={pack} />

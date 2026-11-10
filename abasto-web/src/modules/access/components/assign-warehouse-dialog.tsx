@@ -55,7 +55,7 @@ export function AssignWarehouseDialog({
         <Button
           variant="ghost"
           disabled={!warehouses.length}
-          className="h-auto min-h-[36px] rounded-lg border border-[#eee7e0] px-3 py-1.5 text-[13px] font-semibold"
+          className="h-auto min-h-[44px] rounded-[9px] border border-[#e8e1e3] bg-white px-[17px] py-2.5 text-sm font-[650] text-[#503f45] hover:bg-[#faf6f1]"
         >
           Asignar almacén
         </Button>

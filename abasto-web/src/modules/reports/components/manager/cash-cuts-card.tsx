@@ -140,7 +140,9 @@ export function CashCutsCard({
               <tbody>
                 {newestFirst.map((row) => (
                   <Row key={row.sessionId}>
-                    <Td>{shortDate(businessDate(new Date(row.openedAt)))}</Td>
+                    <Td className="first:min-w-0">
+                      {shortDate(businessDate(new Date(row.openedAt)))}
+                    </Td>
                     <Td>{row.closedByName ?? '—'}</Td>
                     <Td className="text-right tabular-nums">
                       {formatCents(row.expectedCents)}

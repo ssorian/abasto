@@ -46,7 +46,9 @@ export function CustomersTable({
             <TableHead className={head}>Cliente</TableHead>
             <TableHead className={head}>Contacto</TableHead>
             <TableHead className={head}>Condiciones</TableHead>
-            <TableHead className={head} />
+            <TableHead className={head}>
+              <span className="sr-only">Acciones</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -69,10 +71,12 @@ export function CustomersTable({
                 </TableCell>
                 <TableCell className={cell}>
                   {count > 0
-                    ? `${count} condiciones comerciales`
+                    ? count === 1
+                      ? '1 condición comercial'
+                      : `${count} condiciones comerciales`
                     : 'Precio de lista'}
                 </TableCell>
-                <TableCell className={cell}>
+                <TableCell className={`${cell} text-right`}>
                   <CustomerButton onClick={() => onView(customer.id)}>
                     Ver cliente
                   </CustomerButton>
