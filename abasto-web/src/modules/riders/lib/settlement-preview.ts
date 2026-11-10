@@ -1,10 +1,8 @@
 import { parseSignedPesos } from '#/modules/pricing/lib/money'
+import { priceSold } from '#/modules/riders/lib/allocation-pricing'
+import type { PricedAllocation } from '#/modules/riders/lib/allocation-pricing'
 
-export type PreviewAllocation = {
-  quantity: number
-  priceCents: number
-  priceFactor: number
-}
+export type PreviewAllocation = PricedAllocation
 
 export type PreviewLine = {
   assignedQuantity: number
@@ -46,10 +44,6 @@ function parseWhole(text: string): number | null {
   return Number.isSafeInteger(value) ? value : null
 }
 
-/** Same rounding as the server: half up on `quantity × price ÷ factor`. */
-const roundDiv = (numerator: bigint, denominator: bigint) =>
-  Number((2n * numerator + denominator) / (2n * denominator))
-
 function previewLine(line: PreviewLine): LinePreview {
   const boxes = parseWhole(line.boxes)
   const units = parseWhole(line.units)
@@ -71,19 +65,12 @@ function previewLine(line: PreviewLine): LinePreview {
     }
   }
   const sold = line.assignedQuantity - leftover
-  // Sold units come from the oldest allocations first.
-  let toSell = sold
-  let expectedCents = 0
-  for (const allocation of line.allocations) {
-    const taken = Math.min(allocation.quantity, toSell)
-    toSell -= taken
-    if (taken > 0) {
-      expectedCents += roundDiv(
-        BigInt(taken) * BigInt(allocation.priceCents),
-        BigInt(allocation.priceFactor),
-      )
-    }
-  }
+  // Same split as the server: whole boxes at the box price, loose pieces at
+  // the piece price, sold from the oldest allocations first.
+  const expectedCents = priceSold(line.allocations, sold).reduce(
+    (sum, item) => sum + item.cents,
+    0,
+  )
   return { leftover, sold, expectedCents }
 }
 

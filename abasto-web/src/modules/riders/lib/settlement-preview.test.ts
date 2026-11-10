@@ -8,8 +8,8 @@ const line = (over: Partial<PreviewLine> = {}): PreviewLine => ({
   assignedQuantity: 30,
   boxFactor: 12,
   allocations: [
-    { quantity: 20, priceCents: 1000, priceFactor: 1 },
-    { quantity: 10, priceCents: 1200, priceFactor: 1 },
+    { quantity: 20, priceCents: 1000, priceFactor: 1, pieceCents: null },
+    { quantity: 10, priceCents: 1200, priceFactor: 1, pieceCents: null },
   ],
   boxes: '0',
   units: '0',
@@ -52,7 +52,14 @@ describe('previewSettlement', () => {
       [
         line({
           assignedQuantity: 12,
-          allocations: [{ quantity: 12, priceCents: 1999, priceFactor: 12 }],
+          allocations: [
+            {
+              quantity: 12,
+              priceCents: 1999,
+              priceFactor: 12,
+              pieceCents: null,
+            },
+          ],
           boxes: '0',
           units: '5',
         }),
@@ -98,5 +105,56 @@ describe('previewSettlement', () => {
     expect(negative.deliveredCents).toBeNull()
     expect(negative.deliveredError).toBe('El monto no puede ser negativo.')
     expect(previewSettlement([line()], '1,5').valid).toBe(false)
+  })
+})
+
+describe('previewSettlement with a piece price', () => {
+  // Boxes of 12 at 44000, loose pieces at 3800; two lots of 20, oldest first.
+  const piece = (over: Partial<PreviewLine> = {}) =>
+    line({
+      assignedQuantity: 40,
+      allocations: [
+        {
+          quantity: 20,
+          priceCents: 44_000,
+          priceFactor: 12,
+          pieceCents: 3800,
+        },
+        {
+          quantity: 20,
+          priceCents: 48_000,
+          priceFactor: 12,
+          pieceCents: 3800,
+        },
+      ],
+      ...over,
+    })
+
+  test('charges whole boxes at the box price and loose pieces at the piece price', () => {
+    // 30 sold: 2 boxes (20 + 4 pieces, prorated per lot) + 6 loose pieces.
+    const preview = previewSettlement([piece({ units: '10' })], '0')
+    expect(preview.lines[0]).toMatchObject({ sold: 30 })
+    expect(preview.expectedCents).toBe(73_333 + 16_000 + 6 * 3800)
+  })
+
+  test('falls back to the prorated box price without a piece price', () => {
+    const preview = previewSettlement(
+      [
+        piece({
+          units: '10',
+          allocations: [
+            {
+              quantity: 40,
+              priceCents: 44_000,
+              priceFactor: 12,
+              pieceCents: null,
+            },
+          ],
+        }),
+      ],
+      '0',
+    )
+    // 30 × 44000 / 12
+    expect(preview.expectedCents).toBe(110_000)
   })
 })
