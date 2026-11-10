@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { db } from '#/db'
+import {
+  createProduct,
+  updateProduct,
+} from '#/modules/catalog/services/products'
 import { resetDatabase } from '#/db/testing'
 import { setMinimumStock } from '#/modules/inventory/services/stock-minimums'
 import {
@@ -44,7 +48,10 @@ describe('getWarehouseStock', () => {
     })
 
     const stock = await getWarehouseStock(fx.staffA, fx.a.id)
-    expect(stock).toHaveLength(1)
+    expect(stock.map((item) => item.productId)).toEqual([
+      fx.milk.id,
+      fx.soda.id,
+    ])
     const [row] = stock
     expect(row).toMatchObject({
       productId: fx.milk.id,
@@ -63,6 +70,47 @@ describe('getWarehouseStock', () => {
       expiresOn: '2026-12-01',
       onHand: 3,
     })
+  })
+
+  test('lists every published product with zero stock; unpublished ones only with lots or a minimum', async () => {
+    const fx = await setupInventory()
+    await updateProduct(fx.owner, fx.soda.id, { published: false })
+    const fresh = await createProduct(fx.owner, {
+      name: 'Yogurt',
+      sku: 'YOG-1',
+      category: 'Lácteos',
+      unit: 'piezas',
+      presentations: [{ name: 'Pieza', factor: 1 }],
+      defaultIndex: 0,
+    })
+    const stock = await getWarehouseStock(fx.staffA, fx.a.id)
+    expect(stock.map((row) => row.name)).toEqual(['Leche 1L', 'Yogurt'])
+    expect(stock.find((row) => row.productId === fresh.id)).toMatchObject({
+      onHand: 0,
+      reserved: 0,
+      available: 0,
+      minimum: 0,
+      belowMinimum: false,
+      lots: [],
+    })
+    await setMinimumStock(fx.owner, {
+      productId: fresh.id,
+      warehouseId: fx.a.id,
+      minimum: 5,
+    })
+    await setMinimumStock(fx.owner, {
+      productId: fx.soda.id,
+      warehouseId: fx.a.id,
+      minimum: 2,
+    })
+    const after = await getWarehouseStock(fx.staffA, fx.a.id)
+    expect(
+      after.map((row) => [row.name, row.minimum, row.belowMinimum]),
+    ).toEqual([
+      ['Leche 1L', 0, false],
+      ['Refresco 600ml', 2, true],
+      ['Yogurt', 5, true],
+    ])
   })
 
   test('a product at its minimum is not below it; minimum zero never flags', async () => {

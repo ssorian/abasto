@@ -973,3 +973,35 @@ describe('append-only ledger', () => {
     expect(await db.select().from(lots)).toHaveLength(1)
   })
 })
+
+describe('order list shortages', () => {
+  test('received orders expose what was missing and damaged with its value; others show zero', async () => {
+    const fx = await setupSupplierOrders()
+    const { order } = await receiveMilk(fx, 10, 3, 2)
+    const waiting = await orderMilk(fx, 4)
+    const rows = await listSupplierOrders(fx.owner, { warehouseId: fx.a.id })
+    expect(rows.find((row) => row.id === order.id)).toMatchObject({
+      status: 'Recibido',
+      missingQuantity: 36,
+      damagedQuantity: 24,
+      missingValueCents: 4032,
+      damagedValueCents: 2688,
+    })
+    expect(rows.find((row) => row.id === waiting.id)).toMatchObject({
+      status: 'Pedido',
+      missingQuantity: 0,
+      damagedQuantity: 0,
+      missingValueCents: 0,
+      damagedValueCents: 0,
+    })
+  })
+
+  test('a complete reception reports no shortages', async () => {
+    const fx = await setupSupplierOrders()
+    const { order } = await receiveMilk(fx, 5, 0, 0)
+    const [row] = (
+      await listSupplierOrders(fx.owner, { warehouseId: fx.a.id })
+    ).filter((item) => item.id === order.id)
+    expect(row).toMatchObject({ missingQuantity: 0, damagedQuantity: 0 })
+  })
+})

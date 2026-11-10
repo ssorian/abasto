@@ -53,7 +53,7 @@ export function SupplierPendingsTab({
         description="Cajas que nunca llegaron."
         emptyTitle="Ningún proveedor te debe cajas"
         emptyDescription="Lo faltante de un pedido recibido aparecerá aquí."
-        action="Descontar del pago (a lo chino)"
+        action="Descontar del pago"
         rows={restock}
         onAction={onWriteOff}
       />

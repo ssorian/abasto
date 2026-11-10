@@ -1,10 +1,14 @@
-import { and, asc, desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { products, suppliers } from '#/modules/catalog/db/schema'
-import { purchaseLines, purchases } from '#/modules/inventory/db/schema'
+import {
+  purchaseLines,
+  purchases,
+  supplierPendings,
+} from '#/modules/inventory/db/schema'
 import type { PurchaseStatus } from '#/modules/inventory/db/schema'
 import { orderCode } from '#/modules/inventory/lib/order-code'
 import { divideHalfUp } from '#/modules/inventory/lib/pending-value'
@@ -36,7 +40,22 @@ export type SupplierOrderSummary = {
   discountCents: number
   /** Net total − discounts: what is paid. */
   payableCents: number
+  /** Received orders: base units that did not arrive, and their value in cents. */
+  missingQuantity: number
+  missingValueCents: number
+  /** Received orders: base units that arrived damaged, and their value in cents. */
+  damagedQuantity: number
+  damagedValueCents: number
 }
+
+const noShortages = {
+  missingQuantity: 0,
+  missingValueCents: 0,
+  damagedQuantity: 0,
+  damagedValueCents: 0,
+}
+
+type Shortages = typeof noShortages
 
 const withCode = <
   T extends {
@@ -87,7 +106,43 @@ export async function listSupplierOrders(
     )
     .groupBy(purchases.id, suppliers.name)
     .orderBy(desc(purchases.createdAt), asc(purchases.id))
-  return rows.map(withCode)
+  const shortages = await shortagesByOrder(rows.map((row) => row.id))
+  return rows.map((row) =>
+    withCode({ ...row, ...(shortages.get(row.id) ?? noShortages) }),
+  )
+}
+
+/** Missing and damaged units of received orders, from the balances created at reception. */
+async function shortagesByOrder(purchaseIds: Array<string>) {
+  const result = new Map<string, Shortages>()
+  if (!purchaseIds.length) return result
+  const rows = await db
+    .select({
+      purchaseId: supplierPendings.purchaseId,
+      type: supplierPendings.type,
+      quantity: sql<number>`sum(${supplierPendings.quantity})::int`,
+      valueCents: sql<number>`sum(${supplierPendings.valueCents})::int`,
+    })
+    .from(supplierPendings)
+    .where(
+      and(
+        inArray(supplierPendings.purchaseId, purchaseIds),
+        inArray(supplierPendings.type, ['missing', 'damaged']),
+      ),
+    )
+    .groupBy(supplierPendings.purchaseId, supplierPendings.type)
+  for (const row of rows) {
+    const current = result.get(row.purchaseId!) ?? { ...noShortages }
+    if (row.type === 'missing') {
+      current.missingQuantity = row.quantity
+      current.missingValueCents = row.valueCents
+    } else {
+      current.damagedQuantity = row.quantity
+      current.damagedValueCents = row.valueCents
+    }
+    result.set(row.purchaseId!, current)
+  }
+  return result
 }
 
 export type SupplierOrderLine = {
@@ -116,7 +171,10 @@ export type SupplierOrderLine = {
   expiresOn: string | null
 }
 
-export type SupplierOrder = Omit<SupplierOrderSummary, 'lineCount'> & {
+export type SupplierOrder = Omit<
+  SupplierOrderSummary,
+  'lineCount' | keyof Shortages
+> & {
   supplierName: string
   createdBy: string
   receivedBy: string | null

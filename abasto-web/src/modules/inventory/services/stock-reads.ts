@@ -46,8 +46,8 @@ export type ProductStock = {
 }
 
 /**
- * Stock per product in one warehouse, including products that only have a
- * minimum. Overdue orders expire first (so their units are not counted as
+ * Stock per product in one warehouse: every published product (zero stock
+ * included) plus any product that has lots or a minimum. Overdue orders expire first (so their units are not counted as
  * reserved); `available` leaves out reserved and past-expiry units.
  */
 export async function getWarehouseStock(
@@ -103,17 +103,18 @@ export async function getWarehouseStock(
     ...lotRows.map((row) => row.productId),
     ...minimumRows.map((row) => row.productId),
   ])
-  if (!productIds.size) return []
+  // Published products always show, even before their first lot or minimum.
   const catalog = await db
     .select({
       id: products.id,
       name: products.name,
       sku: products.sku,
       unit: products.unit,
+      published: products.published,
     })
     .from(products)
   return catalog
-    .filter((product) => productIds.has(product.id))
+    .filter((product) => product.published || productIds.has(product.id))
     .map((product) => {
       const productRows = lotRows.filter((row) => row.productId === product.id)
       const productLots = productRows

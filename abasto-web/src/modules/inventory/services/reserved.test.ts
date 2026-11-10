@@ -28,6 +28,12 @@ beforeEach(() => resetDatabase(db))
 
 const held = 'Ese lote tiene unidades apartadas para pedidos.'
 
+/** Stock row of the box-sold milk (the catalog's other products show with zero stock). */
+async function milkBoxStock(fx: Awaited<ReturnType<typeof setupOrders>>) {
+  const stock = await getWarehouseStock(fx.staffA, fx.a.id)
+  return stock.find((item) => item.productId === fx.milkBox.id)!
+}
+
 async function setup() {
   const fx = await setupOrders()
   const lot = await receive(fx, { productId: fx.milkBox.id, quantity: 10 })
@@ -42,7 +48,7 @@ async function setup() {
 describe('reserved stock', () => {
   test('the stock read model reports real reserved and available', async () => {
     const { fx } = await setup()
-    const [row] = await getWarehouseStock(fx.staffA, fx.a.id)
+    const row = await milkBoxStock(fx)
     expect(row).toMatchObject({ onHand: 10, reserved: 6, available: 4 })
   })
 
@@ -55,7 +61,7 @@ describe('reserved stock', () => {
       warehouseId: fx.a.id,
       minimum: 5,
     })
-    const [row] = await getWarehouseStock(fx.staffA, fx.a.id)
+    const row = await milkBoxStock(fx)
     expect(row.belowMinimum).toBe(true)
   })
 
@@ -126,7 +132,7 @@ describe('stock read with expiry', () => {
       quantity: 3,
       expiresOn: '2020-01-01',
     })
-    const [row] = await getWarehouseStock(fx.staffA, fx.a.id)
+    const row = await milkBoxStock(fx)
     expect(row).toMatchObject({
       onHand: 13,
       reserved: 6,
@@ -150,7 +156,7 @@ describe('stock read with expiry', () => {
       lines: [{ presentationId: fx.pieceId, quantity: 2 }],
     })
     useClock(() => new Date('2098-12-02T12:00:00Z'))
-    const [row] = await getWarehouseStock(fx.staffA, fx.a.id)
+    const row = await milkBoxStock(fx)
     expect(lot.id).toBeDefined()
     expect(row).toMatchObject({
       onHand: 9,
@@ -163,7 +169,7 @@ describe('stock read with expiry', () => {
   test('overdue orders expire before the read, giving their units back', async () => {
     const { fx, order } = await setup()
     advance(25)
-    const [row] = await getWarehouseStock(fx.staffA, fx.a.id)
+    const row = await milkBoxStock(fx)
     expect(row).toMatchObject({ onHand: 10, reserved: 0, available: 10 })
     expect((await getOrder(fx.staffA, order.id)).status).toBe('Vencido')
   })
@@ -176,7 +182,7 @@ describe('createPurchase and expiry', () => {
     const { fx, order } = await setup()
     advance(25)
     await receive(fx, { productId: fx.milkBox.id, quantity: 5 })
-    const [row] = await getWarehouseStock(fx.staffA, fx.a.id)
+    const row = await milkBoxStock(fx)
     expect(row).toMatchObject({ onHand: 15, reserved: 0 })
     const stored = await db.select().from(orders).where(eq(orders.id, order.id))
     expect(stored[0].status).toBe('Vencido')
