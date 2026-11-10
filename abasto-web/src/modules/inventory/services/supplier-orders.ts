@@ -153,7 +153,7 @@ export async function createSupplierOrder(
       if (totalCostCents < 0) {
         throw new AppError(
           'invalid',
-          'El descuento y la promoción no pueden superar el precio por pieza.',
+          'El descuento y la promoción no pueden superar el costo por pieza.',
         )
       }
       return {

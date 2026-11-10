@@ -38,9 +38,9 @@ export type OrderDraft = {
 export const PRICE_BELOW_COST_MESSAGE =
   'El costo por caja supera el precio estándar. Actualiza el precio estándar del producto en el catálogo.'
 export const NO_STANDARD_PRICE_MESSAGE = 'Sin precio estándar en este almacén'
-export const NO_LIST_PRICE_MESSAGE = 'Sin precio por pieza'
+export const NO_LIST_PRICE_MESSAGE = 'Sin costo por pieza'
 export const NET_ABOVE_LIST_PRICE_MESSAGE =
-  'El descuento y la promoción no pueden superar el precio por pieza.'
+  'El descuento y la promoción no pueden superar el costo por pieza.'
 
 /** Pieces per box: the default presentation, active or not (the server's rule), else 1. */
 export const boxFactorOf = (product: OrderProduct) =>

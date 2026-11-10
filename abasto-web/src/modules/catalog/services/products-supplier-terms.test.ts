@@ -27,7 +27,7 @@ const base = {
 const badAmount =
   'Los montos del proveedor deben ser enteros en diezmilésimas, de cero o más.'
 const aboveList =
-  'El descuento y la promoción no pueden superar el precio por pieza.'
+  'El descuento y la promoción no pueden superar el costo por pieza.'
 const empty = { suppliers: 0, products: 0, presentations: 0 }
 
 describe('supplier terms on createProduct', () => {

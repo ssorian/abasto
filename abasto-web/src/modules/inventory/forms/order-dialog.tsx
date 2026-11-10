@@ -157,7 +157,7 @@ export function OrderDialog({
       <InventoryDialog
         title="Nuevo pedido al proveedor"
         eyebrow="POR RECIBIR"
-        description="Elige el proveedor y escribe las cajas de cada producto. El precio por pieza, el descuento y la promoción vienen del catálogo y definen el costo neto. El pedido no mueve existencias: espera en «Por recibir» hasta que llegue y lo verifiques."
+        description="Elige el proveedor y escribe las cajas de cada producto. El costo por pieza, el descuento y la promoción vienen del catálogo y definen el costo neto. El pedido no mueve existencias: espera en «Por recibir» hasta que llegue y lo verifiques."
         size="wide"
         onClose={onClose}
       >

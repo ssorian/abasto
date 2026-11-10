@@ -172,7 +172,7 @@ describe('rowWarnings', () => {
     expect(NO_STANDARD_PRICE_MESSAGE).toBe(
       'Sin precio estándar en este almacén',
     )
-    expect(NO_LIST_PRICE_MESSAGE).toBe('Sin precio por pieza')
+    expect(NO_LIST_PRICE_MESSAGE).toBe('Sin costo por pieza')
   })
 
   test('warns when the cost per box exceeds the standard price', () => {

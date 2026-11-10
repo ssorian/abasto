@@ -39,7 +39,7 @@ const originTones: Record<PriceTableRow['origin'], StatusTone> = {
 }
 
 const costFields: ReadonlyArray<[keyof PieceCostDraft, string]> = [
-  ['listPrice', 'Precio por pieza'],
+  ['listPrice', 'Costo por pieza'],
   ['fixedDiscount', 'Descuento fijo'],
   ['promotion', 'Promoción'],
 ]

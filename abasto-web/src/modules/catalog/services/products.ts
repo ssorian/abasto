@@ -64,7 +64,7 @@ const badAmount = () =>
 const aboveListPrice = () =>
   new AppError(
     'invalid',
-    'El descuento y la promoción no pueden superar el precio por pieza.',
+    'El descuento y la promoción no pueden superar el costo por pieza.',
   )
 
 /** Discount plus promotion may not exceed the list price (all in ten-thousandths). */

@@ -12,8 +12,8 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 
 ## Tasks
 
-- T1 [S1] parent inline — digits-only boxes input. Status: pending.
-- T2 [S2] parent inline — cost terminology. Status: pending.
+- T1 [S1] parent inline — digits-only boxes input. Status: done. Commit: f8b009c (RED digitsOnly missing; GREEN box-count 4/4; inputMode numeric already present). Native assess: unavailable (untracked files outside the change).
+- T2 [S2] parent inline — cost terminology. Status: done. RED 2 fails on message tests; GREEN inventory+catalog+pricing 411/411. Dialog field "Costo por pieza", derived "Costo neto por pieza"; sale "Precio de lista" (counter/customers) untouched.
 - T3 [S3] parent inline — error row navigation and inline red warning. Status: pending.
 - T4 [S4] parent inline — cost permission for managers, order button. Risk: item 2 (permissions) → own commit, independent verify. Status: pending.
 

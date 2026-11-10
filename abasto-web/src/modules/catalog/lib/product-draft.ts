@@ -55,7 +55,7 @@ const costKeys: ReadonlyArray<CostKey> = [
 ]
 
 export const ABOVE_LIST_PRICE_MESSAGE =
-  'El descuento y la promoción no pueden superar el precio por pieza.'
+  'El descuento y la promoción no pueden superar el costo por pieza.'
 
 const amountOf = (text: string) => {
   const parsed = parseTenThousandths(text)
