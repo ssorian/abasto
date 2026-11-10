@@ -31,8 +31,10 @@ export function OrderList({ orders, now, onOpen }: OrderListProps) {
             <Th>Pedido</Th>
             <Th>Cliente</Th>
             <Th>Estado</Th>
-            <Th>Total</Th>
-            <Th />
+            <Th className="text-right">Total</Th>
+            <Th>
+              <span className="sr-only">Acciones</span>
+            </Th>
           </tr>
         </thead>
         <tbody>
@@ -50,8 +52,10 @@ export function OrderList({ orders, now, onOpen }: OrderListProps) {
               <Td>
                 <StatusBadge status={order.status} />
               </Td>
-              <Td>{formatCents(order.totalCents)}</Td>
-              <Td>
+              <Td className="text-right tabular-nums">
+                {formatCents(order.totalCents)}
+              </Td>
+              <Td className="text-right">
                 <ActionButton onClick={() => onOpen(order.id)}>
                   Ver pedido
                 </ActionButton>

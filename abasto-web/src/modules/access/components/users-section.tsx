@@ -18,6 +18,10 @@ type UsersSectionProps = {
   warehouses: Array<Warehouse>
 }
 
+const head =
+  'h-auto bg-[#fcfaf8] px-[11px] py-[13px] text-[11px] font-semibold tracking-[0.35px] text-[#947f86] md:px-3.5 md:py-[15px]'
+const cell = 'border-t border-row-border px-[11px] py-[13px] md:px-3.5 md:py-4'
+
 export function UsersSection({ users, warehouses }: UsersSectionProps) {
   const { unassign } = useUserActions()
 
@@ -26,24 +30,30 @@ export function UsersSection({ users, warehouses }: UsersSectionProps) {
       <h2 id="users-heading" className="mb-3 text-xl font-[650]">
         Usuarios
       </h2>
-      <div className="overflow-x-auto rounded-[13px] border border-[#eee7e0] bg-white">
-        <Table>
+      <div className="w-full overflow-x-auto rounded-xl border border-[#f0eae3] bg-white">
+        <Table className="text-[13px]">
           <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Correo</TableHead>
-              <TableHead>Rol</TableHead>
-              <TableHead>Almacenes</TableHead>
-              <TableHead />
+            <TableRow className="border-0 hover:bg-transparent">
+              <TableHead className={head}>Nombre</TableHead>
+              <TableHead className={head}>Correo</TableHead>
+              <TableHead className={head}>Rol</TableHead>
+              <TableHead className={head}>Almacenes</TableHead>
+              <TableHead className={head}>
+                <span className="sr-only">Acciones</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.map((member) => (
               <TableRow key={member.id}>
-                <TableCell className="font-semibold">{member.name}</TableCell>
-                <TableCell>{member.email}</TableCell>
-                <TableCell>{userRoleLabel(member.role)}</TableCell>
-                <TableCell>
+                <TableCell className={`${cell} font-semibold`}>
+                  {member.name}
+                </TableCell>
+                <TableCell className={cell}>{member.email}</TableCell>
+                <TableCell className={cell}>
+                  {userRoleLabel(member.role)}
+                </TableCell>
+                <TableCell className={cell}>
                   {member.role === 'owner' ? (
                     <span className="text-ink-muted">Todos</span>
                   ) : (
@@ -72,7 +82,7 @@ export function UsersSection({ users, warehouses }: UsersSectionProps) {
                     </div>
                   )}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className={`${cell} text-right`}>
                   {member.role === 'owner' ? null : (
                     <AssignWarehouseDialog
                       userId={member.id}
