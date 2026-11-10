@@ -26,6 +26,10 @@ import {
   setLineQuantity,
 } from '#/modules/counter/lib/order-draft'
 import { quoteRuleLabel } from '#/modules/counter/lib/order-format'
+import {
+  findStockShortages,
+  stockShortageMessage,
+} from '#/modules/counter/lib/order-stock'
 import { formatCents } from '#/modules/pricing/lib/money'
 import type { DraftLine } from '#/modules/counter/lib/order-draft'
 import type { CounterOverview } from '#/modules/counter/types/counter-view'
@@ -62,6 +66,8 @@ export function NewOrderDialog({
       ? quote.quote.lines.map((line) => [line.presentationId, line])
       : [],
   )
+
+  const shortages = findStockShortages(lines, optionOf)
 
   async function submit() {
     const parsed = draftToOrderInput({ warehouseId, customerId, notes, lines })
@@ -146,11 +152,17 @@ export function NewOrderDialog({
               {lines.map((line) => {
                 const option = optionOf.get(line.presentationId)
                 const priced = quoted.get(line.presentationId)
+                const shortage = shortages.get(line.presentationId)
                 return (
                   <tr key={line.presentationId}>
                     <Td>
                       {option?.label ?? 'Producto'}
                       <CellNote>Disponible: {option?.available ?? 0}</CellNote>
+                      {shortage && (
+                        <p role="alert" className="mt-1 text-xs text-[#a1372e]">
+                          {stockShortageMessage(shortage)}
+                        </p>
+                      )}
                     </Td>
                     <Td>
                       <FieldInput
@@ -235,7 +247,11 @@ export function NewOrderDialog({
             </>
           )}
         </div>
-        <ActionButton tone="primary" disabled={saving} onClick={submit}>
+        <ActionButton
+          tone="primary"
+          disabled={saving || shortages.size > 0}
+          onClick={submit}
+        >
           {saving ? 'Reservando…' : 'Reservar pedido'}
         </ActionButton>
       </div>

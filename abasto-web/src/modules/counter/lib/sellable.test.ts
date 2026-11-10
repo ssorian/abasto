@@ -31,12 +31,18 @@ describe('buildSellable', () => {
         label: 'Leche · Pieza',
         priceCents: 1000,
         available: 30,
+        productId: 'm',
+        factor: 1,
+        availableBase: 30,
       },
       {
         presentationId: 'm12',
         label: 'Leche · Caja',
         priceCents: 12000,
         available: 2,
+        productId: 'm',
+        factor: 12,
+        availableBase: 30,
       },
     ])
   })
