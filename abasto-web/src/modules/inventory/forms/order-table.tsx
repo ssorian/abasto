@@ -10,6 +10,7 @@ import {
   ListRow,
   ListTable,
 } from '#/modules/inventory/components/list-panel'
+import { digitsOnly } from '#/modules/inventory/lib/box-count'
 import { formatCents } from '#/modules/inventory/lib/cents'
 import {
   belowMinimumLabel,
@@ -151,7 +152,7 @@ export function OrderTable({
                     placeholder="0"
                     value={boxes[product.id] ?? ''}
                     onChange={(event) =>
-                      onBoxes(product.id, event.target.value)
+                      onBoxes(product.id, digitsOnly(event.target.value))
                     }
                   />
                 </ListCell>

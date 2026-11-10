@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { parseBoxCount } from '#/modules/inventory/lib/box-count'
+import { digitsOnly, parseBoxCount } from '#/modules/inventory/lib/box-count'
 
 describe('parseBoxCount', () => {
   test('reads whole boxes; blank means zero', () => {
@@ -16,5 +16,16 @@ describe('parseBoxCount', () => {
 
   test('rejects numbers beyond the safe range', () => {
     expect(parseBoxCount('99999999999999999999').ok).toBe(false)
+  })
+})
+
+describe('digitsOnly', () => {
+  test('drops everything that is not a digit, as typed or pasted', () => {
+    expect(digitsOnly('yyy')).toBe('')
+    expect(digitsOnly('12abc')).toBe('12')
+    expect(digitsOnly(' 4 5 ')).toBe('45')
+    expect(digitsOnly('1.5')).toBe('15')
+    expect(digitsOnly('-2')).toBe('2')
+    expect(digitsOnly('')).toBe('')
   })
 })
