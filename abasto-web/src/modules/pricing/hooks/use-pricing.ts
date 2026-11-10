@@ -3,11 +3,7 @@ import { toast } from 'sonner'
 
 import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
 import type { Result } from '#/lib/boundary'
-import {
-  bulkChangePricesFn,
-  setPricesFn,
-} from '#/modules/pricing/server/pricing'
-import type { BulkChangeInput } from '#/modules/pricing/services/bulk-prices'
+import { setPricesFn } from '#/modules/pricing/server/pricing'
 
 const messageOf = (failure: unknown) =>
   failure instanceof ClientError ? failure.message : genericErrorMessage
@@ -45,10 +41,5 @@ export function usePricingActions(warehouseId: string | null) {
       )
       return result.ok ? null : result.message
     },
-    bulkChange: (input: BulkChangeInput) =>
-      run(
-        () => bulkChangePricesFn({ data: input }),
-        ({ changed }) => `Cambio masivo aplicado a ${changed} precios.`,
-      ),
   }
 }

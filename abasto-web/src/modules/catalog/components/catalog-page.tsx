@@ -19,7 +19,6 @@ import { netCostPerPieceOf } from '#/modules/pricing/lib/product-costs'
 import { CardPrices } from '#/modules/pricing/components/card-prices'
 import { PriceHistorySheet } from '#/modules/pricing/components/price-history-sheet'
 import { WarehouseSelect } from '#/modules/pricing/components/warehouse-select'
-import { BulkChangeDialog } from '#/modules/pricing/forms/bulk-change-dialog'
 import { ProductPricesDialog } from '#/modules/pricing/forms/product-prices-dialog'
 import { usePricingActions } from '#/modules/pricing/hooks/use-pricing'
 import {
@@ -72,7 +71,6 @@ export function CatalogPage({
   const [importOpen, setImportOpen] = useState(false)
   const [pricesId, setPricesId] = useState<string>()
   const [history, setHistory] = useState<HistoryTarget>()
-  const [bulkOpen, setBulkOpen] = useState(false)
 
   const editing = products.find(({ id }) => id === editor?.productId)
   const visible = filterCatalog(products, query, supplierId)
@@ -88,9 +86,6 @@ export function CatalogPage({
     [pricing.rows, products],
   )
   const priceGroups = useMemo(() => pricesByProduct(priceRows), [priceRows])
-  const categories = [...new Set(products.map(({ category }) => category))]
-    .filter(Boolean)
-    .sort()
   const openPrices = pricesId ? priceGroups.get(pricesId) : undefined
   const openProduct = products.find(({ id }) => id === pricesId)
 
@@ -117,14 +112,6 @@ export function CatalogPage({
                     Importar CSV
                   </CatalogButton>
                 </>
-              )}
-              {managed.length > 0 && (
-                <CatalogButton
-                  className={headerButton}
-                  onClick={() => setBulkOpen(true)}
-                >
-                  Cambio masivo de precios
-                </CatalogButton>
               )}
               {canManage && (
                 <CatalogButton
@@ -216,18 +203,6 @@ export function CatalogPage({
         <PriceHistorySheet
           target={history}
           onClose={() => setHistory(undefined)}
-        />
-      )}
-      {bulkOpen && (
-        <BulkChangeDialog
-          warehouses={managed}
-          currentWarehouse={warehouse?.canManage ? warehouse : undefined}
-          rows={priceRows}
-          suppliers={suppliers}
-          categories={categories}
-          products={products}
-          onSubmit={pricingActions.bulkChange}
-          onClose={() => setBulkOpen(false)}
         />
       )}
       {canManage && editor && (

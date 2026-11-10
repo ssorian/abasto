@@ -16,12 +16,6 @@ export const originLabels = {
   none: 'Sin precio',
 } as const
 
-export type BulkScope = {
-  supplierId?: string
-  category?: string
-  productIds?: ReadonlyArray<string>
-}
-
 export function joinProducts(
   rows: ReadonlyArray<PriceRow>,
   products: ReadonlyArray<{ id: string; supplierId: string | null }>,
@@ -83,18 +77,4 @@ export function pendingPrices(
     }
   }
   return { prices, errors }
-}
-
-/** Own prices a bulk change would touch in the loaded warehouse. */
-export function countAffected(
-  rows: ReadonlyArray<PriceTableRow>,
-  scope: BulkScope,
-) {
-  return rows.filter(
-    (row) =>
-      row.origin === 'own' &&
-      (!scope.supplierId || row.supplierId === scope.supplierId) &&
-      (!scope.category || row.category === scope.category) &&
-      (!scope.productIds?.length || scope.productIds.includes(row.productId)),
-  ).length
 }

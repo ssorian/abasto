@@ -43,7 +43,7 @@ export function parsePesos(text: string): Parsed {
   return parsed
 }
 
-/** Signed pesos for a fixed bulk change ("-2.50" → -250). */
+/** Signed pesos ("-2.50" → -250). */
 export const parseSignedPesos = (text: string): Parsed =>
   parseScaled(text, true, decimals)
 

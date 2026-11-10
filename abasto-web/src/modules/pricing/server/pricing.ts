@@ -4,12 +4,10 @@ import { parseInput } from '#/lib/boundary'
 import { runWithActor } from '#/lib/server-actor'
 import { can } from '#/modules/access/lib/policy'
 import {
-  bulkChangeInput,
   historyInput,
   pricingOverviewInput,
   setPricesInput,
 } from '#/modules/pricing/lib/pricing-inputs'
-import { bulkChangePrices } from '#/modules/pricing/services/bulk-prices'
 import {
   getPriceHistory,
   listWarehousePrices,
@@ -41,14 +39,6 @@ export const setPricesFn = createServerFn({ method: 'POST' })
   .validator((data: unknown) => data)
   .handler(({ data }) =>
     runWithActor((actor) => setPrices(actor, parseInput(setPricesInput, data))),
-  )
-
-export const bulkChangePricesFn = createServerFn({ method: 'POST' })
-  .validator((data: unknown) => data)
-  .handler(({ data }) =>
-    runWithActor((actor) =>
-      bulkChangePrices(actor, parseInput(bulkChangeInput, data)),
-    ),
   )
 
 export const priceHistoryFn = createServerFn({ method: 'GET' })
