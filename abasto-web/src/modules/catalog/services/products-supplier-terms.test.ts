@@ -296,6 +296,19 @@ describe('savePieceCost', () => {
     expect(await getProduct(owner, product.id)).toEqual(product)
   })
 
+  test('an unknown product is not found and nothing is written', async () => {
+    const { staff } = await setupActors()
+    const error = await errorOf(() =>
+      savePieceCost(
+        managerOf(staff),
+        '00000000-0000-0000-0000-000000000000',
+        terms,
+      ),
+    )
+    expect(error.code).toBe('not_found')
+    expect((await counts()).products).toBe(0)
+  })
+
   test('a manager still cannot edit the product itself', async () => {
     const { owner, staff } = await setupActors()
     const product = await createProduct(owner, base)
