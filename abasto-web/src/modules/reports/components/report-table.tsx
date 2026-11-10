@@ -45,7 +45,7 @@ export function Td({ className, ...props }: ComponentProps<'td'>) {
   return (
     <td
       className={cn(
-        'border-t border-[#f5f1ed] px-[11px] py-[13px] whitespace-nowrap first:min-w-[170px] first:whitespace-normal md:px-[14px] md:py-4',
+        'border-t border-[#f5f1ed] px-[11px] py-[13px] whitespace-nowrap first:min-w-[120px] first:whitespace-normal md:px-[14px] md:py-4',
         className,
       )}
       {...props}
