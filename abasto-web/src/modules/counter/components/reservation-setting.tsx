@@ -30,7 +30,7 @@ export function ReservationSetting({ hours }: { hours: number }) {
           min="1"
           max="720"
           step="1"
-          className="w-40"
+          className="w-full"
           value={text}
           onChange={(event) => setText(event.target.value)}
         />
