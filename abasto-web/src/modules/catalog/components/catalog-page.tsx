@@ -81,6 +81,8 @@ export function CatalogPage({
     ({ id }) => id === pricing.selectedId,
   )
   const managed = pricing.warehouses.filter((option) => option.canManage)
+  // Supplier cost is global; the owner and any warehouse manager edit it.
+  const canEditCost = canManage || managed.length > 0
   const priceRows = useMemo(
     () => joinProducts(pricing.rows, products),
     [pricing.rows, products],
@@ -163,7 +165,7 @@ export function CatalogPage({
                   group={priceGroups.get(product.id)}
                   warehouseName={warehouse.name}
                   netCostPerPiece={
-                    canManage ? netCostPerPieceOf(product) : undefined
+                    canEditCost ? netCostPerPieceOf(product) : undefined
                   }
                 />
               ) : undefined
@@ -185,7 +187,7 @@ export function CatalogPage({
           group={openPrices}
           warehouseName={warehouse.name}
           canEdit={warehouse.canManage}
-          canEditCost={canManage}
+          canEditCost={canEditCost}
           onSaveCost={(patch) => actions.savePieceCost(openProduct.id, patch)}
           onSavePrices={pricingActions.savePrices}
           onHistory={(row) => {

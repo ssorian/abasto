@@ -57,7 +57,7 @@ type OrderDialogProps = {
   initialWarehouseId: string
   suppliers: ReadonlyArray<CatalogSupplier>
   products: ReadonlyArray<CatalogProduct>
-  /** Whether the actor may edit catalog products (owner). */
+  /** Whether the actor may edit catalog products (owner); a manager of the receiving warehouse edits its prices and costs too. */
   canEditProducts: boolean
   /** Open "Por reponer" balances of every supplier; the dialog keeps the chosen supplier's. */
   restock: ReadonlyArray<PendingBalance>
@@ -169,6 +169,12 @@ export function OrderDialog({
   }
 
   const editing = products.find(({ id }) => id === editingId)
+  // The owner, or the manager of the receiving warehouse, fixes costs and prices without leaving the order.
+  const canEditPrices =
+    canEditProducts ||
+    warehouses.some(
+      ({ id, canManage }) => id === draft.warehouseId && canManage,
+    )
 
   return (
     <>
@@ -338,7 +344,7 @@ export function OrderDialog({
                       boxes: { ...current.boxes, [productId]: boxes },
                     }))
                   }
-                  onEdit={canEditProducts ? setEditingId : undefined}
+                  onEdit={canEditPrices ? setEditingId : undefined}
                   failed={failed}
                 />
               ) : (
@@ -370,13 +376,13 @@ export function OrderDialog({
           </DialogActions>
         </form>
       </InventoryDialog>
-      {canEditProducts && editing && (
+      {canEditPrices && editing && (
         // Saving reloads the products, so the rows recalculate with the new amounts and typed boxes stay.
         <WarehousePricesDialog
           key={`${draft.warehouseId}:${editing.id}`}
           product={editing}
           warehouseId={draft.warehouseId}
-          canEditCost={canEditProducts}
+          canEditCost={canEditPrices}
           onPricesSaved={() => setReloadStandard((count) => count + 1)}
           onClose={() => setEditingId(undefined)}
         />

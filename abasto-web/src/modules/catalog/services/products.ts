@@ -222,6 +222,40 @@ export async function updateProduct(
   }
 }
 
+/** Supplier cost per piece, fixed discount and promotion, in ten-thousandths. */
+export type PieceCost = Pick<ProductFields, (typeof amountKeys)[number]>
+
+/**
+ * Saves only the supplier amounts of a product; the owner or any warehouse
+ * manager may. Keys other than the three amounts are ignored, and the result
+ * is checked merged with the stored amounts.
+ */
+export async function savePieceCost(
+  actor: Actor,
+  id: string,
+  cost: PieceCost,
+): Promise<Product> {
+  authorize(actor, 'catalog.cost')
+  const values = cleaned({
+    listPricePerPiece: cost.listPricePerPiece,
+    fixedDiscountPerPiece: cost.fixedDiscountPerPiece,
+    promotionPerPiece: cost.promotionPerPiece,
+  })
+  return db.transaction(async (tx) => {
+    const stored = await loadProduct(tx, id)
+    requireNetCost({
+      listPricePerPiece: values.listPricePerPiece ?? stored.listPricePerPiece,
+      fixedDiscountPerPiece:
+        values.fixedDiscountPerPiece ?? stored.fixedDiscountPerPiece,
+      promotionPerPiece: values.promotionPerPiece ?? stored.promotionPerPiece,
+    })
+    if (Object.keys(values).length) {
+      await tx.update(products).set(values).where(eq(products.id, id))
+    }
+    return loadProduct(tx, id)
+  })
+}
+
 /** Any signed-in actor may read the catalog. */
 export async function listProducts(_actor: Actor): Promise<Array<Product>> {
   return loadProducts(db)

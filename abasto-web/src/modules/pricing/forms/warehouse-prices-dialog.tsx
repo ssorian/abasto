@@ -16,7 +16,7 @@ import { pricingOverviewFn } from '#/modules/pricing/server/pricing'
 type WarehousePricesDialogProps = {
   product: CatalogProduct
   warehouseId: string
-  /** Owner only. */
+  /** Owner or any warehouse manager (supplier cost is global). */
   canEditCost: boolean
   /** Called after the sale prices were saved, so the caller can reload what it shows. */
   onPricesSaved: () => void

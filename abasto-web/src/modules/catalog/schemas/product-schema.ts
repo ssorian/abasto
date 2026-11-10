@@ -22,6 +22,12 @@ const productFields = z.object({
 export const productInput = productFields.extend(presentationSetInput.shape)
 export const productPatchInput = productFields.omit({ unit: true }).partial()
 export const idInput = z.string()
+/** Only the supplier amounts; any other key is dropped. */
+export const pieceCostInput = productFields.pick({
+  listPricePerPiece: true,
+  fixedDiscountPerPiece: true,
+  promotionPerPiece: true,
+})
 
 export const supplierInput = z.object({
   name: z.string(),
