@@ -1,7 +1,9 @@
 import type {
   CatalogProduct,
+  PresentationDraft,
   ProductDraft,
 } from '#/modules/catalog/lib/catalog-types'
+import { presentationSetFromDrafts } from '#/modules/catalog/lib/presentation-draft'
 import {
   formatTenThousandths,
   parseTenThousandths,
@@ -99,19 +101,31 @@ const fieldsFromDraft = (draft: ProductDraft) => ({
   supplierCode: draft.supplierCode,
 })
 
-/** New product: one active base-unit presentation (factor 1) that is the default. */
-export const productInputFromDraft = (draft: ProductDraft): ProductInput => ({
+/**
+ * New product. With the presentation rows typed in the form they are sent as
+ * is (the server validates them in the same transaction); without them the
+ * product gets one active base-unit presentation (factor 1) that is the default.
+ */
+export const productInputFromDraft = (
+  draft: ProductDraft,
+  rows?: ReadonlyArray<PresentationDraft>,
+  defaultKey = '',
+): ProductInput => ({
   ...fieldsFromDraft(draft),
   unit: draft.unit,
-  presentations: [
-    {
-      name: draft.unit,
-      factor: 1,
-      barcode: draft.barcode.trim() || null,
-      active: true,
-    },
-  ],
-  defaultIndex: 0,
+  ...(rows
+    ? presentationSetFromDrafts(rows, defaultKey)
+    : {
+        presentations: [
+          {
+            name: draft.unit,
+            factor: 1,
+            barcode: draft.barcode.trim() || null,
+            active: true,
+          },
+        ],
+        defaultIndex: 0,
+      }),
 })
 
 /** Edit: identity fields only. Unit is fixed; presentations are saved on their own. */

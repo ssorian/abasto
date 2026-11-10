@@ -1,5 +1,6 @@
 import { AlertTriangleIcon, HistoryIcon } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { StatusBadge } from '#/components/status-badge'
 import type { StatusTone } from '#/components/status-badge'
@@ -17,6 +18,7 @@ import type {
   PieceCostAmounts,
   PieceCostDraft,
 } from '#/modules/pricing/lib/piece-cost-draft'
+import { savedSummary } from '#/modules/pricing/lib/saved-summary'
 import { originLabels, pendingPrices } from '#/modules/pricing/lib/price-table'
 import type {
   PriceTableRow,
@@ -101,12 +103,22 @@ export function ProductPricesDialog({
     if (costPatch && !costPatch.ok) return
     if (Object.keys(result.errors).length) return
     setSaving(true)
-    const message =
-      (costPatch?.ok && costPatch.value
-        ? await onSaveCost(costPatch.value)
-        : null) ??
-      (result.prices.length ? await onSavePrices(result.prices) : null)
+    const costToSave = costPatch?.ok ? costPatch.value : null
+    const costMessage = costToSave ? await onSaveCost(costToSave) : null
+    const costSaved = Boolean(costToSave) && costMessage === null
+    const pricesMessage =
+      costMessage === null && result.prices.length
+        ? await onSavePrices(result.prices)
+        : null
+    const pricesSaved = costMessage === null && result.prices.length > 0
     setSaving(false)
+    const saved = savedSummary(
+      costSaved,
+      pricesSaved && pricesMessage === null,
+      result.prices.length,
+    )
+    if (saved) toast.success(saved)
+    const message = costMessage ?? pricesMessage
     if (message) setFailure(message)
     else onClose()
   }

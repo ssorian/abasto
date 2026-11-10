@@ -29,6 +29,29 @@ const stored: CatalogProduct = {
 }
 
 describe('product draft ↔ service input', () => {
+  test('a new product carries the presentations typed in the form, with the chosen default', () => {
+    const rows = [
+      { key: 'a', name: 'piezas', factor: 1, barcode: ' 7501 ', active: true },
+      { key: 'b', name: 'Caja', factor: 12, barcode: '', active: true },
+    ]
+    const input = productInputFromDraft(
+      { ...emptyProductDraft(), name: 'Leche', sku: 'L-1' },
+      rows,
+      'b',
+    )
+    expect(input.presentations).toEqual([
+      {
+        id: undefined,
+        name: 'piezas',
+        factor: 1,
+        barcode: '7501',
+        active: true,
+      },
+      { id: undefined, name: 'Caja', factor: 12, barcode: null, active: true },
+    ])
+    expect(input.defaultIndex).toBe(1)
+  })
+
   test('a new product gets one active base presentation named after the unit', () => {
     const input = productInputFromDraft({
       ...emptyProductDraft(),

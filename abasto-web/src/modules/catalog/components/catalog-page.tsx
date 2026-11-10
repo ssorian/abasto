@@ -235,7 +235,9 @@ export function CatalogPage({
           key={editor.productId ?? 'new'}
           product={editing}
           suppliers={suppliers}
-          onSubmit={(draft) => actions.saveProduct(editor.productId, draft)}
+          onSubmit={(draft, presentations) =>
+            actions.saveProduct(editor.productId, draft, presentations)
+          }
           onSubmitPresentations={
             editing
               ? (rows, defaultKey) =>
