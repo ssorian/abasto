@@ -329,6 +329,7 @@ describe('cancelSupplierOrder', () => {
         lineId: line.id,
         missingBoxes: 0,
         damagedBoxes: 0,
+        noExpiry: true,
       })),
     })
     const snapshot = await supplierState()
@@ -358,6 +359,7 @@ const arrive = (
   purchaseId: order.id,
   lines: order.lines.map((line, index) => ({
     lineId: line.id,
+    noExpiry: true,
     ...perLine[index],
   })),
   ...extra,
@@ -553,6 +555,37 @@ describe('receiveSupplierOrder', () => {
     expect((await supplierState()).pendings).toEqual([])
   })
 
+  test('every line with good boxes declares an expiry or explicitly none', async () => {
+    const fx = await setupSupplierOrders()
+    const order = await pendingOrder(fx)
+    const undeclared = {
+      purchaseId: order.id,
+      lines: order.lines.map((line) => ({
+        lineId: line.id,
+        missingBoxes: 0,
+        damagedBoxes: 0,
+      })),
+    }
+    const before = await supplierState()
+    const error = await errorOf(() =>
+      receiveSupplierOrder(fx.owner, undeclared),
+    )
+    expect([error.code, error.message]).toEqual([
+      'invalid',
+      'Indica la caducidad de cada producto que entra o marca «Sin caducidad».',
+    ])
+    expect(await supplierState()).toEqual(before)
+    // A line where nothing good arrived needs no expiry.
+    const result = await receiveSupplierOrder(fx.owner, {
+      purchaseId: order.id,
+      lines: [
+        { ...undeclared.lines[0], expiresOn: '2027-02-01' },
+        { ...undeclared.lines[1], damagedBoxes: 2 },
+      ],
+    })
+    expect(result.lots.map((lot) => lot.expiresOn)).toEqual(['2027-02-01'])
+  })
+
   test('a line can be all missing or all damaged: no lot and the whole line is owed', async () => {
     const fx = await setupSupplierOrders()
     const order = await pendingOrder(fx)
@@ -613,7 +646,12 @@ describe('receiveSupplierOrder', () => {
           ...arrive(order, ok),
           lines: [
             arrive(order, ok).lines[0],
-            { lineId: crypto.randomUUID(), missingBoxes: 0, damagedBoxes: 0 },
+            {
+              lineId: crypto.randomUUID(),
+              missingBoxes: 0,
+              damagedBoxes: 0,
+              noExpiry: true,
+            },
           ],
         },
         'invalid',
@@ -637,7 +675,9 @@ describe('receiveSupplierOrder', () => {
       ],
       [
         arrive(order, ok, {
-          replacements: [{ pendingId: crypto.randomUUID(), boxes: 1 }],
+          replacements: [
+            { pendingId: crypto.randomUUID(), boxes: 1, noExpiry: true },
+          ],
         }),
         'not_found',
         'No encontramos ese saldo.',

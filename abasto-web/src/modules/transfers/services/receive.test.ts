@@ -126,8 +126,9 @@ describe('receiveTransfer', () => {
     })
     expect(stored.closedAt).not.toBeNull()
     const stock = await getWarehouseStock(fx.managerB, fx.b.id)
-    expect(stock[0]).toMatchObject({ onHand: 6, available: 6 })
-    expect(stock[0].lots[0]).toMatchObject({ code: 'L-77' })
+    const milk = stock.find((row) => row.productId === fx.milkBox.id)
+    expect(milk).toMatchObject({ onHand: 6, available: 6 })
+    expect(milk?.lots[0]).toMatchObject({ code: 'L-77' })
   })
 
   test('a shortage is recorded and is stock nowhere', async () => {

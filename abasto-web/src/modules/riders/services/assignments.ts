@@ -28,16 +28,14 @@ import {
   lockLotsInOrder,
   releaseLots,
 } from '#/modules/orders/services/reservations'
-import {
-  readWarehousePrices,
-  roundDiv,
-} from '#/modules/pricing/services/price-reads'
+import { readWarehousePrices } from '#/modules/pricing/services/price-reads'
 import {
   riderAllocations,
   riderAssignmentLines,
   riderAssignments,
   riders,
 } from '#/modules/riders/db/schema'
+import { priceSold } from '#/modules/riders/lib/allocation-pricing'
 import { isUuid, toBaseUnits } from '#/modules/riders/lib/quantities'
 import type { BoxesAndUnits } from '#/modules/riders/lib/quantities'
 import {
@@ -88,6 +86,7 @@ type ProductInfo = {
   boxFactor: number
   defaultPresentationId: string | null
   defaultFactor: number
+  pieceId: string | null
 }
 
 /** Name, box (largest active presentation) and default presentation of each product. */
@@ -111,9 +110,13 @@ async function readProducts(tx: Tx, productIds: Array<string>) {
       boxFactor: 1,
       defaultPresentationId: null,
       defaultFactor: 1,
+      pieceId: null,
     }
     if (row.presentationId && row.active) {
       current.boxFactor = Math.max(current.boxFactor, row.factor ?? 1)
+    }
+    if (row.presentationId && row.active && row.factor === 1) {
+      current.pieceId = row.presentationId
     }
     if (row.presentationId && row.isDefault) {
       current.defaultPresentationId = row.presentationId
@@ -193,11 +196,16 @@ export async function assignRider(
       lock: true,
     })
     const lotById = new Map(sellable.map((lot) => [lot.id, lot]))
+    const prices = await readWarehousePrices(tx, warehouseId)
     const standard = new Map(
-      (await readWarehousePrices(tx, warehouseId)).map((row) => [
-        row.presentationId,
-        row.priceCents,
-      ]),
+      prices.map((row) => [row.presentationId, row.priceCents]),
+    )
+    // Only a price set for the piece itself counts: a derived one is just the
+    // prorated box price and would add rounding without meaning.
+    const ownPiece = new Map(
+      prices
+        .filter((row) => row.origin === 'own')
+        .map((row) => [row.presentationId, row.priceCents]),
     )
     const plan = fifoPlanner(sellable)
     const plans = wanted.map((line) => ({
@@ -238,12 +246,18 @@ export async function assignRider(
               `${line.product.name} no tiene precio en este almacén.`,
             )
           }
+          // A product sold by the piece by default has one price already.
+          const pieceCents =
+            line.product.defaultFactor > 1 && line.product.pieceId
+              ? (ownPiece.get(line.product.pieceId) ?? null)
+              : null
           return {
             lineId: stored.id,
             lotId,
             quantity,
             priceCents,
             priceFactor: line.product.defaultFactor,
+            pieceCents,
           }
         }),
       )
@@ -346,6 +360,7 @@ export async function settleAssignment(
         quantity: riderAllocations.quantity,
         priceCents: riderAllocations.priceCents,
         priceFactor: riderAllocations.priceFactor,
+        pieceCents: riderAllocations.pieceCents,
       })
       .from(riderAllocations)
       .innerJoin(lots, eq(lots.id, riderAllocations.lotId))
@@ -362,7 +377,6 @@ export async function settleAssignment(
     const released = new Map<string, number>()
     let expectedCents = 0
     for (const line of lines) {
-      let toSell = line.assignedQuantity - leftoverOf.get(line.id)!
       const own = allocations
         .filter((a) => a.lineId === line.id)
         .sort((a, b) =>
@@ -371,10 +385,14 @@ export async function settleAssignment(
             { receivedAt: b.receivedAt, id: b.lotId },
           ),
         )
-      for (const allocation of own) {
-        const sold = Math.min(allocation.quantity, toSell)
+      // Whole boxes at the box price, loose pieces at the piece price.
+      const priced = priceSold(
+        own,
+        line.assignedQuantity - leftoverOf.get(line.id)!,
+      )
+      for (const [position, allocation] of own.entries()) {
+        const { sold, cents } = priced[position]
         const leftover = allocation.quantity - sold
-        toSell -= sold
         if (sold > 0) {
           await appendMovement(
             tx,
@@ -388,10 +406,7 @@ export async function settleAssignment(
             },
             { fromReserved: true },
           )
-          expectedCents += roundDiv(
-            BigInt(sold) * BigInt(allocation.priceCents),
-            BigInt(allocation.priceFactor),
-          )
+          expectedCents += cents
         }
         if (leftover > 0) {
           released.set(
@@ -413,11 +428,13 @@ export async function settleAssignment(
     if (!fitsInt4(expectedCents)) {
       throw new AppError('invalid', 'El total del reparto es demasiado grande.')
     }
+    // The drawer gets the cash actually handed in; any shortage or surplus
+    // stays on the assignment as its difference.
     const sale =
-      expectedCents > 0
+      input.deliveredCents > 0
         ? await postCashMovement(tx, session, {
             type: 'sale',
-            amountCents: expectedCents,
+            amountCents: input.deliveredCents,
             reason: 'Reparto liquidado',
             actorId: actor.userId,
           })

@@ -4,7 +4,7 @@ export const pendingTypeLabels: Record<PendingType, string> = {
   damaged: 'Dañado o caducado',
   missing: 'Faltante',
   replaced: 'Repuesto',
-  written_off: 'Descontado (a lo chino)',
+  written_off: 'Descontado del pago',
   discounted: 'Descontado en un pedido',
   returned: 'Devuelto al proveedor',
   reopened: 'Reabierto',

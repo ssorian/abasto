@@ -33,8 +33,10 @@ export type ReceptionLineInput = {
   missingBoxes: number
   /** Whole boxes that arrived damaged or expired: a "Por devolver" balance, never stock. */
   damagedBoxes: number
-  /** YYYY-MM-DD */
+  /** YYYY-MM-DD. Required when good boxes enter, unless `noExpiry` says the product has none. */
   expiresOn?: string
+  /** Explicit statement that the good boxes carry no expiry date. */
+  noExpiry?: boolean
 }
 export type ReceptionInput = {
   purchaseId: string
@@ -45,8 +47,19 @@ export type ReceptionInput = {
     pendingId: string
     boxes: number
     expiresOn?: string
+    noExpiry?: boolean
   }>
 }
+
+const missingExpiry = () =>
+  new AppError(
+    'invalid',
+    'Indica la caducidad de cada producto que entra o marca «Sin caducidad».',
+  )
+
+/** Stock that enters must say when it expires, or explicitly that it does not. */
+const declaresExpiry = (item: { expiresOn?: string; noExpiry?: boolean }) =>
+  Boolean(item.expiresOn) || item.noExpiry === true
 
 const isCount = (value: number) => Number.isSafeInteger(value) && value >= 0
 
@@ -84,6 +97,9 @@ function validateLines(
     if (line.expiresOn && !isIsoDate(line.expiresOn)) {
       throw new AppError('invalid', 'La fecha de caducidad no es válida.')
     }
+    const good =
+      ordered.get(line.lineId)! - line.missingBoxes - line.damagedBoxes
+    if (good > 0 && !declaresExpiry(line)) throw missingExpiry()
   }
 }
 
@@ -105,6 +121,7 @@ function validateReplacements(input: ReceptionInput) {
     if (item.expiresOn && !isIsoDate(item.expiresOn)) {
       throw new AppError('invalid', 'La fecha de caducidad no es válida.')
     }
+    if (!declaresExpiry(item)) throw missingExpiry()
     seen.add(item.pendingId)
   }
 }

@@ -1,4 +1,4 @@
-import { PlusIcon } from 'lucide-react'
+import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { useState } from 'react'
 
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
@@ -12,6 +12,7 @@ import {
   defaultKeyOf,
   draftsFromProduct,
   newPresentationDraft,
+  removeDraft,
 } from '#/modules/catalog/lib/presentation-draft'
 
 import type {
@@ -24,44 +25,38 @@ export type SavePresentations = (
   defaultKey: string,
 ) => Promise<boolean>
 
-type PresentationsEditorProps = {
-  product: CatalogProduct
-  /** Resolves to whether the save worked; `onSaved` runs only then. */
-  onSubmit: SavePresentations
-  onSaved: () => void
+export type PresentationsState = {
+  rows: Array<PresentationDraft>
+  defaultKey: string
+}
+
+type PresentationRowsProps = {
+  unit: string
+  state: PresentationsState
+  onChange: (state: PresentationsState) => void
   /** Columns of each row: the wide dialog fits four, the edit tab two. */
   compact?: boolean
 }
 
-/** Presentations and barcodes of an existing product, with its own save. */
-export function PresentationsEditor({
-  product,
-  onSubmit,
-  onSaved,
+/**
+ * Controlled rows of presentations (name, factor, barcode, status) plus the
+ * sale default. Rows not saved yet can be removed; stored ones only deactivated.
+ */
+export function PresentationRows({
+  unit,
+  state,
+  onChange,
   compact = false,
-}: PresentationsEditorProps) {
-  const [rows, setRows] = useState(() => draftsFromProduct(product))
-  const [defaultKey, setDefaultKey] = useState(() => defaultKeyOf(product))
-  const [saving, setSaving] = useState(false)
+}: PresentationRowsProps) {
+  const { rows, defaultKey } = state
   const patch = (key: string, change: Partial<PresentationDraft>) =>
-    setRows((current) =>
-      current.map((row) => (row.key === key ? { ...row, ...change } : row)),
-    )
-
-  async function save() {
-    setSaving(true)
-    const saved = await onSubmit(rows, defaultKey)
-    setSaving(false)
-    if (saved) onSaved()
-  }
+    onChange({
+      ...state,
+      rows: rows.map((row) => (row.key === key ? { ...row, ...change } : row)),
+    })
 
   return (
-    <div className="grid gap-[15px]">
-      <p className="rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972]">
-        Inventario en {product.unit}. Cada venta descuenta sus equivalencias del
-        mismo lote. Aquí sólo se definen nombre, equivalencia y código de cada
-        presentación; los precios se capturan por almacén en «Precios».
-      </p>
+    <>
       {rows.map((row) => (
         <div
           key={row.key}
@@ -82,7 +77,7 @@ export function PresentationsEditor({
                 }
               />
             </Field>
-            <Field label={`Equivale a cuántas ${product.unit}`}>
+            <Field label={`Equivale a cuántas ${unit}`}>
               <TextInput
                 type="number"
                 min="1"
@@ -114,12 +109,23 @@ export function PresentationsEditor({
               </SelectInput>
             </Field>
           </div>
+          {!row.id && rows.length > 1 && (
+            <div className="mt-3 flex justify-end">
+              <CatalogButton
+                aria-label={`Quitar presentación ${row.name || 'sin nombre'}`}
+                onClick={() => onChange(removeDraft(rows, defaultKey, row.key))}
+              >
+                <Trash2Icon className="size-4" />
+                Quitar
+              </CatalogButton>
+            </div>
+          )}
         </div>
       ))}
       <div>
         <CatalogButton
           onClick={() =>
-            setRows((current) => [...current, newPresentationDraft()])
+            onChange({ ...state, rows: [...rows, newPresentationDraft()] })
           }
         >
           <PlusIcon className="size-4" />
@@ -129,20 +135,68 @@ export function PresentationsEditor({
       <Field label="Presentación predeterminada al vender">
         <SelectInput
           value={defaultKey}
-          onChange={(event) => setDefaultKey(event.target.value)}
+          onChange={(event) =>
+            onChange({ ...state, defaultKey: event.target.value })
+          }
         >
           {rows
             .filter((row) => row.active)
             .map((row) => (
               <option key={row.key} value={row.key}>
-                {row.name || 'Sin nombre'} · {row.factor} {product.unit}
+                {row.name || 'Sin nombre'} · {row.factor} {unit}
               </option>
             ))}
         </SelectInput>
       </Field>
+    </>
+  )
+}
+
+type PresentationsEditorProps = {
+  product: CatalogProduct
+  /** Resolves to whether the save worked; `onSaved` runs only then. */
+  onSubmit: SavePresentations
+  onSaved: () => void
+  compact?: boolean
+}
+
+/** Presentations and barcodes of an existing product, with its own save. */
+export function PresentationsEditor({
+  product,
+  onSubmit,
+  onSaved,
+  compact = false,
+}: PresentationsEditorProps) {
+  const [state, setState] = useState<PresentationsState>(() => ({
+    rows: draftsFromProduct(product),
+    defaultKey: defaultKeyOf(product),
+  }))
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    setSaving(true)
+    const saved = await onSubmit(state.rows, state.defaultKey)
+    setSaving(false)
+    if (saved) onSaved()
+  }
+
+  return (
+    <div className="grid gap-[15px]">
+      <p className="rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972]">
+        Inventario en {product.unit}. Cada venta descuenta sus equivalencias del
+        mismo lote. Aquí sólo se definen nombre, equivalencia y código de cada
+        presentación; los precios se capturan por almacén en «Precios».
+      </p>
+      <PresentationRows
+        unit={product.unit}
+        state={state}
+        onChange={setState}
+        compact={compact}
+      />
       <p className="text-xs leading-[1.8] text-[#a49197] md:text-sm">
         Las equivalencias existentes no se cambian: desactiva la presentación y
-        crea otra para conservar el historial. Las presentaciones no se borran.
+        crea otra para conservar el historial. Las presentaciones guardadas no
+        se borran.
       </p>
       <div>
         <CatalogButton

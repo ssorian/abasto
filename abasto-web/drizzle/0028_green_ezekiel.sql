@@ -1,0 +1,2 @@
+ALTER TABLE "rider_allocations" ADD COLUMN "piece_cents" integer;--> statement-breakpoint
+ALTER TABLE "rider_allocations" ADD CONSTRAINT "rider_allocations_piece_min" CHECK ("rider_allocations"."piece_cents" is null or "rider_allocations"."piece_cents" > 0);

@@ -2,6 +2,7 @@ import { StatusBadge } from '#/components/status-badge'
 import { SupplierSelect } from '#/components/supplier-select'
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import { EmptyPanel } from '#/modules/inventory/components/empty-panel'
+import { HeldBreakdown } from '#/modules/inventory/components/held-breakdown'
 import {
   ListBody,
   ListCell,
@@ -108,9 +109,13 @@ export function ProductsTab({
                     </ListCell>
                     <ListCell>
                       <strong>{formatQuantity(row.onHand, pack)}</strong>
-                      <small className="block text-[#907e84]">
-                        {row.onHand} {row.unit}
-                      </small>
+                      {formatQuantity(row.onHand, pack) !==
+                        `${row.onHand} ${row.unit}` && (
+                        <small className="block text-[#907e84]">
+                          {row.onHand} {row.unit}
+                        </small>
+                      )}
+                      <HeldBreakdown row={row} pack={pack} />
                     </ListCell>
                     <ListCell>
                       {row.minimum > 0

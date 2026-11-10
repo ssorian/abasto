@@ -8,14 +8,24 @@ import {
   SelectInput,
   TextInput,
 } from '#/modules/catalog/forms/form-field'
-import { PresentationsEditor } from '#/modules/catalog/forms/presentations-dialog'
+import {
+  PresentationRows,
+  PresentationsEditor,
+} from '#/modules/catalog/forms/presentations-dialog'
 import { baseUnits, categories } from '#/modules/catalog/lib/catalog-types'
+import {
+  initialPresentationDrafts,
+  renameBaseRows,
+} from '#/modules/catalog/lib/presentation-draft'
 import {
   draftFromProduct,
   emptyProductDraft,
 } from '#/modules/catalog/lib/product-draft'
 
-import type { SavePresentations } from '#/modules/catalog/forms/presentations-dialog'
+import type {
+  PresentationsState,
+  SavePresentations,
+} from '#/modules/catalog/forms/presentations-dialog'
 import type {
   CatalogProduct,
   CatalogSupplier,
@@ -27,15 +37,26 @@ type ProductFormDialogProps = {
   /** Product being edited; undefined creates a new one. */
   product?: CatalogProduct
   suppliers: ReadonlyArray<CatalogSupplier>
-  /** Resolves to whether the save worked; the dialog closes only then. */
-  onSubmit: (draft: ProductDraft) => Promise<boolean>
+  /**
+   * Resolves to whether the save worked; the dialog closes only then. When
+   * creating, also receives the presentations defined in the form.
+   */
+  onSubmit: (
+    draft: ProductDraft,
+    presentations?: PresentationsState,
+  ) => Promise<boolean>
   /**
    * Saves the presentations of an existing product (own save, own validation).
-   * Without it, or when creating, the presentations tab is not shown.
+   * When creating, the tab edits the new product's presentations locally and
+   * they are saved together with the product.
    */
   onSubmitPresentations?: SavePresentations
   onClose: () => void
 }
+
+/** The line variant relies on `data-active`, which Radix does not set. */
+const tabClass =
+  'flex-none rounded-none border-0 border-b-2 border-transparent px-3 pb-2 data-[state=active]:border-b-[#3b2251] data-[state=active]:text-[#3b2251]'
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -58,9 +79,19 @@ export function ProductFormDialog({
   const [draft, setDraft] = useState(() =>
     product ? draftFromProduct(product) : emptyProductDraft(),
   )
+  const [presentations, setPresentations] = useState<PresentationsState>(() =>
+    initialPresentationDrafts(draft.unit),
+  )
   const [saving, setSaving] = useState(false)
   const patch = (change: Partial<ProductDraft>) =>
     setDraft((current) => ({ ...current, ...change }))
+  const changeUnit = (unit: string) => {
+    setPresentations((current) => ({
+      ...current,
+      rows: renameBaseRows(current.rows, draft.unit, unit),
+    }))
+    patch({ unit })
+  }
   // An inactive supplier stays selectable only while the product still uses it.
   const choices = suppliers.filter(
     ({ active, id }) => active || id === draft.supplierId,
@@ -68,7 +99,7 @@ export function ProductFormDialog({
 
   async function save() {
     setSaving(true)
-    const saved = await onSubmit(draft)
+    const saved = await onSubmit(draft, product ? undefined : presentations)
     setSaving(false)
     if (saved) onClose()
   }
@@ -77,7 +108,6 @@ export function ProductFormDialog({
     ['name', 'Nombre'],
     ['brand', 'Marca'],
     ['sku', 'SKU'],
-    ...(product ? [] : ([['barcode', 'Código de barras']] as const)),
   ]
 
   const details = (
@@ -117,7 +147,7 @@ export function ProductFormDialog({
             aria-label="Unidad base de inventario"
             value={draft.unit}
             disabled={!!product}
-            onChange={(event) => patch({ unit: event.target.value })}
+            onChange={(event) => changeUnit(event.target.value)}
           >
             {baseUnits.map((unit) => (
               <option key={unit}>{unit}</option>
@@ -193,40 +223,54 @@ export function ProductFormDialog({
       description="Aquí se define qué es el producto, su proveedor y sus presentaciones. Los costos y precios de venta se capturan en «Precios»."
       onClose={onClose}
     >
-      {product && onSubmitPresentations ? (
-        <Tabs defaultValue="details" className="gap-[18px]">
-          <TabsList variant="line" className="w-full justify-start">
-            <TabsTrigger value="details" className="flex-none px-3">
-              Datos del producto
-            </TabsTrigger>
-            <TabsTrigger value="presentations" className="flex-none px-3">
-              Presentaciones y códigos
-            </TabsTrigger>
-          </TabsList>
-          {/* Both panels stay mounted so typed edits survive switching tabs. */}
-          <TabsContent
-            value="details"
-            forceMount
-            className="data-[state=inactive]:hidden"
-          >
-            {details}
-          </TabsContent>
-          <TabsContent
-            value="presentations"
-            forceMount
-            className="data-[state=inactive]:hidden"
-          >
-            <PresentationsEditor
-              compact
-              product={product}
-              onSubmit={onSubmitPresentations}
-              onSaved={onClose}
-            />
-          </TabsContent>
-        </Tabs>
-      ) : (
-        details
-      )}
+      <Tabs defaultValue="details" className="flex-col gap-[18px]">
+        <TabsList variant="line" className="h-auto w-full justify-start">
+          <TabsTrigger value="details" className={tabClass}>
+            Datos del producto
+          </TabsTrigger>
+          <TabsTrigger value="presentations" className={tabClass}>
+            Presentaciones y códigos
+          </TabsTrigger>
+        </TabsList>
+        {/* Both panels stay mounted so typed edits survive switching tabs. */}
+        <TabsContent
+          value="details"
+          forceMount
+          className="data-[state=inactive]:hidden"
+        >
+          {details}
+        </TabsContent>
+        <TabsContent
+          value="presentations"
+          forceMount
+          className="data-[state=inactive]:hidden"
+        >
+          {product ? (
+            onSubmitPresentations && (
+              <PresentationsEditor
+                compact
+                product={product}
+                onSubmit={onSubmitPresentations}
+                onSaved={onClose}
+              />
+            )
+          ) : (
+            <div className="grid gap-[15px]">
+              <p className="rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972]">
+                Inventario en {draft.unit}. Define cómo se vende el producto:
+                nombre, equivalencia y código de barras de cada presentación. Se
+                guardan junto con el producto con «Guardar producto».
+              </p>
+              <PresentationRows
+                compact
+                unit={draft.unit}
+                state={presentations}
+                onChange={setPresentations}
+              />
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </CatalogModal>
   )
 }

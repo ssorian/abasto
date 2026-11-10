@@ -36,8 +36,8 @@ export async function insertPrices(
   source: PriceSource,
   reason = '',
 ) {
-  // Same per-warehouse lock as bulk changes (re-entrant inside them), so a
-  // manual price never commits under a bulk change that read the old one.
+  // Per-warehouse advisory lock: concurrent price writes of one warehouse
+  // commit one after the other.
   for (const warehouseId of [
     ...new Set(rows.map((r) => r.warehouseId)),
   ].sort()) {

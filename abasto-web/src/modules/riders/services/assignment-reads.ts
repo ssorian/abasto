@@ -37,6 +37,8 @@ export type AllocationDetail = {
   /** Frozen price of one default presentation of the lot. */
   priceCents: number
   priceFactor: number
+  /** Frozen warehouse price of one loose piece; null = prorated box price. */
+  pieceCents: number | null
   leftoverQuantity: number | null
   soldQuantity: number | null
 }
@@ -131,6 +133,7 @@ export async function readAssignment(
       quantity: riderAllocations.quantity,
       priceCents: riderAllocations.priceCents,
       priceFactor: riderAllocations.priceFactor,
+      pieceCents: riderAllocations.pieceCents,
       leftoverQuantity: riderAllocations.leftoverQuantity,
       soldQuantity: riderAllocations.soldQuantity,
     })

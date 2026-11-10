@@ -23,6 +23,7 @@ function row(
     sku: `SKU-${name}`,
     unit: 'piezas',
     onHand,
+    inRoute: 0,
     reserved: 0,
     available: onHand,
     expired: 0,

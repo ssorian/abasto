@@ -1,4 +1,4 @@
-import { and, desc, eq, gt } from 'drizzle-orm'
+import { and, desc, eq, gt, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
@@ -13,6 +13,11 @@ import type { MovementType } from '#/modules/inventory/db/schema'
 import { businessDate } from '#/modules/orders/services/clock'
 import { expireOverdueOrders } from '#/modules/orders/services/expiry'
 import { byFefo } from '#/modules/inventory/services/stock-ledger'
+import {
+  riderAllocations,
+  riderAssignmentLines,
+  riderAssignments,
+} from '#/modules/riders/db/schema'
 
 export type StockLot = {
   id: string
@@ -29,6 +34,8 @@ export type ProductStock = {
   onHand: number
   /** Held by open orders (Reservado or Preparado). */
   reserved: number
+  /** Handed to riders on open assignments (En ruta); still on hand until settled. */
+  inRoute: number
   /** Units in lots past their expiry day; never sold, not in `available`. */
   expired: number
   available: number
@@ -39,8 +46,8 @@ export type ProductStock = {
 }
 
 /**
- * Stock per product in one warehouse, including products that only have a
- * minimum. Overdue orders expire first (so their units are not counted as
+ * Stock per product in one warehouse: every published product (zero stock
+ * included) plus any product that has lots or a minimum. Overdue orders expire first (so their units are not counted as
  * reserved); `available` leaves out reserved and past-expiry units.
  */
 export async function getWarehouseStock(
@@ -49,7 +56,7 @@ export async function getWarehouseStock(
 ): Promise<Array<ProductStock>> {
   authorize(actor, 'warehouse.view', warehouseId)
   const today = businessDate()
-  const [lotRows, minimumRows] = await db.transaction(async (tx) => {
+  const [lotRows, minimumRows, routeRows] = await db.transaction(async (tx) => {
     await expireOverdueOrders(tx, warehouseId)
     return Promise.all([
       tx
@@ -68,23 +75,46 @@ export async function getWarehouseStock(
         .select()
         .from(stockMinimums)
         .where(eq(stockMinimums.warehouseId, warehouseId)),
+      // Rider units also sit in `lots.reserved`; split them out of order holds.
+      tx
+        .select({
+          productId: riderAssignmentLines.productId,
+          quantity: sql<number>`sum(${riderAllocations.quantity})::int`,
+        })
+        .from(riderAllocations)
+        .innerJoin(
+          riderAssignmentLines,
+          eq(riderAssignmentLines.id, riderAllocations.lineId),
+        )
+        .innerJoin(
+          riderAssignments,
+          eq(riderAssignments.id, riderAssignmentLines.assignmentId),
+        )
+        .where(
+          and(
+            eq(riderAssignments.warehouseId, warehouseId),
+            eq(riderAssignments.status, 'En ruta'),
+          ),
+        )
+        .groupBy(riderAssignmentLines.productId),
     ])
   })
   const productIds = new Set([
     ...lotRows.map((row) => row.productId),
     ...minimumRows.map((row) => row.productId),
   ])
-  if (!productIds.size) return []
+  // Published products always show, even before their first lot or minimum.
   const catalog = await db
     .select({
       id: products.id,
       name: products.name,
       sku: products.sku,
       unit: products.unit,
+      published: products.published,
     })
     .from(products)
   return catalog
-    .filter((product) => productIds.has(product.id))
+    .filter((product) => product.published || productIds.has(product.id))
     .map((product) => {
       const productRows = lotRows.filter((row) => row.productId === product.id)
       const productLots = productRows
@@ -93,7 +123,10 @@ export async function getWarehouseStock(
       const onHand = productLots.reduce((sum, lot) => sum + lot.onHand, 0)
       const minimum =
         minimumRows.find((row) => row.productId === product.id)?.minimum ?? 0
-      const reserved = productRows.reduce((sum, row) => sum + row.reserved, 0)
+      const inRoute =
+        routeRows.find((row) => row.productId === product.id)?.quantity ?? 0
+      const reserved =
+        productRows.reduce((sum, row) => sum + row.reserved, 0) - inRoute
       const isExpired = (row: (typeof productRows)[number]) =>
         row.expiresOn !== null && row.expiresOn < today
       const expired = productRows
@@ -109,6 +142,7 @@ export async function getWarehouseStock(
         unit: product.unit,
         onHand,
         reserved,
+        inRoute,
         expired,
         available,
         minimum,

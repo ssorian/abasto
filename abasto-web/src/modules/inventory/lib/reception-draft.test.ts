@@ -21,8 +21,8 @@ const lines: Array<ReceptionLine> = [
 
 const draft = (patch: Partial<ReceptionDraft> = {}): ReceptionDraft => ({
   lines: {
-    l1: { missing: '0', damaged: '0', expiresOn: '' },
-    l2: { missing: '0', damaged: '0', expiresOn: '' },
+    l1: { missing: '0', damaged: '0', expiresOn: '', noExpiry: true },
+    l2: { missing: '0', damaged: '0', expiresOn: '', noExpiry: true },
   },
   replacements: {},
   ...patch,
@@ -49,6 +49,7 @@ describe('initialReception', () => {
       missing: '0',
       damaged: '0',
       expiresOn: '',
+      noExpiry: false,
     })
   })
 })
@@ -56,6 +57,26 @@ describe('initialReception', () => {
 describe('receptionIssues', () => {
   test('is empty when everything adds up', () => {
     expect(receptionIssues(lines, draft(), {})).toEqual({})
+  })
+
+  test('asks for an expiry, or an explicit none, wherever good boxes enter', () => {
+    const issues = receptionIssues(
+      lines,
+      draft({
+        lines: {
+          l1: { missing: '0', damaged: '0', expiresOn: '', noExpiry: false },
+          l2: { missing: '4', damaged: '0', expiresOn: '', noExpiry: false },
+        },
+        replacements: {
+          m1: { boxes: '1', expiresOn: '' },
+          m2: { boxes: '1', expiresOn: '', noExpiry: true },
+        },
+      }),
+      { m1: 3, m2: 3 },
+    )
+    const message = 'Indica la caducidad o marca «Sin caducidad».'
+    // l2 has no good boxes, so it needs nothing.
+    expect(issues).toEqual({ l1: message, m1: message })
   })
 
   test('rejects missing + damaged above the ordered boxes', () => {
@@ -139,7 +160,7 @@ describe('receptionInputFromDraft', () => {
             damagedBoxes: 1,
             expiresOn: '2027-01-01',
           },
-          { lineId: 'l2', missingBoxes: 0, damagedBoxes: 0 },
+          { lineId: 'l2', missingBoxes: 0, damagedBoxes: 0, noExpiry: true },
         ],
       },
     })

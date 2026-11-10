@@ -5,6 +5,7 @@ import { resetDatabase } from '#/db/testing'
 import { cashMovements } from '#/modules/cash/db/schema'
 import { closeCashSession } from '#/modules/cash/services/cash-sessions'
 import { lots, stockMovements } from '#/modules/inventory/db/schema'
+import { getWarehouseStock } from '#/modules/inventory/services/stock-reads'
 import { ledgerSum } from '#/modules/inventory/services/testing'
 import { setPrices } from '#/modules/pricing/services/prices'
 import {
@@ -115,6 +116,31 @@ describe('assignRider', () => {
     const error = await errorOf(() => assign(0, 101, fx.other.id))
     expect(error.code).toBe('conflict')
     await assign(0, 100, fx.other.id)
+  })
+
+  test('warehouse stock reports the units in route apart from order reservations', async () => {
+    const { fx, assign } = await setup()
+    const detail = await assign(40, 20)
+    const stockOf = async () =>
+      (await getWarehouseStock(fx.staffA, fx.a.id)).find(
+        (row) => row.productId === fx.milkBox.id,
+      )
+    expect(await stockOf()).toMatchObject({
+      onHand: 600,
+      inRoute: 500,
+      reserved: 0,
+      available: 100,
+    })
+    await settleAssignment(fx.staffA, {
+      assignmentId: detail.id,
+      deliveredCents: 0,
+      lines: [{ lineId: detail.lines[0].id, boxes: 0, units: 500 }],
+    })
+    expect(await stockOf()).toMatchObject({
+      onHand: 600,
+      inRoute: 0,
+      available: 600,
+    })
   })
 
   test('refuses a second open assignment for the same rider and an inactive rider', async () => {
@@ -245,11 +271,28 @@ describe('settleAssignment', () => {
       lines: [{ lineId: b.lines[0].id, boxes: 0, units: 0 }],
     })
     expect(over.differenceCents).toBe(500)
-    // The drawer records the sold amount, not the cash handed in.
+    // The drawer records the cash handed in; the difference stays on the assignment.
     const amounts = (await db.select().from(cashMovements)).map(
       (m) => m.amountCents,
     )
-    expect(amounts).toEqual([10_000, 10_000])
+    expect(amounts.sort((x, y) => x - y)).toEqual([9_000, 10_500])
+  })
+
+  test('nothing handed in: the shortage is recorded but no cash enters the drawer', async () => {
+    const { fx, assign } = await setup()
+    const a = await assign(0, 10)
+    const settled = await settleAssignment(fx.staffA, {
+      assignmentId: a.id,
+      deliveredCents: 0,
+      lines: [{ lineId: a.lines[0].id, boxes: 0, units: 0 }],
+    })
+    expect(settled).toMatchObject({
+      expectedCents: 10_000,
+      deliveredCents: 0,
+      differenceCents: -10_000,
+      cashMovementId: null,
+    })
+    expect(await db.select().from(cashMovements)).toHaveLength(0)
   })
 
   test('everything back: all units released, no sale, no cash movement', async () => {
@@ -473,5 +516,93 @@ describe('reads', () => {
     expect((await errorOf(() => getAssignment(fx.owner, 'nope'))).code).toBe(
       'not_found',
     )
+  })
+})
+
+describe('settleAssignment with a piece price', () => {
+  /** Water sells by the box (12): box 440.00, loose piece 38.00 (own prices). */
+  async function setupWater(piecePrice: number | null = 3800) {
+    const fx = await setupRiders()
+    await setPrices(fx.owner, {
+      warehouseId: fx.a.id,
+      prices: [
+        { presentationId: fx.box(fx.water).id, priceCents: 44_000 },
+        ...(piecePrice === null
+          ? []
+          : [
+              { presentationId: fx.piece(fx.water).id, priceCents: piecePrice },
+            ]),
+      ],
+    })
+    const assign = (
+      boxes: number,
+      units: number,
+      lotsToReceive: Array<{ quantity: number; salePriceCents?: number }> = [
+        { quantity: 100 },
+      ],
+    ) =>
+      (async () => {
+        for (const lot of lotsToReceive) {
+          await receive(fx, { productId: fx.water.id, ...lot })
+        }
+        return assignRider(fx.staffA, {
+          riderId: fx.rider.id,
+          lines: [{ productId: fx.water.id, boxes, units }],
+        })
+      })()
+    const settle = (
+      detail: Awaited<ReturnType<typeof assign>>,
+      boxes: number,
+      units: number,
+    ) =>
+      settleAssignment(fx.staffA, {
+        assignmentId: detail.id,
+        deliveredCents: 0,
+        lines: [{ lineId: detail.lines[0].id, boxes, units }],
+      })
+    return { fx, assign, settle }
+  }
+
+  test('charges whole boxes at the box price and loose pieces at the piece price', async () => {
+    const { assign, settle } = await setupWater()
+    const detail = await assign(2, 5) // 29 pieces
+    const settled = await settle(detail, 0, 0)
+    // 2 boxes × 440.00 + 5 pieces × 38.00, not 29 × 440 / 12.
+    expect(settled.expectedCents).toBe(2 * 44_000 + 5 * 3800)
+  })
+
+  test('sold pieces beyond whole boxes are priced loose after a leftover', async () => {
+    const { assign, settle } = await setupWater()
+    const detail = await assign(2, 5)
+    const settled = await settle(detail, 0, 4) // 25 sold = 2 boxes + 1 piece
+    expect(settled.expectedCents).toBe(2 * 44_000 + 3800)
+  })
+
+  test('uses the piece price frozen at assignment, not the current one', async () => {
+    const { fx, assign, settle } = await setupWater()
+    const detail = await assign(0, 5)
+    await setPrices(fx.owner, {
+      warehouseId: fx.a.id,
+      prices: [{ presentationId: fx.piece(fx.water).id, priceCents: 9900 }],
+    })
+    expect((await settle(detail, 0, 0)).expectedCents).toBe(5 * 3800)
+  })
+
+  test('prorates the box price when the product has no piece price', async () => {
+    const { assign, settle } = await setupWater(null)
+    const detail = await assign(2, 5)
+    // 29 × 44000 / 12 = 106333.33 → 106333
+    expect((await settle(detail, 0, 0)).expectedCents).toBe(106_333)
+  })
+
+  test('a box that spans two lots is prorated per lot; the loose pieces are the newest', async () => {
+    const { assign, settle } = await setupWater()
+    const detail = await assign(2, 6, [
+      { quantity: 20 },
+      { quantity: 20, salePriceCents: 48_000 },
+    ]) // 30 pieces: 20 in the first lot, 10 in the second
+    const settled = await settle(detail, 0, 0)
+    // First 24 pieces are boxes: 20 at 440/12 + 4 at 480/12; last 6 are loose.
+    expect(settled.expectedCents).toBe(73_333 + 16_000 + 6 * 3800)
   })
 })

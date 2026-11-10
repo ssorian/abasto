@@ -11,16 +11,4 @@ export const setPricesInput = z.object({
   reason: z.string().optional(),
 })
 
-export const bulkChangeInput = z.object({
-  warehouseIds: z.union([z.literal('all'), z.array(id)]),
-  supplierId: id.optional(),
-  category: z.string().optional(),
-  productIds: z.array(id).optional(),
-  change: z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('percent'), bps: cents }),
-    z.object({ kind: z.literal('fixed'), cents }),
-  ]),
-  reason: z.string().optional(),
-})
-
 export const historyInput = z.object({ warehouseId: id, presentationId: id })

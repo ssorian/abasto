@@ -28,6 +28,18 @@ type SupplierOrdersTabProps = {
   onCancel: (order: SupplierOrderSummary) => void
 }
 
+/** What a received order lacked: units that did not arrive or came damaged. */
+function Shortages({ order }: { order: SupplierOrderSummary }) {
+  const notes = [
+    order.missingQuantity > 0 &&
+      `Faltaron ${order.missingQuantity} pzas (${formatCents(order.missingValueCents)})`,
+    order.damagedQuantity > 0 &&
+      `Dañadas ${order.damagedQuantity} pzas (${formatCents(order.damagedValueCents)})`,
+  ].filter(Boolean)
+  if (!notes.length) return null
+  return <small className="block text-[#907e84]">{notes.join(' · ')}</small>
+}
+
 /** Queue of supplier orders of the warehouse; shows the waiting ones by default. */
 export function SupplierOrdersTab({
   orders,
@@ -102,7 +114,11 @@ export function SupplierOrdersTab({
                     {order.expectedOn ? dateLabel(order.expectedOn) : '—'}
                   </ListCell>
                   <ListCell>{order.lineCount}</ListCell>
-                  <ListCell>{formatCents(order.totalCostCents)}</ListCell>
+                  <ListCell>
+                    {formatCents(order.totalCostCents)} · a pagar{' '}
+                    {formatCents(order.payableCents)}
+                    {order.status === 'Recibido' && <Shortages order={order} />}
+                  </ListCell>
                   <ListCell>
                     {canManage && order.status === 'Pedido' && (
                       <span className="flex flex-wrap justify-end gap-2">

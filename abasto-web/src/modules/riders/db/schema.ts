@@ -68,7 +68,7 @@ export const riderAssignments = pgTable(
     deliveredCents: integer('delivered_cents'),
     /** Delivered − expected: negative is a shortage, positive a surplus. */
     differenceCents: integer('difference_cents'),
-    /** The `sale` drawer movement of the settlement (none when nothing sold). */
+    /** The `sale` drawer movement with the cash handed in (none when nothing was handed in). */
     cashMovementId: uuid('cash_movement_id').references(() => cashMovements.id),
   },
   (table) => [
@@ -144,6 +144,12 @@ export const riderAllocations = pgTable(
     priceCents: integer('price_cents').notNull(),
     /** Base units in that default presentation. */
     priceFactor: integer('price_factor').notNull(),
+    /**
+     * Frozen warehouse price of one loose piece (base unit); null when the
+     * product had no own piece price (or rows from before it was frozen), in
+     * which case loose pieces are charged at the prorated box price.
+     */
+    pieceCents: integer('piece_cents'),
     /** Units given back to the lot; null until settled. */
     leftoverQuantity: integer('leftover_quantity'),
     /** Units sold (quantity − leftover); null until settled. */
@@ -153,6 +159,10 @@ export const riderAllocations = pgTable(
     check('rider_allocations_quantity_min', sql`${table.quantity} > 0`),
     check('rider_allocations_price_min', sql`${table.priceCents} > 0`),
     check('rider_allocations_factor_min', sql`${table.priceFactor} > 0`),
+    check(
+      'rider_allocations_piece_min',
+      sql`${table.pieceCents} is null or ${table.pieceCents} > 0`,
+    ),
     check(
       'rider_allocations_settlement_range',
       sql`(${table.leftoverQuantity} is null and ${table.soldQuantity} is null) or (${table.leftoverQuantity} >= 0 and ${table.soldQuantity} >= 0 and ${table.leftoverQuantity} + ${table.soldQuantity} = ${table.quantity})`,

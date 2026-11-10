@@ -47,7 +47,7 @@ export function WriteOffDialog({ pending, onClose }: WriteOffDialogProps) {
 
   return (
     <InventoryDialog
-      title="Descontar del pago (a lo chino)"
+      title="Descontar del pago"
       eyebrow={pending.supplierName.toUpperCase()}
       description={`${pending.productName} (${pending.originCode}): el proveedor debe ${pending.owedBoxes} ${pending.owedBoxes === 1 ? 'caja' : 'cajas'}. Las que descuentes ya no se le pagan ni se esperan como reposición. No se puede deshacer.`}
       onClose={onClose}

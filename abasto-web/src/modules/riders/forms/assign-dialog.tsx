@@ -1,5 +1,5 @@
 import { PlusIcon, Trash2Icon } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import {
@@ -40,6 +40,7 @@ const emptyLine = (): AssignDraftLine => ({
 /** Hands product to a rider: pick the rider, then boxes and/or units per product. */
 export function AssignDialog({ riders, products, onClose }: AssignDialogProps) {
   const actions = useRiderActions()
+  const idPrefix = useId()
   const [riderId, setRiderId] = useState(riders.at(0)?.id ?? '')
   const [lines, setLines] = useState<Array<AssignDraftLine>>([emptyLine()])
   const [error, setError] = useState<string | null>(null)
@@ -95,35 +96,40 @@ export function AssignDialog({ riders, products, onClose }: AssignDialogProps) {
           const taken = new Set(
             lines.filter((_, i) => i !== index).map((l) => l.productId),
           )
+          const hintId = `${idPrefix}-${index}-hint`
           return (
             <div
               key={index}
               className="grid items-end gap-3 rounded-[10px] border border-[#efe9e3] p-4 md:grid-cols-[minmax(0,1fr)_110px_110px_auto]"
             >
-              <Field
-                label="Producto"
-                hint={
-                  product
-                    ? `Caja = ${product.boxFactor} unidades · disponibles: ${describeQuantity(product.available, product.boxFactor)}`
-                    : undefined
-                }
-              >
-                <FieldSelect
-                  value={line.productId}
-                  onChange={(event) =>
-                    patch(index, { productId: event.target.value })
-                  }
-                >
-                  <option value="">Elige el producto</option>
-                  {products
-                    .filter((p) => !taken.has(p.productId))
-                    .map((p) => (
-                      <option key={p.productId} value={p.productId}>
-                        {p.name}
-                      </option>
-                    ))}
-                </FieldSelect>
-              </Field>
+              <div className="flex min-w-0 flex-col gap-[7px]">
+                <Field label="Producto">
+                  <FieldSelect
+                    value={line.productId}
+                    aria-describedby={product ? hintId : undefined}
+                    onChange={(event) =>
+                      patch(index, { productId: event.target.value })
+                    }
+                  >
+                    <option value="">Elige el producto</option>
+                    {products
+                      .filter((p) => !taken.has(p.productId))
+                      .map((p) => (
+                        <option key={p.productId} value={p.productId}>
+                          {p.name}
+                        </option>
+                      ))}
+                  </FieldSelect>
+                </Field>
+                {product && (
+                  <small
+                    id={hintId}
+                    className="text-[11px] font-normal text-[#9c888f]"
+                  >
+                    {`Caja = ${product.boxFactor} unidades · disponibles: ${describeQuantity(product.available, product.boxFactor)}`}
+                  </small>
+                )}
+              </div>
               <Field label="Cajas">
                 <FieldInput
                   inputMode="numeric"

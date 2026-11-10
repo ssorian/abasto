@@ -3,11 +3,7 @@ import { toast } from 'sonner'
 
 import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
 import type { Result } from '#/lib/boundary'
-import {
-  bulkChangePricesFn,
-  setPricesFn,
-} from '#/modules/pricing/server/pricing'
-import type { BulkChangeInput } from '#/modules/pricing/services/bulk-prices'
+import { setPricesFn } from '#/modules/pricing/server/pricing'
 
 const messageOf = (failure: unknown) =>
   failure instanceof ClientError ? failure.message : genericErrorMessage
@@ -20,12 +16,12 @@ export function usePricingActions(warehouseId: string | null) {
 
   async function run<T>(
     action: () => Promise<Result<T>>,
-    success: (data: T) => string,
+    success?: (data: T) => string,
   ): Promise<Outcome> {
     try {
       const data = unwrap(await action())
       await router.invalidate({ sync: true })
-      toast.success(success(data))
+      if (success) toast.success(success(data))
       return { ok: true }
     } catch (failure) {
       return { ok: false, message: messageOf(failure) }
@@ -33,20 +29,17 @@ export function usePricingActions(warehouseId: string | null) {
   }
 
   return {
-    /** Resolves to the server message when it failed (shown inline by the dialog), or null. */
+    /**
+     * Resolves to the server message when it failed (shown inline by the dialog), or null.
+     * Shows no toast: the dialog announces what it saved in one message.
+     */
     savePrices: async (
       prices: Array<{ presentationId: string; priceCents: number }>,
     ): Promise<string | null> => {
-      const result = await run(
-        () => setPricesFn({ data: { warehouseId: warehouseId ?? '', prices } }),
-        () => (prices.length === 1 ? 'Precio guardado.' : 'Precios guardados.'),
+      const result = await run(() =>
+        setPricesFn({ data: { warehouseId: warehouseId ?? '', prices } }),
       )
       return result.ok ? null : result.message
     },
-    bulkChange: (input: BulkChangeInput) =>
-      run(
-        () => bulkChangePricesFn({ data: input }),
-        ({ changed }) => `Cambio masivo aplicado a ${changed} precios.`,
-      ),
   }
 }

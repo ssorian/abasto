@@ -49,19 +49,31 @@ export function useCatalogActions() {
   }
 
   return {
-    saveProduct: (productId: string | undefined, draft: ProductDraft) =>
+    /** Creating sends the product and its presentations in one atomic call. */
+    saveProduct: (
+      productId: string | undefined,
+      draft: ProductDraft,
+      presentations?: { rows: Array<PresentationDraft>; defaultKey: string },
+    ) =>
       run(
         () =>
           productId
             ? updateProductFn({
                 data: { id: productId, patch: productPatchFromDraft(draft) },
               })
-            : createProductFn({ data: productInputFromDraft(draft) }),
+            : createProductFn({
+                data: productInputFromDraft(
+                  draft,
+                  presentations?.rows,
+                  presentations?.defaultKey,
+                ),
+              }),
         'Producto guardado.',
       ),
     /**
      * Saves only the supplier amounts of a product. Resolves to the error
-     * message (shown by the caller in its dialog, no toast) or null on success.
+     * message (shown by the caller in its dialog) or null on success. Shows no
+     * toast: the Prices dialog announces what it saved in one message.
      */
     savePieceCost: async (
       productId: string,
@@ -73,7 +85,6 @@ export function useCatalogActions() {
       try {
         unwrap(await updateProductFn({ data: { id: productId, patch } }))
         await router.invalidate({ sync: true })
-        toast.success('Costo por pieza guardado.')
         return null
       } catch (failure) {
         return messageOf(failure)

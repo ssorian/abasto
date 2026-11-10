@@ -32,7 +32,14 @@ async function arrive(
   const order = await getSupplierOrder(fx.owner, created.id)
   const received = await receiveSupplierOrder(fx.owner, {
     purchaseId: order.id,
-    lines: [{ lineId: order.lines[0].id, missingBoxes: 0, damagedBoxes: 0 }],
+    lines: [
+      {
+        lineId: order.lines[0].id,
+        missingBoxes: 0,
+        damagedBoxes: 0,
+        noExpiry: true,
+      },
+    ],
   })
   return received.lots[0]
 }

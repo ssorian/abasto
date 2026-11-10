@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
 import {
-  countAffected,
   groupByProduct,
   joinProducts,
   originLabels,
@@ -83,12 +82,5 @@ describe('price table', () => {
     expect(result.prices).toEqual([{ presentationId: 'b', priceCents: 25000 }])
     expect(result.errors).toEqual({ c: 'Usa máximo 2 decimales.' })
     expect(pendingPrices(rows, { a: '' }).prices).toEqual([])
-  })
-
-  test('counts own prices that match the bulk scope', () => {
-    expect(countAffected(rows, { supplierId: 's1' })).toBe(1)
-    expect(countAffected(rows, { category: 'Refrescos' })).toBe(0)
-    expect(countAffected(rows, { productIds: ['p1'] })).toBe(1)
-    expect(countAffected(rows, {})).toBe(1)
   })
 })
