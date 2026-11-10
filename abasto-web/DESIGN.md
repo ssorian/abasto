@@ -192,11 +192,11 @@ Controls (buttons, fields, stepper, tabs, mat) use 10px, product blocks and pane
 
 ### Stepper
 
-Minus, typed quantity, plus in one 1px Control border (44px high, 10px radius); the quantity cell takes Raspberry Tint with raspberry text once above zero; under it a 12-cell bar of rounded cells fills raspberry per unit (twelfth cell plum past 12). Collapsed to a single raspberry plus plate at zero. Changes ease in 160ms (exponential ease-out), static under reduced motion; the total fades in over 200ms the same way.
+Minus, typed quantity, plus in one 1px Control border (44px high, 10px radius; the desktop pick list uses a compact 36px variant without the bar); the quantity cell takes Raspberry Tint with raspberry text once above zero; under it (default size) a 12-cell bar of rounded cells fills raspberry per unit (twelfth cell plum past 12). Collapsed to a single raspberry plus plate at zero. Changes ease in 160ms (exponential ease-out), static under reduced motion; the total fades in over 200ms the same way.
 
 ### Product block and strip
 
-One white block per product: photo mat (56px, white, 12px radius, plum-tint monogram when the image is missing or broken), name and brand, then one strip per presentation: name and availability pill, price, stepper. Picked strips take a faint raspberry tint; sold-out strips go muted and print "Sin existencias".
+One white block per product: photo mat (56px, white, 12px radius, plum-tint monogram when the image is missing or broken), name and brand, then one strip per presentation: name and availability pill, price, stepper. Picked strips take a faint raspberry tint; sold-out strips go muted, keep the "Agotado" pill as the only statement of the fact and leave the control column empty at the same 140px width so prices stay aligned.
 
 ### Availability pill
 
@@ -208,7 +208,7 @@ Rounded tabs with a count; a 4px rounded extent bar inside a visible track, fill
 
 ### Warehouse plate, pick list, reservation tag, status strip, login card
 
-The warehouse plate is plum tint with the native select. The pick list is a white panel with a plum-tint header (desktop) or a pinned white bar with a soft top shadow (phone), list-price total and the reservation sentence. The reservation tag is a bordered card with the code at 36px and a raspberry-tint deadline plate. The status strip is three rounded bars (Reservado, Preparado, Recogido: done plum, current raspberry); Cancelado and Vencido grey the strip, strike the labels and print the word. The login card is a floating white card with a plum-tint heading band.
+The warehouse plate is plum tint with the native select; from 640px it is one compact row (the real label, the select, the helper sentence; 8px vertical padding, 44px select), stacked on the phone. The desktop pick list is a white panel with a plum-tint header that is as tall as its content (sticky, capped to the viewport; the lines scroll inside while the total and the reservation sentence stay visible) and picked lines use the compact 36px stepper with no cell bar; on the phone it is a pinned white bar with a soft top shadow that opens the cart sheet (44px touch targets), list-price total and the reservation sentence. Orders (Mis pedidos) are one left-aligned column, 760px at most, of wide order tags: code and warehouse on the left with the status strip beside them from 768px, ruled lines, then the deadline ("Recoge antes de" for Reservado and Preparado, "Venció el" for Vencido, omitted for Recogido and Cancelado). Order codes print as a plain token ("PED-5D6635E3", no tabular numerals or tracking), exactly like the console. The reservation tag is a bordered card with the code at 36px and a raspberry-tint deadline plate. The status strip is three rounded bars (Reservado, Preparado, Recogido: done plum, current raspberry); Cancelado and Vencido grey the strip, strike the labels and print the word. The login card is a floating white card with a plum-tint heading band.
 
 ### Inputs
 

@@ -77,11 +77,7 @@ function PresentationStrip({
         {formatCents(presentation.priceCents)}
       </span>
       <div className="flex min-h-[52px] w-[140px] items-center justify-end">
-        {!available ? (
-          <span className="text-right text-[13px] leading-tight text-st-muted">
-            Sin existencias
-          </span>
-        ) : quantity === 0 ? (
+        {!available ? null : quantity === 0 ? (
           <button
             type="button"
             className="st-add"

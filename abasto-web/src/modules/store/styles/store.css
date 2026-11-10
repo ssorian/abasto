@@ -73,6 +73,14 @@ body:has(.store) {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
+/* Order codes print as one plain token ("PED-5D6635E3"), like the console. */
+.st-code {
+  font-weight: 650;
+  font-variant-numeric: normal;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
 /* Component classes sit in the components layer so Tailwind utilities can override them. */
 @layer components {
   /* ---- Surfaces ---------------------------------------------------------- */
@@ -317,6 +325,20 @@ body:has(.store) {
   .st-stepper--set input {
     background: var(--color-st-brand-tint);
     color: var(--color-st-brand-hover);
+  }
+
+  .st-stepper--compact {
+    grid-template-columns: 36px 44px 36px;
+  }
+
+  .st-stepper--compact button,
+  .st-stepper--compact input {
+    height: 36px;
+  }
+
+  .st-stepper--compact button svg {
+    width: 16px;
+    height: 16px;
   }
 
   .st-cells {

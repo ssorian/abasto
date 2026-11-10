@@ -71,7 +71,7 @@ export function OrdersPage({ user, orders }: OrdersPageProps) {
         Mis pedidos
       </h1>
       {orders.length ? (
-        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid max-w-[760px] gap-4">
           {orders.map((order) => (
             <li
               key={order.id}

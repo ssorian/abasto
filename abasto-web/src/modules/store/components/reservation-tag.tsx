@@ -10,7 +10,7 @@ export function ReservationTag({ order }: { order: StoreOrder }) {
   return (
     <div className="st-hangtag grid gap-4 px-4 pb-4">
       <div className="text-center">
-        <p className="st-num text-[36px] leading-none text-st-plum-ink">
+        <p className="st-code text-[36px] leading-none text-st-plum-ink">
           {storeOrderCode(order.id)}
         </p>
         <p className="st-card mt-2">Apartado en {order.warehouseName}</p>

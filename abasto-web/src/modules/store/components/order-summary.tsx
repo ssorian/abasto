@@ -1,7 +1,7 @@
 import { formatCents } from '#/modules/pricing/lib/money'
 import { OrderStatusStrip } from '#/modules/store/components/order-status-strip'
 import {
-  formatPickupDate,
+  pickupDeadlineLabel,
   storeOrderCode,
 } from '#/modules/store/lib/store-labels'
 import type { StoreOrder } from '#/modules/store/services/storefront'
@@ -9,7 +9,7 @@ import type { StoreOrder } from '#/modules/store/services/storefront'
 /** Lines and total of an order, as ruled label lines. */
 export function OrderLines({ order }: { order: StoreOrder }) {
   return (
-    <ul className="grid divide-y divide-st-line border-y border-st-line">
+    <ul className="grid divide-y divide-st-line border-t border-st-line">
       {order.lines.map((line, index) => (
         <li
           key={`${line.productName}-${line.presentationName}-${index}`}
@@ -45,32 +45,32 @@ export const isOpenOrder = (order: StoreOrder) =>
 
 /** One order on the orders page: code, status strip, lines and pickup deadline. */
 export function OrderSummary({ order }: { order: StoreOrder }) {
+  const deadline = pickupDeadlineLabel(order.status, order.expiresAt)
   return (
     <div className="grid gap-4">
-      <div>
-        <p className="st-num text-[22px] leading-none text-st-plum-ink">
-          {storeOrderCode(order.id)}
-        </p>
-        <p className="mt-1 text-[14px] text-st-muted">
-          Recoges en {order.warehouseName}
-        </p>
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,320px)] md:items-start md:gap-6">
+        <div>
+          <p className="st-code text-[22px] leading-none text-st-plum-ink">
+            {storeOrderCode(order.id)}
+          </p>
+          <p className="mt-1 text-[14px] text-st-muted">
+            Recoges en {order.warehouseName}
+          </p>
+        </div>
+        <OrderStatusStrip status={order.status} />
       </div>
-
-      <OrderStatusStrip status={order.status} />
       <OrderLines order={order} />
 
       {order.notes ? (
         <p className="text-[14px] text-st-muted">Nota: {order.notes}</p>
       ) : null}
 
-      <p className="text-[15px]">
-        <span className="text-st-muted">
-          {isOpenOrder(order) ? 'Recoge antes de' : 'Fecha límite era'}
-        </span>{' '}
-        <strong className="font-semibold">
-          {formatPickupDate(order.expiresAt)}
-        </strong>
-      </p>
+      {deadline ? (
+        <p className="-mt-4 border-t border-st-line pt-4 text-[15px]">
+          <span className="text-st-muted">{deadline.prefix}</span>{' '}
+          <strong className="font-semibold">{deadline.date}</strong>
+        </p>
+      ) : null}
     </div>
   )
 }
