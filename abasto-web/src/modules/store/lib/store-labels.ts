@@ -47,3 +47,20 @@ const pickupFormat = new Intl.DateTimeFormat('es-MX', {
 
 /** "lunes, 9 nov 2026, 2:30 p.m." (Mexico City time). */
 export const formatPickupDate = (date: Date) => pickupFormat.format(date)
+
+/**
+ * Deadline line for an order: shown while it is open (Reservado, Preparado),
+ * in past tense once Vencido, and omitted for Recogido and Cancelado.
+ */
+export const pickupDeadlineLabel = (
+  status: StoreOrderStatus,
+  expiresAt: Date,
+): { prefix: string; date: string } | null => {
+  if (status === 'Reservado' || status === 'Preparado') {
+    return { prefix: 'Recoge antes de', date: formatPickupDate(expiresAt) }
+  }
+  if (status === 'Vencido') {
+    return { prefix: 'Venció el', date: formatPickupDate(expiresAt) }
+  }
+  return null
+}
