@@ -21,7 +21,7 @@ export function PickListPanel({
   return (
     <aside
       aria-label="Hoja de surtido"
-      className="st-panel sticky top-[76px] hidden max-h-[calc(100dvh-92px)] flex-col lg:flex"
+      className="st-panel sticky top-[76px] hidden max-h-[calc(100dvh-92px)] flex-col self-start lg:flex"
     >
       <div className="bg-st-plum-tint px-4 py-3.5">
         <h2 className="text-[18px] leading-none font-bold text-st-plum-ink">
@@ -37,22 +37,22 @@ export function PickListPanel({
           {lines.map((line) => {
             const label = `${line.product.name}, ${line.presentation.name}`
             return (
-              <li key={line.presentation.id} className="grid gap-2 px-3 py-2.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="line-clamp-2 text-[14px] leading-tight font-semibold">
-                      {line.product.name}
-                    </p>
-                    <p className="text-[13px] text-st-muted">
-                      {line.presentation.name} ·{' '}
-                      {formatCents(line.presentation.priceCents)}
-                    </p>
-                  </div>
-                  <span className="st-num shrink-0 text-[16px]">
-                    {formatCents(line.presentation.priceCents * line.quantity)}
-                  </span>
-                </div>
+              <li
+                key={line.presentation.id}
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-3 py-2.5"
+              >
+                <p className="line-clamp-2 text-[14px] leading-tight font-semibold">
+                  {line.product.name}
+                </p>
+                <span className="st-num text-right text-[16px]">
+                  {formatCents(line.presentation.priceCents * line.quantity)}
+                </span>
+                <p className="text-[13px] text-st-muted">
+                  {line.presentation.name} ·{' '}
+                  {formatCents(line.presentation.priceCents)}
+                </p>
                 <QuantityStepper
+                  compact
                   value={line.quantity}
                   min={0}
                   label={label}
