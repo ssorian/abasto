@@ -14,8 +14,6 @@ type WarehouseSummaryProps = {
   canManage: boolean
 }
 
-const pad = (value: number) => String(value).padStart(2, '0')
-
 const statButton =
   'flex items-center gap-2.5 whitespace-nowrap md:flex-col md:items-baseline md:gap-0.5 tablet:flex-row tablet:gap-[7px]'
 const statNumber =
@@ -65,7 +63,7 @@ export function WarehouseSummary({
           className={statButton}
           onClick={() => onStat('Todos')}
         >
-          <strong className={statNumber}>{pad(counts.products)}</strong>
+          <strong className={statNumber}>{counts.products}</strong>
           <span className={statLabel}>Productos</span>
         </button>
         <span className="h-[19px] w-px bg-[#f0ece7] md:h-6" />
@@ -75,7 +73,7 @@ export function WarehouseSummary({
           onClick={() => onStat('Stock bajo')}
         >
           <strong className={`${statNumber} text-[#ba801d]`}>
-            {pad(counts.low)}
+            {counts.low}
           </strong>
           <span className={statLabel}>Stock bajo</span>
         </button>
@@ -86,7 +84,7 @@ export function WarehouseSummary({
           onClick={() => onStat('Sin existencias')}
         >
           <strong className={`${statNumber} text-[#c65956]`}>
-            {pad(counts.soldOut)}
+            {counts.soldOut}
           </strong>
           <span className={statLabel}>Sin existencias</span>
         </button>

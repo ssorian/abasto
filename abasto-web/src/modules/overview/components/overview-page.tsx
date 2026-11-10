@@ -93,7 +93,10 @@ export function OverviewPage({ overview }: { overview: Overview }) {
                 title={item.name}
                 detail={`${item.expiringTodayOrders} vencen hoy · ${item.pickedUpToday} entregados hoy`}
                 aside={
-                  <HomeRowFigure>{item.openOrders} abiertos</HomeRowFigure>
+                  <HomeRowFigure>
+                    {item.openOrders}{' '}
+                    {item.openOrders === 1 ? 'abierto' : 'abiertos'}
+                  </HomeRowFigure>
                 }
               />
             ))}

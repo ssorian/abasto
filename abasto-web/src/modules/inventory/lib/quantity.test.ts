@@ -80,6 +80,15 @@ describe('splitBaseUnits and formatQuantity', () => {
     ).toBe('9 piezas')
   })
 
+  test('uses lowercase singular or plural for presentation names', () => {
+    const box = { packName: 'Caja', factor: 24, unit: 'piezas' }
+    expect(formatQuantity(144, box)).toBe('6 cajas')
+    expect(formatQuantity(24, box)).toBe('1 caja')
+    expect(formatQuantity(25, box)).toBe('1 caja + 1 pieza')
+    const pack6 = { packName: 'Paquete', factor: 6, unit: 'piezas' }
+    expect(formatQuantity(12, pack6)).toBe('2 paquetes')
+  })
+
   test('formats negative quantities with a minus sign', () => {
     expect(formatQuantity(-30, pack)).toBe('−1 caja + 6 piezas')
   })
