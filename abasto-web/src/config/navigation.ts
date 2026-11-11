@@ -37,7 +37,8 @@ export const primaryNav: Array<NavItem> = [
   { label: 'Catálogo', icon: LayoutGrid, to: '/catalogo' },
   { label: 'Inventario', icon: Boxes, to: '/inventario' },
   { label: 'Repartos', icon: Truck, to: '/repartos' },
-  { label: 'Almacenes', icon: Warehouse, to: '/almacenes' },
+  // A manager only sees their own warehouse there, which Inventario already shows.
+  { label: 'Almacenes', icon: Warehouse, to: '/almacenes', ownerOnly: true },
   { label: 'Reportes', icon: ChartColumn, to: '/reportes' },
 ]
 
