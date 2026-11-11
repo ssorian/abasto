@@ -48,7 +48,7 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - T6 [S1-S29] verify — independent verification. Status: done (no blockers; S2, S3, S18, S28, S15 pass; partials S4, S5, S10, S13, S25 followed up in T8).
 - T8 [S4, S5, S13, S25, S8] parent inline — verifier follow-ups: revert field-name boundary message (exposed internal names like «patch.name»), "1 unidad" singular, inventory `formatCents` negative zero, cash-cut CSV in business zone, cuts filtered by close day, store warehouse list reads in parallel. Risk: item 6 (report period semantics). Status: done, RED→GREEN. Commit: 8bb7b40
 - T9 [S13] parent inline — verify (mwce0d3t) found `countLabel` regression ("sobres" → "1 sobr") and stale comments; fixed RED→GREEN (counter tests 40/40, tsc, eslint clean). Risk: none. Commit: b279855
-- T10 [S30, S19, S29] worker — rider shortfall/surplus as its own cash movement; Reports shortfall card. Risk: item 1 (cash ledger writes, migration). Status: done. Commit: f59a13d (1140 tests pass; migration 0029 applied to test and dev DB; UI not browser-checked)
+- T10 [S30, S19, S29] worker — rider shortfall/surplus as its own cash movement; Reports shortfall card. Risk: item 1 (cash ledger writes, migration). Status: done. Commit: 0e1b35c (1140 tests pass; migration 0029 applied to test and dev DB; UI not browser-checked)
 - Final checks: bun test 1126 pass / 2 skip / 0 fail; tsc clean; eslint 0 errors (4 pre-existing warnings); prettier clean; build OK. Not browser-checked; B5 (lost clicks during hydration) not fixed; S5 SSR timing not measured on a production build.
 
 ## Log
