@@ -6,6 +6,7 @@ import {
   sortBelowMinimumFirst,
   splitIntoBoxes,
   stockLabel,
+  boxCountLabel,
 } from '#/modules/inventory/lib/order-rows'
 
 describe('splitIntoBoxes', () => {
@@ -29,6 +30,26 @@ describe('stockLabel', () => {
     expect(stockLabel(13, 12)).toBe('1 caja + 1 pz')
     expect(stockLabel(5, 12)).toBe('5 pz')
     expect(stockLabel(0, 12)).toBe('0 cajas')
+  })
+
+  test('piece-based products count pieces, never boxes', () => {
+    expect(stockLabel(5, 1)).toBe('5 piezas')
+    expect(stockLabel(1, 1)).toBe('1 pieza')
+    expect(stockLabel(0, 1)).toBe('0 piezas')
+    expect(belowMinimumLabel({ available: 1, minimum: 1 }, 1)).toBeNull()
+    expect(belowMinimumLabel({ available: 0, minimum: 1 }, 1)).toBe(
+      'Bajo mínimo (1 pieza)',
+    )
+  })
+})
+
+describe('boxCountLabel', () => {
+  test('names the real unit with the right plural', () => {
+    expect(boxCountLabel(1, 12)).toBe('1 caja')
+    expect(boxCountLabel(5, 12)).toBe('5 cajas')
+    expect(boxCountLabel(1, 1)).toBe('1 pieza')
+    expect(boxCountLabel(5, 1)).toBe('5 piezas')
+    expect(boxCountLabel(0, 1)).toBe('0 piezas')
   })
 })
 

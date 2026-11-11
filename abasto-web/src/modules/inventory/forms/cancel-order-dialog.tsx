@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import {
   DialogActions,
@@ -16,12 +14,9 @@ type CancelOrderDialogProps = {
 /** Confirms cancelling an order that has not arrived. */
 export function CancelOrderDialog({ order, onClose }: CancelOrderDialogProps) {
   const actions = useInventoryActions()
-  const [pending, setPending] = useState(false)
 
   async function confirm() {
-    setPending(true)
     const result = await actions.cancelOrder(order.id)
-    setPending(false)
     if (result) onClose()
   }
 
@@ -38,7 +33,7 @@ export function CancelOrderDialog({ order, onClose }: CancelOrderDialogProps) {
         <ActionButton
           tone="primary"
           type="button"
-          disabled={pending}
+          disabled={actions.pending}
           onClick={() => void confirm()}
         >
           Cancelar pedido

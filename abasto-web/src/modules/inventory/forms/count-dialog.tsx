@@ -18,10 +18,11 @@ import {
   packInfoOf,
   quantityPresentations,
 } from '#/modules/inventory/lib/pack-info'
-import { formatQuantity, toBaseUnits } from '#/modules/inventory/lib/quantity'
+import { formatQuantity } from '#/modules/inventory/lib/quantity'
 import {
   countDifference,
   countInputFromDraft,
+  typedCount,
 } from '#/modules/inventory/lib/stock-drafts'
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
 import type { ProductStock } from '#/modules/inventory/services/stock-reads'
@@ -49,14 +50,14 @@ export function CountDialog({
   const [loose, setLoose] = useState('')
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
 
   const selectedId = presentations.some(({ id }) => id === presentationId)
     ? presentationId
     : (presentations.at(0)?.id ?? '')
   const factor = presentations.find(({ id }) => id === selectedId)?.factor ?? 1
   const expected = stock.find((row) => row.productId === productId)?.onHand ?? 0
-  const counted = toBaseUnits({ packs, loose, factor }, { allowZero: true })
+  // Blank is not zero: no difference is shown until a number is typed.
+  const counted = typedCount({ packs, loose, factor })
   const pack = product ? packInfoOf(product) : null
 
   async function submit() {
@@ -70,9 +71,7 @@ export function CountDialog({
     })
     if (!parsed.ok) return setError(parsed.message)
     setError(null)
-    setPending(true)
     const result = await actions.countStock(parsed.value)
-    setPending(false)
     if (!result || !pack) return
     const { difference } = result.data
     toast.success(
@@ -129,12 +128,11 @@ export function CountDialog({
                 if (patch.loose !== undefined) setLoose(patch.loose)
               }}
             />
-            {counted.ok && (
+            {counted !== null && (
               <p className="text-xs leading-[1.7] text-[#856972]">
                 El sistema tiene {formatQuantity(expected, pack)}. Diferencia:{' '}
-                {countDifference(expected, counted.value) > 0 ? '+' : ''}
-                {formatQuantity(countDifference(expected, counted.value), pack)}
-                .
+                {countDifference(expected, counted) > 0 ? '+' : ''}
+                {formatQuantity(countDifference(expected, counted), pack)}.
               </p>
             )}
             <Field label="Nota (opcional)">
@@ -150,8 +148,8 @@ export function CountDialog({
           <ActionButton type="button" onClick={onClose}>
             Cancelar
           </ActionButton>
-          <ActionButton tone="primary" type="submit" disabled={pending}>
-            {pending ? 'Guardando…' : 'Registrar conteo'}
+          <ActionButton tone="primary" type="submit" disabled={actions.pending}>
+            {actions.pending ? 'Guardando…' : 'Registrar conteo'}
           </ActionButton>
         </DialogActions>
       </form>

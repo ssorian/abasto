@@ -12,15 +12,18 @@ export function splitIntoBoxes(pieces: number, factor: number) {
   return { boxes: Math.floor(pieces / factor), pieces: pieces % factor }
 }
 
-const boxesText = (boxes: number) =>
-  `${boxes} ${boxes === 1 ? 'caja' : 'cajas'}`
+/** Packs of an order: boxes, or pieces for a product sold piece by piece. */
+export function boxCountLabel(count: number, factor: number) {
+  const [one, many] = factor < 2 ? ['pieza', 'piezas'] : ['caja', 'cajas']
+  return `${count} ${count === 1 ? one : many}`
+}
 
-/** "3 cajas", "3 cajas + 4 pz", "5 pz" (less than a box) or "0 cajas". */
+/** "3 cajas", "3 cajas + 4 pz", "5 pz" (less than a box) or "0 cajas"; piece-based: "5 piezas". */
 export function stockLabel(pieces: number, factor: number) {
   const split = splitIntoBoxes(pieces, factor)
-  if (!split.pieces) return boxesText(split.boxes)
+  if (!split.pieces) return boxCountLabel(split.boxes, factor)
   if (!split.boxes) return `${split.pieces} pz`
-  return `${boxesText(split.boxes)} + ${split.pieces} pz`
+  return `${boxCountLabel(split.boxes, factor)} + ${split.pieces} pz`
 }
 
 /** Below a set minimum, counting sellable stock (same rule as the stock tab). */

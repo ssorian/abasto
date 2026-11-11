@@ -58,18 +58,30 @@ export function warehouseMetrics(
   return metrics
 }
 
-export type ProductStatus = 'Disponible' | 'Stock bajo' | 'Sin existencias'
+export type ProductStatus =
+  'Disponible' | 'Stock bajo' | 'Vencido' | 'Sin existencias'
 export type StatusFilter = 'Todos' | ProductStatus
 export const statusFilters: ReadonlyArray<StatusFilter> = [
   'Todos',
   'Disponible',
   'Stock bajo',
+  'Vencido',
   'Sin existencias',
 ]
 
 export function productStatus(row: ProductStock): ProductStatus {
-  if (row.available <= 0) return 'Sin existencias'
+  if (row.available <= 0) return row.expired > 0 ? 'Vencido' : 'Sin existencias'
   return row.belowMinimum ? 'Stock bajo' : 'Disponible'
+}
+
+/**
+ * "Stock bajo" is every product under its minimum, empty or expired ones
+ * included (the same count Reports shows); the other filters match the row status.
+ */
+export function matchesFilter(row: ProductStock, filter: StatusFilter) {
+  if (filter === 'Todos') return true
+  if (filter === 'Stock bajo') return row.belowMinimum
+  return productStatus(row) === filter
 }
 
 const normalize = (value: string) =>
@@ -94,7 +106,7 @@ export function filterStock(
   return rows.filter(
     (row) =>
       (!supplierId || supplierOf.get(row.productId) === supplierId) &&
-      (filter === 'Todos' || productStatus(row) === filter) &&
+      matchesFilter(row, filter) &&
       (!needle || normalize(`${row.name} ${row.sku}`).includes(needle)),
   )
 }

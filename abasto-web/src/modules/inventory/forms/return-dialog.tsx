@@ -13,6 +13,7 @@ import {
 } from '#/modules/inventory/components/inventory-dialog'
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import { formatCents } from '#/modules/inventory/lib/cents'
+import { boxCountLabel } from '#/modules/inventory/lib/order-rows'
 import { returnInputFromDraft } from '#/modules/inventory/lib/pending-return'
 import type { ReturnResolution } from '#/modules/inventory/db/schema'
 import type { PendingBalance } from '#/modules/inventory/services/supplier-pendings'
@@ -29,7 +30,6 @@ export function ReturnDialog({ pending, onClose }: ReturnDialogProps) {
   const [resolution, setResolution] = useState<ReturnResolution>('replacement')
   const [credit, setCredit] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
 
   async function confirm() {
     const parsed = returnInputFromDraft({
@@ -41,9 +41,7 @@ export function ReturnDialog({ pending, onClose }: ReturnDialogProps) {
     })
     if (!parsed.ok) return setError(parsed.message)
     setError(null)
-    setSaving(true)
-    const result = await actions.returnPending(parsed.value, setError)
-    setSaving(false)
+    const result = await actions.returnPending(parsed.value)
     if (result) onClose()
   }
 
@@ -51,7 +49,7 @@ export function ReturnDialog({ pending, onClose }: ReturnDialogProps) {
     <InventoryDialog
       title="Marcar como devuelto"
       eyebrow={pending.supplierName.toUpperCase()}
-      description={`${pending.productName} (${pending.originCode}): el proveedor tiene ${pending.owedBoxes} ${pending.owedBoxes === 1 ? 'caja' : 'cajas'} por devolver, valoradas en ${formatCents(pending.owedValueCents)}. Nada de esto entra al inventario.`}
+      description={`${pending.productName} (${pending.originCode}): el proveedor tiene ${boxCountLabel(pending.owedBoxes, pending.boxFactor)} por devolver, valoradas en ${formatCents(pending.owedValueCents)}. Nada de esto entra al inventario.`}
       onClose={onClose}
     >
       <form
@@ -97,8 +95,8 @@ export function ReturnDialog({ pending, onClose }: ReturnDialogProps) {
           <ActionButton type="button" onClick={onClose}>
             Cancelar
           </ActionButton>
-          <ActionButton tone="primary" type="submit" disabled={saving}>
-            {saving ? 'Guardando…' : 'Confirmar devolución'}
+          <ActionButton tone="primary" type="submit" disabled={actions.pending}>
+            {actions.pending ? 'Guardando…' : 'Confirmar devolución'}
           </ActionButton>
         </DialogActions>
       </form>

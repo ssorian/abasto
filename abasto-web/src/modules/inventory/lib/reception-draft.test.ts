@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import {
   initialReception,
+  expiredEntries,
+  receptionOutcome,
   goodBoxes,
   receptionInputFromDraft,
   receptionIssues,
@@ -276,5 +278,168 @@ describe('receptionSummaryText', () => {
     expect(
       receptionSummaryText({ good: 0, replaced: 0, missing: 3, damaged: 0 }),
     ).toBe('No entra ninguna caja · 3 faltantes nuevos')
+  })
+})
+
+describe('receptionOutcome (S12)', () => {
+  const over = draft({
+    lines: {
+      ...draft().lines,
+      l2: { missing: '10', damaged: '0', expiresOn: '', noExpiry: true },
+    },
+  })
+
+  test('a line above the ordered boxes blocks confirm and never prints a summary that contradicts the error', () => {
+    const outcome = receptionOutcome(lines, over, {})
+    expect(outcome.canConfirm).toBe(false)
+    expect(outcome.summary).toBe(
+      'Corrige las cantidades marcadas para ver el resumen.',
+    )
+    expect(outcome.summary).not.toContain('faltantes')
+    expect(outcome.summary).not.toContain('No entra')
+  })
+
+  test('a valid reception can be confirmed and summarizes it', () => {
+    const outcome = receptionOutcome(
+      lines,
+      draft({
+        lines: {
+          ...draft().lines,
+          l2: { missing: '1', damaged: '0', expiresOn: '', noExpiry: true },
+        },
+      }),
+      {},
+    )
+    expect(outcome).toEqual({
+      canConfirm: true,
+      summary: 'Entran 13 cajas · 1 faltante nuevo',
+    })
+  })
+
+  test('a missing expiry is asked for on confirm, not blocked up front', () => {
+    const outcome = receptionOutcome(
+      lines,
+      draft({
+        lines: {
+          ...draft().lines,
+          l1: { missing: '0', damaged: '0', expiresOn: '' },
+        },
+      }),
+      {},
+    )
+    expect(outcome.canConfirm).toBe(true)
+  })
+
+  test('piece-based orders are summarized in pieces', () => {
+    expect(
+      receptionOutcome(
+        [{ lineId: 'p', productId: 'p', orderedBoxes: 5, boxFactor: 1 }],
+        {
+          lines: {
+            p: { missing: '0', damaged: '0', expiresOn: '', noExpiry: true },
+          },
+          replacements: {},
+        },
+        {},
+      ).summary,
+    ).toBe('Entran 5 piezas')
+  })
+})
+
+describe('receptionSummaryText units (S13)', () => {
+  test('piece-based reads pieces with the right plural', () => {
+    expect(
+      receptionSummaryText({
+        good: 1,
+        replaced: 0,
+        missing: 0,
+        damaged: 0,
+        piecesOnly: true,
+      }),
+    ).toBe('Entra 1 pieza')
+    expect(
+      receptionSummaryText({
+        good: 0,
+        replaced: 0,
+        missing: 2,
+        damaged: 1,
+        piecesOnly: true,
+      }),
+    ).toBe(
+      'No entra ninguna pieza · 2 faltantes nuevos · 1 dañada por devolver',
+    )
+  })
+})
+
+describe('expired expiry dates (S3)', () => {
+  const today = '2026-11-11'
+  const expiredDraft = draft({
+    lines: {
+      l1: { missing: '0', damaged: '0', expiresOn: '2020-01-01' },
+      l2: { missing: '4', damaged: '0', expiresOn: '2020-01-01' },
+    },
+    replacements: {
+      m1: { boxes: '1', expiresOn: '2026-11-10' },
+      m2: { boxes: '0', expiresOn: '2020-01-01' },
+      m3: { boxes: '1', expiresOn: today },
+    },
+  })
+
+  test('lists only entries whose good boxes enter with a past date', () => {
+    // l2 has nothing good, m2 brings no boxes, m3 expires today (still valid).
+    expect(expiredEntries(lines, expiredDraft, today)).toEqual(['l1', 'm1'])
+    expect(expiredEntries(lines, draft(), today)).toEqual([])
+  })
+
+  test('without confirmation the input is refused; confirmed it carries the flag', () => {
+    const owed = { m1: 2, m2: 2, m3: 2 }
+    const refused = receptionInputFromDraft('po1', lines, expiredDraft, owed, {
+      today,
+      confirmExpired: false,
+    })
+    expect(refused).toEqual({
+      ok: false,
+      message:
+        'Hay productos que entran con la caducidad vencida. Confirma que quieres recibirlos.',
+    })
+    const accepted = receptionInputFromDraft('po1', lines, expiredDraft, owed, {
+      today,
+      confirmExpired: true,
+    })
+    expect(accepted.ok && accepted.value.confirmExpired).toBe(true)
+  })
+
+  test('nothing expired: no flag is sent', () => {
+    const parsed = receptionInputFromDraft(
+      'po1',
+      lines,
+      draft(),
+      {},
+      {
+        today,
+        confirmExpired: true,
+      },
+    )
+    expect(parsed.ok && 'confirmExpired' in parsed.value).toBe(false)
+  })
+})
+
+describe('receptionIssues units (S13)', () => {
+  test('a piece-based line says pieces, a boxed one says boxes', () => {
+    const entry = { missing: '8', damaged: '3', expiresOn: '', noExpiry: true }
+    const issues = receptionIssues(
+      [
+        { lineId: 'p', productId: 'p', orderedBoxes: 5, boxFactor: 1 },
+        { lineId: 'b', productId: 'b', orderedBoxes: 5, boxFactor: 12 },
+      ],
+      { lines: { p: entry, b: entry }, replacements: {} },
+      {},
+    )
+    expect(issues.p).toBe(
+      'Las faltantes y dañadas no pueden superar las piezas pedidas.',
+    )
+    expect(issues.b).toBe(
+      'Las faltantes y dañadas no pueden superar las cajas pedidas.',
+    )
   })
 })

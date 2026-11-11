@@ -8,6 +8,7 @@ import {
   InventoryDialog,
 } from '#/modules/inventory/components/inventory-dialog'
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
+import { boxCountLabel } from '#/modules/inventory/lib/order-rows'
 import { formatCents } from '#/modules/inventory/lib/cents'
 import { parseBoxCount } from '#/modules/inventory/lib/box-count'
 import { writeOffError } from '#/modules/inventory/lib/pending-writeoff'
@@ -23,7 +24,6 @@ export function WriteOffDialog({ pending, onClose }: WriteOffDialogProps) {
   const actions = useInventoryActions()
   const [text, setText] = useState(String(pending.owedBoxes))
   const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
 
   const typed = parseBoxCount(text)
   // Value estimate at the average cost of the owed boxes; the server settles the exact amount.
@@ -36,12 +36,10 @@ export function WriteOffDialog({ pending, onClose }: WriteOffDialogProps) {
     const problem = writeOffError(text, pending.owedBoxes)
     if (problem) return setError(problem)
     setError(null)
-    setSaving(true)
-    const result = await actions.writeOff(
-      { pendingId: pending.pendingId, boxes: typed.ok ? typed.value : 0 },
-      setError,
-    )
-    setSaving(false)
+    const result = await actions.writeOff({
+      pendingId: pending.pendingId,
+      boxes: typed.ok ? typed.value : 0,
+    })
     if (result) onClose()
   }
 
@@ -49,7 +47,7 @@ export function WriteOffDialog({ pending, onClose }: WriteOffDialogProps) {
     <InventoryDialog
       title="Descontar del pago"
       eyebrow={pending.supplierName.toUpperCase()}
-      description={`${pending.productName} (${pending.originCode}): el proveedor debe ${pending.owedBoxes} ${pending.owedBoxes === 1 ? 'caja' : 'cajas'}. Las que descuentes ya no se le pagan ni se esperan como reposición. No se puede deshacer.`}
+      description={`${pending.productName} (${pending.originCode}): el proveedor debe ${boxCountLabel(pending.owedBoxes, pending.boxFactor)}. Las que descuentes ya no se le pagan ni se esperan como reposición. No se puede deshacer.`}
       onClose={onClose}
     >
       <form
@@ -78,8 +76,8 @@ export function WriteOffDialog({ pending, onClose }: WriteOffDialogProps) {
           <ActionButton type="button" onClick={onClose}>
             Cancelar
           </ActionButton>
-          <ActionButton tone="primary" type="submit" disabled={saving}>
-            {saving ? 'Guardando…' : 'Confirmar descuento'}
+          <ActionButton tone="primary" type="submit" disabled={actions.pending}>
+            {actions.pending ? 'Guardando…' : 'Confirmar descuento'}
           </ActionButton>
         </DialogActions>
       </form>
