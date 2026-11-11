@@ -38,11 +38,12 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 ## Tasks
 
 - T0 [S1-S28] explore — map owners and shared patterns. Status: done (see L5).
-- T1 (U0) [S5, S6-S8, S10] worker, first — shared plumbing: move `modules/cash/hooks/use-action-runner.ts` to `src/hooks/` (success toast + pending + close), Spanish native validation in `src/components/ui/{input,textarea,select}.tsx`, `src/lib/boundary.ts` messages, sequence the concurrent `tx` selects in `inventory/services/stock-reads.ts:59-61`. Risk: item 4 (concurrency). Status: pending. Commit: —
-- T2 (U1 inventory) [S2, S3, S7, S8, S12, S13, S14, S15] worker. Risk: item 1 (stock writes). Status: pending. Commit: —
-- T3 (U2 reports/cash/counter) [S4, S5, S7, S14, S19, S25, S27] worker. Risk: item 6 (report sums). Status: pending. Commit: —
-- T4 (U3 catalog/pricing/customers/store/import) [S6, S8, S11, S16, S18, S22, S23, S24] worker. Risk: item 1 (CSV import writes). Status: pending. Commit: —
-- T5 (U4 access/riders/transfers/warehouses/routes) [S6-S9, S13, S17, S20, S21, S26, S28] worker. Risk: item 2 (permissions). Status: pending. Commit: —
+- T1 (U0) [S5, S6-S8, S10] worker, first — shared plumbing: move `modules/cash/hooks/use-action-runner.ts` to `src/hooks/` (success toast + pending + close), Spanish native validation in `src/components/ui/{input,textarea,select}.tsx`, `src/lib/boundary.ts` messages, sequence the concurrent `tx` selects in `inventory/services/stock-reads.ts:59-61`. Risk: item 4 (concurrency). Status: done. Commit: db14827 (33 focused tests pass, tsc clean; Select wrapper and hydration clicks not browser-checked; slice boundary: commits 32942df+db14827)
+- T2 (U1 inventory) [S2, S3, S7, S8, S12, S13, S14, S15] worker. Risk: item 1 (stock writes). Status: done. Commit: 02e6fb7 (294 inventory tests pass; dialogs not browser-checked; worker removed "Sumar existencias" — surplus only via count — pending user decision)
+- T3 (U2 reports/cash/counter) [S4, S5, S7, S14, S19, S25, S27] worker. Risk: item 6 (report sums). Status: done. Commit: 8b66f8f (226 focused tests pass; B3 cause: cash-cut timestamps read as zone-less text, now dated by close time; C7 deliveries in sales by channel)
+- T4 (U3 catalog/pricing/customers/store/import) [S6, S8, S11, S16, S18, S22, S23, S24] worker. Risk: item 1 (CSV import writes). Status: done. Commit: df0ce58 (260 focused tests pass; CSV import into selected warehouse, one transaction per row)
+- T5 (U4 access/riders/transfers/warehouses/routes) [S6-S9, S13, S17, S20, S21, S26, S28] worker. Risk: item 2 (permissions). Status: done. Commit: dd83ee7 (242 focused tests pass incl. 64-case permission probe, no holes; UI not browser-checked; worker used a private test DB because parallel resets on abasto_test collided)
+- T7 [S15, S25, L6] parent inline — restore "Sumar existencias" (positive adjustment with reason, second button per lot); `formatCents` normalizes negative zero app-wide. Risk: none (UI action reusing existing `adjustLot`; formatting). Status: done, tests RED→GREEN. Commit: pending
 - T6 [S1-S29] verify — independent verification of high-risk items (S2, S3, S19, S28) and full checks. Status: pending.
 
 ## Log
@@ -52,3 +53,4 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - L3 (parent decisions): C4 single save button; C10 show customer price in both; C14 redirect; C12 validate URL with placeholder fallback.
 - L5 (evidence, explore): B1 `inventory/lib/stock-drafts.ts:72` + `count-dialog.tsx:59` use `toBaseUnits(…, {allowZero:true})`; B2 `inventory/services/supplier-reception.ts:97,121` only check ISO format; C7 `reports/services/sales-report.ts:72` `o.status = 'Recogido'` excludes rider settlements (`riders/services/assignments.ts:447`); B4 warning `inventory/services/stock-reads.ts:59-61` Promise.all over one `tx`; C14 `routes/configuracion.tsx:10` vs `routes/almacenes.tsx:10`; C2 `inventory/lib/stock-metrics.ts:71`; B3 not confirmed (cash-cuts-card.tsx:144 businessDate of openedAt — check close time vs open time); S28 statically all guarded, runtime probe pending.
 - L4 (evidence, parent): `modules/reports/lib/manager-format.ts:6,10,14` format dates with `timeZone: 'UTC'` while line 32 uses `businessTimeZone`; range filters in `report-scope.ts:66-71` already use the business zone.
+- L6 (user): "Sumar existencias" removal → "Restaurar \"Sumar existencias\" (Recomendado)".

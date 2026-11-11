@@ -38,7 +38,7 @@ type LotsDialogProps = {
   onClose: () => void
 }
 
-/** Lots of one product in the warehouse, with the single "Quitar existencias" action for managers. */
+/** Lots of one product in the warehouse, with "Quitar existencias" and "Sumar existencias" for managers. */
 export function LotsDialog({
   stock,
   pack,
@@ -48,8 +48,12 @@ export function LotsDialog({
   onClose,
 }: LotsDialogProps) {
   const [operation, setOperation] = useState<LotOperation | null>(null)
-  const open = (lot: ProductStock['lots'][number]) =>
+  const open = (
+    lot: ProductStock['lots'][number],
+    mode: LotOperation['mode'],
+  ) =>
     setOperation({
+      mode,
       lot,
       productName: stock.name,
       pack,
@@ -106,9 +110,15 @@ export function LotsDialog({
                         <ListCell className="flex justify-end gap-2">
                           <ActionButton
                             className="min-h-9 px-3"
-                            onClick={() => open(lot)}
+                            onClick={() => open(lot, 'remove')}
                           >
                             Quitar existencias
+                          </ActionButton>
+                          <ActionButton
+                            className="min-h-9 px-3"
+                            onClick={() => open(lot, 'add')}
+                          >
+                            Sumar existencias
                           </ActionButton>
                         </ListCell>
                       )}

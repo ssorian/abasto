@@ -31,6 +31,26 @@ export type RemovalInput =
       input: { lotId: string; quantity: number; reason: string }
     }
 
+export type AdditionDraft = TypedQuantity & {
+  lotId: string
+  /** Why the lot gains stock, in the user's words. */
+  detail: string
+}
+
+/** "Sumar existencias": a positive adjustment on one lot (ledger `adjustment`). */
+export function additionInputFromDraft(
+  draft: AdditionDraft,
+): Parsed<{ lotId: string; quantity: number; reason: string }> {
+  const quantity = toBaseUnits(draft)
+  if (!quantity.ok) return quantity
+  const detail = draft.detail.trim()
+  if (!detail) return fail('Escribe por qué sumas existencias.')
+  return {
+    ok: true,
+    value: { lotId: draft.lotId, quantity: quantity.value, reason: detail },
+  }
+}
+
 /**
  * The single "Quitar existencias" action. Expired or damaged stock is a loss
  * (ledger `loss`, with its category); any other reason is a negative

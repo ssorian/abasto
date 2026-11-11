@@ -15,11 +15,16 @@ import { QuantityFields } from '#/modules/inventory/forms/quantity-fields'
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import { formatQuantity } from '#/modules/inventory/lib/quantity'
 import type { PackInfo } from '#/modules/inventory/lib/quantity'
-import { removalInputFromDraft } from '#/modules/inventory/lib/stock-drafts'
+import {
+  additionInputFromDraft,
+  removalInputFromDraft,
+} from '#/modules/inventory/lib/stock-drafts'
 import type { RemovalReason } from '#/modules/inventory/lib/stock-drafts'
 import type { StockLot } from '#/modules/inventory/services/stock-reads'
 
 export type LotOperation = {
+  /** Take stock out (with a reason) or add it back. */
+  mode: 'remove' | 'add'
   lot: StockLot
   productName: string
   pack: PackInfo
@@ -34,7 +39,7 @@ const reasonOptions: ReadonlyArray<{ value: RemovalReason; label: string }> = [
   { value: 'otro', label: 'Otro motivo' },
 ]
 
-/** The only way to take stock out of a lot: asks why, and records a loss or an adjustment. */
+/** Takes stock out of a lot (a loss or an adjustment, by reason) or adds it back (an adjustment). */
 export function LotOperationDialog({
   operation,
   onClose,
@@ -56,7 +61,21 @@ export function LotOperationDialog({
     operation.presentations.find(({ id }) => id === quantity.presentationId)
       ?.factor ?? 1
 
+  const adding = operation.mode === 'add'
+
   async function submit() {
+    if (adding) {
+      const parsed = additionInputFromDraft({
+        lotId: operation.lot.id,
+        ...quantity,
+        factor,
+        detail,
+      })
+      if (!parsed.ok) return setError(parsed.message)
+      setError(null)
+      if (await actions.adjustLot(parsed.value)) onClose()
+      return
+    }
     const parsed = removalInputFromDraft({
       lotId: operation.lot.id,
       ...quantity,
@@ -75,7 +94,7 @@ export function LotOperationDialog({
 
   return (
     <InventoryDialog
-      title="Quitar existencias"
+      title={adding ? 'Sumar existencias' : 'Quitar existencias'}
       eyebrow={operation.productName.toUpperCase()}
       description={`Lote ${operation.lot.code || 'sin código'} · hay ${formatQuantity(operation.lot.onHand, operation.pack)}.`}
       onClose={onClose}
@@ -87,32 +106,38 @@ export function LotOperationDialog({
           void submit()
         }}
       >
-        <Field label="¿Por qué las quitas?">
-          <FieldSelect
-            value={reason}
-            onChange={(event) => setReason(event.target.value as RemovalReason)}
-          >
-            {reasonOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </FieldSelect>
-        </Field>
+        {!adding && (
+          <Field label="¿Por qué las quitas?">
+            <FieldSelect
+              value={reason}
+              onChange={(event) =>
+                setReason(event.target.value as RemovalReason)
+              }
+            >
+              {reasonOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </FieldSelect>
+          </Field>
+        )}
         <QuantityFields
           presentations={operation.presentations}
           unit={operation.pack.unit}
           {...quantity}
           onChange={(patch) => setQuantity({ ...quantity, ...patch })}
         />
-        <Field label="¿Qué pasó?">
+        <Field label={adding ? '¿Por qué las sumas?' : '¿Qué pasó?'}>
           <FieldTextarea
             value={detail}
             onChange={(event) => setDetail(event.target.value)}
             placeholder={
-              reason === 'otro'
-                ? 'Por qué corriges el lote'
-                : 'Qué pasó con estas piezas'
+              adding
+                ? 'Por ejemplo: llegó una caja de más'
+                : reason === 'otro'
+                  ? 'Por qué corriges el lote'
+                  : 'Qué pasó con estas piezas'
             }
           />
         </Field>
@@ -122,7 +147,11 @@ export function LotOperationDialog({
             Cancelar
           </ActionButton>
           <ActionButton tone="primary" type="submit" disabled={actions.pending}>
-            {actions.pending ? 'Guardando…' : 'Quitar existencias'}
+            {actions.pending
+              ? 'Guardando…'
+              : adding
+                ? 'Sumar existencias'
+                : 'Quitar existencias'}
           </ActionButton>
         </DialogActions>
       </form>

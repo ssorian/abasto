@@ -3,6 +3,7 @@ import {
   countInputFromDraft,
   countDifference,
   minimumInputFromDraft,
+  additionInputFromDraft,
   removalInputFromDraft,
   typedCount,
 } from '#/modules/inventory/lib/stock-drafts'
@@ -150,6 +151,29 @@ describe('removalInputFromDraft (Quitar existencias)', () => {
         reason: 'dañado',
         detail: 'x',
       }).ok,
+    ).toBe(false)
+  })
+})
+
+describe('additionInputFromDraft (Sumar existencias)', () => {
+  const base = { lotId: 'l1', ...qty }
+
+  test('is a positive adjustment with its reason', () => {
+    expect(
+      additionInputFromDraft({ ...base, detail: ' Llegó una caja de más ' }),
+    ).toEqual({
+      ok: true,
+      value: { lotId: 'l1', quantity: 27, reason: 'Llegó una caja de más' },
+    })
+  })
+
+  test('asks for a detail and a quantity', () => {
+    expect(additionInputFromDraft({ ...base, detail: ' ' })).toEqual({
+      ok: false,
+      message: 'Escribe por qué sumas existencias.',
+    })
+    expect(
+      additionInputFromDraft({ ...base, packs: '', loose: '', detail: 'x' }).ok,
     ).toBe(false)
   })
 })

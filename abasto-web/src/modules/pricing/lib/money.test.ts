@@ -64,3 +64,10 @@ describe('formatting', () => {
     expect(formatBps(0)).toBe('0')
   })
 })
+
+describe('formatCents negative zero', () => {
+  test('a negative zero prints as $0.00, never -$0.00', () => {
+    expect(formatCents(-0)).toBe(formatCents(0))
+    expect(formatCents(-0)).not.toContain('-')
+  })
+})

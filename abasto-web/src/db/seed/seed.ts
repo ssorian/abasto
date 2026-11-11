@@ -277,6 +277,8 @@ export async function seedDatabase({
           noExpiry: !line.expiresOn,
         }
       }),
+      // The sample includes lots that are already expired on purpose.
+      confirmExpired: true,
     })
   }
   let folio = 1000
