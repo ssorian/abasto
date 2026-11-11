@@ -85,7 +85,7 @@ export function OrderTable({
     )
   }
   return (
-    <ListPanel className="max-h-[420px] overflow-auto">
+    <ListPanel className="max-h-[420px] overflow-auto group-data-maximized/dialog:max-h-none">
       <ListTable className="min-w-[860px]">
         <ListHead>
           {['Producto', 'Existencia', 'Cajas', 'Costo x caja', 'Total']}
