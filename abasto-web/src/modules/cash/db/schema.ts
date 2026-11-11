@@ -58,11 +58,14 @@ export const cashSessions = pgTable(
 )
 
 // 'abono' is kept for legacy immutable rows; nothing creates it anymore.
+// 'rider_difference' is the cash a rider handed in minus the value of the
+// delivery sold (negative: Faltante de reparto, positive: Sobrante de reparto).
 export const cashMovementTypes = [
   'sale',
   'abono',
   'entry',
   'withdrawal',
+  'rider_difference',
 ] as const
 export type CashMovementType = (typeof cashMovementTypes)[number]
 
@@ -100,11 +103,11 @@ export const cashMovements = pgTable(
       .where(sql`${table.type} = 'sale'`),
     check(
       'cash_movements_type_check',
-      sql`${table.type} in ('sale', 'abono', 'entry', 'withdrawal')`,
+      sql`${table.type} in ('sale', 'abono', 'entry', 'withdrawal', 'rider_difference')`,
     ),
     check(
       'cash_movements_sign',
-      sql`(${table.type} = 'withdrawal' and ${table.amountCents} < 0) or (${table.type} <> 'withdrawal' and ${table.amountCents} > 0)`,
+      sql`(${table.type} = 'withdrawal' and ${table.amountCents} < 0) or (${table.type} = 'rider_difference' and ${table.amountCents} <> 0) or (${table.type} not in ('withdrawal', 'rider_difference') and ${table.amountCents} > 0)`,
     ),
   ],
 )

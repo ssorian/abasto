@@ -21,7 +21,20 @@ describe('summarizeSession', () => {
       salesCents: 15000,
       entriesCents: 15000,
       withdrawalsCents: 4000,
+      riderDifferenceCents: 0,
       expectedCents: 76000,
+    })
+  })
+
+  test('a rider shortage stays out of sales but counts in the expected cash', () => {
+    const summary = summarizeSession(0, [
+      { type: 'sale', amountCents: 23041 },
+      { type: 'rider_difference', amountCents: -3041 },
+    ])
+    expect(summary).toMatchObject({
+      salesCents: 23041,
+      riderDifferenceCents: -3041,
+      expectedCents: 20000,
     })
   })
 
@@ -67,9 +80,11 @@ describe('closePreview', () => {
 
 describe('movementLabel', () => {
   test('names every movement type in Spanish', () => {
-    expect(movementLabel('sale')).toBe('Venta')
-    expect(movementLabel('abono')).toBe('Entrada')
-    expect(movementLabel('entry')).toBe('Entrada')
-    expect(movementLabel('withdrawal')).toBe('Retiro')
+    expect(movementLabel('sale', 100)).toBe('Venta')
+    expect(movementLabel('abono', 100)).toBe('Entrada')
+    expect(movementLabel('entry', 100)).toBe('Entrada')
+    expect(movementLabel('withdrawal', -100)).toBe('Retiro')
+    expect(movementLabel('rider_difference', -3041)).toBe('Faltante de reparto')
+    expect(movementLabel('rider_difference', 500)).toBe('Sobrante de reparto')
   })
 })

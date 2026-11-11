@@ -11,6 +11,8 @@ export type SessionSummary = {
   entriesCents: number
   /** Positive cents taken out of the drawer. */
   withdrawalsCents: number
+  /** Signed net of rider differences: negative = shortage, positive = surplus. */
+  riderDifferenceCents: number
   expectedCents: number
 }
 
@@ -27,12 +29,21 @@ export function summarizeSession(
   // Legacy 'abono' rows are immutable history: they count as cash in.
   const entriesCents = sum('entry') + sum('abono')
   const withdrawalsCents = 0 - sum('withdrawal')
+  // Shortages and surpluses of settled deliveries: kept apart from sales so
+  // VENTAS matches Reports, but they are part of the expected cash.
+  const riderDifferenceCents = sum('rider_difference')
   return {
     openingCents,
     salesCents,
     entriesCents,
     withdrawalsCents,
-    expectedCents: openingCents + salesCents + entriesCents - withdrawalsCents,
+    riderDifferenceCents,
+    expectedCents:
+      openingCents +
+      salesCents +
+      entriesCents +
+      riderDifferenceCents -
+      withdrawalsCents,
   }
 }
 
@@ -59,11 +70,17 @@ export function closePreview(
   }
 }
 
-const labels: Record<CashMovementType, string> = {
+const labels: Record<Exclude<CashMovementType, 'rider_difference'>, string> = {
   sale: 'Venta',
   abono: 'Entrada', // legacy rows only; nothing creates them anymore
   entry: 'Entrada',
   withdrawal: 'Retiro',
 }
 
-export const movementLabel = (type: CashMovementType) => labels[type]
+/** Label of a rider difference by its sign (negative = shortage). */
+export const riderDifferenceLabel = (amountCents: number) =>
+  amountCents < 0 ? 'Faltante de reparto' : 'Sobrante de reparto'
+
+/** The amount is needed because a rider difference is a shortage or a surplus. */
+export const movementLabel = (type: CashMovementType, amountCents: number) =>
+  type === 'rider_difference' ? riderDifferenceLabel(amountCents) : labels[type]

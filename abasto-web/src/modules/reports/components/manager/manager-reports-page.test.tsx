@@ -46,6 +46,7 @@ const dashboard = (orders: number): ManagerDashboard => ({
       countedCents: 0,
       differenceCents: 0,
     },
+    riderShortfalls: [],
   },
   stock: {
     warehouses: [tejupilco],

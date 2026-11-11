@@ -4,6 +4,7 @@ import { PageHeading } from '#/components/page-heading'
 import { ActionButton } from '#/modules/reports/components/report-buttons'
 import { ReportEmpty } from '#/modules/reports/components/report-empty'
 import { CashCutsCard } from '#/modules/reports/components/manager/cash-cuts-card'
+import { RiderShortfallsCard } from '#/modules/reports/components/manager/rider-shortfalls-card'
 import { ExpiringLotsCard } from '#/modules/reports/components/manager/expiring-lots-card'
 import { LowStockCard } from '#/modules/reports/components/manager/low-stock-card'
 import { ManagerAttention } from '#/modules/reports/components/manager/manager-attention'
@@ -122,6 +123,10 @@ export function ManagerReportsPage({
             rows={dashboard.cash.rows}
             warehouse={dashboard.warehouse.name}
             supplierFiltered={Boolean(search.proveedor)}
+          />
+          <RiderShortfallsCard
+            rows={dashboard.cash.riderShortfalls}
+            warehouse={dashboard.warehouse.name}
           />
         </div>
       )}

@@ -3,6 +3,7 @@ import { DownloadIcon } from 'lucide-react'
 import { PageHeading } from '#/components/page-heading'
 import { metricsOf } from '#/modules/executive/lib/profitability'
 import type { ExecutiveSearch } from '#/modules/executive/lib/search'
+import { RiderShortfallsSection } from '#/modules/reports/components/owner/rider-shortfalls-section'
 import { CashSection } from '#/modules/reports/components/owner/cash-section'
 import { IdleCapital } from '#/modules/reports/components/owner/idle-capital'
 import { InventoryChart } from '#/modules/reports/components/owner/inventory-chart'
@@ -185,6 +186,7 @@ function Dashboard({
           expiringDays={stockAlerts.expiringDays}
         />
       </div>
+      <RiderShortfallsSection rows={data.cashCuts.riderShortfalls} />
     </div>
   )
 }
