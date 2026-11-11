@@ -33,6 +33,7 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - S26: C14 — a manager opening `/configuracion` is redirected like `/almacenes`.
 - S27: C15 — the counter says "Abre la caja antes de cobrar." before the user starts a sale (or disables charging), not only after "Entregar".
 - S28: Permission probe — calling owner-only server functions directly as a manager or store customer is refused; any hole found is fixed with a test.
+- S30: Rider settlement shortfall — user: "implementa asi, cuando acabes haz merge y push" on the proposal: when a delivery is settled, the cash box records the sale at the sold value (settlement `expectedCents`, "Venta reparto") and the difference handed in minus expected as a separate cash movement ("Faltante de reparto" when negative, "Sobrante de reparto" when positive) naming the rider; net cash in is unchanged (e.g. sold $230.41, handed in $200.00 → venta $230.41 + faltante −$30.41 = $200.00 in). Cash close expected cash is unchanged. Reports sales equal cash "VENTAS" exactly, and Reports shows "Faltantes de reparto" by rider and period. Not in production: a migration may add the movement type; dev data is rebuilt from the seed.
 - S29: Checks — `bun test` green; tsc, eslint, prettier clean on changed files; `bun run build` OK.
 
 ## Tasks
@@ -47,6 +48,7 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - T6 [S1-S29] verify — independent verification. Status: done (no blockers; S2, S3, S18, S28, S15 pass; partials S4, S5, S10, S13, S25 followed up in T8).
 - T8 [S4, S5, S13, S25, S8] parent inline — verifier follow-ups: revert field-name boundary message (exposed internal names like «patch.name»), "1 unidad" singular, inventory `formatCents` negative zero, cash-cut CSV in business zone, cuts filtered by close day, store warehouse list reads in parallel. Risk: item 6 (report period semantics). Status: done, RED→GREEN. Commit: 8bb7b40
 - T9 [S13] parent inline — verify (mwce0d3t) found `countLabel` regression ("sobres" → "1 sobr") and stale comments; fixed RED→GREEN (counter tests 40/40, tsc, eslint clean). Risk: none. Commit: b279855
+- T10 [S30, S19, S29] worker — rider shortfall/surplus as its own cash movement; Reports shortfall card. Risk: item 1 (cash ledger writes, migration). Status: in progress. Commit: —
 - Final checks: bun test 1126 pass / 2 skip / 0 fail; tsc clean; eslint 0 errors (4 pre-existing warnings); prettier clean; build OK. Not browser-checked; B5 (lost clicks during hydration) not fixed; S5 SSR timing not measured on a production build.
 
 ## Log
@@ -59,3 +61,4 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - L6 (user): "Sumar existencias" removal → "Restaurar \"Sumar existencias\" (Recomendado)".
 - L7 (evidence, verify): no blockers; delivery sales valued at expectedCents, so Reports differ from cash VENTAS when a rider is short/over (QA case −$30.41).
 - L8 (evidence, verify mwce0d3t on 6d53d3c..8bb7b40): all items pass, no blockers; bun test 1126 pass / 2 skip / 0 fail; tsc clean.
+- L9 (user): reparto con faltante → recomendación: caja registra venta por lo vendido y faltante/sobrante como movimiento aparte; "implementa asi, cuando acabes haz merge y push". Context: "no hay pr todavia no esta en prod."
