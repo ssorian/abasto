@@ -57,7 +57,7 @@ type OrderDialogProps = {
   initialWarehouseId: string
   suppliers: ReadonlyArray<CatalogSupplier>
   products: ReadonlyArray<CatalogProduct>
-  /** Whether the actor may edit catalog products (owner). */
+  /** Whether the actor may edit catalog products (owner); a manager of the receiving warehouse edits its prices and costs too. */
   canEditProducts: boolean
   /** Open "Por reponer" balances of every supplier; the dialog keeps the chosen supplier's. */
   restock: ReadonlyArray<PendingBalance>
@@ -89,6 +89,8 @@ export function OrderDialog({
   const [standard, setStandard] = useState<Record<string, number>>()
   const [stock, setStock] = useState<Record<string, OrderStock>>()
   const [error, setError] = useState<string | null>(null)
+  // Row the last save failed on; `request` re-triggers the scroll on each attempt.
+  const [failed, setFailed] = useState<{ productId: string; request: number }>()
   const [pending, setPending] = useState(false)
   const [reloadStandard, setReloadStandard] = useState(0)
   // Pending ids of the balances to discount; chosen only until the order is registered.
@@ -135,9 +137,25 @@ export function OrderDialog({
   const discountCents = discountTotalCents(owedHere, discounted)
   const tooMuch = discountIssue(total, discountCents)
 
+  /** Brings the failing product on screen: clears the filters that hide it, then the table scrolls to it. */
+  function showFailedRow(productId: string) {
+    if (!visible.some(({ id }) => id === productId)) {
+      setQuery('')
+      setOnlyBoxes(false)
+    }
+    setFailed((current) => ({
+      productId,
+      request: (current?.request ?? 0) + 1,
+    }))
+  }
+
   async function submit() {
     const parsed = orderInputFromDraft(draft, own)
-    if (!parsed.ok) return setError(parsed.message)
+    if (!parsed.ok) {
+      if ('productId' in parsed) showFailedRow(parsed.productId)
+      return setError(parsed.message)
+    }
+    setFailed(undefined)
     if (tooMuch) return setError(tooMuch)
     setError(null)
     setPending(true)
@@ -151,13 +169,19 @@ export function OrderDialog({
   }
 
   const editing = products.find(({ id }) => id === editingId)
+  // The owner, or the manager of the receiving warehouse, fixes costs and prices without leaving the order.
+  const canEditPrices =
+    canEditProducts ||
+    warehouses.some(
+      ({ id, canManage }) => id === draft.warehouseId && canManage,
+    )
 
   return (
     <>
       <InventoryDialog
         title="Nuevo pedido al proveedor"
         eyebrow="POR RECIBIR"
-        description="Elige el proveedor y escribe las cajas de cada producto. El precio por pieza, el descuento y la promoción vienen del catálogo y definen el costo neto. El pedido no mueve existencias: espera en «Por recibir» hasta que llegue y lo verifiques."
+        description="Elige el proveedor y escribe las cajas de cada producto. El costo por pieza, el descuento y la promoción vienen del catálogo y definen el costo neto. El pedido no mueve existencias: espera en «Por recibir» hasta que llegue y lo verifiques."
         size="wide"
         onClose={onClose}
       >
@@ -320,7 +344,8 @@ export function OrderDialog({
                       boxes: { ...current.boxes, [productId]: boxes },
                     }))
                   }
-                  onEdit={canEditProducts ? setEditingId : undefined}
+                  onEdit={canEditPrices ? setEditingId : undefined}
+                  failed={failed}
                 />
               ) : (
                 <p className="py-6 text-center text-sm text-[#907e84]">
@@ -351,13 +376,13 @@ export function OrderDialog({
           </DialogActions>
         </form>
       </InventoryDialog>
-      {canEditProducts && editing && (
+      {canEditPrices && editing && (
         // Saving reloads the products, so the rows recalculate with the new amounts and typed boxes stay.
         <WarehousePricesDialog
           key={`${draft.warehouseId}:${editing.id}`}
           product={editing}
           warehouseId={draft.warehouseId}
-          canEditCost={canEditProducts}
+          canEditCost={canEditPrices}
           onPricesSaved={() => setReloadStandard((count) => count + 1)}
           onClose={() => setEditingId(undefined)}
         />

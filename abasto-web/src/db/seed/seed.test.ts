@@ -49,18 +49,18 @@ describe('seedDatabase', () => {
     async () => {
       const summary = await seedDatabase({ password: defaultSeedPassword })
 
-      expect(await total(warehouses)).toBe(4)
+      expect(await total(warehouses)).toBe(2)
       expect(await total(suppliers)).toBe(2)
       expect(await total(products)).toBe(73)
       expect(await total(customers)).toBe(6)
       expect(summary.users.map((u) => u.email)).toContain('dueno@abasto.local')
-      expect(summary.users).toHaveLength(5)
+      expect(summary.users).toHaveLength(3)
 
       expect(
         (await db.select({ name: warehouses.name }).from(warehouses))
           .map((row) => row.name)
           .sort(),
-      ).toEqual(['Amatepec', 'Arcelia', 'Luvianos', 'Tejupilco'])
+      ).toEqual(['Arcelia', 'Tejupilco'])
       const photos = await db
         .select({ imageUrl: products.imageUrl })
         .from(products)

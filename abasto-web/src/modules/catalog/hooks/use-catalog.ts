@@ -18,6 +18,7 @@ import {
   createProductFn,
   createSupplierFn,
   savePresentationsFn,
+  savePieceCostFn,
   updateProductFn,
   updateSupplierFn,
 } from '#/modules/catalog/server/catalog'
@@ -83,7 +84,7 @@ export function useCatalogActions() {
       >,
     ): Promise<string | null> => {
       try {
-        unwrap(await updateProductFn({ data: { id: productId, patch } }))
+        unwrap(await savePieceCostFn({ data: { id: productId, cost: patch } }))
         await router.invalidate({ sync: true })
         return null
       } catch (failure) {

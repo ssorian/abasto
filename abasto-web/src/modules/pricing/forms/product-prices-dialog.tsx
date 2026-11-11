@@ -39,7 +39,7 @@ const originTones: Record<PriceTableRow['origin'], StatusTone> = {
 }
 
 const costFields: ReadonlyArray<[keyof PieceCostDraft, string]> = [
-  ['listPrice', 'Precio por pieza'],
+  ['listPrice', 'Costo por pieza'],
   ['fixedDiscount', 'Descuento fijo'],
   ['promotion', 'Promoción'],
 ]
@@ -50,7 +50,7 @@ type ProductPricesDialogProps = {
   warehouseName: string
   /** Manager of this warehouse or owner; everyone else only reads the sale prices. */
   canEdit: boolean
-  /** Owner only: the supplier cost is global and never shown to anyone else. */
+  /** Owner or any warehouse manager: the supplier cost is global and hidden from everyone else. */
   canEditCost: boolean
   /** Resolve to the server message when saving failed, or null on success. */
   onSaveCost: (patch: PieceCostAmounts) => Promise<string | null>

@@ -186,7 +186,7 @@ export function ReceptionDialog({
             void submit()
           }}
         >
-          <ListPanel className="max-h-[360px] overflow-auto">
+          <ListPanel className="max-h-[360px] overflow-auto group-data-maximized/dialog:max-h-none">
             <ListTable className="min-w-[820px]">
               <ListHead>
                 {[

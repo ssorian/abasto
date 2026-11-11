@@ -18,7 +18,13 @@ export type GlobalPermission =
 export type WarehousePermission =
   'warehouse.view' | 'warehouse.operate' | 'warehouse.manage'
 
-export type Permission = GlobalPermission | WarehousePermission
+/**
+ * Supplier cost per piece, discount and promotion of a product: global data
+ * the owner or any warehouse manager may correct (e.g. while ordering).
+ */
+export type CostPermission = 'catalog.cost'
+
+export type Permission = GlobalPermission | WarehousePermission | CostPermission
 
 const warehouseGrants: Record<
   WarehouseRole,
@@ -45,6 +51,9 @@ export function can(
 ): boolean {
   if (actor.role === 'owner') return true
   if (actor.role === 'customer') return false
+  if (permission === 'catalog.cost') {
+    return [...actor.assignments.values()].includes('manager')
+  }
   if (!isWarehousePermission(permission) || !warehouseId) return false
   const role = actor.assignments.get(warehouseId)
   return role ? warehouseGrants[role].has(permission) : false

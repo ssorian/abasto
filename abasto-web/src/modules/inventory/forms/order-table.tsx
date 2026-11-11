@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { AlertTriangleIcon, TagIcon } from 'lucide-react'
 
 import { formatTenThousandths } from '#/lib/utils/supplier-cost'
@@ -10,6 +11,7 @@ import {
   ListRow,
   ListTable,
 } from '#/modules/inventory/components/list-panel'
+import { digitsOnly } from '#/modules/inventory/lib/box-count'
 import { formatCents } from '#/modules/inventory/lib/cents'
 import {
   belowMinimumLabel,
@@ -39,6 +41,8 @@ type OrderTableProps = {
   onBoxes: (productId: string, boxes: string) => void
   /** Opens the prices dialog (cost and sale prices) of a product; absent for users who cannot edit products. */
   onEdit?: (productId: string) => void
+  /** Row the last save failed on: highlighted, scrolled into view and its boxes focused on every new `request`. */
+  failed?: { productId: string; request: number }
 }
 
 const compact = 'min-h-[38px] px-2 py-1.5'
@@ -63,7 +67,16 @@ export function OrderTable({
   stockByProductId,
   onBoxes,
   onEdit,
+  failed,
 }: OrderTableProps) {
+  useEffect(() => {
+    if (!failed) return
+    const input = document.querySelector<HTMLInputElement>(
+      `[data-boxes-for="${CSS.escape(failed.productId)}"]`,
+    )
+    input?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    input?.focus({ preventScroll: true })
+  }, [failed?.productId, failed?.request])
   if (!products.length) {
     return (
       <p className="py-6 text-center text-sm text-[#907e84]">
@@ -72,7 +85,7 @@ export function OrderTable({
     )
   }
   return (
-    <ListPanel className="max-h-[420px] overflow-auto">
+    <ListPanel className="max-h-[420px] overflow-auto group-data-maximized/dialog:max-h-none">
       <ListTable className="min-w-[860px]">
         <ListHead>
           {['Producto', 'Existencia', 'Cajas', 'Costo x caja', 'Total']}
@@ -89,7 +102,14 @@ export function OrderTable({
             const stock = stockByProductId?.[product.id]
             const lowLabel = belowMinimumLabel(stock, factor)
             return (
-              <ListRow key={product.id} className="align-top">
+              <ListRow
+                key={product.id}
+                className={`align-top ${
+                  failed?.productId === product.id
+                    ? 'bg-[#fbecee] ring-2 ring-[#b3414b] ring-inset'
+                    : ''
+                }`}
+              >
                 <ListCell>
                   <span className="flex items-start justify-between gap-2">
                     <span>
@@ -146,12 +166,14 @@ export function OrderTable({
                 <ListCell>
                   <FieldInput
                     inputMode="numeric"
+                    data-boxes-for={product.id}
+                    aria-invalid={failed?.productId === product.id}
                     aria-label={`Cajas de ${product.name}`}
                     className={`${compact} w-[76px]`}
                     placeholder="0"
                     value={boxes[product.id] ?? ''}
                     onChange={(event) =>
-                      onBoxes(product.id, event.target.value)
+                      onBoxes(product.id, digitsOnly(event.target.value))
                     }
                   />
                 </ListCell>

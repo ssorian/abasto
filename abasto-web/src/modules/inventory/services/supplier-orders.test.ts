@@ -187,7 +187,7 @@ describe('createSupplierOrder', () => {
       fx,
       orderOf(fx, { lines: [lineFor(fx.milk, 1)] }),
       'invalid',
-      'El descuento y la promoción no pueden superar el precio por pieza.',
+      'El descuento y la promoción no pueden superar el costo por pieza.',
     )
   })
 

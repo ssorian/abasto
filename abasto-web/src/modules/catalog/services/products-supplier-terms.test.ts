@@ -3,9 +3,11 @@ import { eq } from 'drizzle-orm'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import { products } from '#/modules/catalog/db/schema'
+import type { Actor } from '#/modules/access/lib/policy'
 import {
   createProduct,
   getProduct,
+  savePieceCost,
   updateProduct,
 } from '#/modules/catalog/services/products'
 import {
@@ -27,7 +29,7 @@ const base = {
 const badAmount =
   'Los montos del proveedor deben ser enteros en diezmilésimas, de cero o más.'
 const aboveList =
-  'El descuento y la promoción no pueden superar el precio por pieza.'
+  'El descuento y la promoción no pueden superar el costo por pieza.'
 const empty = { suppliers: 0, products: 0, presentations: 0 }
 
 describe('supplier terms on createProduct', () => {
@@ -219,6 +221,99 @@ describe('supplier terms on updateProduct', () => {
     const product = await createProduct(owner, base)
     const error = await errorOf(() =>
       updateProduct(staff, product.id, { listPricePerPiece: 100 }),
+    )
+    expect(error.code).toBe('forbidden')
+    expect(await getProduct(owner, product.id)).toEqual(product)
+  })
+})
+
+describe('savePieceCost', () => {
+  const managerOf = (staff: Actor): Actor => ({
+    ...staff,
+    assignments: new Map([['warehouse-north', 'manager']]),
+  })
+  const terms = {
+    listPricePerPiece: 79500,
+    fixedDiscountPerPiece: 169,
+    promotionPerPiece: 2452,
+  }
+
+  test('a warehouse manager saves the three amounts and nothing else changes', async () => {
+    const { owner, staff } = await setupActors()
+    const product = await createProduct(owner, base)
+    const saved = await savePieceCost(managerOf(staff), product.id, terms)
+    expect(saved).toEqual({ ...product, ...terms })
+    expect(await getProduct(owner, product.id)).toEqual(saved)
+  })
+
+  test('the owner saves them too', async () => {
+    const { owner } = await setupActors()
+    const product = await createProduct(owner, base)
+    expect(await savePieceCost(owner, product.id, terms)).toMatchObject(terms)
+  })
+
+  test('fields other than the amounts are ignored', async () => {
+    const { owner, staff } = await setupActors()
+    const product = await createProduct(owner, base)
+    const sneaky = { ...terms, name: 'Otro', published: false } as typeof terms
+    const saved = await savePieceCost(managerOf(staff), product.id, sneaky)
+    expect(saved).toEqual({ ...product, ...terms })
+  })
+
+  test('staff without a warehouse are forbidden and nothing changes', async () => {
+    const { owner, staff } = await setupActors()
+    const product = await createProduct(owner, base)
+    const error = await errorOf(() => savePieceCost(staff, product.id, terms))
+    expect(error.code).toBe('forbidden')
+    expect(error.message).toBe('No tienes permiso para esta acción.')
+    expect(await getProduct(owner, product.id)).toEqual(product)
+  })
+
+  test('discount plus promotion above the cost per piece is rejected and nothing changes', async () => {
+    const { owner, staff } = await setupActors()
+    const product = await createProduct(owner, base)
+    const error = await errorOf(() =>
+      savePieceCost(managerOf(staff), product.id, {
+        ...terms,
+        listPricePerPiece: 2000,
+      }),
+    )
+    expect(error.code).toBe('invalid')
+    expect(error.message).toBe(aboveList)
+    expect(await getProduct(owner, product.id)).toEqual(product)
+  })
+
+  test('an invalid amount is rejected and nothing changes', async () => {
+    const { owner, staff } = await setupActors()
+    const product = await createProduct(owner, base)
+    const error = await errorOf(() =>
+      savePieceCost(managerOf(staff), product.id, {
+        ...terms,
+        promotionPerPiece: -1,
+      }),
+    )
+    expect(error.message).toBe(badAmount)
+    expect(await getProduct(owner, product.id)).toEqual(product)
+  })
+
+  test('an unknown product is not found and nothing is written', async () => {
+    const { staff } = await setupActors()
+    const error = await errorOf(() =>
+      savePieceCost(
+        managerOf(staff),
+        '00000000-0000-0000-0000-000000000000',
+        terms,
+      ),
+    )
+    expect(error.code).toBe('not_found')
+    expect((await counts()).products).toBe(0)
+  })
+
+  test('a manager still cannot edit the product itself', async () => {
+    const { owner, staff } = await setupActors()
+    const product = await createProduct(owner, base)
+    const error = await errorOf(() =>
+      updateProduct(managerOf(staff), product.id, { name: 'Otro' }),
     )
     expect(error.code).toBe('forbidden')
     expect(await getProduct(owner, product.id)).toEqual(product)

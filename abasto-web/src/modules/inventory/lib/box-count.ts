@@ -13,3 +13,6 @@ export function parseBoxCount(text: string): Parsed<number> {
     ? { ok: true, value }
     : fail('Las cajas son demasiadas.')
 }
+
+/** Keeps only the digits of a typed or pasted box count, e.g. "12abc" → "12". */
+export const digitsOnly = (text: string) => text.replace(/\D/g, '')

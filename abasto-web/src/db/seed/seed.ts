@@ -303,11 +303,11 @@ export async function seedDatabase({
   await orderAndReceive('Tejupilco', 'lala', `F-${folio++}`, [
     lineFor('13455', 'Tejupilco', 10, 3),
   ])
-  // Expired yoghurt in Luvianos, written off as a loss.
-  const expired = await orderAndReceive('Luvianos', 'lala', `F-${folio++}`, [
-    lineFor('23431', 'Luvianos', 1, -2),
+  // Expired yoghurt in Arcelia, written off as a loss.
+  const expired = await orderAndReceive('Arcelia', 'lala', `F-${folio++}`, [
+    lineFor('23431', 'Arcelia', 1, -2),
   ])
-  await registerLoss(managerOf('Luvianos'), {
+  await registerLoss(managerOf('Arcelia'), {
     lotId: expired.lots[0].id,
     quantity: item('23431').seed.boxFactor,
     category: 'caducado',
@@ -415,43 +415,42 @@ export async function seedDatabase({
   const cancelled = await order('Tejupilco', 'esquinita', [['SA80', 2]])
   await cancelOrder(managerOf('Tejupilco'), cancelled.id)
 
-  // Luvianos: open drawer, a cash sale, a damaged-goods loss and a reservation.
-  await openCashSession(managerOf('Luvianos'), {
-    warehouseId: warehouseId.Luvianos,
+  // Arcelia: a full day already closed with a 50-peso shortage, then today's
+  // open drawer, a cash sale and a reservation.
+  await openCashSession(managerOf('Arcelia'), {
+    warehouseId: warehouseId.Arcelia,
     openingCents: 50_000,
   })
-  const luviSale = await order('Luvianos', 'pinos', [['CA10', 2]])
-  await pickup('Luvianos', luviSale.id, cash(luviSale.totalCents))
-  await order('Luvianos', 'sanchez', [['13455', 10]])
-
-  // Amatepec: a full day already closed with a 50-peso shortage.
-  await openCashSession(managerOf('Amatepec'), {
-    warehouseId: warehouseId.Amatepec,
-    openingCents: 50_000,
-  })
-  const amatepecSale = await order('Amatepec', 'esquinita', [
+  const yesterdaySale = await order('Arcelia', 'esquinita', [
     ['13455', 3],
     ['LU53', 2],
   ])
-  await pickup('Amatepec', amatepecSale.id, cash(amatepecSale.totalCents))
-  await closeCashSession(managerOf('Amatepec'), {
-    warehouseId: warehouseId.Amatepec,
-    countedCents: 50_000 + amatepecSale.totalCents - 5_000,
+  await pickup('Arcelia', yesterdaySale.id, cash(yesterdaySale.totalCents))
+  await closeCashSession(managerOf('Arcelia'), {
+    warehouseId: warehouseId.Arcelia,
+    countedCents: 50_000 + yesterdaySale.totalCents - 5_000,
   })
+  await openCashSession(managerOf('Arcelia'), {
+    warehouseId: warehouseId.Arcelia,
+    openingCents: 50_000,
+  })
+  const arceliaSale = await order('Arcelia', 'pinos', [['CA10', 2]])
+  await pickup('Arcelia', arceliaSale.id, cash(arceliaSale.totalCents))
+  await order('Arcelia', 'sanchez', [['13455', 10]])
 
-  // Transfers: Tejupilco → Amatepec received one piece short, Tejupilco → Arcelia in transit.
-  const toAmatepec = await dispatchTransfer(managerOf('Tejupilco'), {
+  // Transfers: Tejupilco → Arcelia received one piece short, then another Tejupilco → Arcelia in transit.
+  const toArcelia = await dispatchTransfer(managerOf('Tejupilco'), {
     fromWarehouseId: warehouseId.Tejupilco,
-    toWarehouseId: warehouseId.Amatepec,
+    toWarehouseId: warehouseId.Arcelia,
     notes: 'Reposición de lácteos',
     items: [
       { productId: item('LU53').product.id, quantity: 24 },
       { productId: item('25023').product.id, quantity: 12 },
     ],
   })
-  const sent = await getTransfer(managerOf('Amatepec'), toAmatepec.id)
-  await receiveTransfer(managerOf('Amatepec'), {
-    transferId: toAmatepec.id,
+  const sent = await getTransfer(managerOf('Arcelia'), toArcelia.id)
+  await receiveTransfer(managerOf('Arcelia'), {
+    transferId: toArcelia.id,
     lines: sent.lines.map((line) => ({
       lineId: line.id,
       receivedQuantity:

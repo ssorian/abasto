@@ -195,7 +195,7 @@ describe('supplier terms validation', () => {
     }
     expect(supplierCostErrors(above)).toEqual({
       fixedDiscount:
-        'El descuento y la promoción no pueden superar el precio por pieza.',
+        'El descuento y la promoción no pueden superar el costo por pieza.',
     })
     expect(supplierCostErrors({ ...above, promotion: '0.4' })).toEqual({})
   })

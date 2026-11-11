@@ -5,6 +5,7 @@ import { runWithActor } from '#/lib/server-actor'
 import { presentationSetInput } from '#/modules/catalog/schemas/presentations-schema'
 import {
   idInput,
+  pieceCostInput,
   productInput,
   productPatchInput,
   supplierInput,
@@ -15,9 +16,11 @@ import type { PresentationSet } from '#/modules/catalog/services/presentation-ru
 import {
   createProduct,
   listProducts,
+  savePieceCost,
   updateProduct,
 } from '#/modules/catalog/services/products'
 import type {
+  PieceCost,
   ProductInput,
   ProductPatch,
 } from '#/modules/catalog/services/products'
@@ -63,6 +66,19 @@ export const updateProductFn = createServerFn({ method: 'POST' })
         actor,
         parseInput(idInput, data.id),
         parseInput(productPatchInput, data.patch),
+      ),
+    ),
+  )
+
+/** Supplier amounts only: allowed to the owner and to warehouse managers. */
+export const savePieceCostFn = createServerFn({ method: 'POST' })
+  .validator((data: { id: string; cost: PieceCost }) => data)
+  .handler(({ data }) =>
+    runWithActor((actor) =>
+      savePieceCost(
+        actor,
+        parseInput(idInput, data.id),
+        parseInput(pieceCostInput, data.cost),
       ),
     ),
   )

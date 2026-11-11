@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { XIcon } from 'lucide-react'
+import { Maximize2Icon, Minimize2Icon, XIcon } from 'lucide-react'
 
 import {
   Dialog,
@@ -29,6 +30,13 @@ const sizes = {
   wide: 'w-[calc(100vw-20px)] max-w-[calc(100vw-20px)] p-5 md:w-[min(1080px,calc(100vw-32px))] md:max-w-[1080px] md:p-[29px]',
 }
 
+/** Full screen: wins over every size; inner lists drop their height cap via `group-data-maximized/dialog`. */
+const maximizedClass =
+  'h-dvh max-h-dvh w-screen max-w-none rounded-none sm:max-w-none md:w-screen md:max-w-none'
+
+const cornerButton =
+  'rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:outline-2 focus:outline-offset-2'
+
 /** Always-open dialog; the parent mounts it only while it should be visible. */
 export function InventoryDialog({
   title,
@@ -38,13 +46,18 @@ export function InventoryDialog({
   size = 'standard',
   children,
 }: InventoryDialogProps) {
+  // Only wide dialogs hold long tables, so only they can fill the screen.
+  const canMaximize = size === 'wide'
+  const [maximized, setMaximized] = useState(false)
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
+        data-maximized={maximized || undefined}
         className={cn(
-          'max-h-[92dvh] gap-[18px] overflow-y-auto rounded-2xl border border-transparent bg-white p-[23px] text-base sm:max-w-[calc(100vw-24px)] md:gap-5 md:p-[29px]',
+          'group/dialog max-h-[92dvh] gap-[18px] overflow-y-auto rounded-2xl border border-transparent bg-white p-[23px] text-base sm:max-w-[calc(100vw-24px)] md:gap-5 md:p-[29px]',
           sizes[size],
+          maximized && maximizedClass,
         )}
       >
         <DialogHeader className="text-left">
@@ -61,10 +74,30 @@ export function InventoryDialog({
           </DialogDescription>
         </DialogHeader>
         {children}
-        <DialogClose className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:outline-2 focus:outline-offset-2">
-          <XIcon className="size-4" />
-          <span className="sr-only">Cerrar</span>
-        </DialogClose>
+        <span className="absolute top-4 right-4 flex items-center gap-3">
+          {canMaximize && (
+            <button
+              type="button"
+              className={cornerButton}
+              aria-pressed={maximized}
+              title={maximized ? 'Restaurar tamaño' : 'Pantalla completa'}
+              onClick={() => setMaximized((current) => !current)}
+            >
+              {maximized ? (
+                <Minimize2Icon className="size-4" />
+              ) : (
+                <Maximize2Icon className="size-4" />
+              )}
+              <span className="sr-only">
+                {maximized ? 'Restaurar tamaño' : 'Pantalla completa'}
+              </span>
+            </button>
+          )}
+          <DialogClose className={cornerButton}>
+            <XIcon className="size-4" />
+            <span className="sr-only">Cerrar</span>
+          </DialogClose>
+        </span>
       </DialogContent>
     </Dialog>
   )
