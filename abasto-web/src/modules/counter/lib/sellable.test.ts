@@ -80,6 +80,9 @@ describe('availability in the unit being requested', () => {
   test('counts with the right plural', () => {
     expect(countLabel(1, 'piezas')).toBe('1 pieza')
     expect(countLabel(0, 'piezas')).toBe('0 piezas')
+    expect(countLabel(1, 'unidades')).toBe('1 unidad')
+    expect(countLabel(1, 'paquetes')).toBe('1 paquete')
+    expect(countLabel(3, 'unidad')).toBe('3 unidades')
     expect(countLabel(216, 'piezas')).toBe('216 piezas')
     expect(countLabel(1, 'Caja')).toBe('1 caja')
     expect(countLabel(9, 'Caja')).toBe('9 cajas')

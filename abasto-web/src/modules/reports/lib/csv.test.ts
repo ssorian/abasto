@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { buildCsv, centsToDecimal, salesCsv } from '#/modules/reports/lib/csv'
+import {
+  buildCsv,
+  centsToDecimal,
+  csvDateTime,
+  salesCsv,
+} from '#/modules/reports/lib/csv'
 
 describe('csv output', () => {
   test('starts with a BOM, joins rows with CRLF and quotes every cell', () => {
@@ -52,5 +57,15 @@ describe('csv output', () => {
     expect(row).toBe(
       `"'=Distribuidora, Norte","2","20","195.00","30.05","164.95","84.59"`,
     )
+  })
+})
+
+describe('csvDateTime', () => {
+  test('prints instants in the business time zone, not UTC', () => {
+    // 11 Nov 04:27 UTC is 10 Nov 22:27 in Mexico City.
+    expect(csvDateTime(new Date('2026-11-11T04:27:00Z'))).toBe(
+      '2026-11-10 22:27',
+    )
+    expect(csvDateTime(null)).toBe('')
   })
 })

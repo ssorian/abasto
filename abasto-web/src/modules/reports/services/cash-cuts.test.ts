@@ -157,4 +157,24 @@ describe('cash cuts', () => {
       stored.openedAt.toISOString(),
     )
   })
+  test('a cut falls in the period of the day it was closed', async () => {
+    const fx = await setupReports()
+    // Opened 10 Nov 23:00 and closed 11 Nov 01:00, Mexico City time.
+    await db
+      .update(cashSessions)
+      .set({ openedAt: new Date('2026-11-11T05:00:00Z') })
+      .where(eq(cashSessions.warehouseId, fx.b.id))
+    useClock(() => new Date('2026-11-11T07:00:00Z'))
+    await closeCashSession(fx.managerB, {
+      warehouseId: fx.b.id,
+      countedCents: 0,
+    })
+    const inPeriod = (day: string) =>
+      getCashCuts(fx.owner, {
+        period: { preset: 'custom', from: day, to: day },
+        warehouseIds: [fx.b.id],
+      })
+    expect((await inPeriod('2026-11-11')).rows).toHaveLength(1)
+    expect((await inPeriod('2026-11-10')).rows).toHaveLength(0)
+  })
 })

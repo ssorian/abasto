@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { parsePesosToCents } from '#/modules/inventory/lib/cents'
+import { formatCents, parsePesosToCents } from '#/modules/inventory/lib/cents'
 
 describe('parsePesosToCents', () => {
   test('converts pesos to integer cents without float drift', () => {
@@ -46,5 +46,12 @@ describe('parsePesosToCents', () => {
       ok: false,
       message: 'El monto es demasiado grande.',
     })
+  })
+})
+
+describe('formatCents', () => {
+  test('a negative zero prints as $0.00, never -$0.00', () => {
+    expect(formatCents(-0)).toBe(formatCents(0))
+    expect(formatCents(-0)).not.toContain('-')
   })
 })

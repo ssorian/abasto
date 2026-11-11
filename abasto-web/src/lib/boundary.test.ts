@@ -82,20 +82,14 @@ describe('parseInput', () => {
     }
   })
 
-  test('undeclared failures name the first failing field in Spanish', () => {
+  test('missing fields give a generic Spanish message, not zod internals', () => {
     try {
       parseInput(z.object({ name: z.string() }), {})
       throw new Error('should have thrown')
     } catch (error) {
-      expect((error as AppError).message).toBe('Revisa el campo «name».')
-    }
-    try {
-      parseInput(z.object({ a: z.object({ qty: z.number() }) }), {
-        a: { qty: 'x' },
-      })
-      throw new Error('should have thrown')
-    } catch (error) {
-      expect((error as AppError).message).toBe('Revisa el campo «a.qty».')
+      expect((error as AppError).message).toBe(
+        'Revisa los datos e intenta de nuevo.',
+      )
     }
   })
 })

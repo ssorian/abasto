@@ -57,9 +57,15 @@ export function buildSellable(
 }
 
 /** "1 pieza", "9 cajas": the noun agrees with the count; any case in, lower case out. */
+/** "unidades" → "unidad", "piezas" → "pieza", "paquetes" → "paquete". */
+function singular(word: string): string {
+  if (/[dlrnj]es$/.test(word)) return word.slice(0, -2)
+  return word.endsWith('s') ? word.slice(0, -1) : word
+}
+
 export function countLabel(count: number, noun: string): string {
   const word = noun.trim().toLowerCase()
-  if (count === 1) return `1 ${word.endsWith('s') ? word.slice(0, -1) : word}`
+  if (count === 1) return `1 ${singular(word)}`
   const plural = /[sx]$/.test(word)
     ? word
     : /[aeiouáéíóú]$/.test(word)

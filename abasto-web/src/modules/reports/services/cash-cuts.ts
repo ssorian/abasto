@@ -65,9 +65,9 @@ export async function getCashCuts(
     left join "user" cu on cu.id = s.closed_by
     left join cash_movements m on m.session_id = s.id
     where s.warehouse_id in (${uuidList(warehouses.map((item) => item.id))})
-      and ${inRange(sql`s.opened_at`, range)}
+      and ${inRange(sql`coalesce(s.closed_at, s.opened_at)`, range)}
     group by s.id, w.name, ou.name, cu.name
-    order by s.opened_at, s.id`)
+    order by coalesce(s.closed_at, s.opened_at), s.id`)
   const rows = result.rows.map((row): CashCutRow => {
     const sales = Number(row.sales)
     const entries = Number(row.entries)

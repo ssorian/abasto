@@ -85,17 +85,20 @@ export async function listStoreWarehouses(): Promise<Array<StoreWarehouse>> {
   const rows = await db
     .select({ id: warehouses.id, name: warehouses.name })
     .from(warehouses)
-  const offered: Array<StoreWarehouse> = []
-  for (const warehouse of rows) {
-    const catalog = await getStoreCatalog(warehouse.id)
-    const hasStock = catalog.some((product) =>
-      product.presentations.some(
-        ({ availability }) => availability !== 'Agotado',
-      ),
-    )
-    if (hasStock) offered.push(warehouse)
-  }
-  return offered.sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  // Independent reads on the pool (no shared transaction), so they can overlap.
+  const sellable = await Promise.all(
+    rows.map(async (warehouse) => {
+      const catalog = await getStoreCatalog(warehouse.id)
+      return catalog.some((product) =>
+        product.presentations.some(
+          ({ availability }) => availability !== 'Agotado',
+        ),
+      )
+    }),
+  )
+  return rows
+    .filter((_, index) => sellable[index])
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
 }
 
 /**
