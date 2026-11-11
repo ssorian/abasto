@@ -4,25 +4,18 @@ import { productImages } from '#/db/seed/product-images'
 
 /**
  * Starting data for a dairy distributor in the south of the Estado de México:
- * four warehouses (Tejupilco, Arcelia, Luvianos and Amatepec) that buy Lala and
+ * two warehouses (Tejupilco and Arcelia) that buy Lala and
  * Alpura products and sell them to authorized stores.
  * Money is integer MXN cents; quantities are base units (piezas).
  */
 
-export const warehouseNames = [
-  'Tejupilco',
-  'Arcelia',
-  'Luvianos',
-  'Amatepec',
-] as const
+export const warehouseNames = ['Tejupilco', 'Arcelia'] as const
 export type WarehouseName = (typeof warehouseNames)[number]
 
 /** List price offset per warehouse, in cents per box (Tejupilco is the base). */
 export const warehousePriceOffset: Record<WarehouseName, number> = {
   Tejupilco: 0,
   Arcelia: 900,
-  Luvianos: 300,
-  Amatepec: 600,
 }
 
 export type SeedStaff = {
@@ -36,8 +29,6 @@ export const ownerSeed = { name: 'Dueño Abasto', email: 'dueno@abasto.local' }
 export const staffSeed: Array<SeedStaff> = [
   { name: 'Laura Méndez', email: 'laura@abasto.local', warehouse: 'Tejupilco' },
   { name: 'Miguel Cruz', email: 'miguel@abasto.local', warehouse: 'Arcelia' },
-  { name: 'Ana Torres', email: 'ana@abasto.local', warehouse: 'Luvianos' },
-  { name: 'Rosa Jiménez', email: 'rosa@abasto.local', warehouse: 'Amatepec' },
 ]
 
 export const supplierSeed = [
@@ -185,7 +176,7 @@ export const stockSeed: Record<
   Partial<Record<string, number>>
 > = {
   Tejupilco: tejupilcoStock,
-  Luvianos: {
+  Arcelia: {
     '13455': 40,
     '25023': 20,
     '23431': 8,
@@ -193,19 +184,6 @@ export const stockSeed: Record<
     LU53: 20,
     CA10: 6,
     SA80: 10,
-  },
-  Amatepec: {
-    '13455': 20,
-    '1271': 8,
-    LU53: 10,
-    CA10: 2,
-    SA80: 6,
-  },
-  Arcelia: {
-    '13455': 15,
-    '25023': 10,
-    LU53: 12,
-    SA80: 6,
   },
 }
 
@@ -215,9 +193,7 @@ export const minimumSeed: Record<
   Partial<Record<string, number>>
 > = {
   Tejupilco: { '13455': 40, '25023': 20, LU53: 60, CA10: 30 },
-  Luvianos: { '13455': 15, LU53: 10 },
-  Amatepec: { '13455': 10, CA10: 5 },
-  Arcelia: { '13455': 10, LU53: 5 },
+  Arcelia: { '13455': 15, LU53: 10, CA10: 5 },
 }
 
 export type SeedCustomer = {
@@ -259,7 +235,7 @@ export const customerSeed: Array<SeedCustomer> = [
     name: 'Distribuidora Sánchez',
     contact: 'Ricardo Sánchez',
     phone: '724 269 3456',
-    address: 'Carretera Tejupilco–Amatepec km 4, Bodega 3, Tejupilco, Méx.',
+    address: 'Carretera Tejupilco–Arcelia km 4, Bodega 3, Tejupilco, Méx.',
     rules: [{ sku: '13455', minBoxes: 20, priceCents: 26500 }],
   },
   {
@@ -274,7 +250,7 @@ export const customerSeed: Array<SeedCustomer> = [
     name: 'Cremería Los Pinos',
     contact: 'Elena Vargas',
     phone: '724 266 5678',
-    address: 'Mercado Municipal local 18, Luvianos, Méx.',
+    address: 'Mercado Municipal local 18, Arcelia, Gro.',
     rules: [{ sku: 'CA10', minBoxes: 5, discountBps: 400 }],
   },
   {
