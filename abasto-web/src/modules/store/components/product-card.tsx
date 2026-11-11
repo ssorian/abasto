@@ -21,19 +21,22 @@ type ProductCardProps = {
 
 /** Photo on a label mat; external URLs break, so it falls back to a monogram. */
 export function ProductMat({ product }: { product: StoreProduct }) {
-  const [failed, setFailed] = useState(false)
-  if (product.imageUrl && !failed) {
+  // Remembered per URL, so a corrected photo gets a fresh try.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  if (product.imageUrl && failedUrl !== product.imageUrl) {
     return (
       <span className="st-mat">
         <img
           ref={(img) => {
             // The server-rendered image can fail before React attaches onError.
-            if (img?.complete && img.naturalWidth === 0) setFailed(true)
+            if (img?.complete && img.naturalWidth === 0) {
+              setFailedUrl(product.imageUrl)
+            }
           }}
           src={product.imageUrl}
           alt=""
           loading="lazy"
-          onError={() => setFailed(true)}
+          onError={() => setFailedUrl(product.imageUrl)}
         />
       </span>
     )

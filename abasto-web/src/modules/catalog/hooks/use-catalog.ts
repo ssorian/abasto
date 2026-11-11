@@ -1,9 +1,8 @@
-import { useRouter } from '@tanstack/react-router'
+import { useActionRunner } from '#/hooks/use-action-runner'
 import { toast } from 'sonner'
 
-import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
-import type { Result } from '#/lib/boundary'
-import { productInputFromImport } from '#/modules/catalog/lib/catalog-import'
+import { useInlineAction } from '#/modules/catalog/hooks/use-inline-action'
+import { importRowFromCsv } from '#/modules/catalog/lib/catalog-import'
 import type {
   PresentationDraft,
   ProductDraft,
@@ -17,50 +16,47 @@ import {
 import {
   createProductFn,
   createSupplierFn,
-  savePresentationsFn,
   savePieceCostFn,
   updateProductFn,
+  updateProductWithPresentationsFn,
   updateSupplierFn,
 } from '#/modules/catalog/server/catalog'
 import type { ProductPatch } from '#/modules/catalog/services/products'
 import type { CatalogImportProduct } from '#/modules/product-import/lib/import-types'
-
-const messageOf = (failure: unknown) =>
-  failure instanceof ClientError ? failure.message : genericErrorMessage
+import { importProductsFn } from '#/modules/product-import/server/import-products'
 
 /**
- * Write actions of Catálogo. Each one resolves to whether it succeeded; server
- * errors (AppError messages) are shown as toasts and the page data is reloaded.
+ * Write actions of Catálogo, all through the shared runner: lists refresh
+ * after every save and a Spanish success toast follows. The save actions that
+ * live in a dialog resolve to the server message when they fail (null on
+ * success) so the dialog shows it next to its fields and stays open.
  */
 export function useCatalogActions() {
-  const router = useRouter()
-
-  // `sync: true` makes the invalidate wait for the reloaded loader data; the
-  // default revalidates in the background and resolves with the old data.
-  async function run(action: () => Promise<Result<unknown>>, success: string) {
-    try {
-      unwrap(await action())
-      await router.invalidate({ sync: true })
-      toast.success(success)
-      return true
-    } catch (failure) {
-      toast.error(messageOf(failure))
-      return false
-    }
-  }
+  const inline = useInlineAction()
+  const run = useActionRunner()
 
   return {
-    /** Creating sends the product and its presentations in one atomic call. */
+    /**
+     * One save for the product and its presentations, atomic in both cases:
+     * creating inserts them together, editing updates both in one transaction.
+     */
     saveProduct: (
       productId: string | undefined,
       draft: ProductDraft,
       presentations?: { rows: Array<PresentationDraft>; defaultKey: string },
     ) =>
-      run(
+      inline(
         () =>
           productId
-            ? updateProductFn({
-                data: { id: productId, patch: productPatchFromDraft(draft) },
+            ? updateProductWithPresentationsFn({
+                data: {
+                  id: productId,
+                  patch: productPatchFromDraft(draft),
+                  set: presentationSetFromDrafts(
+                    presentations?.rows ?? [],
+                    presentations?.defaultKey ?? '',
+                  ),
+                },
               })
             : createProductFn({
                 data: productInputFromDraft(
@@ -76,64 +72,57 @@ export function useCatalogActions() {
      * message (shown by the caller in its dialog) or null on success. Shows no
      * toast: the Prices dialog announces what it saved in one message.
      */
-    savePieceCost: async (
+    savePieceCost: (
       productId: string,
       patch: Pick<
         ProductPatch,
         'listPricePerPiece' | 'fixedDiscountPerPiece' | 'promotionPerPiece'
       >,
-    ): Promise<string | null> => {
-      try {
-        unwrap(await savePieceCostFn({ data: { id: productId, cost: patch } }))
-        await router.invalidate({ sync: true })
-        return null
-      } catch (failure) {
-        return messageOf(failure)
-      }
-    },
+    ) =>
+      inline(() => savePieceCostFn({ data: { id: productId, cost: patch } })),
     setPublished: (productId: string, published: boolean) =>
       run(
         () =>
           updateProductFn({ data: { id: productId, patch: { published } } }),
         published ? 'Producto publicado.' : 'Producto pausado.',
       ),
-    savePresentations: (
-      productId: string,
-      rows: ReadonlyArray<PresentationDraft>,
-      defaultKey: string,
-    ) =>
-      run(
-        () =>
-          savePresentationsFn({
-            data: {
-              productId,
-              set: presentationSetFromDrafts(rows, defaultKey),
-            },
-          }),
-        'Presentaciones actualizadas.',
-      ),
     saveSupplier: (supplierId: string | undefined, draft: SupplierDraft) =>
-      run(
+      inline(
         () =>
           supplierId
             ? updateSupplierFn({ data: { id: supplierId, patch: draft } })
             : createSupplierFn({ data: draft }),
         'Proveedor guardado.',
       ),
-    /** Creates each CSV row as a product; reports the rows the server rejected. */
-    async importProducts(rows: ReadonlyArray<CatalogImportProduct>) {
-      let created = 0
-      for (const row of rows) {
-        try {
-          unwrap(await createProductFn({ data: productInputFromImport(row) }))
-          created += 1
-        } catch (failure) {
-          toast.error(`${row.sku}: ${messageOf(failure)}`)
-        }
-      }
-      await router.invalidate({ sync: true })
-      if (created)
-        toast.success(`Importación CSV: ${created} productos nuevos.`)
-    },
+    /**
+     * Creates each CSV row as a product and saves its sale price and minimum
+     * stock in the warehouse; reports the rows the server rejected.
+     */
+    importProducts: (
+      warehouse: { id: string; name: string },
+      rows: ReadonlyArray<CatalogImportProduct>,
+    ) =>
+      run(
+        () =>
+          importProductsFn({
+            data: {
+              warehouseId: warehouse.id,
+              rows: rows.map(importRowFromCsv),
+            },
+          }),
+        {
+          onSuccess: (results) => {
+            for (const { sku, error } of results) {
+              if (error) toast.error(`${sku}: ${error}`)
+            }
+            const created = results.filter(({ error }) => !error).length
+            if (created) {
+              toast.success(
+                `Importación CSV: ${created} productos nuevos con precio y mínimo en ${warehouse.name}.`,
+              )
+            }
+          },
+        },
+      ),
   }
 }

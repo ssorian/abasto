@@ -1,7 +1,8 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowRightIcon, CheckIcon, PackageIcon, TagIcon } from 'lucide-react'
+import { ArrowRightIcon, CheckIcon, TagIcon } from 'lucide-react'
 
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
+import { ProductImage } from '#/modules/catalog/components/product-image'
 import { presentationLabel } from '#/modules/catalog/lib/catalog-presentations'
 
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
@@ -30,22 +31,11 @@ export function CatalogCard({
   return (
     <article className="relative overflow-hidden rounded-xl border border-[#eee8e2] bg-white shadow-[0_3px_5px_#35145202] transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[#ddd4d7] hover:shadow-[0_7px_22px_#3712570b]">
       <div className="relative m-[5px_5px_0] flex h-[162px] items-center justify-center overflow-hidden rounded-[7px] bg-[#faf9f7] md:m-[7px_7px_0] md:h-[205px]">
-        {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            loading="lazy"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            className="size-full object-contain p-4 mix-blend-multiply"
-          />
-        ) : (
-          <PackageIcon
-            aria-label={product.name}
-            strokeWidth={1}
-            className="m-auto h-[95px] w-[75px] text-[#b29da4]"
-          />
-        )}
+        <ProductImage
+          src={product.imageUrl}
+          name={product.name}
+          className="size-full object-contain p-4 mix-blend-multiply"
+        />
         <span className="absolute top-[9px] right-[9px] flex items-center gap-1 rounded-[5px] bg-white px-1.5 py-1 text-xs text-[#62348b] md:top-3 md:right-3">
           <CheckIcon size={12} />
           {product.published ? 'Publicado' : 'Pausado'}

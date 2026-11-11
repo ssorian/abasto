@@ -1,5 +1,6 @@
 import { PlusIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 import { PageHeading } from '#/components/page-heading'
 import { SupplierSelect } from '#/components/supplier-select'
@@ -215,12 +216,6 @@ export function CatalogPage({
           onSubmit={(draft, presentations) =>
             actions.saveProduct(editor.productId, draft, presentations)
           }
-          onSubmitPresentations={
-            editing
-              ? (rows, defaultKey) =>
-                  actions.savePresentations(editing.id, rows, defaultKey)
-              : undefined
-          }
           onClose={() => setEditor(undefined)}
         />
       )}
@@ -237,9 +232,14 @@ export function CatalogPage({
           onOpenChange={setImportOpen}
           modes={['catalog']}
           products={importReferenceProducts(products)}
+          warehouseName={warehouse?.name}
           onApply={(result) => {
-            if (result.mode === 'catalog')
-              void actions.importProducts(result.products)
+            if (result.mode !== 'catalog') return
+            if (!warehouse) {
+              toast.error('Crea un almacén antes de importar productos.')
+              return
+            }
+            void actions.importProducts(warehouse, result.products)
           }}
         />
       )}

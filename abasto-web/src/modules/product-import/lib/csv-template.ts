@@ -60,7 +60,7 @@ export const columnRules: Record<ImportMode, string> = {
 
 export const modeBanners: Record<ImportMode, string> = {
   catalog:
-    'Sólo se dan de alta productos nuevos. SKU y códigos existentes generan error. Define la presentación principal y su equivalencia. Los precios se capturan por almacén: precio_venta y stock_minimo se piden en la plantilla pero no se guardan.',
+    'Sólo se dan de alta productos nuevos. SKU y códigos existentes generan error. Define la presentación principal y su equivalencia. precio_venta (de la presentación principal) y stock_minimo (en unidades base) se guardan en el almacén elegido en Catálogo; una carga con error en una fila no guarda esa fila.',
   stock:
     'Sólo se cargan productos y almacenes sin historial previo. Deben existir en el catálogo. Cantidad y costo corresponden a la presentación indicada; precio_lote corresponde a la presentación principal y puede quedar vacío para heredar el precio general.',
 }

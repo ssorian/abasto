@@ -2,9 +2,12 @@ import { describe, expect, test } from 'bun:test'
 
 import {
   listTotal,
+  pricedTotal,
   quantityIn,
   resolveCartLines,
+  unitPriceOf,
 } from '#/modules/store/lib/pick-list'
+import type { CartPreviewState } from '#/modules/store/hooks/use-cart-preview'
 import type { StoreProduct } from '#/modules/store/services/storefront'
 
 const catalog: Array<StoreProduct> = [
@@ -62,4 +65,56 @@ test('quantityIn is zero when the line is absent', () => {
   const lines = [{ presentationId: 'a', quantity: 4 }]
   expect(quantityIn(lines, 'a')).toBe(4)
   expect(quantityIn(lines, 'b')).toBe(0)
+})
+
+describe('customer prices (bar and sheet read the same numbers)', () => {
+  const { resolved } = resolveCartLines(catalog, [
+    { presentationId: 'a', quantity: 3 },
+    { presentationId: 'b', quantity: 2 },
+  ])
+  // List: 3 × 2000 + 2 × 22000 = 50000. The customer pays 10 % off the box.
+  const ready: CartPreviewState = {
+    status: 'ready',
+    preview: {
+      totalCents: 45600,
+      lines: [
+        { presentationId: 'a', unitPriceCents: 2000 },
+        { presentationId: 'b', unitPriceCents: 19800 },
+      ],
+    } as never,
+  }
+
+  test('anonymous visitors see list prices', () => {
+    expect(pricedTotal(resolved, false, { status: 'idle' })).toEqual({
+      cents: 50000,
+      pending: false,
+    })
+    expect(unitPriceOf(resolved[1], false, ready)).toBe(22000)
+  })
+
+  test('a signed-in customer sees the previewed total and unit price', () => {
+    expect(pricedTotal(resolved, true, ready)).toEqual({
+      cents: 45600,
+      pending: false,
+    })
+    expect(unitPriceOf(resolved[1], true, ready)).toBe(19800)
+  })
+
+  test('while the customer price loads the total is pending, never the list price as final', () => {
+    for (const status of ['idle', 'loading'] as const) {
+      expect(pricedTotal(resolved, true, { status })).toMatchObject({
+        pending: true,
+      })
+    }
+  })
+
+  test('an empty cart is never pending; a failed preview falls back to list', () => {
+    expect(pricedTotal([], true, { status: 'idle' })).toEqual({
+      cents: 0,
+      pending: false,
+    })
+    expect(
+      pricedTotal(resolved, true, { status: 'error', message: 'x' }),
+    ).toEqual({ cents: 50000, pending: false })
+  })
 })

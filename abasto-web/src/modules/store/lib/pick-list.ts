@@ -1,3 +1,4 @@
+import type { CartPreviewState } from '#/modules/store/hooks/use-cart-preview'
 import type { CartLine } from '#/modules/store/lib/cart'
 import type {
   StorePresentation,
@@ -45,3 +46,43 @@ export const listTotal = (lines: Array<PickLine>) =>
 /** Quantity of one presentation in the cart (0 when absent). */
 export const quantityIn = (lines: Array<CartLine>, presentationId: string) =>
   lines.find((line) => line.presentationId === presentationId)?.quantity ?? 0
+
+/** Unit price shown for a line: the customer's own when previewed, else the list price. */
+export function unitPriceOf(
+  item: PickLine,
+  signedIn: boolean,
+  preview: CartPreviewState,
+) {
+  if (signedIn && preview.status === 'ready') {
+    const line = preview.preview.lines.find(
+      (entry) => entry.presentationId === item.presentation.id,
+    )
+    if (line?.unitPriceCents != null) return line.unitPriceCents
+  }
+  return item.presentation.priceCents
+}
+
+export type PricedTotal = {
+  cents: number
+  /** True while a signed-in customer's own price is still loading. */
+  pending: boolean
+}
+
+/**
+ * The one total every cart surface shows (bar, panel, sheet): the customer's
+ * previewed total when signed in, the list total otherwise.
+ */
+export function pricedTotal(
+  lines: Array<PickLine>,
+  signedIn: boolean,
+  preview: CartPreviewState,
+): PricedTotal {
+  if (signedIn && preview.status === 'ready') {
+    return { cents: preview.preview.totalCents, pending: false }
+  }
+  const pending =
+    signedIn &&
+    lines.length > 0 &&
+    (preview.status === 'idle' || preview.status === 'loading')
+  return { cents: listTotal(lines), pending }
+}

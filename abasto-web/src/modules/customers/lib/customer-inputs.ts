@@ -26,3 +26,6 @@ export const customerOrdersInput = z.object({ customerId: id })
 
 export type SaveCustomerInput = z.infer<typeof saveCustomerInput>
 export type RuleInput = z.infer<typeof ruleInput>
+
+/** Shared by the form and the server so both name the same range. */
+export const DISCOUNT_RANGE_MESSAGE = 'El descuento debe estar entre 0 y 100 %.'

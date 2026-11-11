@@ -12,8 +12,13 @@ import type { SessionUser } from '#/modules/access/lib/session-user'
 import { CartSheet } from '#/modules/store/components/cart-sheet'
 import { PickListBar } from '#/modules/store/components/pick-list-bar'
 import { PickListPanel } from '#/modules/store/components/pick-list-panel'
+import { useCartPreview } from '#/modules/store/hooks/use-cart-preview'
 import { useStoreCart } from '#/modules/store/hooks/use-store-cart'
-import { listTotal, resolveCartLines } from '#/modules/store/lib/pick-list'
+import {
+  pricedTotal,
+  resolveCartLines,
+  unitPriceOf,
+} from '#/modules/store/lib/pick-list'
 import { storeConfig } from '#/modules/store/lib/store-config'
 import type {
   StoreProduct,
@@ -48,7 +53,17 @@ export function StoreShell({
     () => resolveCartLines(catalog, cart.lines),
     [catalog, cart.lines],
   )
-  const totalCents = listTotal(resolved)
+  // One preview feeds the bar, the panel and the sheet, so they never disagree.
+  const signedIn = user !== null
+  const preview = useCartPreview(
+    warehouse?.id ?? '',
+    resolved.map(({ presentation, quantity }) => ({
+      presentationId: presentation.id,
+      quantity,
+    })),
+    signedIn,
+  )
+  const total = pricedTotal(resolved, signedIn, preview)
   const isCatalog = location.pathname === '/tienda'
   const isLogin = location.pathname === '/tienda/entrar'
   const showBar =
@@ -151,7 +166,9 @@ export function StoreShell({
           <PickListPanel
             warehouseName={warehouse.name}
             lines={resolved}
-            totalCents={totalCents}
+            total={total}
+            signedIn={signedIn}
+            priceOf={(line) => unitPriceOf(line, signedIn, preview)}
             onSet={cart.setQuantity}
             onReview={() => setCartOpen(true)}
           />
@@ -170,7 +187,7 @@ export function StoreShell({
           {showBar ? (
             <PickListBar
               units={cart.count}
-              totalCents={totalCents}
+              total={total}
               onReview={() => setCartOpen(true)}
             />
           ) : null}
@@ -180,7 +197,9 @@ export function StoreShell({
             warehouse={warehouse}
             catalog={catalog}
             cart={cart}
-            signedIn={user !== null}
+            signedIn={signedIn}
+            preview={preview}
+            total={total}
           />
         </>
       ) : null}

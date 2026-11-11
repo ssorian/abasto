@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import {
   importReferenceProducts,
+  importRowFromCsv,
   productInputFromImport,
 } from '#/modules/catalog/lib/catalog-import'
 import type { CatalogImportProduct } from '#/modules/product-import/lib/import-types'
@@ -21,7 +22,7 @@ const row: CatalogImportProduct = {
 }
 
 describe('CSV row → createProduct input', () => {
-  test('a pack row creates a base presentation plus the pack as default, ignoring price and minimum', () => {
+  test('a pack row creates a base presentation plus the pack as default', () => {
     const input = productInputFromImport(row)
     expect(input).toEqual({
       sku: 'NUE-001',
@@ -45,6 +46,18 @@ describe('CSV row → createProduct input', () => {
       { name: 'Caja', factor: 1, barcode: null, active: true },
     ])
     expect(input.defaultIndex).toBe(0)
+  })
+
+  test('the row carries precio_venta as cents and stock_minimo for the warehouse', () => {
+    expect(importRowFromCsv(row)).toEqual({
+      product: productInputFromImport(row),
+      priceCents: 24000,
+      minimum: 24,
+    })
+    expect(
+      importRowFromCsv({ ...row, price: 19.9, minStock: 0 }),
+    ).toMatchObject({ priceCents: 1990, minimum: 0 })
+    expect(importRowFromCsv({ ...row, price: 1.15 }).priceCents).toBe(115)
   })
 
   test('reference products expose sku and every presentation barcode', () => {

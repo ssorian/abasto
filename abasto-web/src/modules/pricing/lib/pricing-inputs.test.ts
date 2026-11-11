@@ -25,6 +25,6 @@ describe('pricing server inputs', () => {
         warehouseId: 'w',
         prices: [{ presentationId: 'a', priceCents: 1.5 }],
       }),
-    ).toThrow('Revisa los datos')
+    ).toThrow('Revisa el campo «prices.0.priceCents».')
   })
 })

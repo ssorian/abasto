@@ -61,10 +61,52 @@ async function setupStore() {
 }
 
 describe('listStoreWarehouses', () => {
-  test('lists every warehouse by name, ids and names only', async () => {
+  test('offers a warehouse only when it has a product with stock and a price, ids and names only', async () => {
     const fx = await setupOrders()
-    const listed = await listStoreWarehouses()
-    expect(listed).toEqual(
+    // A has a price but no stock; B has neither.
+    expect(await listStoreWarehouses()).toEqual([])
+    await receive(fx, { productId: fx.milkBox.id, quantity: 20 })
+    expect(await listStoreWarehouses()).toEqual([
+      { id: fx.a.id, name: fx.a.name },
+    ])
+  })
+
+  test('stock without a price in that warehouse does not offer it', async () => {
+    const fx = await setupOrders()
+    await receive(fx, { productId: fx.milkBox.id, quantity: 20 })
+    await receive(fx, {
+      productId: fx.milkBox.id,
+      warehouseId: fx.b.id,
+      quantity: 20,
+    })
+    expect((await listStoreWarehouses()).map(({ id }) => id)).toEqual([fx.a.id])
+  })
+
+  test('a warehouse whose stock is all reserved is no longer offered', async () => {
+    const fx = await setupStore()
+    await receive(fx, { productId: fx.milkBox.id, quantity: 2 })
+    expect((await listStoreWarehouses()).map(({ id }) => id)).toEqual([fx.a.id])
+    await placeStoreOrder(fx.shopper, {
+      warehouseId: fx.a.id,
+      lines: [{ presentationId: fx.pieceId, quantity: 2 }],
+    })
+    expect(await listStoreWarehouses()).toEqual([])
+  })
+
+  test('lists the offered warehouses by name', async () => {
+    const fx = await setupOrders()
+    for (const warehouse of [fx.a, fx.b]) {
+      await setPrices(fx.owner, {
+        warehouseId: warehouse.id,
+        prices: [{ presentationId: fx.pieceId, priceCents: 1000 }],
+      })
+      await receive(fx, {
+        productId: fx.milkBox.id,
+        warehouseId: warehouse.id,
+        quantity: 20,
+      })
+    }
+    expect(await listStoreWarehouses()).toEqual(
       [fx.a, fx.b]
         .map(({ id, name }) => ({ id, name }))
         .sort((x, y) => x.name.localeCompare(y.name, 'es')),

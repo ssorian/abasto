@@ -1,11 +1,14 @@
 import { formatCents } from '#/modules/pricing/lib/money'
 import { QuantityStepper } from '#/modules/store/components/quantity-stepper'
-import type { PickLine } from '#/modules/store/lib/pick-list'
+import type { PickLine, PricedTotal } from '#/modules/store/lib/pick-list'
 
 type PickListPanelProps = {
   warehouseName: string
   lines: Array<PickLine>
-  totalCents: number
+  total: PricedTotal
+  signedIn: boolean
+  /** Unit price shown for a line (the customer's when signed in). */
+  priceOf: (line: PickLine) => number
   onSet: (presentationId: string, quantity: number) => void
   onReview: () => void
 }
@@ -14,7 +17,9 @@ type PickListPanelProps = {
 export function PickListPanel({
   warehouseName,
   lines,
-  totalCents,
+  total,
+  signedIn,
+  priceOf,
   onSet,
   onReview,
 }: PickListPanelProps) {
@@ -45,11 +50,13 @@ export function PickListPanel({
                   {line.product.name}
                 </p>
                 <span className="st-num text-right text-[16px]">
-                  {formatCents(line.presentation.priceCents * line.quantity)}
+                  {total.pending
+                    ? '…'
+                    : formatCents(priceOf(line) * line.quantity)}
                 </span>
                 <p className="text-[13px] text-st-muted">
                   {line.presentation.name} ·{' '}
-                  {formatCents(line.presentation.priceCents)}
+                  {total.pending ? '…' : formatCents(priceOf(line))}
                 </p>
                 <QuantityStepper
                   compact
@@ -73,14 +80,16 @@ export function PickListPanel({
 
       <div className="grid gap-2 border-t border-st-line p-3">
         <div className="flex items-baseline justify-between">
-          <span className="st-card">Total de lista</span>
-          <span key={totalCents} className="st-num st-tick text-[26px]">
-            {formatCents(totalCents)}
+          <span className="st-card">
+            {signedIn ? 'Total con tus precios' : 'Total de lista'}
+          </span>
+          <span key={total.cents} className="st-num st-tick text-[26px]">
+            {total.pending ? '…' : formatCents(total.cents)}
           </span>
         </div>
         <p className="text-[13px] leading-snug text-st-muted">
-          Es un apartado: lo recoges y lo pagas en el almacén. Tus precios se
-          aplican al revisar.
+          Es un apartado: lo recoges y lo pagas en el almacén.
+          {signedIn ? '' : ' Inicia sesión para ver tus precios.'}
         </p>
         <button
           type="button"
