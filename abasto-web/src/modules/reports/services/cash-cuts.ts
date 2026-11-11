@@ -40,8 +40,8 @@ function utcDate(value: Date | string): Date {
 }
 
 /**
- * Cash cut of every drawer session opened in the period (business days in
- * Mexico City): expected cash, counted cash and the difference. An open
+ * Cash cut of every drawer session closed in the period, or opened in it when
+ * still open (business days in Mexico City): expected cash, counted cash and the difference. An open
  * session shows its running expected cash and no count yet.
  */
 export async function getCashCuts(

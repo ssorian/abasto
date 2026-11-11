@@ -56,13 +56,18 @@ export function buildSellable(
   )
 }
 
-/** "1 pieza", "9 cajas": the noun agrees with the count; any case in, lower case out. */
-/** "unidades" → "unidad", "piezas" → "pieza", "paquetes" → "paquete". */
+/**
+ * Singular of a unit noun: "unidades" → "unidad", "contenedores" →
+ * "contenedor", "cartones" → "cartón", "sobres" → "sobre", "cajas" → "caja".
+ * Only endings whose singular never ends in "-e" drop "-es"; the rest drop "-s".
+ */
 function singular(word: string): string {
-  if (/[dlrnj]es$/.test(word)) return word.slice(0, -2)
+  if (/dades$/.test(word) || /ores$/.test(word)) return word.slice(0, -2)
+  if (/ones$/.test(word)) return `${word.slice(0, -4)}ón`
   return word.endsWith('s') ? word.slice(0, -1) : word
 }
 
+/** "1 pieza", "9 cajas": the noun agrees with the count; any case in, lower case out. */
 export function countLabel(count: number, noun: string): string {
   const word = noun.trim().toLowerCase()
   if (count === 1) return `1 ${singular(word)}`
