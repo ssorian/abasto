@@ -36,10 +36,13 @@ export type SalesReport = {
   byDay: Array<SalesRow>
   byProduct: Array<ProductSalesRow>
   byCustomer: Array<SalesRow>
+  /** Mostrador, Tienda or Reparto. */
+  byChannel: Array<SalesRow>
   byWarehouse: Array<SalesRow>
 }
 
-export type SalesDimension = 'day' | 'product' | 'customer' | 'warehouse'
+export type SalesDimension =
+  'day' | 'product' | 'customer' | 'channel' | 'warehouse'
 
 export type CashCutRow = {
   sessionId: string
@@ -55,6 +58,12 @@ export type CashCutRow = {
   entriesCents: number
   /** Cash taken out, as a positive amount. */
   withdrawalsCents: number
+  /**
+   * Net rider shortage (negative) or surplus (positive) posted to the drawer.
+   * Sales are valued at the sold value, so this is the fourth term of
+   * expected = opening + sales + entries + riderDifference − withdrawals.
+   */
+  riderDifferenceCents: number
   /** Stored at close; running value while the drawer is open. */
   expectedCents: number
   countedCents: number | null
@@ -71,11 +80,29 @@ export type CashCutTotals = {
   differenceCents: number
 }
 
+/** Shortage and surplus of the deliveries one rider settled in the period. */
+export type RiderShortfallRow = {
+  riderId: string
+  riderName: string
+  warehouseId: string
+  warehouseName: string
+  /** Settled deliveries that came out short or over. */
+  deliveries: number
+  /** Cash missing, as a positive amount. */
+  shortfallCents: number
+  /** Cash over, as a positive amount. */
+  surplusCents: number
+  /** Surplus − shortfall: negative = the rider owes the drawer. */
+  netCents: number
+}
+
 export type CashCuts = {
   range: DateRange
   warehouses: Array<ReportWarehouse>
   rows: Array<CashCutRow>
   totals: CashCutTotals
+  /** "Faltantes de reparto": net shortfall by rider for the period and scope. */
+  riderShortfalls: Array<RiderShortfallRow>
 }
 
 export type LowStockRow = {

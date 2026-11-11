@@ -1,6 +1,7 @@
 import { ScaleIcon } from 'lucide-react'
 
 import { ActionButton } from '#/modules/inventory/components/action-button'
+import { boxCountLabel } from '#/modules/inventory/lib/order-rows'
 import { EmptyPanel } from '#/modules/inventory/components/empty-panel'
 import {
   ListBody,
@@ -29,8 +30,6 @@ type SupplierPendingsTabProps = {
   onWriteOff: (pending: PendingBalance) => void
   onReturn: (pending: PendingBalance) => void
 }
-
-const boxes = (count: number) => `${count} ${count === 1 ? 'caja' : 'cajas'}`
 
 /** What each supplier owes us, split in boxes to replenish and boxes to return, and how it was settled. */
 export function SupplierPendingsTab({
@@ -160,7 +159,9 @@ function BalanceSection({
                     <small className="block text-[#907e84]">{row.sku}</small>
                   </ListCell>
                   <ListCell>{row.originCode}</ListCell>
-                  <ListCell>{boxes(row.owedBoxes)}</ListCell>
+                  <ListCell>
+                    {boxCountLabel(row.owedBoxes, row.boxFactor)}
+                  </ListCell>
                   <ListCell>{formatCents(row.owedValueCents)}</ListCell>
                   <ListCell>
                     <span className="flex justify-end">

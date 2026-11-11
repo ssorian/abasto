@@ -46,7 +46,6 @@ export function MinimumDialog({
   const [packs, setPacks] = useState('')
   const [loose, setLoose] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
 
   const selectedId = presentations.some(({ id }) => id === presentationId)
     ? presentationId
@@ -64,9 +63,7 @@ export function MinimumDialog({
     })
     if (!parsed.ok) return setError(parsed.message)
     setError(null)
-    setPending(true)
     const saved = await actions.setMinimum(parsed.value)
-    setPending(false)
     if (saved) onClose()
   }
 
@@ -130,8 +127,8 @@ export function MinimumDialog({
           <ActionButton type="button" onClick={onClose}>
             Cancelar
           </ActionButton>
-          <ActionButton tone="primary" type="submit" disabled={pending}>
-            {pending ? 'Guardando…' : 'Guardar mínimo'}
+          <ActionButton tone="primary" type="submit" disabled={actions.pending}>
+            {actions.pending ? 'Guardando…' : 'Guardar mínimo'}
           </ActionButton>
         </DialogActions>
       </form>

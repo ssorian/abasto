@@ -72,6 +72,7 @@ export function RidersCatalog({
                         </ActionButton>
                         <ActionButton
                           className="min-h-9 px-3"
+                          disabled={actions.pending}
                           onClick={() =>
                             void actions.setActive(rider.id, !rider.active)
                           }

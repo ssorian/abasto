@@ -101,10 +101,31 @@ describe('productStatus and filterStock', () => {
     expect(productStatus(rows[2])).toBe('Sin existencias')
   })
 
+  test('stock that is only expired reads Vencido, not Sin existencias', () => {
+    const expiredOnly = {
+      ...row('Yogur', 12, 0, ['2020-01-01']),
+      available: 0,
+      expired: 12,
+    }
+    expect(productStatus(expiredOnly)).toBe('Vencido')
+    expect(filterStock([expiredOnly, ...rows], '', 'Vencido')).toEqual([
+      expiredOnly,
+    ])
+    expect(filterStock([expiredOnly, ...rows], '', 'Sin existencias')).toEqual([
+      rows[2],
+    ])
+    // Nothing expired and nothing available stays Sin existencias.
+    expect(productStatus({ ...rows[2], expired: 0 })).toBe('Sin existencias')
+    // Good stock next to expired stock is still sellable.
+    expect(productStatus({ ...rows[0], expired: 3 })).toBe('Disponible')
+  })
+
   test('filters by status', () => {
     expect(filterStock(rows, '', 'Todos').length).toBe(3)
+    // Under the minimum counts empty stock too, like Reports.
     expect(filterStock(rows, '', 'Stock bajo').map((r) => r.name)).toEqual([
       'Refresco cola',
+      'Agua',
     ])
     expect(filterStock(rows, '', 'Sin existencias').map((r) => r.name)).toEqual(
       ['Agua'],

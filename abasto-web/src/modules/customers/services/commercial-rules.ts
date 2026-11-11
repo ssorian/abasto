@@ -8,6 +8,7 @@ import {
   customerCommercialRules,
   customers,
 } from '#/modules/customers/db/schema'
+import { DISCOUNT_RANGE_MESSAGE } from '#/modules/customers/lib/customer-inputs'
 import { customerNotFound } from '#/modules/customers/services/customers'
 
 export type CommercialRule = typeof customerCommercialRules.$inferSelect
@@ -68,6 +69,16 @@ export async function saveCommercialRules(
   rules: Array<CommercialRuleInput>,
 ): Promise<Array<CommercialRule>> {
   authorize(actor, 'customers.manage')
+  if (
+    rules.some(
+      ({ discountBps }) =>
+        discountBps !== undefined &&
+        Number.isInteger(discountBps) &&
+        (discountBps < 0 || discountBps > 10000),
+    )
+  ) {
+    throw invalid(DISCOUNT_RANGE_MESSAGE)
+  }
   if (!rules.every(validRule)) {
     throw invalid('Revisa las condiciones comerciales.')
   }

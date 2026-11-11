@@ -1,3 +1,4 @@
+import { businessTimeZone } from '#/modules/orders/services/clock'
 import type {
   CashCutRow,
   LotAlertRow,
@@ -41,6 +42,7 @@ const dimensionHeading: Record<SalesDimension, string> = {
   day: 'Día',
   product: 'Producto',
   customer: 'Cliente',
+  channel: 'Canal',
   warehouse: 'Almacén',
 }
 
@@ -70,8 +72,19 @@ export function salesCsv(
   )
 }
 
-const dateTime = (date: Date | null) =>
-  date ? date.toISOString().replace('T', ' ').slice(0, 16) : ''
+const businessDateTime = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: businessTimeZone,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+/** "YYYY-MM-DD HH:mm" in the business time zone. */
+export const csvDateTime = (date: Date | null) =>
+  date ? businessDateTime.format(date) : ''
 
 export function cashCutsCsv(rows: ReadonlyArray<CashCutRow>) {
   return buildCsv(
@@ -86,6 +99,7 @@ export function cashCutsCsv(rows: ReadonlyArray<CashCutRow>) {
       'Ventas en efectivo',
       'Entradas',
       'Retiros',
+      'Faltante/sobrante de reparto',
       'Esperado',
       'Contado',
       'Diferencia',
@@ -93,14 +107,15 @@ export function cashCutsCsv(rows: ReadonlyArray<CashCutRow>) {
     rows.map((row) => [
       row.warehouseName,
       row.status === 'open' ? 'Abierta' : 'Cerrada',
-      dateTime(row.openedAt),
-      dateTime(row.closedAt),
+      csvDateTime(row.openedAt),
+      csvDateTime(row.closedAt),
       row.openedByName,
       row.closedByName,
       centsToDecimal(row.openingCents),
       centsToDecimal(row.salesCents),
       centsToDecimal(row.entriesCents),
       centsToDecimal(row.withdrawalsCents),
+      centsToDecimal(row.riderDifferenceCents),
       centsToDecimal(row.expectedCents),
       row.countedCents === null ? '' : centsToDecimal(row.countedCents),
       row.differenceCents === null ? '' : centsToDecimal(row.differenceCents),

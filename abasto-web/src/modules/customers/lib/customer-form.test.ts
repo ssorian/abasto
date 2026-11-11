@@ -84,9 +84,7 @@ describe('draftToInput rules', () => {
     for (const bad of [
       rule({ discountPercent: '' }),
       rule({ discountPercent: '0' }),
-      rule({ discountPercent: '100.01' }),
       rule({ discountPercent: '1.234' }),
-      rule({ discountPercent: '-5' }),
       rule({ price: '0' }),
       rule({ price: '1.005' }),
       rule({ minQuantity: '0' }),
@@ -95,6 +93,14 @@ describe('draftToInput rules', () => {
       rule({ presentationId: '' }),
     ]) {
       expect(message(draft({ rules: [bad] }))).toBe(invalid)
+    }
+  })
+
+  test('a discount outside 0-100 % names the range', () => {
+    for (const discountPercent of ['150', '100.01', '-5']) {
+      expect(message(draft({ rules: [rule({ discountPercent })] }))).toBe(
+        'El descuento debe estar entre 0 y 100 %.',
+      )
     }
   })
 

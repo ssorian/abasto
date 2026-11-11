@@ -88,7 +88,13 @@ export function OrderTable({
     <ListPanel className="max-h-[420px] overflow-auto group-data-maximized/dialog:max-h-none">
       <ListTable className="min-w-[860px]">
         <ListHead>
-          {['Producto', 'Existencia', 'Cajas', 'Costo x caja', 'Total']}
+          {[
+            'Producto',
+            'Existencia',
+            'Cantidad',
+            'Costo x caja o pieza',
+            'Total',
+          ]}
         </ListHead>
         <ListBody>
           {products.map((product) => {
@@ -168,7 +174,7 @@ export function OrderTable({
                     inputMode="numeric"
                     data-boxes-for={product.id}
                     aria-invalid={failed?.productId === product.id}
-                    aria-label={`Cajas de ${product.name}`}
+                    aria-label={`${factor < 2 ? 'Piezas' : 'Cajas'} de ${product.name}`}
                     className={`${compact} w-[76px]`}
                     placeholder="0"
                     value={boxes[product.id] ?? ''}

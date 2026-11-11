@@ -1,5 +1,6 @@
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
 import type { ProductInput } from '#/modules/catalog/services/products'
+import type { ImportProductRow } from '#/modules/product-import/services/import-products'
 import type {
   CatalogImportProduct,
   ImportReferenceProduct,
@@ -22,8 +23,9 @@ export function importReferenceProducts(
 }
 
 /**
- * Input for `createProduct` from one validated CSV row. Prices and minimum
- * stock are per warehouse, so `precio_venta` and `stock_minimo` are ignored.
+ * Input for `createProduct` from one validated CSV row: the product and its
+ * presentations. Price and minimum stock are per warehouse and travel beside
+ * it (see `importRowFromCsv`).
  */
 export function productInputFromImport(
   row: CatalogImportProduct,
@@ -47,3 +49,15 @@ export function productInputFromImport(
     defaultIndex: row.factor === 1 ? 0 : 1,
   }
 }
+
+/**
+ * Row sent to the import: the product, `precio_venta` (per main presentation,
+ * in cents) and `stock_minimo` (base units), both saved in the chosen warehouse.
+ */
+export const importRowFromCsv = (
+  row: CatalogImportProduct,
+): ImportProductRow => ({
+  product: productInputFromImport(row),
+  priceCents: Math.round(row.price * 100),
+  minimum: row.minStock,
+})

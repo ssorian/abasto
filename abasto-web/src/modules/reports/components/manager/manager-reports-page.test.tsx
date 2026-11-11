@@ -27,6 +27,7 @@ const salesReport = (orders: number): SalesReport => ({
   byDay: [],
   byProduct: [],
   byCustomer: [],
+  byChannel: [],
   byWarehouse: [],
 })
 
@@ -45,6 +46,7 @@ const dashboard = (orders: number): ManagerDashboard => ({
       countedCents: 0,
       differenceCents: 0,
     },
+    riderShortfalls: [],
   },
   stock: {
     warehouses: [tejupilco],

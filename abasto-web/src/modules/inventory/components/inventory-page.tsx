@@ -36,6 +36,7 @@ import {
 } from '#/modules/inventory/lib/pack-info'
 import {
   filterStock,
+  matchesFilter,
   productStatus,
 } from '#/modules/inventory/lib/stock-metrics'
 import type { StatusFilter } from '#/modules/inventory/lib/stock-metrics'
@@ -167,7 +168,7 @@ export function InventoryPage({
   const { canManage } = selected
   const stock = overview.stock
   const rows = filterStock(stock, query, filter, supplierId, supplierOf)
-  const low = stock.filter((row) => productStatus(row) === 'Stock bajo').length
+  const low = stock.filter((row) => matchesFilter(row, 'Stock bajo')).length
   const soldOut = stock.filter(
     (row) => productStatus(row) === 'Sin existencias',
   ).length

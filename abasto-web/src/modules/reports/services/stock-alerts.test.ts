@@ -3,6 +3,11 @@ import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import { updateProduct } from '#/modules/catalog/services/products'
 import { createSupplier } from '#/modules/catalog/services/suppliers'
+import {
+  matchesFilter,
+  warehouseMetrics,
+} from '#/modules/inventory/lib/stock-metrics'
+import { getWarehouseStock } from '#/modules/inventory/services/stock-reads'
 import { setMinimumStock } from '#/modules/inventory/services/stock-minimums'
 import { addDays } from '#/modules/reports/lib/period'
 import { getStockAlerts } from '#/modules/reports/services/stock-alerts'
@@ -171,5 +176,32 @@ describe('stock alerts by supplier', () => {
       expect(alerts.expiring).toEqual([])
       expect(alerts.expired).toEqual([])
     }
+  })
+})
+
+describe('low stock agrees with Inventory', () => {
+  test('empty and expired-only products under their minimum count in both', async () => {
+    const fx = await setupReports()
+    // Milk: only expired stock. Soda: never received. Both have a minimum.
+    await receive(fx, {
+      productId: fx.milk.id,
+      quantity: 12,
+      expiresOn: addDays(today(), -3),
+    })
+    for (const product of [fx.milk, fx.soda]) {
+      await setMinimumStock(fx.owner, {
+        productId: product.id,
+        warehouseId: fx.a.id,
+        minimum: 5,
+      })
+    }
+    const stock = await getWarehouseStock(fx.owner, fx.a.id)
+    const inventoryCount = warehouseMetrics(stock, today()).belowMinimum
+    const alerts = await getStockAlerts(fx.owner, { warehouseIds: [fx.a.id] })
+    expect(inventoryCount).toBe(2)
+    expect(alerts.lowStock).toHaveLength(inventoryCount)
+    expect(
+      stock.filter((row) => matchesFilter(row, 'Stock bajo')),
+    ).toHaveLength(alerts.lowStock.length)
   })
 })

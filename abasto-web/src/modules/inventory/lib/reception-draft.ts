@@ -8,6 +8,8 @@ export type ReceptionLine = {
   lineId: string
   productId: string
   orderedBoxes: number
+  /** Base units per box; 1 means the product is ordered by the piece. */
+  boxFactor?: number
 }
 
 /** Only the exceptions are typed; the good boxes are derived. */
@@ -93,7 +95,7 @@ export function receptionIssues(
     else if (!damaged.ok) issues[line.lineId] = damaged.message
     else if (missing.value + damaged.value > line.orderedBoxes) {
       issues[line.lineId] =
-        'Las faltantes y dañadas no pueden superar las cajas pedidas.'
+        `Las faltantes y dañadas no pueden superar las ${line.boxFactor === 1 ? 'piezas' : 'cajas'} pedidas.`
     } else if (
       line.orderedBoxes - missing.value - damaged.value > 0 &&
       !declaresExpiry(entry)
@@ -136,15 +138,55 @@ export function receptionSummary(
   )
 }
 
+/** Shown when stock that enters is already past its expiry and not yet confirmed. */
+export const expiredNotConfirmed =
+  'Hay productos que entran con la caducidad vencida. Confirma que quieres recibirlos.'
+
+/**
+ * Line ids and pending ids whose entering boxes carry an expiry date before
+ * `today` (YYYY-MM-DD): they would become expired stock.
+ */
+export function expiredEntries(
+  lines: ReadonlyArray<ReceptionLine>,
+  draft: ReceptionDraft,
+  today: string,
+): Array<string> {
+  const expired: Array<string> = []
+  for (const line of lines) {
+    const entry = draft.lines[line.lineId]
+    if (!entry?.expiresOn || entry.expiresOn >= today) continue
+    if (goodBoxes(line.orderedBoxes, entry.missing, entry.damaged) > 0) {
+      expired.push(line.lineId)
+    }
+  }
+  for (const [pendingId, item] of Object.entries(draft.replacements)) {
+    if (!item?.expiresOn || item.expiresOn >= today) continue
+    if (count(item.boxes) > 0) expired.push(pendingId)
+  }
+  return expired
+}
+
+type ConfirmOptions = {
+  /** Today in the business time zone; enables the expired-stock check. */
+  today?: string
+  /** The user explicitly accepted receiving expired stock. */
+  confirmExpired?: boolean
+}
+
 /** Reception form → server input; replacements only where boxes were typed. */
 export function receptionInputFromDraft(
   purchaseId: string,
   lines: ReadonlyArray<ReceptionLine>,
   draft: ReceptionDraft,
   owed: OwedBoxes,
+  { today, confirmExpired = false }: ConfirmOptions = {},
 ): Parsed<ReceptionInput> {
   const issue = Object.values(receptionIssues(lines, draft, owed)).at(0)
   if (issue) return fail(issue)
+  const hasExpired = today
+    ? expiredEntries(lines, draft, today).length > 0
+    : false
+  if (hasExpired && !confirmExpired) return fail(expiredNotConfirmed)
   const entries = lines.map((line) => {
     const entry = draft.lines[line.lineId] ?? emptyLine()
     return {
@@ -173,6 +215,7 @@ export function receptionInputFromDraft(
       purchaseId,
       lines: entries,
       ...(replacements.length ? { replacements } : {}),
+      ...(hasExpired ? { confirmExpired: true } : {}),
     },
   }
 }
@@ -214,11 +257,16 @@ export function receptionSummaryText(totals: {
   replaced: number
   missing: number
   damaged: number
+  /** Every ordered product is sold by the piece: count pieces, not boxes. */
+  piecesOnly?: boolean
 }) {
+  const [one, many] = totals.piecesOnly
+    ? ['pieza', 'piezas']
+    : ['caja', 'cajas']
   const entering =
     totals.good === 0 && totals.replaced === 0
-      ? 'No entra ninguna caja'
-      : `${totals.good === 1 ? 'Entra' : 'Entran'} ${plural(totals.good, 'caja', 'cajas')}`
+      ? `No entra ninguna ${one}`
+      : `${totals.good === 1 ? 'Entra' : 'Entran'} ${plural(totals.good, one, many)}`
   return [
     totals.replaced > 0
       ? `${entering} + ${totals.replaced} de reposición`
@@ -232,4 +280,33 @@ export function receptionSummaryText(totals: {
   ]
     .filter(Boolean)
     .join(' · ')
+}
+
+/** Shown instead of the summary while the typed quantities contradict the order. */
+export const summaryBlocked =
+  'Corrige las cantidades marcadas para ver el resumen.'
+
+/**
+ * What the confirmation line says and whether confirming is possible. Any
+ * issue but a missing expiry (asked for on confirm) blocks it, and then the
+ * summary never describes boxes the error says cannot exist.
+ */
+export function receptionOutcome(
+  lines: ReadonlyArray<ReceptionLine>,
+  draft: ReceptionDraft,
+  owed: OwedBoxes,
+): { canConfirm: boolean; summary: string } {
+  const blocked = Object.values(receptionIssues(lines, draft, owed)).some(
+    (issue) => issue !== missingExpiry,
+  )
+  if (blocked) return { canConfirm: false, summary: summaryBlocked }
+  return {
+    canConfirm: true,
+    summary: receptionSummaryText({
+      ...receptionSummary(lines, draft),
+      replaced: replacementBoxes(draft),
+      piecesOnly:
+        lines.length > 0 && lines.every((line) => line.boxFactor === 1),
+    }),
+  }
 }

@@ -20,15 +20,11 @@ export function CashOpenDialog({
 }: CashOpenDialogProps) {
   const actions = useCashActions(warehouseId)
   const [text, setText] = useState('')
-  const [busy, setBusy] = useState(false)
 
   async function submit() {
     const opening = parsePesosToCents(text, { allowZero: true })
     if (!opening.ok) return void toast.error(opening.message)
-    setBusy(true)
-    const result = await actions.open(opening.value)
-    setBusy(false)
-    if (result) onClose()
+    await actions.open(opening.value, onClose)
   }
 
   return (
@@ -51,7 +47,11 @@ export function CashOpenDialog({
       </Field>
       <div className="flex justify-end gap-3">
         <ActionButton onClick={onClose}>Cancelar</ActionButton>
-        <ActionButton tone="primary" disabled={busy} onClick={submit}>
+        <ActionButton
+          tone="primary"
+          disabled={actions.pending}
+          onClick={submit}
+        >
           Abrir caja
         </ActionButton>
       </div>

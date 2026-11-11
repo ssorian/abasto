@@ -1,29 +1,16 @@
 import { PlusIcon, Trash2Icon } from 'lucide-react'
-import { useState } from 'react'
-
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
-import { CatalogModal } from '#/modules/catalog/components/catalog-modal'
 import {
   Field,
   SelectInput,
   TextInput,
 } from '#/modules/catalog/forms/form-field'
 import {
-  defaultKeyOf,
-  draftsFromProduct,
   newPresentationDraft,
   removeDraft,
 } from '#/modules/catalog/lib/presentation-draft'
 
-import type {
-  CatalogProduct,
-  PresentationDraft,
-} from '#/modules/catalog/lib/catalog-types'
-
-export type SavePresentations = (
-  rows: Array<PresentationDraft>,
-  defaultKey: string,
-) => Promise<boolean>
+import type { PresentationDraft } from '#/modules/catalog/lib/catalog-types'
 
 export type PresentationsState = {
   rows: Array<PresentationDraft>
@@ -149,92 +136,5 @@ export function PresentationRows({
         </SelectInput>
       </Field>
     </>
-  )
-}
-
-type PresentationsEditorProps = {
-  product: CatalogProduct
-  /** Resolves to whether the save worked; `onSaved` runs only then. */
-  onSubmit: SavePresentations
-  onSaved: () => void
-  compact?: boolean
-}
-
-/** Presentations and barcodes of an existing product, with its own save. */
-export function PresentationsEditor({
-  product,
-  onSubmit,
-  onSaved,
-  compact = false,
-}: PresentationsEditorProps) {
-  const [state, setState] = useState<PresentationsState>(() => ({
-    rows: draftsFromProduct(product),
-    defaultKey: defaultKeyOf(product),
-  }))
-  const [saving, setSaving] = useState(false)
-
-  async function save() {
-    setSaving(true)
-    const saved = await onSubmit(state.rows, state.defaultKey)
-    setSaving(false)
-    if (saved) onSaved()
-  }
-
-  return (
-    <div className="grid gap-[15px]">
-      <p className="rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972]">
-        Inventario en {product.unit}. Cada venta descuenta sus equivalencias del
-        mismo lote. Aquí sólo se definen nombre, equivalencia y código de cada
-        presentación; los precios se capturan por almacén en «Precios».
-      </p>
-      <PresentationRows
-        unit={product.unit}
-        state={state}
-        onChange={setState}
-        compact={compact}
-      />
-      <p className="text-xs leading-[1.8] text-[#a49197] md:text-sm">
-        Las equivalencias existentes no se cambian: desactiva la presentación y
-        crea otra para conservar el historial. Las presentaciones guardadas no
-        se borran.
-      </p>
-      <div>
-        <CatalogButton
-          tone="primary"
-          disabled={saving}
-          onClick={() => void save()}
-        >
-          {saving ? 'Guardando…' : 'Guardar presentaciones'}
-        </CatalogButton>
-      </div>
-    </div>
-  )
-}
-
-type PresentationsDialogProps = {
-  product: CatalogProduct
-  onSubmit: SavePresentations
-  onClose: () => void
-}
-
-/** Standalone presentations dialog; the edit dialog embeds the editor instead. */
-export function PresentationsDialog({
-  product,
-  onSubmit,
-  onClose,
-}: PresentationsDialogProps) {
-  return (
-    <CatalogModal
-      size="wide"
-      title={`Presentaciones · ${product.name}`}
-      description={`Inventario en ${product.unit}. Cada venta descuenta sus equivalencias del mismo lote.`}
-      onClose={onClose}
-    >
-      <PresentationsEditor
-        product={product}
-        onSubmit={onSubmit}
-        onSaved={onClose}
-      />
-    </CatalogModal>
   )
 }

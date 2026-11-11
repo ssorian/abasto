@@ -8,12 +8,11 @@ import {
   SelectInput,
   TextInput,
 } from '#/modules/catalog/forms/form-field'
-import {
-  PresentationRows,
-  PresentationsEditor,
-} from '#/modules/catalog/forms/presentations-dialog'
+import { PresentationRows } from '#/modules/catalog/forms/presentation-rows'
 import { baseUnits, categories } from '#/modules/catalog/lib/catalog-types'
 import {
+  defaultKeyOf,
+  draftsFromProduct,
   initialPresentationDrafts,
   renameBaseRows,
 } from '#/modules/catalog/lib/presentation-draft'
@@ -22,10 +21,7 @@ import {
   emptyProductDraft,
 } from '#/modules/catalog/lib/product-draft'
 
-import type {
-  PresentationsState,
-  SavePresentations,
-} from '#/modules/catalog/forms/presentations-dialog'
+import type { PresentationsState } from '#/modules/catalog/forms/presentation-rows'
 import type {
   CatalogProduct,
   CatalogSupplier,
@@ -38,19 +34,14 @@ type ProductFormDialogProps = {
   product?: CatalogProduct
   suppliers: ReadonlyArray<CatalogSupplier>
   /**
-   * Resolves to whether the save worked; the dialog closes only then. When
-   * creating, also receives the presentations defined in the form.
+   * The only save of the dialog: product fields and presentations together.
+   * Resolves to the server message when it failed (shown in the dialog, which
+   * stays open) or null when saved, which closes the dialog.
    */
   onSubmit: (
     draft: ProductDraft,
-    presentations?: PresentationsState,
-  ) => Promise<boolean>
-  /**
-   * Saves the presentations of an existing product (own save, own validation).
-   * When creating, the tab edits the new product's presentations locally and
-   * they are saved together with the product.
-   */
-  onSubmitPresentations?: SavePresentations
+    presentations: PresentationsState,
+  ) => Promise<string | null>
   onClose: () => void
 }
 
@@ -73,16 +64,18 @@ export function ProductFormDialog({
   product,
   suppliers,
   onSubmit,
-  onSubmitPresentations,
   onClose,
 }: ProductFormDialogProps) {
   const [draft, setDraft] = useState(() =>
     product ? draftFromProduct(product) : emptyProductDraft(),
   )
   const [presentations, setPresentations] = useState<PresentationsState>(() =>
-    initialPresentationDrafts(draft.unit),
+    product
+      ? { rows: draftsFromProduct(product), defaultKey: defaultKeyOf(product) }
+      : initialPresentationDrafts(draft.unit),
   )
   const [saving, setSaving] = useState(false)
+  const [failure, setFailure] = useState<string | null>(null)
   const patch = (change: Partial<ProductDraft>) =>
     setDraft((current) => ({ ...current, ...change }))
   const changeUnit = (unit: string) => {
@@ -98,10 +91,12 @@ export function ProductFormDialog({
   )
 
   async function save() {
+    setFailure(null)
     setSaving(true)
-    const saved = await onSubmit(draft, product ? undefined : presentations)
+    const message = await onSubmit(draft, presentations)
     setSaving(false)
-    if (saved) onClose()
+    if (message === null) onClose()
+    else setFailure(message)
   }
 
   const identityFields: Array<readonly [keyof ProductDraft, string]> = [
@@ -203,16 +198,6 @@ export function ProductFormDialog({
           />
         </Field>
       </Section>
-      <div className="flex items-center justify-between gap-3 border-t border-[#f4eee8] pt-5">
-        <CatalogButton onClick={onClose}>Cancelar</CatalogButton>
-        <CatalogButton
-          tone="primary"
-          disabled={saving}
-          onClick={() => void save()}
-        >
-          {saving ? 'Guardando…' : 'Guardar producto'}
-        </CatalogButton>
-      </div>
     </div>
   )
 
@@ -245,32 +230,47 @@ export function ProductFormDialog({
           forceMount
           className="data-[state=inactive]:hidden"
         >
-          {product ? (
-            onSubmitPresentations && (
-              <PresentationsEditor
-                compact
-                product={product}
-                onSubmit={onSubmitPresentations}
-                onSaved={onClose}
-              />
-            )
-          ) : (
-            <div className="grid gap-[15px]">
-              <p className="rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972]">
-                Inventario en {draft.unit}. Define cómo se vende el producto:
-                nombre, equivalencia y código de barras de cada presentación. Se
-                guardan junto con el producto con «Guardar producto».
+          <div className="grid gap-[15px]">
+            <p className="rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972]">
+              Inventario en {draft.unit}. Define cómo se vende el producto:
+              nombre, equivalencia y código de barras de cada presentación. Se
+              guardan junto con el producto con «Guardar producto»
+              {product
+                ? '; los precios se capturan por almacén en «Precios»'
+                : ''}
+              .
+            </p>
+            <PresentationRows
+              compact
+              unit={draft.unit}
+              state={presentations}
+              onChange={setPresentations}
+            />
+            {product && (
+              <p className="text-xs leading-[1.8] text-[#a49197] md:text-sm">
+                Las equivalencias existentes no se cambian: desactiva la
+                presentación y crea otra para conservar el historial. Las
+                presentaciones guardadas no se borran.
               </p>
-              <PresentationRows
-                compact
-                unit={draft.unit}
-                state={presentations}
-                onChange={setPresentations}
-              />
-            </div>
-          )}
+            )}
+          </div>
         </TabsContent>
       </Tabs>
+      {failure && (
+        <p role="alert" className="mt-[18px] text-sm text-[#b42318]">
+          {failure}
+        </p>
+      )}
+      <div className="mt-[18px] flex items-center justify-between gap-3 border-t border-[#f4eee8] pt-5">
+        <CatalogButton onClick={onClose}>Cancelar</CatalogButton>
+        <CatalogButton
+          tone="primary"
+          disabled={saving}
+          onClick={() => void save()}
+        >
+          {saving ? 'Guardando…' : 'Guardar producto'}
+        </CatalogButton>
+      </div>
     </CatalogModal>
   )
 }

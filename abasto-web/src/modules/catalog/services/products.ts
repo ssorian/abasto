@@ -142,7 +142,7 @@ async function requireSupplier(tx: Executor, supplierId?: string | null) {
 }
 
 /** Maps the catalog's unique indexes to the user-facing conflicts. */
-function mapConflict(error: unknown): unknown {
+export function mapConflict(error: unknown): unknown {
   const index = violatedUniqueIndex(error)
   if (index === 'products_sku_unique') {
     return new AppError('conflict', 'El SKU ya existe.')
@@ -153,11 +153,15 @@ function mapConflict(error: unknown): unknown {
   return error
 }
 
-export async function createProduct(
-  actor: Actor,
+/**
+ * Validates and inserts a product with its presentations inside the caller's
+ * transaction, so callers can write related rows atomically. No permission
+ * check: callers authorize first.
+ */
+export async function insertProduct(
+  tx: Executor,
   input: ProductInput,
 ): Promise<Product> {
-  authorize(actor, 'catalog.manage')
   const { presentations: rawRows, defaultIndex, ...fields } = input
   const values = cleaned(fields) as ProductFields
   if (!rawRows.length || requiredKeys.some((key) => !values[key])) {
@@ -173,16 +177,51 @@ export async function createProduct(
     fixedDiscountPerPiece: values.fixedDiscountPerPiece ?? 0,
     promotionPerPiece: values.promotionPerPiece ?? 0,
   })
+  await requireSupplier(tx, values.supplierId)
+  const [created] = await tx.insert(products).values(values).returning()
+  await writeSet(tx, created.id, rows, defaultIndex)
+  return loadProduct(tx, created.id)
+}
+
+export async function createProduct(
+  actor: Actor,
+  input: ProductInput,
+): Promise<Product> {
+  authorize(actor, 'catalog.manage')
   try {
-    return await db.transaction(async (tx) => {
-      await requireSupplier(tx, values.supplierId)
-      const [created] = await tx.insert(products).values(values).returning()
-      await writeSet(tx, created.id, rows, defaultIndex)
-      return loadProduct(tx, created.id)
-    })
+    return await db.transaction((tx) => insertProduct(tx, input))
   } catch (error) {
     throw mapConflict(error)
   }
+}
+
+/** Applies a validated patch inside the caller's transaction; no permission check. */
+export async function patchProduct(
+  tx: Executor,
+  id: string,
+  patch: ProductPatch,
+): Promise<Product> {
+  const values = cleaned(patch)
+  const stored = await loadProduct(tx, id)
+  await requireSupplier(tx, values.supplierId)
+  // Only a patch that touches an amount is checked, merged with the stored ones.
+  if (amountKeys.some((key) => values[key] !== undefined)) {
+    requireNetCost({
+      listPricePerPiece: values.listPricePerPiece ?? stored.listPricePerPiece,
+      fixedDiscountPerPiece:
+        values.fixedDiscountPerPiece ?? stored.fixedDiscountPerPiece,
+      promotionPerPiece: values.promotionPerPiece ?? stored.promotionPerPiece,
+    })
+  }
+  if (Object.keys(values).length) {
+    const updated = await tx
+      .update(products)
+      .set(values)
+      .where(eq(products.id, id))
+      .returning({ id: products.id })
+    if (!updated.length) throw productNotFound()
+  }
+  return loadProduct(tx, id)
 }
 
 export async function updateProduct(
@@ -191,32 +230,9 @@ export async function updateProduct(
   patch: ProductPatch,
 ): Promise<Product> {
   authorize(actor, 'catalog.manage')
-  const values = cleaned(patch)
+  cleaned(patch)
   try {
-    return await db.transaction(async (tx) => {
-      const stored = await loadProduct(tx, id)
-      await requireSupplier(tx, values.supplierId)
-      // Only a patch that touches an amount is checked, merged with the stored ones.
-      if (amountKeys.some((key) => values[key] !== undefined)) {
-        requireNetCost({
-          listPricePerPiece:
-            values.listPricePerPiece ?? stored.listPricePerPiece,
-          fixedDiscountPerPiece:
-            values.fixedDiscountPerPiece ?? stored.fixedDiscountPerPiece,
-          promotionPerPiece:
-            values.promotionPerPiece ?? stored.promotionPerPiece,
-        })
-      }
-      if (Object.keys(values).length) {
-        const updated = await tx
-          .update(products)
-          .set(values)
-          .where(eq(products.id, id))
-          .returning({ id: products.id })
-        if (!updated.length) throw productNotFound()
-      }
-      return loadProduct(tx, id)
-    })
+    return await db.transaction((tx) => patchProduct(tx, id, patch))
   } catch (error) {
     throw mapConflict(error)
   }

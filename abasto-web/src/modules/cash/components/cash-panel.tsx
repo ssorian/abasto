@@ -6,7 +6,10 @@ import { CashCloseDialog } from '#/modules/cash/components/cash-close-dialog'
 import { CashHistoryDialog } from '#/modules/cash/components/cash-history-dialog'
 import { CashMovementDialog } from '#/modules/cash/components/cash-movement-dialog'
 import { CashOpenDialog } from '#/modules/cash/components/cash-open-dialog'
-import { summarizeSession } from '#/modules/cash/lib/cash-summary'
+import {
+  riderDifferenceLabel,
+  summarizeSession,
+} from '#/modules/cash/lib/cash-summary'
 import { formatCents } from '#/modules/pricing/lib/money'
 import type { CashSessionDetail } from '#/modules/cash/services/cash-sessions'
 
@@ -112,6 +115,14 @@ export function CashPanel({
             label="RETIROS"
             value={formatCents(summary.withdrawalsCents)}
           />
+          {summary.riderDifferenceCents !== 0 && (
+            <Figure
+              label={riderDifferenceLabel(
+                summary.riderDifferenceCents,
+              ).toUpperCase()}
+              value={formatCents(summary.riderDifferenceCents)}
+            />
+          )}
         </div>
       )}
       {dialog === 'open' && (

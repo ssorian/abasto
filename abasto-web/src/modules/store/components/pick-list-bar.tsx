@@ -1,13 +1,14 @@
 import { formatCents } from '#/modules/pricing/lib/money'
+import type { PricedTotal } from '#/modules/store/lib/pick-list'
 
 type PickListBarProps = {
   units: number
-  totalCents: number
+  total: PricedTotal
   onReview: () => void
 }
 
 /** Phone only: the pick list pinned to the bottom edge while you browse. */
-export function PickListBar({ units, totalCents, onReview }: PickListBarProps) {
+export function PickListBar({ units, total, onReview }: PickListBarProps) {
   const empty = units === 0
   return (
     <div className="st-pinned fixed inset-x-0 bottom-0 z-40 rounded-t-2xl bg-st-card text-st-ink shadow-[0_-6px_20px_rgb(42_29_51/0.1)] lg:hidden">
@@ -22,8 +23,8 @@ export function PickListBar({ units, totalCents, onReview }: PickListBarProps) {
             </p>
           ) : (
             <p className="flex items-baseline gap-2">
-              <span key={totalCents} className="st-num st-tick text-[22px]">
-                {formatCents(totalCents)}
+              <span key={total.cents} className="st-num st-tick text-[22px]">
+                {total.pending ? '…' : formatCents(total.cents)}
               </span>
               <span className="text-[13px] text-st-muted">
                 {units === 1 ? '1 unidad' : `${units} unidades`}

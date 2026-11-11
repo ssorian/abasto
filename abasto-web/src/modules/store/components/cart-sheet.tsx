@@ -14,11 +14,11 @@ import {
 import { formatCents } from '#/modules/pricing/lib/money'
 import { QuantityStepper } from '#/modules/store/components/quantity-stepper'
 import { ReservationTag } from '#/modules/store/components/reservation-tag'
-import { useCartPreview } from '#/modules/store/hooks/use-cart-preview'
+import type { CartPreviewState } from '#/modules/store/hooks/use-cart-preview'
 import { useReserveOrder } from '#/modules/store/hooks/use-reserve-order'
 import type { useStoreCart } from '#/modules/store/hooks/use-store-cart'
-import { listTotal, resolveCartLines } from '#/modules/store/lib/pick-list'
-import type { PickLine } from '#/modules/store/lib/pick-list'
+import { resolveCartLines, unitPriceOf } from '#/modules/store/lib/pick-list'
+import type { PickLine, PricedTotal } from '#/modules/store/lib/pick-list'
 import { canAddToCart } from '#/modules/store/lib/store-labels'
 import type {
   StoreOrder,
@@ -35,6 +35,9 @@ type CartSheetProps = {
   catalog: Array<StoreProduct>
   cart: ReturnType<typeof useStoreCart>
   signedIn: boolean
+  /** Customer prices of this cart, loaded once by the shell for every surface. */
+  preview: CartPreviewState
+  total: PricedTotal
 }
 
 export function CartSheet({
@@ -44,6 +47,8 @@ export function CartSheet({
   catalog,
   cart,
   signedIn,
+  preview,
+  total,
 }: CartSheetProps) {
   const location = useLocation()
   const [step, setStep] = useState<Step>('cart')
@@ -63,21 +68,8 @@ export function CartSheet({
     quantity,
   }))
 
-  const preview = useCartPreview(warehouse.id, payload, signedIn)
-  const priceOf = (item: PickLine) => {
-    if (signedIn && preview.status === 'ready') {
-      const line = preview.preview.lines.find(
-        (entry) => entry.presentationId === item.presentation.id,
-      )
-      if (line?.unitPriceCents != null) return line.unitPriceCents
-    }
-    return item.presentation.priceCents
-  }
-  const pricesPending = signedIn && preview.status === 'loading'
-  const total =
-    signedIn && preview.status === 'ready'
-      ? preview.preview.totalCents
-      : listTotal(resolved)
+  const priceOf = (item: PickLine) => unitPriceOf(item, signedIn, preview)
+  const pricesPending = total.pending
   const blocked =
     !resolved.length || soldOut || (signedIn && preview.status !== 'ready')
 
@@ -275,8 +267,8 @@ export function CartSheet({
               <span className="st-card">
                 {signedIn ? 'Total con tus precios' : 'Total a precio de lista'}
               </span>
-              <span key={total} className="st-num st-tick text-[28px]">
-                {pricesPending ? '…' : formatCents(total)}
+              <span key={total.cents} className="st-num st-tick text-[28px]">
+                {pricesPending ? '…' : formatCents(total.cents)}
               </span>
             </div>
 

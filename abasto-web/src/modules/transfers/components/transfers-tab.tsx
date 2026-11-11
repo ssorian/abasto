@@ -21,6 +21,11 @@ import { SectionRow } from '#/modules/inventory/components/section-row'
 import { StockBadge } from '#/modules/inventory/components/stock-badge'
 import { dateLabel, timeLabel } from '#/modules/inventory/lib/format'
 import { transferActions } from '#/modules/transfers/lib/transfer-drafts'
+import {
+  lineQuantityLabel,
+  rowSubtitle,
+  shortageLabel,
+} from '#/modules/transfers/lib/transfer-labels'
 import type { TransferListItem } from '#/modules/transfers/services/transfer-reads'
 
 type TransfersTabProps = {
@@ -126,7 +131,7 @@ function TransferRow({
                 : `Desde ${transfer.fromWarehouseName}`}
             </strong>
             <small className="block text-[#907e84]">
-              {outgoing ? 'Salida' : 'Entrada'} · {transfer.createdByName}
+              {rowSubtitle(transfer)}
             </small>
           </span>
         </span>
@@ -134,12 +139,7 @@ function TransferRow({
       <ListCell>
         {transfer.lines.map((line) => (
           <span key={line.id} className="block">
-            <strong>{line.productName}</strong>{' '}
-            {line.receivedQuantity !== null &&
-            line.receivedQuantity !== line.quantity
-              ? `${line.receivedQuantity} de ${line.quantity}`
-              : line.quantity}{' '}
-            {line.unit}
+            <strong>{line.productName}</strong> {lineQuantityLabel(line)}
             {line.lotCode ? (
               <small className="ml-1 text-[#907e84]">lote {line.lotCode}</small>
             ) : null}
@@ -153,7 +153,7 @@ function TransferRow({
         <StockBadge value={transfer.status} />
         {transfer.shortage > 0 && (
           <small className="block text-[#a08442]">
-            Faltaron {transfer.shortage} de {transfer.sentTotal} unidades
+            {shortageLabel(transfer)}
           </small>
         )}
       </ListCell>

@@ -32,6 +32,7 @@ import {
   toggleDiscount,
 } from '#/modules/inventory/lib/order-discounts'
 import {
+  boxCountLabel,
   onlyWithBoxes,
   sortBelowMinimumFirst,
 } from '#/modules/inventory/lib/order-rows'
@@ -91,7 +92,6 @@ export function OrderDialog({
   const [error, setError] = useState<string | null>(null)
   // Row the last save failed on; `request` re-triggers the scroll on each attempt.
   const [failed, setFailed] = useState<{ productId: string; request: number }>()
-  const [pending, setPending] = useState(false)
   const [reloadStandard, setReloadStandard] = useState(0)
   // Pending ids of the balances to discount; chosen only until the order is registered.
   const [discounted, setDiscounted] = useState<ReadonlyArray<string>>([])
@@ -158,13 +158,10 @@ export function OrderDialog({
     setFailed(undefined)
     if (tooMuch) return setError(tooMuch)
     setError(null)
-    setPending(true)
     const chosen = discountsInput(discounted)
     const saved = await actions.createOrder(
       chosen ? { ...parsed.value, discounts: chosen } : parsed.value,
-      setError,
     )
-    setPending(false)
     if (saved) onClose()
   }
 
@@ -277,8 +274,7 @@ export function OrderDialog({
                               </ListCell>
                               <ListCell>{row.originCode}</ListCell>
                               <ListCell>
-                                {row.owedBoxes}{' '}
-                                {row.owedBoxes === 1 ? 'caja' : 'cajas'}
+                                {boxCountLabel(row.owedBoxes, row.boxFactor)}
                               </ListCell>
                               <ListCell>
                                 {formatCents(row.owedValueCents)}
@@ -369,8 +365,12 @@ export function OrderDialog({
               <ActionButton type="button" onClick={onClose}>
                 Cancelar
               </ActionButton>
-              <ActionButton tone="primary" type="submit" disabled={pending}>
-                {pending ? 'Guardando…' : 'Registrar pedido'}
+              <ActionButton
+                tone="primary"
+                type="submit"
+                disabled={actions.pending}
+              >
+                {actions.pending ? 'Guardando…' : 'Registrar pedido'}
               </ActionButton>
             </span>
           </DialogActions>

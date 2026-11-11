@@ -5,7 +5,6 @@ import { ExpiryField } from '#/modules/inventory/components/expiry-field'
 import { FieldInput } from '#/modules/inventory/components/form-controls'
 import {
   FormError,
-  SuccessNote,
   WarningInline,
 } from '#/modules/inventory/components/info-blocks'
 import {
@@ -20,17 +19,18 @@ import {
   ListRow,
   ListTable,
 } from '#/modules/inventory/components/list-panel'
+import { businessDate } from '#/modules/orders/services/clock'
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import { formatCents } from '#/modules/inventory/lib/cents'
+import { boxCountLabel } from '#/modules/inventory/lib/order-rows'
 import {
+  expiredEntries,
   goodBoxes,
   initialReception,
   receptionInputFromDraft,
   missingExpiry,
   receptionIssues,
-  receptionSummary,
-  receptionSummaryText,
-  replacementBoxes,
+  receptionOutcome,
   toggleReceived,
 } from '#/modules/inventory/lib/reception-draft'
 import type {
@@ -51,7 +51,7 @@ type ReceptionDialogProps = {
 }
 
 const compact = 'min-h-[38px] px-2 py-1.5'
-const boxes = (count: number) => `${count} ${count === 1 ? 'caja' : 'cajas'}`
+const unitWord = (factor: number) => (factor < 2 ? 'Piezas' : 'Cajas')
 
 /** Verifies a waiting order from its exceptions only, plus earlier missing boxes that arrived with it. */
 export function ReceptionDialog({
@@ -66,9 +66,8 @@ export function ReceptionDialog({
     replacements: {},
   })
   const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
-  const [done, setDone] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
+  const [confirmExpired, setConfirmExpired] = useState(false)
 
   useEffect(() => {
     let current = true
@@ -100,11 +99,10 @@ export function ReceptionDialog({
       ([, issue]) => attempted || issue !== missingExpiry,
     ),
   )
-  const summary = receptionSummary(lines, draft)
-  const summaryText = receptionSummaryText({
-    ...summary,
-    replaced: replacementBoxes(draft),
-  })
+  const outcome = receptionOutcome(lines, draft, owedBoxes)
+  const today = businessDate()
+  const expired = expiredEntries(lines, draft, today)
+  const mustConfirmExpired = outcome.canConfirm && expired.length > 0
 
   const patchLine = (
     lineId: string,
@@ -142,30 +140,17 @@ export function ReceptionDialog({
 
   async function submit() {
     setAttempted(true)
-    const parsed = receptionInputFromDraft(order.id, lines, draft, owedBoxes)
+    const parsed = receptionInputFromDraft(order.id, lines, draft, owedBoxes, {
+      today,
+      confirmExpired,
+    })
     if (!parsed.ok) return setError(parsed.message)
     setError(null)
-    setPending(true)
-    const saved = await actions.receiveOrder(parsed.value, setError)
-    setPending(false)
-    if (saved) setDone(`${summaryText}.`)
-  }
-
-  if (done) {
-    return (
-      <InventoryDialog
-        title="Pedido recibido"
-        description="Las existencias ya están actualizadas."
-        onClose={onClose}
-      >
-        <SuccessNote>{done}</SuccessNote>
-        <DialogActions>
-          <ActionButton type="button" onClick={onClose}>
-            Listo
-          </ActionButton>
-        </DialogActions>
-      </InventoryDialog>
+    const saved = await actions.receiveOrder(
+      parsed.value,
+      `Pedido recibido. ${outcome.summary}.`,
     )
+    if (saved) onClose()
   }
 
   return (
@@ -215,11 +200,13 @@ export function ReceptionDialog({
                           </small>
                         )}
                       </ListCell>
-                      <ListCell>{line.boxes}</ListCell>
+                      <ListCell>
+                        {boxCountLabel(line.boxes, line.boxFactor)}
+                      </ListCell>
                       <ListCell>
                         <FieldInput
                           inputMode="numeric"
-                          aria-label={`Cajas faltantes de ${line.productName}`}
+                          aria-label={`${unitWord(line.boxFactor)} faltantes de ${line.productName}`}
                           aria-invalid={issue ? true : undefined}
                           className={`${compact} w-[76px]`}
                           value={entry?.missing ?? ''}
@@ -231,7 +218,7 @@ export function ReceptionDialog({
                       <ListCell>
                         <FieldInput
                           inputMode="numeric"
-                          aria-label={`Cajas dañadas o caducadas de ${line.productName}`}
+                          aria-label={`${unitWord(line.boxFactor)} dañadas o caducadas de ${line.productName}`}
                           aria-invalid={issue ? true : undefined}
                           className={`${compact} w-[76px]`}
                           value={entry?.damaged ?? ''}
@@ -242,7 +229,7 @@ export function ReceptionDialog({
                       </ListCell>
                       <ListCell>
                         <strong
-                          aria-label={`Cajas buenas de ${line.productName}`}
+                          aria-label={`${unitWord(line.boxFactor)} buenas de ${line.productName}`}
                         >
                           {goodBoxes(
                             line.boxes,
@@ -308,7 +295,7 @@ export function ReceptionDialog({
                           </ListCell>
                           <ListCell>{row.originCode}</ListCell>
                           <ListCell>
-                            {boxes(row.owedBoxes)}
+                            {boxCountLabel(row.owedBoxes, row.boxFactor)}
                             <small className="block text-[#907e84]">
                               {formatCents(row.owedValueCents)}
                             </small>
@@ -316,7 +303,7 @@ export function ReceptionDialog({
                           <ListCell>
                             <FieldInput
                               inputMode="numeric"
-                              aria-label={`Llegaron cajas de ${row.productName} (${row.originCode})`}
+                              aria-label={`Llegaron ${row.boxFactor < 2 ? 'piezas' : 'cajas'} de ${row.productName} (${row.originCode})`}
                               aria-invalid={issue ? true : undefined}
                               className={`${compact} w-[76px]`}
                               placeholder="0"
@@ -370,16 +357,43 @@ export function ReceptionDialog({
           )}
 
           <WarningInline className="mt-0">
-            {summaryText}. Al confirmar, el pedido se cierra y ya no se puede
-            editar.
+            {outcome.canConfirm
+              ? `${outcome.summary}. Al confirmar, el pedido se cierra y ya no se puede editar.`
+              : outcome.summary}
           </WarningInline>
+          {mustConfirmExpired && (
+            <label
+              role="alert"
+              className="flex items-start gap-2 rounded-lg border border-[#e3b9bd] bg-[#fbecee] p-3 text-sm text-[#8f2d36]"
+            >
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={confirmExpired}
+                onChange={(event) => setConfirmExpired(event.target.checked)}
+              />
+              <span>
+                <strong>Caducidad vencida.</strong> Estás recibiendo producto
+                que ya caducó y entrará al inventario como «Vencido». Marca la
+                casilla para confirmar que quieres recibirlo.
+              </span>
+            </label>
+          )}
           {error && <FormError>{error}</FormError>}
           <DialogActions>
             <ActionButton type="button" onClick={onClose}>
               Cancelar
             </ActionButton>
-            <ActionButton tone="primary" type="submit" disabled={pending}>
-              {pending ? 'Guardando…' : 'Confirmar recepción'}
+            <ActionButton
+              tone="primary"
+              type="submit"
+              disabled={
+                actions.pending ||
+                !outcome.canConfirm ||
+                (mustConfirmExpired && !confirmExpired)
+              }
+            >
+              {actions.pending ? 'Guardando…' : 'Confirmar recepción'}
             </ActionButton>
           </DialogActions>
         </form>
@@ -393,5 +407,6 @@ function receptionLines(order: SupplierOrder): Array<ReceptionLine> {
     lineId: line.id,
     productId: line.productId,
     orderedBoxes: line.boxes,
+    boxFactor: line.boxFactor,
   }))
 }

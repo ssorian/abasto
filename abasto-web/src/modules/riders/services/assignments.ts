@@ -305,7 +305,9 @@ export async function cancelAssignment(
  * the sold remainder (assigned − leftover, taken from the oldest allocations
  * first) is a `sale` movement per allocation, and its value at the frozen
  * prices is one cash `sale` in the warehouse's open drawer. The difference
- * with the cash the rider handed in is stored. All or nothing, and only once.
+ * with the cash the rider handed in is stored and, when not zero, posted as
+ * its own `rider_difference` movement naming the rider. All or nothing, and
+ * only once.
  */
 export async function settleAssignment(
   actor: Actor,
@@ -428,17 +430,32 @@ export async function settleAssignment(
     if (!fitsInt4(expectedCents)) {
       throw new AppError('invalid', 'El total del reparto es demasiado grande.')
     }
-    // The drawer gets the cash actually handed in; any shortage or surplus
-    // stays on the assignment as its difference.
+    // The drawer records the sale at the sold value (what Reports show); a
+    // shortage or surplus against the cash handed in is its own movement, so
+    // the net cash in is exactly what the rider handed in.
+    const difference = input.deliveredCents - expectedCents
     const sale =
-      input.deliveredCents > 0
+      expectedCents > 0
         ? await postCashMovement(tx, session, {
             type: 'sale',
-            amountCents: input.deliveredCents,
+            amountCents: expectedCents,
             reason: 'Reparto liquidado',
             actorId: actor.userId,
           })
         : null
+    const [rider] = await tx
+      .select({ name: riders.name })
+      .from(riders)
+      .where(eq(riders.id, assignment.riderId))
+    const differenceMovement =
+      difference === 0
+        ? null
+        : await postCashMovement(tx, session, {
+            type: 'rider_difference',
+            amountCents: difference,
+            reason: `${difference < 0 ? 'Faltante' : 'Sobrante'} de reparto · ${rider.name}`,
+            actorId: actor.userId,
+          })
     await tx
       .update(riderAssignments)
       .set({
@@ -447,8 +464,9 @@ export async function settleAssignment(
         closedAt: now(),
         expectedCents,
         deliveredCents: input.deliveredCents,
-        differenceCents: input.deliveredCents - expectedCents,
+        differenceCents: difference,
         cashMovementId: sale?.id ?? null,
+        differenceMovementId: differenceMovement?.id ?? null,
       })
       .where(eq(riderAssignments.id, assignment.id))
     return readAssignment(tx, assignment.id)

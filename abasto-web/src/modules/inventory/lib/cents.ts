@@ -8,7 +8,8 @@ const pesos = new Intl.NumberFormat('es-MX', {
   currency: 'MXN',
 })
 
-export const formatCents = (cents: number) => pesos.format(cents / 100)
+/** `+ 0` turns a negative zero into 0, so nothing prints "-$0.00". */
+export const formatCents = (cents: number) => pesos.format(cents / 100 + 0)
 
 /** Pesos typed by the user → integer cents; works on digits so no float drift. */
 export function parsePesosToCents(

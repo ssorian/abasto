@@ -1,8 +1,7 @@
-import { useRouter } from '@tanstack/react-router'
 import { toast } from 'sonner'
 
-import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
-import type { Result } from '#/lib/boundary'
+import { messageOf, useActionRunner } from '#/hooks/use-action-runner'
+import { unwrap } from '#/lib/boundary'
 import {
   adjustLotFn,
   countStockFn,
@@ -29,80 +28,44 @@ import type {
 } from '#/modules/inventory/services/supplier-orders'
 import type { LossCategory } from '#/modules/inventory/db/schema'
 
-const messageOf = (failure: unknown) =>
-  failure instanceof ClientError ? failure.message : genericErrorMessage
-
 /**
- * Write actions of Inventario. Each resolves to `{ data }` on success (the page
- * reloads), or to `undefined` after showing the server message as a toast, or
- * through `onError` when the dialog shows it inline.
+ * Write actions of Inventario, on the shared runner: each resolves to `{ data }`
+ * after refreshing the lists and toasting the Spanish success message, or to
+ * `undefined` after toasting the server message. `pending` is true while one runs.
  */
 export function useInventoryActions() {
-  const router = useRouter()
-
-  async function run<T>(
-    action: () => Promise<Result<T>>,
-    success?: (data: T) => string,
-    onError?: (message: string) => void,
-  ): Promise<{ data: T } | undefined> {
-    try {
-      const data = unwrap(await action())
-      await router.invalidate({ sync: true })
-      if (success) toast.success(success(data))
-      return { data }
-    } catch (failure) {
-      if (onError) onError(messageOf(failure))
-      else toast.error(messageOf(failure))
-      return undefined
-    }
-  }
+  const run = useActionRunner()
 
   return {
-    createOrder: (
-      input: SupplierOrderInput,
-      onError?: (message: string) => void,
-    ) =>
+    pending: run.pending,
+    createOrder: (input: SupplierOrderInput) =>
       run(
         () => createSupplierOrderFn({ data: input }),
-        () => 'Pedido registrado. Quedó en «Por recibir».',
-        onError,
+        'Pedido registrado. Quedó en «Por recibir».',
       ),
     cancelOrder: (purchaseId: string) =>
       run(
         () => cancelSupplierOrderFn({ data: { purchaseId } }),
-        () => 'Pedido cancelado.',
+        'Pedido cancelado.',
       ),
-    receiveOrder: (
-      input: ReceptionInput,
-      onError?: (message: string) => void,
-    ) =>
-      run(
-        () => receiveSupplierOrderFn({ data: input }),
-        () => 'Pedido recibido. Las existencias ya están actualizadas.',
-        onError,
-      ),
-    writeOff: (
-      input: { pendingId: string; boxes: number },
-      onError?: (message: string) => void,
-    ) =>
-      run(
-        () => writeOffPendingsFn({ data: input }),
-        ({ valueCents }) =>
-          `Se descontaron ${formatCents(valueCents)} del pago al proveedor.`,
-        onError,
-      ),
-    returnPending: (
-      input: ReturnRequest,
-      onError?: (message: string) => void,
-    ) =>
-      run(
-        () => returnPendingsFn({ data: input }),
-        ({ creditCents }) =>
-          creditCents === null
-            ? 'Devolución registrada: el proveedor repondrá las cajas.'
-            : `Devolución registrada con descuento de ${formatCents(creditCents)}.`,
-        onError,
-      ),
+    receiveOrder: (input: ReceptionInput, success: string) =>
+      run(() => receiveSupplierOrderFn({ data: input }), success),
+    writeOff: (input: { pendingId: string; boxes: number }) =>
+      run(() => writeOffPendingsFn({ data: input }), {
+        onSuccess: ({ valueCents }) =>
+          toast.success(
+            `Se descontaron ${formatCents(valueCents)} del pago al proveedor.`,
+          ),
+      }),
+    returnPending: (input: ReturnRequest) =>
+      run(() => returnPendingsFn({ data: input }), {
+        onSuccess: ({ creditCents }) =>
+          toast.success(
+            creditCents === null
+              ? 'Devolución registrada: el proveedor repondrá las cajas.'
+              : `Devolución registrada con descuento de ${formatCents(creditCents)}.`,
+          ),
+      }),
     /** Lines of an order; a failure shows the message and resolves to undefined. */
     async loadOrder(purchaseId: string): Promise<SupplierOrder | undefined> {
       try {
@@ -152,26 +115,17 @@ export function useInventoryActions() {
       productId: string
       warehouseId: string
       minimum: number
-    }) =>
-      run(
-        () => setMinimumFn({ data: input }),
-        () => 'Mínimo guardado.',
-      ),
-    adjustLot: (input: { lotId: string; quantity: number; reason: string }) =>
-      run(
-        () => adjustLotFn({ data: input }),
-        () => 'Ajuste registrado.',
-      ),
+    }) => run(() => setMinimumFn({ data: input }), 'Mínimo guardado.'),
+    /** "Quitar existencias" for expired or damaged units: a loss in the ledger. */
     registerLoss: (input: {
       lotId: string
       quantity: number
       category: LossCategory
       reason: string
-    }) =>
-      run(
-        () => registerLossFn({ data: input }),
-        () => 'Pérdida registrada.',
-      ),
+    }) => run(() => registerLossFn({ data: input }), 'Existencias quitadas.'),
+    /** "Quitar existencias" for another reason: a negative adjustment in the ledger. */
+    adjustLot: (input: { lotId: string; quantity: number; reason: string }) =>
+      run(() => adjustLotFn({ data: input }), 'Existencias quitadas.'),
     countStock: (input: {
       productId: string
       warehouseId: string

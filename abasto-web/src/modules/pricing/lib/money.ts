@@ -7,7 +7,8 @@ const pesos = new Intl.NumberFormat('es-MX', {
   currency: 'MXN',
 })
 
-export const formatCents = (cents: number) => pesos.format(cents / 100)
+/** `+ 0` turns a negative zero into 0, so nothing prints "-$0.00". */
+export const formatCents = (cents: number) => pesos.format(cents / 100 + 0)
 
 /** Basis points as a percent without trailing zeros: 1250 → "12.5". */
 export const formatBps = (bps: number) => String(bps / 100)

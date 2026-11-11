@@ -4,8 +4,8 @@ import { toast } from 'sonner'
 import { counterPickupFn } from '#/modules/counter/server/pickup'
 import type { PickupWithReceipt } from '#/modules/counter/server/pickup'
 import type { PickupPayment } from '#/modules/orders/services/pickup-gate'
-import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
-import type { Result } from '#/lib/boundary'
+import { messageOf, useActionRunner } from '#/hooks/use-action-runner'
+import { unwrap } from '#/lib/boundary'
 import type { OrderInput } from '#/modules/counter/lib/order-draft'
 import {
   cancelOrderFn,
@@ -15,34 +15,17 @@ import {
   setReservationHoursFn,
 } from '#/modules/orders/server/orders'
 
-export const messageOf = (failure: unknown) =>
-  failure instanceof ClientError ? failure.message : genericErrorMessage
-
 /**
  * Write actions of Mostrador. Each resolves to `{ data }` on success (the list
- * reloads) or to `undefined` after showing the server message as a toast.
+ * reloads and a Spanish toast confirms) or to `undefined` after showing the
+ * server message as a toast. `pending` is true while one is saving.
  */
 export function useOrderActions() {
   const router = useRouter()
-
-  async function run<T>(
-    action: () => Promise<Result<T>>,
-    success: string,
-  ): Promise<{ data: T } | undefined> {
-    try {
-      const data = unwrap(await action())
-      await router.invalidate()
-      toast.success(success)
-      return { data }
-    } catch (failure) {
-      toast.error(messageOf(failure))
-      // The order may have expired or changed meanwhile: show the fresh list.
-      await router.invalidate()
-      return undefined
-    }
-  }
+  const run = useActionRunner()
 
   return {
+    pending: run.pending,
     createOrder: (input: OrderInput) =>
       run(() => createOrderFn({ data: input }), 'Pedido reservado.'),
     prepare: (orderId: string) =>

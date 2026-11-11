@@ -6,6 +6,11 @@ import {
   getNonMovingCapital,
 } from '#/modules/executive/services/inventory'
 import { businessDate } from '#/modules/orders/services/clock'
+import {
+  assignRider,
+  settleAssignment,
+} from '#/modules/riders/services/assignments'
+import { createRider } from '#/modules/riders/services/riders'
 import { addDays } from '#/modules/reports/lib/period'
 import {
   errorOf,
@@ -117,6 +122,30 @@ describe('non-moving capital', () => {
     const result = await getNonMovingCapital(fx.owner)
     expect(result.days).toBe(30)
     expect(result.rows.map((row) => row.name)).toEqual(['Refresco 600ml'])
+  })
+
+  test('a settled rider delivery counts as a sale of its product', async () => {
+    const fx = await stocked()
+    const rider = await createRider(fx.managerA, {
+      warehouseId: fx.a.id,
+      name: 'Luis',
+    })
+    const settledAt = new Date(daysAgoAt(5))
+    useClock(() => settledAt)
+    const assignment = await assignRider(fx.staffA, {
+      riderId: rider.id,
+      lines: [{ productId: fx.milkBox.id, boxes: 0, units: 10 }],
+    })
+    await settleAssignment(fx.staffA, {
+      assignmentId: assignment.id,
+      deliveredCents: 10_000,
+      lines: [{ lineId: assignment.lines[0].id, boxes: 0, units: 0 }],
+    })
+    useClock(null)
+    // Milk went out with the rider 5 days ago; only soda never sold.
+    expect(
+      (await getNonMovingCapital(fx.owner)).rows.map((row) => row.name),
+    ).toEqual(['Refresco 600ml'])
   })
 
   test('a sale exactly N days ago is still inside the window', async () => {

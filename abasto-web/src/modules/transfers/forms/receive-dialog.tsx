@@ -15,6 +15,10 @@ import {
   receiveInputFromDraft,
   shortageOf,
 } from '#/modules/transfers/lib/transfer-drafts'
+import {
+  receiveShortageWarning,
+  unitCount,
+} from '#/modules/transfers/lib/transfer-labels'
 import type { TransferListItem } from '#/modules/transfers/services/transfer-reads'
 
 type ReceiveDialogProps = {
@@ -31,7 +35,6 @@ export function ReceiveDialog({ transfer, onClose }: ReceiveDialogProps) {
     ),
   )
   const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
 
   const drafts = transfer.lines.map((line) => ({
     lineId: line.id,
@@ -44,9 +47,7 @@ export function ReceiveDialog({ transfer, onClose }: ReceiveDialogProps) {
     const parsed = receiveInputFromDraft(transfer.id, drafts)
     if (!parsed.ok) return setError(parsed.message)
     setError(null)
-    setPending(true)
     const result = await actions.receive(parsed.value)
-    setPending(false)
     if (result) onClose()
   }
 
@@ -54,7 +55,7 @@ export function ReceiveDialog({ transfer, onClose }: ReceiveDialogProps) {
     <InventoryDialog
       title="Recibir traslado"
       eyebrow={`DESDE ${transfer.fromWarehouseName.toUpperCase()}`}
-      description="Escribe lo que llegó de cada lote. Las unidades que lleguen entran a tu almacén con el mismo código, caducidad y costo."
+      description="Escribe lo que llegó de cada lote. Lo que llegue entra a tu almacén con el mismo código, caducidad y costo."
       onClose={onClose}
     >
       <form
@@ -74,7 +75,7 @@ export function ReceiveDialog({ transfer, onClose }: ReceiveDialogProps) {
               {line.lotCode ? ` · lote ${line.lotCode}` : ''}
             </span>
             <small className="text-[11px] font-normal text-[#9c888f]">
-              Enviado: {line.quantity} {line.unit}
+              Enviado: {unitCount(line.quantity, line.unit)}
               {line.expiresOn ? ` · caduca ${line.expiresOn}` : ''}
             </small>
             <FieldInput
@@ -89,8 +90,7 @@ export function ReceiveDialog({ transfer, onClose }: ReceiveDialogProps) {
         ))}
         {shortage > 0 && (
           <WarningInline>
-            Faltan {shortage} unidades. Quedarán registradas como diferencia y
-            no cuentan como existencia en ningún almacén.
+            {receiveShortageWarning(shortage, transfer.lines)}
           </WarningInline>
         )}
         {error && <FormError>{error}</FormError>}
@@ -98,7 +98,7 @@ export function ReceiveDialog({ transfer, onClose }: ReceiveDialogProps) {
           <ActionButton type="button" onClick={onClose}>
             Cancelar
           </ActionButton>
-          <ActionButton tone="primary" type="submit" disabled={pending}>
+          <ActionButton tone="primary" type="submit" disabled={actions.pending}>
             {shortage > 0 ? 'Recibir con diferencia' : 'Recibir traslado'}
           </ActionButton>
         </DialogActions>

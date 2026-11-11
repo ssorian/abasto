@@ -3,6 +3,7 @@ import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
+import { businessDate } from '#/modules/orders/services/clock'
 import { expireOverdueOrders } from '#/modules/orders/services/expiry'
 import {
   purchaseLines,
@@ -49,12 +50,20 @@ export type ReceptionInput = {
     expiresOn?: string
     noExpiry?: boolean
   }>
+  /** Explicit acceptance of good boxes that enter already past their expiry date. */
+  confirmExpired?: boolean
 }
 
 const missingExpiry = () =>
   new AppError(
     'invalid',
     'Indica la caducidad de cada producto que entra o marca «Sin caducidad».',
+  )
+
+const expiredNotConfirmed = () =>
+  new AppError(
+    'conflict',
+    'Hay productos que entran con la caducidad vencida. Confirma la recepción para aceptarlos.',
   )
 
 /** Stock that enters must say when it expires, or explicitly that it does not. */
@@ -66,6 +75,7 @@ const isCount = (value: number) => Number.isSafeInteger(value) && value >= 0
 function validateLines(
   stored: Array<{ id: string; quantity: number; boxFactor: number }>,
   input: ReceptionInput,
+  today: string,
 ) {
   const ids = new Set(input.lines.map((line) => line.lineId))
   if (
@@ -100,10 +110,16 @@ function validateLines(
     const good =
       ordered.get(line.lineId)! - line.missingBoxes - line.damagedBoxes
     if (good > 0 && !declaresExpiry(line)) throw missingExpiry()
+    if (good > 0 && isExpired(line, today) && !input.confirmExpired) {
+      throw expiredNotConfirmed()
+    }
   }
 }
 
-function validateReplacements(input: ReceptionInput) {
+const isExpired = (item: { expiresOn?: string }, today: string) =>
+  Boolean(item.expiresOn) && item.expiresOn! < today
+
+function validateReplacements(input: ReceptionInput, today: string) {
   const seen = new Set<string>()
   for (const item of input.replacements ?? []) {
     if (!Number.isSafeInteger(item.boxes) || item.boxes <= 0) {
@@ -122,6 +138,9 @@ function validateReplacements(input: ReceptionInput) {
       throw new AppError('invalid', 'La fecha de caducidad no es válida.')
     }
     if (!declaresExpiry(item)) throw missingExpiry()
+    if (isExpired(item, today) && !input.confirmExpired) {
+      throw expiredNotConfirmed()
+    }
     seen.add(item.pendingId)
   }
 }
@@ -160,8 +179,9 @@ export async function receiveSupplierOrder(
       .select()
       .from(purchaseLines)
       .where(eq(purchaseLines.purchaseId, order.id))
-    validateLines(stored, input)
-    validateReplacements(input)
+    const today = businessDate()
+    validateLines(stored, input, today)
+    validateReplacements(input, today)
     await expireOverdueOrders(tx, order.warehouseId)
 
     const code = orderCode(order)

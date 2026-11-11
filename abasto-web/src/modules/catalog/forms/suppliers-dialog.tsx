@@ -21,11 +21,11 @@ import type {
 
 type SuppliersDialogProps = {
   suppliers: ReadonlyArray<CatalogSupplier>
-  /** Resolves to whether the save worked. */
+  /** Resolves to the server message when the save failed, or null when it worked. */
   onSubmit: (
     supplierId: string | undefined,
     draft: SupplierDraft,
-  ) => Promise<boolean>
+  ) => Promise<string | null>
   onClose: () => void
 }
 
@@ -40,20 +40,24 @@ export function SuppliersDialog({
   const [editor, setEditor] = useState<Editor>()
   const [draft, setDraft] = useState(emptySupplierDraft)
   const [saving, setSaving] = useState(false)
+  const [failure, setFailure] = useState<string | null>(null)
   const patch = (change: Partial<SupplierDraft>) =>
     setDraft((current) => ({ ...current, ...change }))
 
   function open(supplier?: CatalogSupplier) {
     setDraft(supplier ? draftFromSupplier(supplier) : emptySupplierDraft())
+    setFailure(null)
     setEditor({ id: supplier?.id })
   }
 
   async function save() {
     if (!editor) return
+    setFailure(null)
     setSaving(true)
-    const saved = await onSubmit(editor.id, draft)
+    const message = await onSubmit(editor.id, draft)
     setSaving(false)
-    if (saved) setEditor(undefined)
+    if (message === null) setEditor(undefined)
+    else setFailure(message)
   }
 
   return (
@@ -112,6 +116,11 @@ export function SuppliersDialog({
               <option>Inactivo</option>
             </SelectInput>
           </Field>
+          {failure && (
+            <p role="alert" className="text-sm text-[#b42318]">
+              {failure}
+            </p>
+          )}
           <div className="flex items-center justify-between gap-3 border-t border-[#f4eee8] pt-5">
             <CatalogButton onClick={() => setEditor(undefined)}>
               Volver

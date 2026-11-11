@@ -586,6 +586,85 @@ describe('receiveSupplierOrder', () => {
     expect(result.lots.map((lot) => lot.expiresOn)).toEqual(['2027-02-01'])
   })
 
+  test('stock that enters already expired needs an explicit confirmation flag', async () => {
+    const fx = await setupSupplierOrders()
+    const order = await pendingOrder(fx)
+    const expired = arrive(order, [
+      { missingBoxes: 0, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 0 },
+    ])
+    expired.lines[0] = {
+      ...expired.lines[0],
+      noExpiry: undefined,
+      expiresOn: '2020-01-01',
+    } as never
+    const before = await supplierState()
+    for (const input of [expired, { ...expired, confirmExpired: false }]) {
+      const error = await errorOf(() => receiveSupplierOrder(fx.owner, input))
+      expect([error.code, error.message]).toEqual([
+        'conflict',
+        'Hay productos que entran con la caducidad vencida. Confirma la recepción para aceptarlos.',
+      ])
+      expect(await supplierState()).toEqual(before)
+    }
+    const result = await receiveSupplierOrder(fx.owner, {
+      ...expired,
+      confirmExpired: true,
+    })
+    expect(result.lots.map((lot) => lot.expiresOn)).toEqual([
+      '2020-01-01',
+      null,
+    ])
+  })
+
+  test('expired boxes that do not enter stock need no confirmation', async () => {
+    const fx = await setupSupplierOrders()
+    const order = await pendingOrder(fx)
+    const input = arrive(order, [
+      { missingBoxes: 10, damagedBoxes: 0 },
+      { missingBoxes: 0, damagedBoxes: 2 },
+    ])
+    input.lines[0] = {
+      ...input.lines[0],
+      expiresOn: '2020-01-01',
+    } as (typeof input.lines)[number]
+    const result = await receiveSupplierOrder(fx.owner, input)
+    expect(result.lots).toEqual([])
+  })
+
+  test('an expired replacement also needs the confirmation flag', async () => {
+    const fx = await setupSupplierOrders()
+    const first = await pendingOrder(fx)
+    await receiveSupplierOrder(
+      fx.owner,
+      arrive(first, [
+        { missingBoxes: 2, damagedBoxes: 0 },
+        { missingBoxes: 0, damagedBoxes: 0 },
+      ]),
+    )
+    const owed = (await supplierState()).pendings.find(
+      (row) => row.type === 'missing',
+    )!
+    const second = await pendingOrder(fx)
+    const input = arrive(
+      second,
+      [
+        { missingBoxes: 10, damagedBoxes: 0 },
+        { missingBoxes: 2, damagedBoxes: 0 },
+      ],
+      {
+        replacements: [
+          { pendingId: owed.id, boxes: 1, expiresOn: '2020-01-01' },
+        ],
+      },
+    )
+    const before = await supplierState()
+    const error = await errorOf(() => receiveSupplierOrder(fx.owner, input))
+    expect(error.code).toBe('conflict')
+    expect(await supplierState()).toEqual(before)
+    await receiveSupplierOrder(fx.owner, { ...input, confirmExpired: true })
+  })
+
   test('a line can be all missing or all damaged: no lot and the whole line is owed', async () => {
     const fx = await setupSupplierOrders()
     const order = await pendingOrder(fx)

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { ActionButton } from '#/modules/counter/components/action-button'
 import { Field, FieldInput } from '#/modules/counter/components/form-controls'
 import { useOrderActions } from '#/modules/counter/hooks/use-order-actions'
+import { drawerClosedNotice } from '#/modules/counter/lib/order-status'
 import { changeFor, contadoPayment } from '#/modules/counter/lib/payment'
 import { cn } from '#/lib/utils/cn'
 import { formatCents } from '#/modules/pricing/lib/money'
@@ -50,7 +51,7 @@ export function PaymentStep({
         Cobrar {formatCents(order.totalCents)}
       </h3>
       {!drawerOpen && (
-        <p className="text-sm text-[#a1372e]">Abre la caja antes de cobrar.</p>
+        <p className="text-sm text-[#a1372e]">{drawerClosedNotice}</p>
       )}
       <Field label="Efectivo recibido (pesos)">
         <FieldInput

@@ -83,6 +83,7 @@ export const receiveOrderInput = z.object({
       }),
     )
     .optional(),
+  confirmExpired: z.boolean().optional(),
 })
 
 export const pendingsInput = z.object({ supplierId: id.optional() })

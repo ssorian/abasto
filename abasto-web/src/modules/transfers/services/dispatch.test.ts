@@ -109,6 +109,21 @@ describe('dispatchTransfer', () => {
     )
   })
 
+  test('99 999 boxes of a product with a few units is a Spanish error and changes nothing', async () => {
+    const fx = await setupTransfers()
+    await receive(fx, { productId: fx.milkBox.id, quantity: 20 })
+    await rejects(
+      () => send(fx, 99_999 * 12),
+      'conflict',
+      'No hay suficiente existencia disponible de Leche entera 1L.',
+    )
+    await rejects(
+      () => send(fx, 0),
+      'invalid',
+      'La cantidad debe ser mayor que cero.',
+    )
+  })
+
   test('does not take reserved units', async () => {
     const fx = await setupTransfers()
     const lot = await receive(fx, { productId: fx.milkBox.id, quantity: 10 })

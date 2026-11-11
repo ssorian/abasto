@@ -76,12 +76,29 @@ const FEW_LEFT = 5
 export const availabilityOf = (units: number): Availability =>
   units < 1 ? 'Agotado' : units <= FEW_LEFT ? 'Pocas' : 'Disponible'
 
-/** Every warehouse by name; the customer picks where to buy and pick up. */
+/**
+ * Warehouses a customer can pick up from, by name: only those with at least
+ * one published product that has a price and stock to sell. A warehouse that
+ * is new, unpriced or sold out is not offered.
+ */
 export async function listStoreWarehouses(): Promise<Array<StoreWarehouse>> {
   const rows = await db
     .select({ id: warehouses.id, name: warehouses.name })
     .from(warehouses)
-  return rows.sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  // Independent reads on the pool (no shared transaction), so they can overlap.
+  const sellable = await Promise.all(
+    rows.map(async (warehouse) => {
+      const catalog = await getStoreCatalog(warehouse.id)
+      return catalog.some((product) =>
+        product.presentations.some(
+          ({ availability }) => availability !== 'Agotado',
+        ),
+      )
+    }),
+  )
+  return rows
+    .filter((_, index) => sellable[index])
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
 }
 
 /**

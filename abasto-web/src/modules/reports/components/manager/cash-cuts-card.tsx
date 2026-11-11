@@ -15,10 +15,12 @@ import {
 } from '#/components/ui/chart'
 import type { ChartConfig } from '#/components/ui/chart'
 import { formatCents } from '#/modules/pricing/lib/money'
-import { cashDifferenceSeries } from '#/modules/reports/lib/manager-chart-data'
+import {
+  cashCutDay,
+  cashDifferenceSeries,
+} from '#/modules/reports/lib/manager-chart-data'
 import { cashSupplierNote } from '#/modules/reports/lib/report-filters'
 import { shortDate } from '#/modules/reports/lib/manager-format'
-import { businessDate } from '#/modules/orders/services/clock'
 import {
   CardEmpty,
   Chip,
@@ -141,7 +143,7 @@ export function CashCutsCard({
                 {newestFirst.map((row) => (
                   <Row key={row.sessionId}>
                     <Td className="first:min-w-0">
-                      {shortDate(businessDate(new Date(row.openedAt)))}
+                      {shortDate(cashCutDay(row))}
                     </Td>
                     <Td>{row.closedByName ?? '—'}</Td>
                     <Td className="text-right tabular-nums">

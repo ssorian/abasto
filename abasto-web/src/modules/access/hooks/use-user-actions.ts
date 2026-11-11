@@ -1,40 +1,30 @@
-import { useRouter } from '@tanstack/react-router'
-import { toast } from 'sonner'
-import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
-import type { Result } from '#/lib/boundary'
+import { useActionRunner } from '#/hooks/use-action-runner'
 import {
   assignWarehouseFn,
   createStaffUserFn,
   unassignWarehouseFn,
 } from '#/modules/access/server/users'
 
+type AssignInput = Parameters<typeof assignWarehouseFn>[0]['data']
+
 /**
- * Write actions of Configuración › Usuarios. Each resolves to whether it
- * succeeded; AppError messages are shown as toasts and the list is reloaded.
+ * Write actions of Configuración › Usuarios. Each resolves to `{ data }` on
+ * success (the list is reloaded and a toast shown) or to `undefined` after
+ * showing the server message as a toast. `pending` is true while one runs.
  */
 export function useUserActions() {
-  const router = useRouter()
-
-  async function run(action: () => Promise<Result<unknown>>, success: string) {
-    try {
-      unwrap(await action())
-      await router.invalidate()
-      toast.success(success)
-      return true
-    } catch (failure) {
-      toast.error(
-        failure instanceof ClientError ? failure.message : genericErrorMessage,
-      )
-      return false
-    }
-  }
-
+  const run = useActionRunner()
   return {
+    pending: run.pending,
     createUser: (data: Parameters<typeof createStaffUserFn>[0]['data']) =>
       run(() => createStaffUserFn({ data }), 'Usuario creado.'),
-    assign: (data: Parameters<typeof assignWarehouseFn>[0]['data']) =>
-      run(() => assignWarehouseFn({ data }), 'Asignación guardada.'),
+    /** New staff are always Encargado of the warehouse they are given. */
+    assign: (data: Omit<AssignInput, 'role'>) =>
+      run(
+        () => assignWarehouseFn({ data: { ...data, role: 'manager' } }),
+        'Almacén asignado.',
+      ),
     unassign: (data: Parameters<typeof unassignWarehouseFn>[0]['data']) =>
-      run(() => unassignWarehouseFn({ data }), 'Asignación quitada.'),
+      run(() => unassignWarehouseFn({ data }), 'Almacén quitado del usuario.'),
   }
 }

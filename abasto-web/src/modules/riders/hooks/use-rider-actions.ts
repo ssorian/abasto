@@ -1,4 +1,4 @@
-import { useActionRunner } from '#/modules/cash/hooks/use-action-runner'
+import { useActionRunner } from '#/hooks/use-action-runner'
 import {
   assignRiderFn,
   cancelAssignmentFn,
@@ -22,6 +22,7 @@ type SettleInput = {
 export function useRiderActions() {
   const run = useActionRunner()
   return {
+    pending: run.pending,
     createRider: (warehouseId: string, name: string) =>
       run(
         () => createRiderFn({ data: { warehouseId, name } }),

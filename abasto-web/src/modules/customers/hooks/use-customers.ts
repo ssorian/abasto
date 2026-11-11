@@ -1,8 +1,7 @@
-import { useRouter } from '@tanstack/react-router'
 import { useCallback, useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
-import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
+import { useActionRunner, messageOf } from '#/hooks/use-action-runner'
+import { unwrap } from '#/lib/boundary'
 import type { SaveCustomerInput } from '#/modules/customers/lib/customer-inputs'
 import {
   customerOrdersFn,
@@ -10,25 +9,13 @@ import {
 } from '#/modules/customers/server/customers'
 import type { CustomerOrder } from '#/modules/customers/server/customer-orders'
 
-const messageOf = (failure: unknown) =>
-  failure instanceof ClientError ? failure.message : genericErrorMessage
-
 /** Saves a customer and reloads the page; resolves to whether it worked. */
 export function useSaveCustomer() {
-  const router = useRouter()
-  return async (input: SaveCustomerInput) => {
-    try {
-      unwrap(await saveCustomerFn({ data: input }))
-      await router.invalidate()
-      toast.success('Cliente guardado.')
-      return true
-    } catch (failure) {
-      toast.error(messageOf(failure))
-      // The customer may exist already (see save-customer): show it in the list.
-      await router.invalidate()
-      return false
-    }
-  }
+  const run = useActionRunner()
+  // A failed save refreshes too: the customer may exist already (see save-customer).
+  return async (input: SaveCustomerInput) =>
+    (await run(() => saveCustomerFn({ data: input }), 'Cliente guardado.')) !==
+    undefined
 }
 
 export type OrdersState =

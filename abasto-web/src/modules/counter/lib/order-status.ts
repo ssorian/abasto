@@ -16,6 +16,22 @@ export function availableActions(status: OrderStatus) {
   return { prepare: status === 'Reservado', pickup: open, cancel: open }
 }
 
+export const drawerClosedNotice = 'Abre la caja antes de cobrar.'
+
+/**
+ * Whether the order can be charged now: cash goes into the drawer, so an
+ * order that could be delivered still needs an open drawer. The notice is
+ * shown before the sale starts, not only after pressing "Entregar".
+ */
+export function chargeGate(status: OrderStatus, drawerOpen: boolean) {
+  if (!availableActions(status).pickup) {
+    return { enabled: false, notice: null }
+  }
+  return drawerOpen
+    ? { enabled: true, notice: null }
+    : { enabled: false, notice: drawerClosedNotice }
+}
+
 const tones: Record<OrderStatus, string> = {
   Reservado: 'bg-[#fff4d6] text-[#8a5a00]',
   Preparado: 'bg-[#f7f1eb] text-[#5b1f8f]',

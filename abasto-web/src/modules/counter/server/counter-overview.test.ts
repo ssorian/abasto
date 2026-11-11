@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
+import { summarizeSession } from '#/modules/cash/lib/cash-summary'
+import { recordCashEntry } from '#/modules/cash/services/cash-movements'
 import { getCounterOverview } from '#/modules/counter/server/counter-overview'
 import {
   createCustomer,
@@ -12,6 +14,29 @@ import { receive, setupOrders } from '#/modules/orders/services/testing'
 beforeEach(() => resetDatabase(db))
 
 describe('getCounterOverview', () => {
+  test('a cash entry shows in the drawer totals of the very next read, and sellable names its unit', async () => {
+    const fx = await setupOrders()
+    await receive(fx, { productId: fx.milkBox.id, quantity: 30 })
+    const before = await getCounterOverview(fx.staffA)
+    expect(summarizeSession(0, before.cash!.movements).entriesCents).toBe(0)
+    await recordCashEntry(fx.staffA, {
+      warehouseId: fx.a.id,
+      amountCents: 2500,
+      reason: 'Cambio',
+    })
+    const after = await getCounterOverview(fx.staffA)
+    const summary = summarizeSession(
+      after.cash!.session.openingCents,
+      after.cash!.movements,
+    )
+    expect(summary).toMatchObject({ entriesCents: 2500, expectedCents: 2500 })
+    expect(after.cash?.expectedCents).toBe(2500)
+    expect(after.sellable[0]).toMatchObject({
+      unit: 'piezas',
+      presentationName: expect.any(String),
+    })
+  })
+
   test('lists the operable warehouse, its orders, active customers and priced stock', async () => {
     const fx = await setupOrders()
     await receive(fx, { productId: fx.milkBox.id, quantity: 30 })

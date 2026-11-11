@@ -1,3 +1,4 @@
+import { countLabel } from '#/modules/counter/lib/sellable'
 import { parseQuantity } from '#/modules/counter/lib/order-draft'
 import type { DraftLine } from '#/modules/counter/lib/order-draft'
 
@@ -9,9 +10,15 @@ export type StockOption = {
   factor: number
   /** Base units of the product that can still be reserved. */
   availableBase: number
+  /** Base unit in plural ("piezas"). */
+  unit: string
 }
 
-export type StockShortage = { requested: number; available: number }
+export type StockShortage = {
+  requested: number
+  available: number
+  unit: string
+}
 
 /**
  * Lines of the same product share one stock: sums them in base units and
@@ -41,6 +48,7 @@ export function findStockShortages(
       shortages.set(line.presentationId, {
         requested,
         available: option.availableBase,
+        unit: option.unit,
       })
     }
   }
@@ -48,4 +56,4 @@ export function findStockShortages(
 }
 
 export const stockShortageMessage = (shortage: StockShortage) =>
-  `Pides ${shortage.requested} piezas en total y solo hay ${shortage.available} disponibles.`
+  `Pides ${countLabel(shortage.requested, shortage.unit)} en total y solo hay ${countLabel(shortage.available, shortage.unit)} ${shortage.available === 1 ? 'disponible' : 'disponibles'}.`

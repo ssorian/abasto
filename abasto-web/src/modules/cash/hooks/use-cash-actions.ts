@@ -1,5 +1,5 @@
 import { unwrap } from '#/lib/boundary'
-import { useActionRunner } from '#/modules/cash/hooks/use-action-runner'
+import { useActionRunner } from '#/hooks/use-action-runner'
 import {
   cashEntryFn,
   cashHistoryFn,
@@ -7,30 +7,36 @@ import {
   closeCashFn,
   openCashFn,
 } from '#/modules/cash/server/cash'
+import type { CashSession } from '#/modules/cash/services/cash-ledger'
 
-/** Write actions of the drawer; each reloads Mostrador and toasts the outcome. */
+/**
+ * Write actions of the drawer. Each refreshes Mostrador (the drawer totals)
+ * before toasting the Spanish outcome, then runs `onSuccess` (close the
+ * dialog). `pending` is true while one is saving.
+ */
 export function useCashActions(warehouseId: string) {
   const run = useActionRunner()
   return {
-    open: (openingCents: number) =>
-      run(
-        () => openCashFn({ data: { warehouseId, openingCents } }),
-        'Caja abierta.',
-      ),
-    close: (countedCents: number) =>
-      run(
-        () => closeCashFn({ data: { warehouseId, countedCents } }),
-        'Caja cerrada.',
-      ),
-    entry: (amountCents: number, reason: string) =>
-      run(
-        () => cashEntryFn({ data: { warehouseId, amountCents, reason } }),
-        'Entrada registrada.',
-      ),
-    withdrawal: (amountCents: number, reason: string) =>
+    pending: run.pending,
+    open: (openingCents: number, onSuccess?: () => void) =>
+      run(() => openCashFn({ data: { warehouseId, openingCents } }), {
+        success: 'Caja abierta.',
+        onSuccess,
+      }),
+    close: (countedCents: number, onSuccess?: (session: CashSession) => void) =>
+      run(() => closeCashFn({ data: { warehouseId, countedCents } }), {
+        success: 'Caja cerrada.',
+        onSuccess,
+      }),
+    entry: (amountCents: number, reason: string, onSuccess?: () => void) =>
+      run(() => cashEntryFn({ data: { warehouseId, amountCents, reason } }), {
+        success: 'Entrada registrada.',
+        onSuccess,
+      }),
+    withdrawal: (amountCents: number, reason: string, onSuccess?: () => void) =>
       run(
         () => cashWithdrawalFn({ data: { warehouseId, amountCents, reason } }),
-        'Retiro registrado.',
+        { success: 'Retiro registrado.', onSuccess },
       ),
     history: async () => unwrap(await cashHistoryFn({ data: { warehouseId } })),
   }

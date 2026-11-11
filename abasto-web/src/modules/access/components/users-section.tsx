@@ -23,7 +23,7 @@ const head =
 const cell = 'border-t border-row-border px-[11px] py-[13px] md:px-3.5 md:py-4'
 
 export function UsersSection({ users, warehouses }: UsersSectionProps) {
-  const { unassign } = useUserActions()
+  const { unassign, pending } = useUserActions()
 
   return (
     <section aria-labelledby="users-heading">
@@ -66,6 +66,7 @@ export function UsersSection({ users, warehouses }: UsersSectionProps) {
                           {chipLabel(assignment)}
                           <button
                             type="button"
+                            disabled={pending}
                             aria-label={`Quitar ${assignment.warehouseName} a ${member.name}`}
                             className="rounded-full p-0.5 hover:bg-[#ded6e4]"
                             onClick={() =>

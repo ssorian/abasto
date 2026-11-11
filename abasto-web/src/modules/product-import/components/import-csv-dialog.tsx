@@ -61,6 +61,8 @@ export type ImportCsvDialogProps = {
   hasStockHistory?: (sku: string, warehouse: WarehouseName) => boolean
   /** Allowed categories for catalog imports. */
   categories?: ReadonlyArray<string>
+  /** Warehouse that receives `precio_venta` and `stock_minimo` in catalog imports. */
+  warehouseName?: string
   /** Called with the validated rows once the user confirms; the dialog then closes. */
   onApply?: (result: ImportResult) => void
 }
@@ -93,6 +95,7 @@ function ImportDialogContent({
   products = defaultReferenceProducts,
   hasStockHistory = defaultHasStockHistory,
   categories = defaultCategories,
+  warehouseName,
   onApply,
 }: ContentProps) {
   const [mode, setMode] = useState<ImportMode>(initialMode)
@@ -235,6 +238,11 @@ function ImportDialogContent({
       </div>
       <div className="my-[15px] rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972]">
         {modeBanners[mode]}
+        {mode === 'catalog' && warehouseName && (
+          <strong className="mt-1.5 block text-[#532879]">
+            Almacén de destino: {warehouseName}
+          </strong>
+        )}
       </div>
       <Note className="mt-3 mb-5">
         CSV UTF-8, hasta 1,000 filas y 2 MB. Separador coma o punto y coma. Usa

@@ -12,10 +12,8 @@ import {
 import { PaymentStep } from '#/modules/counter/components/payment-step'
 import { ReceiptView } from '#/modules/counter/components/receipt-view'
 import { StatusBadge } from '#/modules/counter/components/status-badge'
-import {
-  useOrderActions,
-  messageOf,
-} from '#/modules/counter/hooks/use-order-actions'
+import { messageOf } from '#/hooks/use-action-runner'
+import { useOrderActions } from '#/modules/counter/hooks/use-order-actions'
 import {
   appliedRuleLabel,
   expiryLabel,
@@ -23,6 +21,7 @@ import {
 } from '#/modules/counter/lib/order-format'
 import {
   availableActions,
+  chargeGate,
   statusHint,
 } from '#/modules/counter/lib/order-status'
 import type { PickupWithReceipt } from '#/modules/counter/server/pickup'
@@ -92,6 +91,7 @@ export function OrderViewDialog({
     )
   }
   const allowed = availableActions(order.status)
+  const gate = chargeGate(order.status, drawerOpen)
 
   return (
     <CounterDialog
@@ -179,11 +179,16 @@ export function OrderViewDialog({
           {allowed.pickup && (
             <ActionButton
               tone="primary"
-              disabled={busy}
+              disabled={busy || !gate.enabled}
               onClick={() => setPaying(true)}
             >
               Entregar (recoge el cliente)
             </ActionButton>
+          )}
+          {gate.notice && (
+            <p role="status" className="text-sm text-[#a1372e]">
+              {gate.notice}
+            </p>
           )}
           {allowed.cancel && (
             <ActionButton

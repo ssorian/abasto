@@ -1,0 +1,6 @@
+ALTER TABLE "cash_movements" DROP CONSTRAINT "cash_movements_type_check";--> statement-breakpoint
+ALTER TABLE "cash_movements" DROP CONSTRAINT "cash_movements_sign";--> statement-breakpoint
+ALTER TABLE "rider_assignments" ADD COLUMN "difference_movement_id" uuid;--> statement-breakpoint
+ALTER TABLE "rider_assignments" ADD CONSTRAINT "rider_assignments_difference_movement_id_cash_movements_id_fk" FOREIGN KEY ("difference_movement_id") REFERENCES "public"."cash_movements"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "cash_movements" ADD CONSTRAINT "cash_movements_type_check" CHECK ("cash_movements"."type" in ('sale', 'abono', 'entry', 'withdrawal', 'rider_difference'));--> statement-breakpoint
+ALTER TABLE "cash_movements" ADD CONSTRAINT "cash_movements_sign" CHECK (("cash_movements"."type" = 'withdrawal' and "cash_movements"."amount_cents" < 0) or ("cash_movements"."type" = 'rider_difference' and "cash_movements"."amount_cents" <> 0) or ("cash_movements"."type" not in ('withdrawal', 'rider_difference') and "cash_movements"."amount_cents" > 0));

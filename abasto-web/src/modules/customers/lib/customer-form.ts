@@ -1,6 +1,7 @@
 import { parsePesosToCents } from '#/modules/inventory/lib/cents'
 import { parseBps } from '#/modules/pricing/lib/money'
 import type { Parsed } from '#/modules/inventory/lib/parsed'
+import { DISCOUNT_RANGE_MESSAGE } from '#/modules/customers/lib/customer-inputs'
 import type { SaveCustomerInput } from '#/modules/customers/lib/customer-inputs'
 import type {
   CustomerView,
@@ -108,7 +109,10 @@ function parseRule(
     }
   }
   const bps = parseBps(rule.discountPercent)
-  if (!bps.ok || bps.value < 1 || bps.value > 10000) return fail(MESSAGES.rules)
+  if (bps.ok && (bps.value < 0 || bps.value > 10000)) {
+    return fail(DISCOUNT_RANGE_MESSAGE)
+  }
+  if (!bps.ok || bps.value < 1) return fail(MESSAGES.rules)
   return {
     ok: true,
     value: {

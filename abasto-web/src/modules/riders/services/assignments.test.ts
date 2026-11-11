@@ -271,14 +271,19 @@ describe('settleAssignment', () => {
       lines: [{ lineId: b.lines[0].id, boxes: 0, units: 0 }],
     })
     expect(over.differenceCents).toBe(500)
-    // The drawer records the cash handed in; the difference stays on the assignment.
-    const amounts = (await db.select().from(cashMovements)).map(
-      (m) => m.amountCents,
+    // The drawer records both sales at the sold value and each difference apart.
+    const moves = (await db.select().from(cashMovements)).map(
+      (m) => `${m.type}:${m.amountCents}`,
     )
-    expect(amounts.sort((x, y) => x - y)).toEqual([9_000, 10_500])
+    expect(moves.sort()).toEqual([
+      'rider_difference:-1000',
+      'rider_difference:500',
+      'sale:10000',
+      'sale:10000',
+    ])
   })
 
-  test('nothing handed in: the shortage is recorded but no cash enters the drawer', async () => {
+  test('nothing handed in: the sale is recorded and offset by the full shortage', async () => {
     const { fx, assign } = await setup()
     const a = await assign(0, 10)
     const settled = await settleAssignment(fx.staffA, {
@@ -290,9 +295,13 @@ describe('settleAssignment', () => {
       expectedCents: 10_000,
       deliveredCents: 0,
       differenceCents: -10_000,
-      cashMovementId: null,
     })
-    expect(await db.select().from(cashMovements)).toHaveLength(0)
+    expect(settled.cashMovementId).not.toBeNull()
+    const net = (await db.select().from(cashMovements)).reduce(
+      (sum, m) => sum + m.amountCents,
+      0,
+    )
+    expect(net).toBe(0)
   })
 
   test('everything back: all units released, no sale, no cash movement', async () => {

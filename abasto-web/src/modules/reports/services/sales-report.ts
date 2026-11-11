@@ -42,10 +42,66 @@ const totalsOf = (row: RawRow): SalesTotals => {
 }
 
 /**
- * One row per order line of the picked-up orders in range, with the line's
- * cost: Σ allocated base units × the lot's own unit cost
- * (received cost ÷ received quantity), kept as an exact fraction. Rows of any
- * grouping sum these fractions and round once.
+ * Settled rider deliveries, one row per allocation that sold something. A
+ * delivery counts as one ticket (`order_id` is the assignment id) on the day
+ * it was settled, valued like the settlement itself (`priceSold`): sold units
+ * come from the oldest allocation first; the first floor(sold ÷ box) × box
+ * units are whole boxes at the frozen box price, the rest loose pieces at the
+ * frozen piece price (or the prorated box price without one), half-up rounded.
+ */
+function settledRiderLines(
+  range: DateRange,
+  warehouseIds: ReadonlyArray<string>,
+  supplierId?: string,
+) {
+  const supplier = supplierId
+    ? sql`and exists (
+        select 1 from products sp
+        where sp.id = ln.product_id and sp.supplier_id::text = ${supplierId})`
+    : sql``
+  return sql`
+    select a.id as order_id, a.warehouse_id, null::uuid as customer_id,
+      a.closed_at, 'Reparto' as channel, ln.product_id,
+      (case
+        when ra.piece_cents is null
+          then (2 * ra.sold_quantity::bigint * ra.price_cents + ra.price_factor)
+            / (2 * ra.price_factor)
+        else (2 * ra.in_boxes::bigint * ra.price_cents + ra.price_factor)
+            / (2 * ra.price_factor)
+          + (ra.sold_quantity - ra.in_boxes)::bigint * ra.piece_cents
+      end)::bigint as line_total_cents,
+      ra.sold_quantity as base_quantity,
+      ra.sold_quantity::numeric * ra.lot_cost as cost
+    from rider_assignments a
+    join rider_assignment_lines ln on ln.assignment_id = a.id
+    join (
+      select r.*, l.received_cost_cents::numeric / l.received_quantity as lot_cost,
+        least(r.sold_quantity, greatest(0,
+          ((sum(r.sold_quantity) over line_window)::int
+            / first_value(r.price_factor) over lot_order)
+            * first_value(r.price_factor) over lot_order
+          - coalesce(sum(r.sold_quantity) over (
+              partition by r.line_id order by l.received_at, l.id
+              rows between unbounded preceding and 1 preceding), 0)
+        )) as in_boxes
+      from rider_allocations r
+      join lots l on l.id = r.lot_id
+      window line_window as (partition by r.line_id),
+        lot_order as (partition by r.line_id order by l.received_at, l.id)
+    ) ra on ra.line_id = ln.id
+    where a.status = 'Liquidada'
+      and ra.sold_quantity > 0
+      and a.warehouse_id in (${uuidList(warehouseIds)})
+      and ${inRange(sql`a.closed_at`, range)}
+      ${supplier}`
+}
+
+/**
+ * One row per sold order line with the line's cost: Σ allocated base units ×
+ * the lot's own unit cost (received cost ÷ received quantity), kept as an
+ * exact fraction. Rows of any grouping sum these fractions and round once.
+ * Sales are the picked-up counter and store orders plus settled rider
+ * deliveries ("Reparto"), the same sales the cash box counts.
  */
 export function pickedUpLines(
   range: DateRange,
@@ -60,7 +116,8 @@ export function pickedUpLines(
     : sql``
   return sql`
     select o.id as order_id, o.warehouse_id, o.customer_id, o.closed_at,
-      ol.product_id, ol.line_total_cents, ol.base_quantity,
+      case o.source when 'counter' then 'Mostrador' else 'Tienda' end as channel,
+      ol.product_id, ol.line_total_cents::bigint as line_total_cents, ol.base_quantity,
       coalesce((
         select sum(oa.quantity::numeric * l.received_cost_cents / l.received_quantity)
         from order_allocations oa
@@ -72,7 +129,9 @@ export function pickedUpLines(
     where o.status = 'Recogido'
       and o.warehouse_id in (${uuidList(warehouseIds)})
       and ${inRange(sql`o.closed_at`, range)}
-      ${supplier}`
+      ${supplier}
+    union all
+    ${settledRiderLines(range, warehouseIds, supplierId)}`
 }
 
 const aggregates = sql`
@@ -100,6 +159,12 @@ const groupings = {
     from: sql`lines s join customers c on c.id = s.customer_id`,
     groupBy: sql`c.id, c.name`,
     orderBy: sql`sum(s.line_total_cents) desc, c.name`,
+  },
+  channel: {
+    select: sql`s.channel as key, s.channel as name`,
+    from: sql`lines s`,
+    groupBy: sql`1, 2`,
+    orderBy: sql`array_position(array['Mostrador', 'Tienda', 'Reparto'], s.channel)`,
   },
   warehouse: {
     select: sql`w.id::text as key, w.name as name`,
@@ -146,7 +211,7 @@ const asRow = (row: RawRow): SalesRow => ({
 })
 
 /**
- * Sales and margin of the picked-up orders in the period (business days in
+ * Sales and margin of the picked-up orders and settled deliveries in the period (business days in
  * Mexico City), for the warehouses the actor manages. Revenue is the frozen
  * line totals; cancelled, expired and open orders are not sales.
  */
@@ -161,13 +226,15 @@ export async function getSalesReport(
   const warehouses = await reportWarehouses(actor, input.warehouseIds)
   const range = periodRange(input.period)
   const ids = warehouses.map((item) => item.id)
-  const [total, byDay, byProduct, byCustomer, byWarehouse] = await Promise.all([
-    summary(range, ids, input.supplierId),
-    grouped('day', range, ids, input.supplierId),
-    grouped('product', range, ids, input.supplierId),
-    grouped('customer', range, ids, input.supplierId),
-    grouped('warehouse', range, ids, input.supplierId),
-  ])
+  const [total, byDay, byProduct, byCustomer, byChannel, byWarehouse] =
+    await Promise.all([
+      summary(range, ids, input.supplierId),
+      grouped('day', range, ids, input.supplierId),
+      grouped('product', range, ids, input.supplierId),
+      grouped('customer', range, ids, input.supplierId),
+      grouped('channel', range, ids, input.supplierId),
+      grouped('warehouse', range, ids, input.supplierId),
+    ])
   return {
     range,
     warehouses,
@@ -179,6 +246,7 @@ export async function getSalesReport(
       unit: row.unit ?? '',
     })),
     byCustomer: byCustomer.map(asRow),
+    byChannel: byChannel.map(asRow),
     byWarehouse: byWarehouse.map(asRow),
   }
 }

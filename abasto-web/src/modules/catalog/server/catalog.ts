@@ -11,6 +11,7 @@ import {
   supplierInput,
   supplierPatchInput,
 } from '#/modules/catalog/schemas/product-schema'
+import { updateProductWithPresentations } from '#/modules/catalog/services/product-edit'
 import { savePresentations } from '#/modules/catalog/services/presentations'
 import type { PresentationSet } from '#/modules/catalog/services/presentation-rules'
 import {
@@ -67,6 +68,22 @@ export const updateProductFn = createServerFn({ method: 'POST' })
         parseInput(idInput, data.id),
         parseInput(productPatchInput, data.patch),
       ),
+    ),
+  )
+
+/** The single save of the edit dialog: fields and presentations in one transaction. */
+export const updateProductWithPresentationsFn = createServerFn({
+  method: 'POST',
+})
+  .validator(
+    (data: { id: string; patch: ProductPatch; set: PresentationSet }) => data,
+  )
+  .handler(({ data }) =>
+    runWithActor((actor) =>
+      updateProductWithPresentations(actor, parseInput(idInput, data.id), {
+        patch: parseInput(productPatchInput, data.patch),
+        set: parseInput(presentationSetInput, data.set),
+      }),
     ),
   )
 

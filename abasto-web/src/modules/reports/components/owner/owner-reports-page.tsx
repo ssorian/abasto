@@ -3,6 +3,7 @@ import { DownloadIcon } from 'lucide-react'
 import { PageHeading } from '#/components/page-heading'
 import { metricsOf } from '#/modules/executive/lib/profitability'
 import type { ExecutiveSearch } from '#/modules/executive/lib/search'
+import { RiderShortfallsSection } from '#/modules/reports/components/owner/rider-shortfalls-section'
 import { CashSection } from '#/modules/reports/components/owner/cash-section'
 import { IdleCapital } from '#/modules/reports/components/owner/idle-capital'
 import { InventoryChart } from '#/modules/reports/components/owner/inventory-chart'
@@ -33,6 +34,7 @@ import {
   topProfitProducts,
 } from '#/modules/reports/lib/owner-series'
 import type { OwnerReportsLoad } from '#/modules/reports/server/load-owner-reports'
+import type { OwnerDashboardData } from '#/modules/reports/types/owner-dashboard'
 
 type OwnerReportsPageProps = {
   load: OwnerReportsLoad
@@ -96,7 +98,7 @@ export function OwnerReportsPage({
   )
 }
 
-type Data = NonNullable<Extract<OwnerReportsLoad, { allowed: true }>['data']>
+type Data = OwnerDashboardData
 
 function Dashboard({
   data,
@@ -184,6 +186,7 @@ function Dashboard({
           expiringDays={stockAlerts.expiringDays}
         />
       </div>
+      <RiderShortfallsSection rows={data.cashCuts.riderShortfalls} />
     </div>
   )
 }

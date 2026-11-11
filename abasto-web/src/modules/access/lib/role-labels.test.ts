@@ -8,7 +8,7 @@ import {
 describe('role labels', () => {
   test('maps roles to Spanish labels', () => {
     expect(userRoleLabel('owner')).toBe('Dueño')
-    expect(userRoleLabel('staff')).toBe('Personal')
+    expect(userRoleLabel('staff')).toBe('Encargado')
     expect(warehouseRoleLabel('manager')).toBe('Encargado')
   })
 

@@ -18,6 +18,7 @@ beforeEach(() => resetDatabase(db))
 
 const forbidden = 'No tienes permiso para esta acción.'
 const rulesInvalid = 'Revisa las condiciones comerciales.'
+const discountRange = 'El descuento debe estar entre 0 y 100 %.'
 
 async function setup() {
   const { owner, staff } = await setupActors()
@@ -85,10 +86,6 @@ describe('saveCommercialRules', () => {
       ],
       ['discount 0', { presentationId, minQuantity: 1, discountBps: 0 }],
       [
-        'discount above 10000',
-        { presentationId, minQuantity: 1, discountBps: 10001 },
-      ],
-      [
         'fractional discount',
         { presentationId, minQuantity: 1, discountBps: 10.5 },
       ],
@@ -104,6 +101,26 @@ describe('saveCommercialRules', () => {
         { presentationId, minQuantity: 1, discountBps: 100, priceCents: 900 },
       ],
     ] as const
+
+  test('a discount outside 0-100 % says so and keeps the stored set', async () => {
+    const { owner, customer, piece } = await setup()
+    const before = await saveCommercialRules(owner, customer.id, [
+      { presentationId: piece, minQuantity: 2, discountBps: 300 },
+    ])
+    for (const discountBps of [15000, 10001, -1]) {
+      const error = await errorOf(() =>
+        saveCommercialRules(owner, customer.id, [
+          { presentationId: piece, minQuantity: 9, discountBps },
+        ]),
+      )
+      expect([discountBps, error.code, error.message]).toEqual([
+        discountBps,
+        'invalid',
+        discountRange,
+      ])
+    }
+    expect(await listCommercialRules(owner, customer.id)).toEqual(before)
+  })
 
   test('rejects each invalid rule and keeps the stored set', async () => {
     const { owner, customer, piece } = await setup()
