@@ -21,16 +21,12 @@ export function CashCloseDialog({
 }: CashCloseDialogProps) {
   const actions = useCashActions(warehouseId)
   const [text, setText] = useState('')
-  const [busy, setBusy] = useState(false)
   const [closed, setClosed] = useState<CashSession>()
   const preview = text.trim() ? closePreview(expectedCents, text) : null
 
   async function submit() {
     if (!preview?.ok) return
-    setBusy(true)
-    const result = await actions.close(preview.value.countedCents)
-    setBusy(false)
-    if (result) setClosed(result.data)
+    await actions.close(preview.value.countedCents, setClosed)
   }
 
   if (closed) {
@@ -93,7 +89,7 @@ export function CashCloseDialog({
         <ActionButton onClick={onClose}>Cancelar</ActionButton>
         <ActionButton
           tone="primary"
-          disabled={busy || !preview?.ok}
+          disabled={actions.pending || !preview?.ok}
           onClick={submit}
         >
           Cerrar caja

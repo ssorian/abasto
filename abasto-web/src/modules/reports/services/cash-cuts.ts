@@ -18,8 +18,9 @@ type RawRow = {
   warehouse_id: string
   warehouse_name: string
   status: 'open' | 'closed'
-  opened_at: Date
-  closed_at: Date | null
+  /** `timestamp` columns arrive as zone-less UTC text ("2026-11-11 04:27:00"). */
+  opened_at: Date | string
+  closed_at: Date | string | null
   opened_by: string
   closed_by: string | null
   opening_cents: number
@@ -28,6 +29,14 @@ type RawRow = {
   withdrawals: string
   counted_cents: number | null
   stored_expected: number | null
+}
+
+/** Revives a zone-less UTC timestamp; `new Date(text)` would read it in the server zone. */
+function utcDate(value: Date | string): Date {
+  if (value instanceof Date) return value
+  return new Date(
+    `${value.replace(' ', 'T')}${/[zZ]|[+-]\d\d(:?\d\d)?$/.test(value) ? '' : 'Z'}`,
+  )
 }
 
 /**
@@ -71,8 +80,8 @@ export async function getCashCuts(
       warehouseId: row.warehouse_id,
       warehouseName: row.warehouse_name,
       status: row.status,
-      openedAt: row.opened_at,
-      closedAt: row.closed_at,
+      openedAt: utcDate(row.opened_at),
+      closedAt: row.closed_at === null ? null : utcDate(row.closed_at),
       openedByName: row.opened_by,
       closedByName: row.closed_by,
       openingCents: row.opening_cents,

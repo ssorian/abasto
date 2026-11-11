@@ -26,7 +26,7 @@ export function summarizeSession(
   const salesCents = sum('sale')
   // Legacy 'abono' rows are immutable history: they count as cash in.
   const entriesCents = sum('entry') + sum('abono')
-  const withdrawalsCents = -sum('withdrawal')
+  const withdrawalsCents = 0 - sum('withdrawal')
   return {
     openingCents,
     salesCents,

@@ -35,15 +35,16 @@ describe('report inputs', () => {
   })
 
   test('refuse unknown presets, empty ids and malformed bodies', () => {
-    for (const bad of [
-      undefined,
-      {},
-      { period: { preset: 'year' } },
-      { period: { preset: 'today' }, warehouseId: '' },
-    ]) {
-      expect(() => parseInput(periodReportInput, bad)).toThrow(
-        'Revisa los datos e intenta de nuevo.',
-      )
+    for (const [bad, message] of [
+      [undefined, 'Revisa los datos e intenta de nuevo.'],
+      [{}, 'Revisa el campo «period».'],
+      [{ period: { preset: 'year' } }, 'Revisa el campo «period.preset».'],
+      [
+        { period: { preset: 'today' }, warehouseId: '' },
+        'Revisa el campo «warehouseId».',
+      ],
+    ] as const) {
+      expect(() => parseInput(periodReportInput, bad)).toThrow(message)
     }
     expect(() => parseInput(stockAlertsInput, { expiringDays: 'x' })).toThrow()
   })

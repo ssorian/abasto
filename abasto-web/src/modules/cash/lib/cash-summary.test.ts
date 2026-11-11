@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { formatCents } from '#/modules/pricing/lib/money'
 import {
   closePreview,
   differenceLabel,
@@ -22,6 +23,14 @@ describe('summarizeSession', () => {
       withdrawalsCents: 4000,
       expectedCents: 76000,
     })
+  })
+
+  test('no withdrawals is a plain zero, shown as $0.00 and never -$0.00', () => {
+    const { withdrawalsCents } = summarizeSession(2500, [
+      { type: 'sale', amountCents: 1000 },
+    ])
+    expect(Object.is(withdrawalsCents, 0)).toBe(true)
+    expect(formatCents(withdrawalsCents)).toBe('$0.00')
   })
 
   test('an empty drawer expects only the opening cash', () => {

@@ -27,6 +27,7 @@ const salesReport = (orders: number): SalesReport => ({
   byDay: [],
   byProduct: [],
   byCustomer: [],
+  byChannel: [],
   byWarehouse: [],
 })
 

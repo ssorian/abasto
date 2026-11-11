@@ -35,7 +35,9 @@ export function ReservationSetting({ hours }: { hours: number }) {
           onChange={(event) => setText(event.target.value)}
         />
       </label>
-      <ActionButton onClick={save}>Guardar</ActionButton>
+      <ActionButton disabled={actions.pending} onClick={save}>
+        Guardar
+      </ActionButton>
       <p className="basis-full text-xs text-[#9c898f]">
         Un pedido sin recoger libera su producto al vencer la reserva. Solo el
         dueño puede cambiarla.

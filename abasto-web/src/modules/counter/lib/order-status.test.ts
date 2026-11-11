@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   availableActions,
+  chargeGate,
   orderStatusFilters,
   statusHint,
   statusTone,
@@ -50,5 +51,31 @@ describe('order status', () => {
       expect(statusHint(status).length).toBeGreaterThan(0)
     }
     expect(statusHint('Vencido')).toBe('Venció y se liberó el producto.')
+  })
+})
+
+describe('chargeGate', () => {
+  test('an open order cannot be charged while the drawer is closed, and says why', () => {
+    expect(chargeGate('Reservado', false)).toEqual({
+      enabled: false,
+      notice: 'Abre la caja antes de cobrar.',
+    })
+    expect(chargeGate('Preparado', false).enabled).toBe(false)
+  })
+
+  test('with the drawer open charging is enabled and there is no notice', () => {
+    expect(chargeGate('Reservado', true)).toEqual({
+      enabled: true,
+      notice: null,
+    })
+  })
+
+  test('orders that cannot be charged get no cash notice', () => {
+    for (const status of ['Recogido', 'Cancelado', 'Vencido'] as const) {
+      expect(chargeGate(status, false)).toEqual({
+        enabled: false,
+        notice: null,
+      })
+    }
   })
 })

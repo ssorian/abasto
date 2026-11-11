@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  cashCutDay,
   cashDifferenceSeries,
   changeBps,
   dailySeries,
@@ -122,5 +123,34 @@ describe('cashDifferenceSeries', () => {
       '2026-11-04',
       '2026-11-05',
     ])
+  })
+})
+
+describe('cashCutDay', () => {
+  test('a cut closed on 10 Nov at 22:27 Mexico City is a 10 nov cut', () => {
+    const closed = {
+      status: 'closed',
+      openedAt: new Date('2026-11-10T15:00:00Z'),
+      closedAt: new Date('2026-11-11T04:27:00Z'),
+    } as CashCutRow
+    expect(cashCutDay(closed)).toBe('2026-11-10')
+  })
+
+  test('uses the closing day, also when it differs from the opening day', () => {
+    const overnight = {
+      status: 'closed',
+      openedAt: new Date('2026-11-10T20:00:00Z'),
+      closedAt: new Date('2026-11-11T15:00:00Z'),
+    } as CashCutRow
+    expect(cashCutDay(overnight)).toBe('2026-11-11')
+  })
+
+  test('revives ISO strings and falls back to the opening day while open', () => {
+    const open = {
+      status: 'open',
+      openedAt: '2026-11-11T04:27:00Z',
+      closedAt: null,
+    } as unknown as CashCutRow
+    expect(cashCutDay(open)).toBe('2026-11-10')
   })
 })

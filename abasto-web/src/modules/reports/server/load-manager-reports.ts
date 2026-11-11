@@ -30,22 +30,25 @@ export type ManagerReportsLoad =
 export async function loadManagerReports(
   search: ManagerReportsSearch,
 ): Promise<ManagerReportsLoad> {
-  const scope = await reportScopeFn()
+  // The three reads are independent: one round of requests, not three in a row.
+  const [scope, suppliersResult, dashboardResult] = await Promise.all([
+    reportScopeFn(),
+    reportSuppliersFn(),
+    managerDashboardFn({
+      data: {
+        period: periodOf(search),
+        warehouseId: search.almacen,
+        supplierId: search.proveedor,
+      },
+    }),
+  ])
   if (!scope.ok) {
     if (scope.code === 'forbidden') return { allowed: false }
     throw new ClientError(scope.code, scope.message)
   }
-  const suppliers = unwrap(await reportSuppliersFn())
+  const suppliers = unwrap(suppliersResult)
   try {
-    const dashboard = unwrap(
-      await managerDashboardFn({
-        data: {
-          period: periodOf(search),
-          warehouseId: search.almacen,
-          supplierId: search.proveedor,
-        },
-      }),
-    )
+    const dashboard = unwrap(dashboardResult)
     return { allowed: true, warehouses: scope.data, suppliers, dashboard }
   } catch (error) {
     // Bad dates or a warehouse that is not theirs: show it next to the filters.

@@ -99,6 +99,9 @@ async function supplierProducts(supplierId: string): Promise<Set<string>> {
   return new Set(result.rows.map((row) => row.id))
 }
 
+/** Warehouses read at once; each read holds one pooled connection at a time. */
+const STOCK_READS_AT_ONCE = 4
+
 /** Products below their minimum (available-based) in the given warehouses. */
 export async function queryLowStock(
   actor: Actor,
@@ -107,22 +110,29 @@ export async function queryLowStock(
 ): Promise<Array<LowStockRow>> {
   const ofSupplier = supplierId ? await supplierProducts(supplierId) : undefined
   const rows: Array<LowStockRow> = []
-  // One at a time: each read takes its warehouse's stock lock to expire orders.
-  for (const warehouse of warehouses) {
-    for (const item of await getWarehouseStock(actor, warehouse.id)) {
-      if (!item.belowMinimum) continue
-      if (ofSupplier && !ofSupplier.has(item.productId)) continue
-      rows.push({
-        warehouseId: warehouse.id,
-        warehouseName: warehouse.name,
-        productId: item.productId,
-        name: item.name,
-        sku: item.sku,
-        unit: item.unit,
-        available: item.available,
-        minimum: item.minimum,
-        missing: item.minimum - item.available,
-      })
+  // Each warehouse read takes only its own stock lock, so a few can run at once.
+  for (let start = 0; start < warehouses.length; start += STOCK_READS_AT_ONCE) {
+    const batch = warehouses.slice(start, start + STOCK_READS_AT_ONCE)
+    const stocks = await Promise.all(
+      batch.map((warehouse) => getWarehouseStock(actor, warehouse.id)),
+    )
+    for (const [index, stock] of stocks.entries()) {
+      const warehouse = batch[index]
+      for (const item of stock) {
+        if (!item.belowMinimum) continue
+        if (ofSupplier && !ofSupplier.has(item.productId)) continue
+        rows.push({
+          warehouseId: warehouse.id,
+          warehouseName: warehouse.name,
+          productId: item.productId,
+          name: item.name,
+          sku: item.sku,
+          unit: item.unit,
+          available: item.available,
+          minimum: item.minimum,
+          missing: item.minimum - item.available,
+        })
+      }
     }
   }
   return rows.sort(

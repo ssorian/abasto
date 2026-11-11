@@ -9,6 +9,7 @@ import { LowStockCard } from '#/modules/reports/components/manager/low-stock-car
 import { ManagerAttention } from '#/modules/reports/components/manager/manager-attention'
 import { ManagerFilters } from '#/modules/reports/components/manager/manager-filters'
 import { ManagerKpis } from '#/modules/reports/components/manager/manager-kpis'
+import { SalesByChannelCard } from '#/modules/reports/components/manager/sales-by-channel-card'
 import { SalesByDayChart } from '#/modules/reports/components/manager/sales-by-day-chart'
 import { SupplierOrdersCard } from '#/modules/reports/components/manager/supplier-orders-card'
 import { TopProductsCard } from '#/modules/reports/components/manager/top-products-card'
@@ -114,6 +115,9 @@ export function ManagerReportsPage({
             )}
             <SupplierOrdersCard orders={dashboard.pendingOrders} />
           </div>
+          {sales.summary.orders > 0 && (
+            <SalesByChannelCard rows={sales.byChannel} />
+          )}
           <CashCutsCard
             rows={dashboard.cash.rows}
             warehouse={dashboard.warehouse.name}

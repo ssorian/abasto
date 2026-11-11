@@ -15,6 +15,7 @@ import type {
   CashMovement,
   CashSession,
 } from '#/modules/cash/services/cash-ledger'
+import { now } from '#/modules/orders/services/clock'
 import { requireWarehouse } from '#/modules/inventory/services/stock-ledger'
 
 export type CashSessionDetail = {
@@ -68,7 +69,7 @@ export async function closeCashSession(
       .set({
         status: 'closed',
         closedBy: actor.userId,
-        closedAt: new Date(),
+        closedAt: now(),
         countedCents: input.countedCents,
         expectedCents,
         differenceCents: input.countedCents - expectedCents,

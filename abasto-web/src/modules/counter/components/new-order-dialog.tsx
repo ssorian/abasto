@@ -30,6 +30,7 @@ import {
   findStockShortages,
   stockShortageMessage,
 } from '#/modules/counter/lib/order-stock'
+import { availabilityLabel } from '#/modules/counter/lib/sellable'
 import { formatCents } from '#/modules/pricing/lib/money'
 import type { DraftLine } from '#/modules/counter/lib/order-draft'
 import type { CounterOverview } from '#/modules/counter/types/counter-view'
@@ -56,7 +57,6 @@ export function NewOrderDialog({
   const [notes, setNotes] = useState('')
   const [lines, setLines] = useState<Array<DraftLine>>([])
   const [pick, setPick] = useState('')
-  const [saving, setSaving] = useState(false)
   const quote = useOrderQuote(warehouseId, customerId, lines)
   const optionOf = new Map(
     sellable.map((option) => [option.presentationId, option]),
@@ -75,9 +75,7 @@ export function NewOrderDialog({
       toast.error(parsed.message)
       return
     }
-    setSaving(true)
     const result = await actions.createOrder(parsed.value)
-    setSaving(false)
     if (result) onClose()
   }
 
@@ -157,7 +155,9 @@ export function NewOrderDialog({
                   <tr key={line.presentationId}>
                     <Td>
                       {option?.label ?? 'Producto'}
-                      <CellNote>Disponible: {option?.available ?? 0}</CellNote>
+                      <CellNote>
+                        {option ? availabilityLabel(option) : 'Disponible: 0'}
+                      </CellNote>
                       {shortage && (
                         <p role="alert" className="mt-1 text-xs text-[#a1372e]">
                           {stockShortageMessage(shortage)}
@@ -249,10 +249,10 @@ export function NewOrderDialog({
         </div>
         <ActionButton
           tone="primary"
-          disabled={saving || shortages.size > 0}
+          disabled={actions.pending || shortages.size > 0}
           onClick={submit}
         >
-          {saving ? 'Reservando…' : 'Reservar pedido'}
+          {actions.pending ? 'Reservando…' : 'Reservar pedido'}
         </ActionButton>
       </div>
     </CounterDialog>

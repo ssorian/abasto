@@ -35,7 +35,6 @@ export function CashMovementDialog({
   const actions = useCashActions(warehouseId)
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
-  const [busy, setBusy] = useState(false)
   const { title, description, reason: placeholder } = copy[kind]
 
   async function submit() {
@@ -43,10 +42,7 @@ export function CashMovementDialog({
     if (!cents.ok) return void toast.error(cents.message)
     if (!reason.trim())
       return void toast.error('Escribe el motivo del movimiento.')
-    setBusy(true)
-    const result = await actions[kind](cents.value, reason)
-    setBusy(false)
-    if (result) onClose()
+    await actions[kind](cents.value, reason, onClose)
   }
 
   return (
@@ -69,7 +65,11 @@ export function CashMovementDialog({
       </Field>
       <div className="flex justify-end gap-3">
         <ActionButton onClick={onClose}>Cancelar</ActionButton>
-        <ActionButton tone="primary" disabled={busy} onClick={submit}>
+        <ActionButton
+          tone="primary"
+          disabled={actions.pending}
+          onClick={submit}
+        >
           {kind === 'entry' ? 'Registrar entrada' : 'Registrar retiro'}
         </ActionButton>
       </div>

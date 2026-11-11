@@ -33,6 +33,7 @@ import {
   topProfitProducts,
 } from '#/modules/reports/lib/owner-series'
 import type { OwnerReportsLoad } from '#/modules/reports/server/load-owner-reports'
+import type { OwnerDashboardData } from '#/modules/reports/types/owner-dashboard'
 
 type OwnerReportsPageProps = {
   load: OwnerReportsLoad
@@ -96,7 +97,7 @@ export function OwnerReportsPage({
   )
 }
 
-type Data = NonNullable<Extract<OwnerReportsLoad, { allowed: true }>['data']>
+type Data = OwnerDashboardData
 
 function Dashboard({
   data,

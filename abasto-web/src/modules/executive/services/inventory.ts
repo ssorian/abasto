@@ -118,6 +118,18 @@ export async function getNonMovingCapital(
       join order_lines ol on ol.order_id = o.id
       where o.status = 'Recogido'
       group by o.warehouse_id, ol.product_id
+      union all
+      -- Settled rider deliveries are sales too (the sales report counts them).
+      select a.warehouse_id, ln.product_id,
+        max(${localDay(sql`a.closed_at`)}) as day
+      from rider_assignments a
+      join rider_assignment_lines ln on ln.assignment_id = a.id
+      where a.status = 'Liquidada' and ln.assigned_quantity > coalesce(ln.leftover_quantity, 0)
+      group by a.warehouse_id, ln.product_id
+    ), last_sale_day as (
+      select warehouse_id, product_id, max(day) as day
+      from last_sale
+      group by warehouse_id, product_id
     )
     select s.warehouse_id, w.name as warehouse_name, p.id as product_id,
       p.name, p.sku, p.unit, s.on_hand, s.value,
@@ -126,7 +138,7 @@ export async function getNonMovingCapital(
     from stock s
     join warehouses w on w.id = s.warehouse_id
     join products p on p.id = s.product_id
-    left join last_sale ls
+    left join last_sale_day ls
       on ls.warehouse_id = s.warehouse_id and ls.product_id = s.product_id
     where ls.day is null or (${today}::date - ls.day) > ${days}
     order by s.value desc, w.name, p.name, p.id`)

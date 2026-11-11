@@ -41,6 +41,7 @@ const dimensionHeading: Record<SalesDimension, string> = {
   day: 'Día',
   product: 'Producto',
   customer: 'Cliente',
+  channel: 'Canal',
   warehouse: 'Almacén',
 }
 

@@ -98,16 +98,24 @@ export function stockLevels(
 
 export type CashPoint = { date: string; differenceCents: number }
 
-/** Difference of the closed cuts, oldest first, by the business day they opened. */
+/**
+ * Business day (Mexico City) of a cut: the day it was closed, or the day it
+ * opened while still open. Dates may arrive as ISO strings from the server.
+ */
+export const cashCutDay = (
+  row: Pick<CashCutRow, 'openedAt' | 'closedAt'>,
+): string => businessDate(new Date(row.closedAt ?? row.openedAt))
+
+/** Difference of the closed cuts, oldest first, by the business day they closed. */
 export function cashDifferenceSeries(
   rows: ReadonlyArray<
-    Pick<CashCutRow, 'status' | 'openedAt' | 'differenceCents'>
+    Pick<CashCutRow, 'status' | 'openedAt' | 'closedAt' | 'differenceCents'>
   >,
 ): Array<CashPoint> {
   return rows
     .filter((row) => row.status === 'closed' && row.differenceCents !== null)
     .map((row) => ({
-      date: businessDate(new Date(row.openedAt)),
+      date: cashCutDay(row),
       differenceCents: row.differenceCents ?? 0,
     }))
     .sort((a, b) => a.date.localeCompare(b.date))

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { db } from '#/db'
-import { cashMovements } from '#/modules/cash/db/schema'
+import { eq } from 'drizzle-orm'
+import { cashMovements, cashSessions } from '#/modules/cash/db/schema'
 import { resetDatabase } from '#/db/testing'
 import {
   recordCashEntry,
@@ -127,5 +128,33 @@ describe('cash cuts', () => {
         getCashCuts(fx.managerA, { ...today, warehouseIds: [fx.b.id] }),
       ),
     ).toMatchObject({ code: 'forbidden' })
+  })
+
+  test('cut instants are exact whatever the server time zone is', async () => {
+    const fx = await setupReports()
+    // 10 Nov 22:27 in Mexico City is 11 Nov 04:27 UTC.
+    useClock(() => new Date('2026-11-11T04:27:00Z'))
+    await closeCashSession(fx.managerB, {
+      warehouseId: fx.b.id,
+      countedCents: 0,
+    })
+    const [stored] = await db
+      .select({
+        closedAt: cashSessions.closedAt,
+        openedAt: cashSessions.openedAt,
+      })
+      .from(cashSessions)
+      .where(eq(cashSessions.warehouseId, fx.b.id))
+    const report = await getCashCuts(fx.owner, {
+      period: { preset: 'custom', from: '2026-01-01', to: '2026-12-31' },
+      warehouseIds: [fx.b.id],
+    })
+    expect(stored.closedAt?.toISOString()).toBe('2026-11-11T04:27:00.000Z')
+    expect(report.rows[0].closedAt?.toISOString()).toBe(
+      '2026-11-11T04:27:00.000Z',
+    )
+    expect(report.rows[0].openedAt.toISOString()).toBe(
+      stored.openedAt.toISOString(),
+    )
   })
 })

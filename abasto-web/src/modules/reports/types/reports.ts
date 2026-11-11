@@ -36,10 +36,13 @@ export type SalesReport = {
   byDay: Array<SalesRow>
   byProduct: Array<ProductSalesRow>
   byCustomer: Array<SalesRow>
+  /** Mostrador, Tienda or Reparto. */
+  byChannel: Array<SalesRow>
   byWarehouse: Array<SalesRow>
 }
 
-export type SalesDimension = 'day' | 'product' | 'customer' | 'warehouse'
+export type SalesDimension =
+  'day' | 'product' | 'customer' | 'channel' | 'warehouse'
 
 export type CashCutRow = {
   sessionId: string

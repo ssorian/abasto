@@ -9,18 +9,21 @@ const caja = {
   productId: 'leche',
   factor: 12,
   availableBase: 72,
+  unit: 'piezas',
 }
 const pieza = {
   presentationId: 'pieza',
   productId: 'leche',
   factor: 1,
   availableBase: 72,
+  unit: 'piezas',
 }
 const otro = {
   presentationId: 'otro',
   productId: 'cola',
   factor: 1,
   availableBase: 3,
+  unit: 'piezas',
 }
 const optionOf = (...options: Array<typeof caja>) =>
   new Map(options.map((option) => [option.presentationId, option]))
@@ -34,8 +37,16 @@ describe('findStockShortages', () => {
       ],
       optionOf(caja, pieza),
     )
-    expect(result.get('caja')).toEqual({ requested: 77, available: 72 })
-    expect(result.get('pieza')).toEqual({ requested: 77, available: 72 })
+    expect(result.get('caja')).toEqual({
+      requested: 77,
+      available: 72,
+      unit: 'piezas',
+    })
+    expect(result.get('pieza')).toEqual({
+      requested: 77,
+      available: 72,
+      unit: 'piezas',
+    })
   })
 
   test('exactly the available base units is fine', () => {
@@ -58,7 +69,11 @@ describe('findStockShortages', () => {
       optionOf(caja, otro),
     )
     expect(result.has('caja')).toBe(false)
-    expect(result.get('otro')).toEqual({ requested: 4, available: 3 })
+    expect(result.get('otro')).toEqual({
+      requested: 4,
+      available: 3,
+      unit: 'piezas',
+    })
   })
 
   test('invalid or empty quantities count as zero and unknown lines are skipped', () => {
@@ -75,9 +90,18 @@ describe('findStockShortages', () => {
 })
 
 describe('stockShortageMessage', () => {
+  test('uses the right plural of the product unit', () => {
+    expect(
+      stockShortageMessage({ requested: 1, available: 0, unit: 'piezas' }),
+    ).toBe('Pides 1 pieza en total y solo hay 0 piezas disponibles.')
+    expect(
+      stockShortageMessage({ requested: 5, available: 1, unit: 'piezas' }),
+    ).toBe('Pides 5 piezas en total y solo hay 1 pieza disponible.')
+  })
+
   test('explains the total against what is available in pieces', () => {
-    expect(stockShortageMessage({ requested: 77, available: 72 })).toBe(
-      'Pides 77 piezas en total y solo hay 72 disponibles.',
-    )
+    expect(
+      stockShortageMessage({ requested: 77, available: 72, unit: 'piezas' }),
+    ).toBe('Pides 77 piezas en total y solo hay 72 piezas disponibles.')
   })
 })
