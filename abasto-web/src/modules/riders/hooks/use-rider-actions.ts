@@ -1,4 +1,4 @@
-import { useActionRunner } from '#/modules/cash/hooks/use-action-runner'
+import { useActionRunner } from '#/hooks/use-action-runner'
 import {
   assignRiderFn,
   cancelAssignmentFn,

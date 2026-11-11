@@ -56,49 +56,50 @@ export async function getWarehouseStock(
 ): Promise<Array<ProductStock>> {
   authorize(actor, 'warehouse.view', warehouseId)
   const today = businessDate()
-  const [lotRows, minimumRows, routeRows] = await db.transaction(async (tx) => {
+  const stock = await db.transaction(async (tx) => {
     await expireOverdueOrders(tx, warehouseId)
-    return Promise.all([
-      tx
-        .select({
-          productId: lots.productId,
-          id: lots.id,
-          code: lots.code,
-          expiresOn: lots.expiresOn,
-          receivedAt: lots.receivedAt,
-          onHand: lots.onHand,
-          reserved: lots.reserved,
-        })
-        .from(lots)
-        .where(and(eq(lots.warehouseId, warehouseId), gt(lots.onHand, 0))),
-      tx
-        .select()
-        .from(stockMinimums)
-        .where(eq(stockMinimums.warehouseId, warehouseId)),
-      // Rider units also sit in `lots.reserved`; split them out of order holds.
-      tx
-        .select({
-          productId: riderAssignmentLines.productId,
-          quantity: sql<number>`sum(${riderAllocations.quantity})::int`,
-        })
-        .from(riderAllocations)
-        .innerJoin(
-          riderAssignmentLines,
-          eq(riderAssignmentLines.id, riderAllocations.lineId),
-        )
-        .innerJoin(
-          riderAssignments,
-          eq(riderAssignments.id, riderAssignmentLines.assignmentId),
-        )
-        .where(
-          and(
-            eq(riderAssignments.warehouseId, warehouseId),
-            eq(riderAssignments.status, 'En ruta'),
-          ),
-        )
-        .groupBy(riderAssignmentLines.productId),
-    ])
+    // One transaction client runs one query at a time: await in sequence.
+    const lotList = await tx
+      .select({
+        productId: lots.productId,
+        id: lots.id,
+        code: lots.code,
+        expiresOn: lots.expiresOn,
+        receivedAt: lots.receivedAt,
+        onHand: lots.onHand,
+        reserved: lots.reserved,
+      })
+      .from(lots)
+      .where(and(eq(lots.warehouseId, warehouseId), gt(lots.onHand, 0)))
+    const minimums = await tx
+      .select()
+      .from(stockMinimums)
+      .where(eq(stockMinimums.warehouseId, warehouseId))
+    // Rider units also sit in `lots.reserved`; split them out of order holds.
+    const routes = await tx
+      .select({
+        productId: riderAssignmentLines.productId,
+        quantity: sql<number>`sum(${riderAllocations.quantity})::int`,
+      })
+      .from(riderAllocations)
+      .innerJoin(
+        riderAssignmentLines,
+        eq(riderAssignmentLines.id, riderAllocations.lineId),
+      )
+      .innerJoin(
+        riderAssignments,
+        eq(riderAssignments.id, riderAssignmentLines.assignmentId),
+      )
+      .where(
+        and(
+          eq(riderAssignments.warehouseId, warehouseId),
+          eq(riderAssignments.status, 'En ruta'),
+        ),
+      )
+      .groupBy(riderAssignmentLines.productId)
+    return { lotRows: lotList, minimumRows: minimums, routeRows: routes }
   })
+  const { lotRows, minimumRows, routeRows } = stock
   const productIds = new Set([
     ...lotRows.map((row) => row.productId),
     ...minimumRows.map((row) => row.productId),

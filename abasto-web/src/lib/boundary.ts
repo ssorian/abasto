@@ -34,6 +34,14 @@ export async function runBoundary<T>(
   }
 }
 
+/** Schema-declared message, or a Spanish one naming the first failing field. */
+function issueMessage(issue: z.core.$ZodIssue | undefined): string {
+  if (!issue) return invalidInputMessage
+  if (issue.message !== invalidInputMessage) return issue.message
+  const field = issue.path.map(String).join('.')
+  return field ? `Revisa el campo «${field}».` : invalidInputMessage
+}
+
 /** Validates untrusted input; failures become Spanish AppErrors. */
 export function parseInput<TSchema extends z.ZodType>(
   schema: TSchema,
@@ -43,10 +51,8 @@ export function parseInput<TSchema extends z.ZodType>(
   // replaced by this per-parse fallback.
   const parsed = schema.safeParse(data, { error: () => invalidInputMessage })
   if (parsed.success) return parsed.data
-  throw new AppError(
-    'invalid',
-    parsed.error.issues[0]?.message ?? invalidInputMessage,
-  )
+  const issue = parsed.error.issues[0]
+  throw new AppError('invalid', issueMessage(issue))
 }
 
 /** Error thrown on the client when a server function reported a failure. */

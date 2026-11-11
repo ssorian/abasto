@@ -2,13 +2,27 @@
 
 import * as React from 'react'
 import { cn } from '#/lib/utils/cn'
+import {
+  applySpanishValidity,
+  clearSpanishValidity,
+} from '#/hooks/native-validation'
 import { Select as SelectPrimitive } from 'radix-ui'
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from 'lucide-react'
 
 function Select({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />
+  // Radix renders a hidden native <select> when required; `invalid` does not
+  // bubble, so catch it in the capture phase to show Spanish text.
+  return (
+    <span
+      className="contents"
+      onInvalidCapture={(event) => applySpanishValidity(event)}
+      onChangeCapture={(event) => clearSpanishValidity(event)}
+    >
+      <SelectPrimitive.Root data-slot="select" {...props} />
+    </span>
+  )
 }
 
 function SelectGroup({

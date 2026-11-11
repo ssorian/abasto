@@ -9,7 +9,7 @@ import {
 } from '#/modules/counter/components/data-table'
 import { EmptyState } from '#/modules/counter/components/empty-state'
 import { useCashActions } from '#/modules/cash/hooks/use-cash-actions'
-import { messageOf } from '#/modules/cash/hooks/use-action-runner'
+import { messageOf } from '#/hooks/use-action-runner'
 import {
   differenceLabel,
   summarizeSession,
