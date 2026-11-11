@@ -46,6 +46,7 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - T7 [S15, S25, L6] parent inline — restore "Sumar existencias" (positive adjustment with reason, second button per lot); `formatCents` normalizes negative zero app-wide. Risk: none (UI action reusing existing `adjustLot`; formatting). Status: done, tests RED→GREEN; also seed passes confirmExpired (full suite had 3 seed failures caused by S3). Commit: 6d53d3c
 - T6 [S1-S29] verify — independent verification. Status: done (no blockers; S2, S3, S18, S28, S15 pass; partials S4, S5, S10, S13, S25 followed up in T8).
 - T8 [S4, S5, S13, S25, S8] parent inline — verifier follow-ups: revert field-name boundary message (exposed internal names like «patch.name»), "1 unidad" singular, inventory `formatCents` negative zero, cash-cut CSV in business zone, cuts filtered by close day, store warehouse list reads in parallel. Risk: item 6 (report period semantics). Status: done, RED→GREEN. Commit: 8bb7b40
+- T9 [S13] parent inline — verify (mwce0d3t) found `countLabel` regression ("sobres" → "1 sobr") and stale comments; fixed RED→GREEN (counter tests 40/40, tsc, eslint clean). Risk: none. Commit: b279855
 - Final checks: bun test 1126 pass / 2 skip / 0 fail; tsc clean; eslint 0 errors (4 pre-existing warnings); prettier clean; build OK. Not browser-checked; B5 (lost clicks during hydration) not fixed; S5 SSR timing not measured on a production build.
 
 ## Log
@@ -57,3 +58,4 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - L4 (evidence, parent): `modules/reports/lib/manager-format.ts:6,10,14` format dates with `timeZone: 'UTC'` while line 32 uses `businessTimeZone`; range filters in `report-scope.ts:66-71` already use the business zone.
 - L6 (user): "Sumar existencias" removal → "Restaurar \"Sumar existencias\" (Recomendado)".
 - L7 (evidence, verify): no blockers; delivery sales valued at expectedCents, so Reports differ from cash VENTAS when a rider is short/over (QA case −$30.41).
+- L8 (evidence, verify mwce0d3t on 6d53d3c..8bb7b40): all items pass, no blockers; bun test 1126 pass / 2 skip / 0 fail; tsc clean.
