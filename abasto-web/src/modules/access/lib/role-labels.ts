@@ -4,7 +4,7 @@ import type { UserAssignment } from '#/modules/access/services/access'
 
 const userRoleLabels: Record<UserRole, string> = {
   owner: 'Dueño',
-  staff: 'Personal',
+  staff: 'Encargado',
   customer: 'Cliente',
 }
 

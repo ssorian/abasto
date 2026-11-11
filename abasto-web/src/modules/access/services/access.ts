@@ -7,6 +7,7 @@ import { auth, minPasswordLength } from '#/lib/auth'
 import { AppError } from '#/lib/errors'
 import { warehouseAssignments } from '#/modules/access/db/schema'
 import type { WarehouseRole } from '#/modules/access/db/schema'
+import { newUserProblems } from '#/modules/access/lib/new-user'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { warehouses } from '#/modules/warehouses/db/schema'
@@ -127,6 +128,8 @@ export async function bootstrapOwner(input: NewUserInput) {
 /** The owner creates a staff account; access comes from warehouse assignments. */
 export async function createStaffUser(actor: Actor, input: NewUserInput) {
   authorize(actor, 'users.manage')
+  const problems = newUserProblems(input, minPasswordLength)
+  if (problems.length) throw new AppError('invalid', problems.join(' '))
   const prepared = await prepareUser(input, 'staff')
   return db.transaction((tx) => insertUser(tx, prepared))
 }

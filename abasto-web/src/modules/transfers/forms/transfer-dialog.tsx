@@ -19,6 +19,7 @@ import { QuantityFields } from '#/modules/inventory/forms/quantity-fields'
 import { quantityPresentations } from '#/modules/inventory/lib/pack-info'
 import { useTransferActions } from '#/modules/transfers/hooks/use-transfer-actions'
 import { transferInputFromDraft } from '#/modules/transfers/lib/transfer-drafts'
+import { unitCount } from '#/modules/transfers/lib/transfer-labels'
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
 import type { ProductStock } from '#/modules/inventory/services/stock-reads'
 
@@ -61,7 +62,6 @@ export function TransferDialog({
   const [notes, setNotes] = useState('')
   const [lines, setLines] = useState<Array<DraftLine>>(() => [newLine()])
   const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
 
   const sendable = stock.filter((row) => row.available > 0)
   const patch = (key: number, next: Partial<DraftLine>) =>
@@ -81,19 +81,23 @@ export function TransferDialog({
               ({ id }) => id === line.presentationId,
             )
           : undefined
+        const row = sendable.find((item) => item.productId === line.productId)
         return {
           productId: line.productId,
           packs: line.packs,
           loose: line.loose,
           factor: presentation?.factor ?? 1,
+          stock: row && {
+            name: row.name,
+            available: row.available,
+            unit: row.unit,
+          },
         }
       }),
     })
     if (!parsed.ok) return setError(parsed.message)
     setError(null)
-    setPending(true)
     const result = await actions.dispatch(parsed.value)
-    setPending(false)
     if (result) onClose()
   }
 
@@ -140,7 +144,9 @@ export function TransferDialog({
                 <Field
                   label="Producto"
                   hint={
-                    row ? `Disponible: ${row.available} ${row.unit}` : undefined
+                    row
+                      ? `Disponible: ${unitCount(row.available, row.unit)}`
+                      : undefined
                   }
                 >
                   <FieldSelect
@@ -210,7 +216,7 @@ export function TransferDialog({
           <ActionButton type="button" onClick={onClose}>
             Cancelar
           </ActionButton>
-          <ActionButton tone="primary" type="submit" disabled={pending}>
+          <ActionButton tone="primary" type="submit" disabled={actions.pending}>
             Enviar traslado
           </ActionButton>
         </DialogActions>

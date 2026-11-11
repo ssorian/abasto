@@ -1,4 +1,3 @@
-import { useRouter } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
@@ -14,17 +13,16 @@ import {
 } from '#/components/ui/dialog'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
-import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
+import { useActionRunner } from '#/hooks/use-action-runner'
 import { createWarehouseFn } from '#/modules/warehouses/server/warehouses'
 
 const buttonClass =
   'h-auto min-h-[44px] gap-[9px] rounded-[9px] bg-primary px-[17px] py-2.5 text-sm font-[650] text-brand-ink hover:bg-brand-hover disabled:opacity-45'
 
 export function CreateWarehouseDialog() {
-  const router = useRouter()
+  const run = useActionRunner()
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
 
   function onOpenChange(next: boolean) {
     setOpen(next)
@@ -34,19 +32,13 @@ export function CreateWarehouseDialog() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const name = String(new FormData(event.currentTarget).get('name') ?? '')
-    setPending(true)
+    // Same rule as the server, so a blank name is explained without a request.
+    if (!name.trim()) return setError('Escribe el nombre del almacén.')
     setError(null)
-    try {
-      unwrap(await createWarehouseFn({ data: { name } }))
-      await router.invalidate()
-      setOpen(false)
-    } catch (failure) {
-      setError(
-        failure instanceof ClientError ? failure.message : genericErrorMessage,
-      )
-    } finally {
-      setPending(false)
-    }
+    await run(() => createWarehouseFn({ data: { name } }), {
+      success: 'Almacén creado.',
+      onSuccess: () => setOpen(false),
+    })
   }
 
   return (
@@ -77,10 +69,10 @@ export function CreateWarehouseDialog() {
           <Button
             type="submit"
             variant="ghost"
-            disabled={pending}
+            disabled={run.pending}
             className={buttonClass}
           >
-            {pending ? 'Guardando…' : 'Crear almacén'}
+            {run.pending ? 'Guardando…' : 'Crear almacén'}
           </Button>
         </form>
       </DialogContent>

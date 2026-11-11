@@ -42,6 +42,55 @@ describe('transferInputFromDraft', () => {
     }
   })
 
+  test('refuses more than the warehouse has, naming the product and the real unit', () => {
+    const base = { fromWarehouseId: 'a', toWarehouseId: 'b', notes: '' }
+    const stocked = {
+      ...line,
+      packs: '99999',
+      loose: '',
+      stock: { name: 'Leche entera 1L', available: 20, unit: 'piezas' },
+    }
+    expect(transferInputFromDraft({ ...base, lines: [stocked] })).toEqual({
+      ok: false,
+      message:
+        'No hay suficiente existencia disponible de Leche entera 1L: solo hay 20 piezas.',
+    })
+    // Exactly what is there is allowed; one piece fewer too.
+    expect(
+      transferInputFromDraft({
+        ...base,
+        lines: [{ ...stocked, packs: '1', loose: '8' }],
+      }).ok,
+    ).toBe(true)
+    expect(
+      transferInputFromDraft({
+        ...base,
+        lines: [{ ...stocked, packs: '1', loose: '9' }],
+      }),
+    ).toEqual({
+      ok: false,
+      message:
+        'No hay suficiente existencia disponible de Leche entera 1L: solo hay 20 piezas.',
+    })
+  })
+
+  test('adds up a product repeated in two lines before checking stock', () => {
+    const base = { fromWarehouseId: 'a', toWarehouseId: 'b', notes: '' }
+    const stocked = {
+      ...line,
+      packs: '',
+      loose: '15',
+      stock: { name: 'Leche', available: 20, unit: 'piezas' },
+    }
+    expect(
+      transferInputFromDraft({ ...base, lines: [stocked, stocked] }),
+    ).toEqual({
+      ok: false,
+      message:
+        'No hay suficiente existencia disponible de Leche: solo hay 20 piezas.',
+    })
+  })
+
   test('needs at least one product, each with a quantity', () => {
     const base = { fromWarehouseId: 'a', toWarehouseId: 'b', notes: '' }
     expect(transferInputFromDraft({ ...base, lines: [] })).toEqual({

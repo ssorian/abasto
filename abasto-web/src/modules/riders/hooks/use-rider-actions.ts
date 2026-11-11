@@ -22,6 +22,7 @@ type SettleInput = {
 export function useRiderActions() {
   const run = useActionRunner()
   return {
+    pending: run.pending,
     createRider: (warehouseId: string, name: string) =>
       run(
         () => createRiderFn({ data: { warehouseId, name } }),

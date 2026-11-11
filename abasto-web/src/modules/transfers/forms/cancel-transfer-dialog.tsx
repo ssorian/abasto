@@ -1,11 +1,10 @@
-import { useState } from 'react'
-
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import {
   DialogActions,
   InventoryDialog,
 } from '#/modules/inventory/components/inventory-dialog'
 import { useTransferActions } from '#/modules/transfers/hooks/use-transfer-actions'
+import { cancelDescription } from '#/modules/transfers/lib/transfer-labels'
 import type { TransferListItem } from '#/modules/transfers/services/transfer-reads'
 
 type CancelTransferDialogProps = {
@@ -19,19 +18,16 @@ export function CancelTransferDialog({
   onClose,
 }: CancelTransferDialogProps) {
   const actions = useTransferActions()
-  const [pending, setPending] = useState(false)
 
   async function confirm() {
-    setPending(true)
     const result = await actions.cancel(transfer.id)
-    setPending(false)
     if (result) onClose()
   }
 
   return (
     <InventoryDialog
       title="Cancelar traslado"
-      description={`Las ${transfer.sentTotal} unidades que van hacia ${transfer.toWarehouseName} regresan a sus lotes de origen.`}
+      description={cancelDescription(transfer)}
       onClose={onClose}
     >
       <DialogActions>
@@ -41,7 +37,7 @@ export function CancelTransferDialog({
         <ActionButton
           tone="primary"
           type="button"
-          disabled={pending}
+          disabled={actions.pending}
           onClick={() => void confirm()}
         >
           Cancelar traslado

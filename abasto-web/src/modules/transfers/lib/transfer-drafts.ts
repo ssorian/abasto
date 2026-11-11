@@ -2,6 +2,7 @@ import { fail } from '#/modules/inventory/lib/parsed'
 import type { Parsed } from '#/modules/inventory/lib/parsed'
 import { parseWholeNumber, toBaseUnits } from '#/modules/inventory/lib/quantity'
 import type { TransferStatus } from '#/modules/transfers/db/schema'
+import { unitCount } from '#/modules/transfers/lib/transfer-labels'
 
 /** One product line of the new-transfer form, quantity typed as packs plus loose units. */
 export type TransferLineDraft = {
@@ -9,6 +10,8 @@ export type TransferLineDraft = {
   packs: string
   loose: string
   factor: number
+  /** What the source warehouse can send of this product; omitted = not checked. */
+  stock?: { name: string; available: number; unit: string }
 }
 
 export type TransferDraft = {
@@ -29,11 +32,20 @@ export function transferInputFromDraft(draft: TransferDraft): Parsed<{
   }
   if (!draft.lines.length) return fail('Agrega al menos un producto.')
   const items: Array<{ productId: string; quantity: number }> = []
+  // The same product in two lines counts once against the stock it has.
+  const asked = new Map<string, number>()
   for (const line of draft.lines) {
     if (!line.productId) return fail('Selecciona el producto en cada línea.')
     const quantity = toBaseUnits(line)
     if (!quantity.ok) return quantity
     items.push({ productId: line.productId, quantity: quantity.value })
+    const total = (asked.get(line.productId) ?? 0) + quantity.value
+    asked.set(line.productId, total)
+    if (line.stock && total > line.stock.available) {
+      return fail(
+        `No hay suficiente existencia disponible de ${line.stock.name}: solo hay ${unitCount(line.stock.available, line.stock.unit)}.`,
+      )
+    }
   }
   return {
     ok: true,

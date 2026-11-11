@@ -1,40 +1,19 @@
-import { useRouter } from '@tanstack/react-router'
-import { toast } from 'sonner'
-
-import { ClientError, genericErrorMessage, unwrap } from '#/lib/boundary'
-import type { Result } from '#/lib/boundary'
+import { useActionRunner } from '#/hooks/use-action-runner'
 import {
   cancelTransferFn,
   dispatchTransferFn,
   receiveTransferFn,
 } from '#/modules/transfers/server/transfers'
 
-const messageOf = (failure: unknown) =>
-  failure instanceof ClientError ? failure.message : genericErrorMessage
-
 /**
  * Write actions of the Traslados tab. Each resolves to `{ data }` on success
- * (the page reloads) or to `undefined` after showing the server message.
+ * (lists reloaded, success toast shown) or to `undefined` after showing the
+ * server message. `pending` is true while one runs.
  */
 export function useTransferActions() {
-  const router = useRouter()
-
-  async function run<T>(
-    action: () => Promise<Result<T>>,
-    success: string,
-  ): Promise<{ data: T } | undefined> {
-    try {
-      const data = unwrap(await action())
-      await router.invalidate()
-      toast.success(success)
-      return { data }
-    } catch (failure) {
-      toast.error(messageOf(failure))
-      return undefined
-    }
-  }
-
+  const run = useActionRunner()
   return {
+    pending: run.pending,
     dispatch: (input: {
       fromWarehouseId: string
       toWarehouseId: string
@@ -48,7 +27,7 @@ export function useTransferActions() {
     cancel: (transferId: string) =>
       run(
         () => cancelTransferFn({ data: { transferId } }),
-        'Traslado cancelado. Las unidades regresaron al almacén.',
+        'Traslado cancelado. El producto regresó a sus lotes de origen.',
       ),
   }
 }

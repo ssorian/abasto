@@ -2,12 +2,16 @@ import { useState } from 'react'
 
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import { Field, FieldInput } from '#/modules/inventory/components/form-controls'
-import { FormError } from '#/modules/inventory/components/info-blocks'
+import {
+  FormError,
+  WarningInline,
+} from '#/modules/inventory/components/info-blocks'
 import {
   DialogActions,
   InventoryDialog,
 } from '#/modules/inventory/components/inventory-dialog'
 import { useRiderActions } from '#/modules/riders/hooks/use-rider-actions'
+import { renameWarning } from '#/modules/riders/lib/rider-copy'
 import type { Rider } from '#/modules/riders/services/riders'
 
 type RiderDialogProps = {
@@ -56,6 +60,7 @@ export function RiderDialog({ warehouseId, rider, onClose }: RiderDialogProps) {
             onChange={(event) => setName(event.target.value)}
           />
         </Field>
+        {rider && <WarningInline>{renameWarning(rider.name)}</WarningInline>}
         {error && <FormError>{error}</FormError>}
         <DialogActions>
           <ActionButton type="button" onClick={onClose}>

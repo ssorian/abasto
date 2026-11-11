@@ -19,9 +19,6 @@ import {
 } from '#/components/ui/select'
 import { primaryButtonClass } from '#/modules/access/components/new-user-dialog'
 import { useUserActions } from '#/modules/access/hooks/use-user-actions'
-import { warehouseRoleLabel } from '#/modules/access/lib/role-labels'
-import { warehouseRoles } from '#/modules/access/db/schema'
-import type { WarehouseRole } from '#/modules/access/db/schema'
 import type { Warehouse } from '#/modules/warehouses/services/warehouses'
 
 type AssignWarehouseDialogProps = {
@@ -35,18 +32,17 @@ export function AssignWarehouseDialog({
   userName,
   warehouses,
 }: AssignWarehouseDialogProps) {
-  const { assign } = useUserActions()
+  const { assign, pending } = useUserActions()
   const [open, setOpen] = useState(false)
-  const [pending, setPending] = useState(false)
   const [warehouseId, setWarehouseId] = useState('')
-  const [role, setRole] = useState<WarehouseRole>('manager')
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setPending(true)
-    const saved = await assign({ userId, warehouseId, role })
-    setPending(false)
-    if (saved) setOpen(false)
+    const saved = await assign({ userId, warehouseId })
+    if (saved) {
+      setOpen(false)
+      setWarehouseId('')
+    }
   }
 
   return (
@@ -64,7 +60,7 @@ export function AssignWarehouseDialog({
         <DialogHeader>
           <DialogTitle>Asignar almacén</DialogTitle>
           <DialogDescription>
-            {userName}. Si ya tiene ese almacén, se cambia su rol.
+            {userName} quedará como encargado del almacén que elijas.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={(event) => void submit(event)} className="grid gap-4">
@@ -78,24 +74,6 @@ export function AssignWarehouseDialog({
                 {warehouses.map((warehouse) => (
                   <SelectItem key={warehouse.id} value={warehouse.id}>
                     {warehouse.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label>Rol</Label>
-            <Select
-              value={role}
-              onValueChange={(value) => setRole(value as WarehouseRole)}
-            >
-              <SelectTrigger aria-label="Rol">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {warehouseRoles.map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {warehouseRoleLabel(value)}
                   </SelectItem>
                 ))}
               </SelectContent>

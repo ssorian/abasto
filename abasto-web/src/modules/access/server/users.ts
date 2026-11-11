@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { emailSchema, parseInput } from '#/lib/boundary'
+import { parseInput } from '#/lib/boundary'
 import { runWithActor } from '#/lib/server-actor'
 import { warehouseRoles } from '#/modules/access/db/schema'
 import {
@@ -12,7 +12,8 @@ import {
 
 const newUserInput = z.object({
   name: z.string(),
-  email: emailSchema,
+  // Fields are checked together by the service so every problem is reported.
+  email: z.string(),
   password: z.string(),
 })
 const assignmentKey = { userId: z.string(), warehouseId: z.string() }
