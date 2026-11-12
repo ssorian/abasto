@@ -71,8 +71,10 @@ export const receiveOrderInput = z.object({
       damagedBoxes: whole,
       expiresOn: z.string().optional(),
       noExpiry: z.boolean().optional(),
+      listPricePerPiece: z.number().optional(),
     }),
   ),
+  updateCatalogPrices: z.boolean().optional(),
   replacements: z
     .array(
       z.object({

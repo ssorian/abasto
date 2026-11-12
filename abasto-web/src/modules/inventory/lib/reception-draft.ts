@@ -1,6 +1,12 @@
 import { parseBoxCount } from '#/modules/inventory/lib/box-count'
 import { fail } from '#/modules/inventory/lib/parsed'
 import type { Parsed } from '#/modules/inventory/lib/parsed'
+import {
+  changedPiecePrice,
+  lineTotalCents,
+  piecePriceIssue,
+} from '#/modules/inventory/lib/reception-price'
+import type { LinePrice } from '#/modules/inventory/lib/reception-price'
 import type { ReceptionInput } from '#/modules/inventory/services/supplier-reception'
 
 /** What the dialog needs of one ordered line. */
@@ -10,6 +16,8 @@ export type ReceptionLine = {
   orderedBoxes: number
   /** Base units per box; 1 means the product is ordered by the piece. */
   boxFactor?: number
+  /** Ordered supplier amounts; when present the price per piece is editable. */
+  price?: LinePrice
 }
 
 /** Only the exceptions are typed; the good boxes are derived. */
@@ -19,6 +27,8 @@ export type ReceptionLineDraft = {
   expiresOn: string
   /** Checked when the good boxes carry no expiry date. */
   noExpiry?: boolean
+  /** Typed list price per piece; undefined keeps the ordered price. */
+  price?: string
 }
 
 export type ReplacementDraft = {
@@ -91,11 +101,14 @@ export function receptionIssues(
     const entry = draft.lines[line.lineId] ?? emptyLine()
     const missing = parseBoxCount(entry.missing)
     const damaged = parseBoxCount(entry.damaged)
+    const priceIssue = piecePriceIssue(line, entry.price)
     if (!missing.ok) issues[line.lineId] = missing.message
     else if (!damaged.ok) issues[line.lineId] = damaged.message
     else if (missing.value + damaged.value > line.orderedBoxes) {
       issues[line.lineId] =
         `Las faltantes y dañadas no pueden superar las ${line.boxFactor === 1 ? 'piezas' : 'cajas'} pedidas.`
+    } else if (priceIssue) {
+      issues[line.lineId] = priceIssue
     } else if (
       line.orderedBoxes - missing.value - damaged.value > 0 &&
       !declaresExpiry(entry)
@@ -171,6 +184,8 @@ type ConfirmOptions = {
   today?: string
   /** The user explicitly accepted receiving expired stock. */
   confirmExpired?: boolean
+  /** Also save changed prices per piece on the catalog; sent only when one changed. */
+  updateCatalogPrices?: boolean
 }
 
 /** Reception form → server input; replacements only where boxes were typed. */
@@ -179,7 +194,11 @@ export function receptionInputFromDraft(
   lines: ReadonlyArray<ReceptionLine>,
   draft: ReceptionDraft,
   owed: OwedBoxes,
-  { today, confirmExpired = false }: ConfirmOptions = {},
+  {
+    today,
+    confirmExpired = false,
+    updateCatalogPrices = false,
+  }: ConfirmOptions = {},
 ): Parsed<ReceptionInput> {
   const issue = Object.values(receptionIssues(lines, draft, owed)).at(0)
   if (issue) return fail(issue)
@@ -189,13 +208,16 @@ export function receptionInputFromDraft(
   if (hasExpired && !confirmExpired) return fail(expiredNotConfirmed)
   const entries = lines.map((line) => {
     const entry = draft.lines[line.lineId] ?? emptyLine()
+    const price = changedPiecePrice(line, entry.price)
     return {
       lineId: line.lineId,
       missingBoxes: count(entry.missing),
       damagedBoxes: count(entry.damaged),
       ...expiryFields(entry),
+      ...(price === undefined ? {} : { listPricePerPiece: price }),
     }
   })
+  const repriced = entries.some((entry) => 'listPricePerPiece' in entry)
   const replacements = Object.entries(draft.replacements).flatMap(
     ([pendingId, item]) => {
       const boxes = item ? count(item.boxes) : 0
@@ -214,10 +236,35 @@ export function receptionInputFromDraft(
     value: {
       purchaseId,
       lines: entries,
+      ...(repriced && updateCatalogPrices ? { updateCatalogPrices: true } : {}),
       ...(replacements.length ? { replacements } : {}),
       ...(hasExpired ? { confirmExpired: true } : {}),
     },
   }
+}
+
+/**
+ * Order total at the typed prices (net, before discounted balances; invalid
+ * prices count at the ordered one) and how many lines changed their price.
+ */
+export function receptionTotals(
+  lines: ReadonlyArray<ReceptionLine>,
+  draft: ReceptionDraft,
+) {
+  return lines.reduce(
+    (total, line) => {
+      const typed = draft.lines[line.lineId]?.price
+      const cents =
+        lineTotalCents(line, typed) ?? lineTotalCents(line, undefined) ?? 0
+      return {
+        totalCents: total.totalCents + cents,
+        changed:
+          total.changed +
+          (changedPiecePrice(line, typed) === undefined ? 0 : 1),
+      }
+    },
+    { totalCents: 0, changed: 0 },
+  )
 }
 
 /** Boxes typed across all replacements; invalid text counts as zero. */

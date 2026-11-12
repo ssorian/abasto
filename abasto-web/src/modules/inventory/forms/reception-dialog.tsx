@@ -31,8 +31,15 @@ import {
   missingExpiry,
   receptionIssues,
   receptionOutcome,
+  receptionTotals,
   toggleReceived,
 } from '#/modules/inventory/lib/reception-draft'
+import {
+  changedPiecePrice,
+  lineTotalCents,
+  piecePriceText,
+} from '#/modules/inventory/lib/reception-price'
+import { formatTenThousandths } from '#/lib/utils/supplier-cost'
 import type {
   ReceptionDraft,
   ReceptionLine,
@@ -68,6 +75,7 @@ export function ReceptionDialog({
   const [error, setError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
   const [confirmExpired, setConfirmExpired] = useState(false)
+  const [updateCatalog, setUpdateCatalog] = useState(true)
 
   useEffect(() => {
     let current = true
@@ -103,6 +111,8 @@ export function ReceptionDialog({
   const today = businessDate()
   const expired = expiredEntries(lines, draft, today)
   const mustConfirmExpired = outcome.canConfirm && expired.length > 0
+  const totals = receptionTotals(lines, draft)
+  const discountCents = detail?.discountCents ?? 0
 
   const patchLine = (
     lineId: string,
@@ -143,6 +153,7 @@ export function ReceptionDialog({
     const parsed = receptionInputFromDraft(order.id, lines, draft, owedBoxes, {
       today,
       confirmExpired,
+      updateCatalogPrices: updateCatalog,
     })
     if (!parsed.ok) return setError(parsed.message)
     setError(null)
@@ -157,7 +168,7 @@ export function ReceptionDialog({
     <InventoryDialog
       title="Recibir pedido"
       eyebrow={order.supplierName.toUpperCase()}
-      description={`Todo llega bien salvo lo que captures. Lote automático: ${order.code}. Indica la caducidad de lo que entra o marca «Sin caducidad». Las faltantes quedan «Por reponer» con el proveedor; las dañadas o caducadas quedan «Por devolver» y no entran al inventario.`}
+      description={`Todo llega bien salvo lo que captures. Lote automático: ${order.code}. Si el proveedor cobró otro costo por pieza, corrígelo aquí. Indica la caducidad de lo que entra o marca «Sin caducidad». Las faltantes quedan «Por reponer» con el proveedor; las dañadas o caducadas quedan «Por devolver» y no entran al inventario.`}
       size="wide"
       onClose={onClose}
     >
@@ -172,11 +183,13 @@ export function ReceptionDialog({
           }}
         >
           <ListPanel className="max-h-[360px] overflow-auto group-data-maximized/dialog:max-h-none">
-            <ListTable className="min-w-[820px]">
+            <ListTable className="min-w-[1060px]">
               <ListHead>
                 {[
                   'Producto',
                   'Pedidas',
+                  'Costo por pieza',
+                  'Total',
                   'Faltantes',
                   'Dañadas / caducadas',
                   'Buenas',
@@ -187,6 +200,10 @@ export function ReceptionDialog({
                 {detail.lines.map((line) => {
                   const entry = draft.lines[line.id]
                   const issue = issues[line.id]
+                  const priced = lines.find((item) => item.lineId === line.id)!
+                  const lineTotal = lineTotalCents(priced, entry?.price)
+                  const repriced =
+                    changedPiecePrice(priced, entry?.price) !== undefined
                   return (
                     <ListRow key={line.id} className="align-top">
                       <ListCell>
@@ -202,6 +219,29 @@ export function ReceptionDialog({
                       </ListCell>
                       <ListCell>
                         {boxCountLabel(line.boxes, line.boxFactor)}
+                      </ListCell>
+                      <ListCell>
+                        <FieldInput
+                          inputMode="decimal"
+                          aria-label={`Costo por pieza de ${line.productName}`}
+                          aria-invalid={issue ? true : undefined}
+                          className={`${compact} w-[96px]`}
+                          value={entry?.price ?? piecePriceText(priced)}
+                          onChange={(event) =>
+                            patchLine(line.id, { price: event.target.value })
+                          }
+                        />
+                        {repriced && (
+                          <small className="block text-[#907e84]">
+                            Pedido a $
+                            {formatTenThousandths(line.listPricePerPiece)}
+                          </small>
+                        )}
+                      </ListCell>
+                      <ListCell>
+                        <strong aria-label={`Total de ${line.productName}`}>
+                          {lineTotal === null ? '—' : formatCents(lineTotal)}
+                        </strong>
                       </ListCell>
                       <ListCell>
                         <FieldInput
@@ -254,6 +294,43 @@ export function ReceptionDialog({
               </ListBody>
             </ListTable>
           </ListPanel>
+
+          <div className="grid gap-2 text-sm text-[#5f4a51]">
+            <p className="flex flex-wrap justify-end gap-x-4 gap-y-1">
+              <span>
+                Total del pedido{' '}
+                <strong>{formatCents(totals.totalCents)}</strong>
+              </span>
+              {discountCents > 0 && (
+                <>
+                  <span>
+                    Descuento por faltantes{' '}
+                    <strong>−{formatCents(discountCents)}</strong>
+                  </span>
+                  <span>
+                    A pagar{' '}
+                    <strong>
+                      {formatCents(totals.totalCents - discountCents)}
+                    </strong>
+                  </span>
+                </>
+              )}
+            </p>
+            {totals.changed > 0 && (
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={updateCatalog}
+                  onChange={(event) => setUpdateCatalog(event.target.checked)}
+                />
+                <span>
+                  Actualizar también el costo por pieza en el catálogo para los
+                  próximos pedidos.
+                </span>
+              </label>
+            )}
+          </div>
 
           {owedHere.length > 0 && (
             <section className="grid gap-2.5">
@@ -408,5 +485,10 @@ function receptionLines(order: SupplierOrder): Array<ReceptionLine> {
     productId: line.productId,
     orderedBoxes: line.boxes,
     boxFactor: line.boxFactor,
+    price: {
+      listPricePerPiece: line.listPricePerPiece,
+      fixedDiscountPerPiece: line.fixedDiscountPerPiece,
+      promotionPerPiece: line.promotionPerPiece,
+    },
   }))
 }

@@ -14,6 +14,10 @@ import { orderCode } from '#/modules/inventory/lib/order-code'
 import { lineShareCents } from '#/modules/inventory/lib/pending-value'
 import { loadBoxProducts } from '#/modules/inventory/services/box-products'
 import {
+  applyReceivedPrices,
+  saveCatalogPrices,
+} from '#/modules/inventory/services/reception-prices'
+import {
   lotSalePrice,
   receiveLot,
   standardBoxPrices,
@@ -38,11 +42,19 @@ export type ReceptionLineInput = {
   expiresOn?: string
   /** Explicit statement that the good boxes carry no expiry date. */
   noExpiry?: boolean
+  /**
+   * List price per piece the supplier actually charged (ten-thousandths);
+   * omitted or equal keeps the ordered one. The line's discount and promotion
+   * still apply.
+   */
+  listPricePerPiece?: number
 }
 export type ReceptionInput = {
   purchaseId: string
   /** Good boxes are derived: ordered − missing − damaged. */
   lines: Array<ReceptionLineInput>
+  /** Also save every changed list price per piece on its catalog product. */
+  updateCatalogPrices?: boolean
   /** Open "Por reponer" balances of the same supplier (other orders) that arrived with this delivery. */
   replacements?: Array<{
     pendingId: string
@@ -147,7 +159,9 @@ function validateReplacements(input: ReceptionInput, today: string) {
 
 /**
  * Verifies a waiting order from its exceptions only: per line the missing and
- * damaged boxes (the good ones are ordered − missing − damaged). Every lot of
+ * damaged boxes (the good ones are ordered − missing − damaged) and, when the
+ * supplier charged another list price per piece, that price: the line's costs
+ * are recomputed first, so lots and balances use what was actually charged. Every lot of
  * the order gets the order's code (its reference, else `PED-` + folio). Good
  * boxes become one lot per line; missing boxes become a "Por reponer" balance
  * and damaged ones a "Por devolver" balance, never stock. Replacements settle
@@ -175,13 +189,26 @@ export async function receiveSupplierOrder(
         'Ese pedido ya no está pendiente de recibir.',
       )
     }
-    const stored = await tx
+    const ordered = await tx
       .select()
       .from(purchaseLines)
       .where(eq(purchaseLines.purchaseId, order.id))
     const today = businessDate()
-    validateLines(stored, input, today)
+    validateLines(ordered, input, today)
     validateReplacements(input, today)
+    const repriced = await applyReceivedPrices(
+      tx,
+      ordered,
+      new Map(
+        input.lines.flatMap((line) =>
+          line.listPricePerPiece === undefined
+            ? []
+            : [[line.lineId, line.listPricePerPiece] as const],
+        ),
+      ),
+      order.discountCents,
+    )
+    const stored = repriced.lines
     await expireOverdueOrders(tx, order.warehouseId)
 
     const code = orderCode(order)
@@ -208,6 +235,9 @@ export async function receiveSupplierOrder(
       ...stored.map((line) => line.productId),
       ...balances.map((balance) => balance.productId),
     ])
+    if (input.updateCatalogPrices) {
+      await saveCatalogPrices(tx, actor, repriced.changed, boxProducts)
+    }
     const prices = await standardBoxPrices(
       tx,
       order.warehouseId,

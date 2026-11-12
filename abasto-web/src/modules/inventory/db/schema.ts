@@ -126,6 +126,13 @@ export const purchaseLines = pgTable(
      * (total_cost_cents) = gross − pieces × (discount + promotion).
      */
     listPricePerPiece: integer('list_price_per_piece').notNull().default(0),
+    /**
+     * List price per piece when the line was ordered. Reception may correct
+     * list_price_per_piece to what the supplier charged (and recompute the
+     * gross and net cost); this keeps the original for comparison. Null on
+     * lines that were not part of a supplier order.
+     */
+    orderedListPricePerPiece: integer('ordered_list_price_per_piece'),
     grossCostCents: integer('gross_cost_cents').notNull().default(0),
     fixedDiscountPerPiece: integer('fixed_discount_per_piece')
       .notNull()
