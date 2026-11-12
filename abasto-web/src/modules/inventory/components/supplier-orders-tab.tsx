@@ -1,4 +1,10 @@
-import { PackageCheckIcon, PlusIcon, TruckIcon, XIcon } from 'lucide-react'
+import {
+  EyeIcon,
+  PackageCheckIcon,
+  PlusIcon,
+  TruckIcon,
+  XIcon,
+} from 'lucide-react'
 import { useState } from 'react'
 
 import { ActionButton } from '#/modules/inventory/components/action-button'
@@ -24,6 +30,7 @@ type SupplierOrdersTabProps = {
   orders: ReadonlyArray<SupplierOrderSummary>
   canManage: boolean
   onNew: () => void
+  onDetail: (order: SupplierOrderSummary) => void
   onReceive: (order: SupplierOrderSummary) => void
   onCancel: (order: SupplierOrderSummary) => void
 }
@@ -45,6 +52,7 @@ export function SupplierOrdersTab({
   orders,
   canManage,
   onNew,
+  onDetail,
   onReceive,
   onCancel,
 }: SupplierOrdersTabProps) {
@@ -120,25 +128,35 @@ export function SupplierOrdersTab({
                     {order.status === 'Recibido' && <Shortages order={order} />}
                   </ListCell>
                   <ListCell>
-                    {canManage && order.status === 'Pedido' && (
-                      <span className="flex flex-wrap justify-end gap-2">
-                        <ActionButton
-                          tone="primary"
-                          className="min-h-9 px-3"
-                          onClick={() => onReceive(order)}
-                        >
-                          <PackageCheckIcon size={17} />
-                          Recibir
-                        </ActionButton>
-                        <ActionButton
-                          className="min-h-9 px-3"
-                          onClick={() => onCancel(order)}
-                        >
-                          <XIcon size={17} />
-                          Cancelar
-                        </ActionButton>
-                      </span>
-                    )}
+                    <span className="flex flex-wrap justify-end gap-2">
+                      <ActionButton
+                        tone="secondary"
+                        className="min-h-9 px-3"
+                        onClick={() => onDetail(order)}
+                      >
+                        <EyeIcon size={17} />
+                        Ver detalle
+                      </ActionButton>
+                      {canManage && order.status === 'Pedido' && (
+                        <>
+                          <ActionButton
+                            tone="primary"
+                            className="min-h-9 px-3"
+                            onClick={() => onReceive(order)}
+                          >
+                            <PackageCheckIcon size={17} />
+                            Recibir
+                          </ActionButton>
+                          <ActionButton
+                            className="min-h-9 px-3"
+                            onClick={() => onCancel(order)}
+                          >
+                            <XIcon size={17} />
+                            Cancelar
+                          </ActionButton>
+                        </>
+                      )}
+                    </span>
                   </ListCell>
                 </ListRow>
               ))}

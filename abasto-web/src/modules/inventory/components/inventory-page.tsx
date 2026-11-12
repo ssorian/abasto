@@ -26,6 +26,7 @@ import { CountDialog } from '#/modules/inventory/forms/count-dialog'
 import { LotsDialog } from '#/modules/inventory/forms/lots-dialog'
 import { MinimumDialog } from '#/modules/inventory/forms/minimum-dialog'
 import { CancelOrderDialog } from '#/modules/inventory/forms/cancel-order-dialog'
+import { OrderDetailDialog } from '#/modules/inventory/forms/order-detail-dialog'
 import { OrderDialog } from '#/modules/inventory/forms/order-dialog'
 import { ReceptionDialog } from '#/modules/inventory/forms/reception-dialog'
 import { ReturnDialog } from '#/modules/inventory/forms/return-dialog'
@@ -93,6 +94,7 @@ const headingButton =
 
 type Dialog =
   | { kind: 'order' }
+  | { kind: 'orderDetail'; order: SupplierOrderSummary }
   | { kind: 'receiveOrder'; order: SupplierOrderSummary }
   | { kind: 'cancelOrder'; order: SupplierOrderSummary }
   | { kind: 'writeOff'; pending: PendingBalance }
@@ -281,6 +283,7 @@ export function InventoryPage({
             orders={supplierOrders}
             canManage={canManage}
             onNew={() => setDialog({ kind: 'order' })}
+            onDetail={(order) => setDialog({ kind: 'orderDetail', order })}
             onReceive={(order) => setDialog({ kind: 'receiveOrder', order })}
             onCancel={(order) => setDialog({ kind: 'cancelOrder', order })}
           />
@@ -334,6 +337,12 @@ export function InventoryPage({
           products={products}
           canEditProducts={canEditProducts}
           restock={pendings.restock}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'orderDetail' && (
+        <OrderDetailDialog
+          order={dialog.order}
           onClose={() => setDialog(null)}
         />
       )}

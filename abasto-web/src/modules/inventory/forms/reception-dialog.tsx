@@ -164,6 +164,9 @@ export function ReceptionDialog({
   const totals = receptionTotals(lines, draft)
   const grandTotalCents = totals.totalCents + extrasCents
   const discountCents = detail?.discountCents ?? 0
+  const summary = `${outcome.summary}${
+    extraBoxes > 0 ? ` · ${extraBoxes} sin pedido` : ''
+  }`
 
   const patchLine = (
     lineId: string,
@@ -223,9 +226,7 @@ export function ReceptionDialog({
     }
     const saved = await actions.receiveOrder(
       input,
-      `Pedido recibido. ${outcome.summary}${
-        extraBoxes > 0 ? ` · ${extraBoxes} sin pedido` : ''
-      }.`,
+      `Pedido recibido. ${summary}.`,
     )
     if (saved) onClose()
   }
@@ -249,7 +250,7 @@ export function ReceptionDialog({
           }}
         >
           <ListPanel className="max-h-[360px] overflow-auto group-data-maximized/dialog:max-h-none">
-            <ListTable className="min-w-[1060px]">
+            <ListTable className="min-w-[900px]">
               <ListHead>
                 {[
                   'Producto',
@@ -291,7 +292,7 @@ export function ReceptionDialog({
                           inputMode="decimal"
                           aria-label={`Costo por pieza de ${line.productName}`}
                           aria-invalid={issue ? true : undefined}
-                          className={`${compact} w-[96px]`}
+                          className={`${compact} w-[88px]`}
                           value={entry?.price ?? piecePriceText(priced)}
                           onChange={(event) =>
                             patchLine(line.id, { price: event.target.value })
@@ -314,7 +315,7 @@ export function ReceptionDialog({
                           inputMode="numeric"
                           aria-label={`${unitWord(line.boxFactor)} faltantes de ${line.productName}`}
                           aria-invalid={issue ? true : undefined}
-                          className={`${compact} w-[76px]`}
+                          className={`${compact} w-[64px]`}
                           value={entry?.missing ?? ''}
                           onChange={(event) =>
                             patchLine(line.id, { missing: event.target.value })
@@ -326,7 +327,7 @@ export function ReceptionDialog({
                           inputMode="numeric"
                           aria-label={`${unitWord(line.boxFactor)} dañadas o caducadas de ${line.productName}`}
                           aria-invalid={issue ? true : undefined}
-                          className={`${compact} w-[76px]`}
+                          className={`${compact} w-[64px]`}
                           value={entry?.damaged ?? ''}
                           onChange={(event) =>
                             patchLine(line.id, { damaged: event.target.value })
@@ -639,7 +640,7 @@ export function ReceptionDialog({
 
           <WarningInline className="mt-0">
             {outcome.canConfirm
-              ? `${outcome.summary}. Al confirmar, el pedido se cierra y ya no se puede editar.`
+              ? `${summary}. Al confirmar, el pedido se cierra y ya no se puede editar.`
               : outcome.summary}
           </WarningInline>
           {mustConfirmExpired && (
