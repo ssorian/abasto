@@ -220,6 +220,51 @@ describe('closeCashSession', () => {
     expect(exact.differenceCents).toBe(0)
   })
 
+  test('keeps a trimmed note that explains the difference, shown in the history', async () => {
+    const { fx, open } = await setup()
+    await open(1_000)
+    const closed = await closeCashSession(fx.staffA, {
+      warehouseId: fx.a.id,
+      countedCents: 900,
+      note: '  Faltó cambio de un cliente  ',
+    })
+    expect(closed.note).toBe('Faltó cambio de un cliente')
+    const [history] = await listCashSessions(fx.managerA, fx.a.id)
+    expect(history.session.note).toBe('Faltó cambio de un cliente')
+  })
+
+  test('a blank note is stored as no note', async () => {
+    const { fx, open } = await setup()
+    await open(1_000)
+    const closed = await closeCashSession(fx.staffA, {
+      warehouseId: fx.a.id,
+      countedCents: 1_000,
+      note: '   ',
+    })
+    expect(closed.note).toBeNull()
+  })
+
+  test('a note longer than 500 characters is refused without closing', async () => {
+    const { fx, open } = await setup()
+    await open(1_000)
+    const before = await paymentState()
+    const long = await errorOf(() =>
+      closeCashSession(fx.staffA, {
+        warehouseId: fx.a.id,
+        countedCents: 1_000,
+        note: 'x'.repeat(501),
+      }),
+    )
+    expect([long.code, long.message]).toEqual([
+      'invalid',
+      'La nota debe tener como máximo 500 caracteres.',
+    ])
+    expect(await paymentState()).toEqual(before)
+    expect((await getOpenCashSession(fx.staffA, fx.a.id))?.session.status).toBe(
+      'open',
+    )
+  })
+
   test('refuses a closed warehouse, an invalid count and no permission without changing anything', async () => {
     const { fx, open } = await setup()
     const none = await errorOf(() =>

@@ -39,6 +39,8 @@ export const cashSessions = pgTable(
     expectedCents: integer('expected_cents'),
     /** Counted − expected (negative = missing cash), stored at close. */
     differenceCents: integer('difference_cents'),
+    /** Optional explanation of the difference, written at close. */
+    note: text('note'),
   },
   (table) => [
     uniqueIndex('cash_sessions_one_open_per_warehouse')

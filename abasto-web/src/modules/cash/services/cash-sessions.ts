@@ -54,13 +54,28 @@ export async function openCashSession(
   }
 }
 
-/** Closes the open drawer with the counted cash; stores expected and difference. */
+const noteMaxLength = 500
+
+/** Trimmed close note, or null when blank; refuses an over-long note. */
+function closeNote(note: string | undefined): string | null {
+  const trimmed = note?.trim() ?? ''
+  if (trimmed.length > noteMaxLength) {
+    throw new AppError(
+      'invalid',
+      `La nota debe tener como máximo ${noteMaxLength} caracteres.`,
+    )
+  }
+  return trimmed || null
+}
+
+/** Closes the open drawer with the counted cash; stores expected, difference and an optional note. */
 export async function closeCashSession(
   actor: Actor,
-  input: { warehouseId: string; countedCents: number },
+  input: { warehouseId: string; countedCents: number; note?: string },
 ): Promise<CashSession> {
   authorize(actor, 'warehouse.operate', input.warehouseId)
   assertCents(input.countedCents)
+  const note = closeNote(input.note)
   return db.transaction(async (tx) => {
     const session = await lockOpenSession(tx, input.warehouseId)
     const expectedCents = await expectedCash(tx, session)
@@ -73,6 +88,7 @@ export async function closeCashSession(
         countedCents: input.countedCents,
         expectedCents,
         differenceCents: input.countedCents - expectedCents,
+        note,
       })
       .where(eq(cashSessions.id, session.id))
       .returning()

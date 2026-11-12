@@ -23,8 +23,12 @@ export function useCashActions(warehouseId: string) {
         success: 'Caja abierta.',
         onSuccess,
       }),
-    close: (countedCents: number, onSuccess?: (session: CashSession) => void) =>
-      run(() => closeCashFn({ data: { warehouseId, countedCents } }), {
+    close: (
+      countedCents: number,
+      note: string,
+      onSuccess?: (session: CashSession) => void,
+    ) =>
+      run(() => closeCashFn({ data: { warehouseId, countedCents, note } }), {
         success: 'Caja cerrada.',
         onSuccess,
       }),

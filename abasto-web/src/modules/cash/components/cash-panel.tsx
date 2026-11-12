@@ -140,11 +140,7 @@ export function CashPanel({
         />
       )}
       {dialog === 'close' && cash && (
-        <CashCloseDialog
-          warehouseId={warehouseId}
-          expectedCents={cash.expectedCents}
-          onClose={close}
-        />
+        <CashCloseDialog warehouseId={warehouseId} onClose={close} />
       )}
       {dialog === 'history' && (
         <CashHistoryDialog warehouseId={warehouseId} onClose={close} />

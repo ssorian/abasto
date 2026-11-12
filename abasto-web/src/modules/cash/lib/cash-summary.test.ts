@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { formatCents } from '#/modules/pricing/lib/money'
 import {
-  closePreview,
+  countedCash,
   differenceLabel,
   movementLabel,
   summarizeSession,
@@ -59,22 +59,16 @@ describe('differenceLabel', () => {
   })
 })
 
-describe('closePreview', () => {
-  test('parses the counted pesos and shows the difference with the expected cash', () => {
-    expect(closePreview(76000, '755.00')).toEqual({
-      ok: true,
-      value: { countedCents: 75500, differenceCents: -500 },
-    })
+describe('countedCash', () => {
+  test('parses the counted pesos into cents, without any expected cash', () => {
+    expect(countedCash('755.00')).toEqual({ ok: true, value: 75500 })
   })
 
   test('zero counted cash is allowed; garbage is not', () => {
-    expect(closePreview(100, '0')).toEqual({
-      ok: true,
-      value: { countedCents: 0, differenceCents: -100 },
-    })
-    expect(closePreview(100, 'abc').ok).toBe(false)
-    expect(closePreview(100, '').ok).toBe(false)
-    expect(closePreview(100, '1.234').ok).toBe(false)
+    expect(countedCash('0')).toEqual({ ok: true, value: 0 })
+    expect(countedCash('abc').ok).toBe(false)
+    expect(countedCash('').ok).toBe(false)
+    expect(countedCash('1.234').ok).toBe(false)
   })
 })
 

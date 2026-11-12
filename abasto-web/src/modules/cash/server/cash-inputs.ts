@@ -7,7 +7,10 @@ export const warehouseInput = z.object({ warehouseId: id })
 
 export const openCashInput = warehouseInput.extend({ openingCents: cents })
 
-export const closeCashInput = warehouseInput.extend({ countedCents: cents })
+export const closeCashInput = warehouseInput.extend({
+  countedCents: cents,
+  note: z.string().optional(),
+})
 
 /** Entry or withdrawal: the service validates the amount and the reason. */
 export const cashMovementInput = warehouseInput.extend({
