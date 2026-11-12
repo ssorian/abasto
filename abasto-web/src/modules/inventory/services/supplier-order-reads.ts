@@ -161,6 +161,10 @@ export type SupplierOrderLine = {
   listPricePerPiece: number
   fixedDiscountPerPiece: number
   promotionPerPiece: number
+  /** List price per piece when ordered; differs when reception corrected it. Null if never ordered. */
+  orderedListPricePerPiece: number | null
+  /** False when the product arrived without being ordered (added at reception). */
+  ordered: boolean
   totalCostCents: number
   costPerBoxCents: number
   goodQuantity: number | null
@@ -219,6 +223,8 @@ export async function getSupplierOrder(
       quantity: purchaseLines.quantity,
       grossCostCents: purchaseLines.grossCostCents,
       listPricePerPiece: purchaseLines.listPricePerPiece,
+      orderedListPricePerPiece: purchaseLines.orderedListPricePerPiece,
+      ordered: purchaseLines.ordered,
       fixedDiscountPerPiece: purchaseLines.fixedDiscountPerPiece,
       promotionPerPiece: purchaseLines.promotionPerPiece,
       totalCostCents: purchaseLines.totalCostCents,

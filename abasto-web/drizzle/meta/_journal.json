@@ -218,6 +218,20 @@
       "when": 1794458587572,
       "tag": "0030_cash_session_note",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794492572535,
+      "tag": "0031_ordered_list_price",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794493058507,
+      "tag": "0032_unordered_lines",
+      "breakpoints": true
     }
   ]
 }

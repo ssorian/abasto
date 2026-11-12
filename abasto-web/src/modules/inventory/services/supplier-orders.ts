@@ -162,6 +162,7 @@ export async function createSupplierOrder(
         totalCostCents,
         boxFactor: product.factor,
         listPricePerPiece: product.listPricePerPiece,
+        orderedListPricePerPiece: product.listPricePerPiece,
         grossCostCents,
         fixedDiscountPerPiece: product.fixedDiscountPerPiece,
         promotionPerPiece: product.promotionPerPiece,

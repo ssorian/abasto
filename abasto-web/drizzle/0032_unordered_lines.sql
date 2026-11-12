@@ -1,0 +1,1 @@
+ALTER TABLE "purchase_lines" ADD COLUMN "ordered" boolean DEFAULT true NOT NULL;
