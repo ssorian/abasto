@@ -1,5 +1,6 @@
 import { StatusBadge } from '#/components/status-badge'
 import { SupplierSelect } from '#/components/supplier-select'
+import { ProductImage } from '#/components/product-image'
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import { EmptyPanel } from '#/modules/inventory/components/empty-panel'
 import { HeldBreakdown } from '#/modules/inventory/components/held-breakdown'
@@ -104,8 +105,22 @@ export function ProductsTab({
                 return (
                   <ListRow key={row.productId}>
                     <ListCell>
-                      <strong>{row.name}</strong>
-                      <small className="block text-[#907e84]">{row.sku}</small>
+                      <span className="flex items-center gap-3">
+                        <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#faf9f7]">
+                          <ProductImage
+                            src={row.imageUrl}
+                            name={row.name}
+                            className="size-full object-contain p-1 mix-blend-multiply"
+                            placeholderClassName="size-5"
+                          />
+                        </span>
+                        <span>
+                          <strong>{row.name}</strong>
+                          <small className="block text-[#907e84]">
+                            {row.sku}
+                          </small>
+                        </span>
+                      </span>
                     </ListCell>
                     <ListCell>
                       <strong>{formatQuantity(row.onHand, pack)}</strong>

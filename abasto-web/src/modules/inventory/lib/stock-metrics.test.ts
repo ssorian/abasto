@@ -22,6 +22,7 @@ function row(
     name,
     sku: `SKU-${name}`,
     unit: 'piezas',
+    imageUrl: null,
     onHand,
     inRoute: 0,
     reserved: 0,

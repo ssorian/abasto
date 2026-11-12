@@ -72,6 +72,18 @@ describe('getWarehouseStock', () => {
     })
   })
 
+  test('carries the product photo, null when it has none', async () => {
+    const fx = await setupInventory()
+    await updateProduct(fx.owner, fx.soda.id, {
+      imageUrl: 'https://example.com/soda.png',
+    })
+    const stock = await getWarehouseStock(fx.staffA, fx.a.id)
+    expect(stock.map(({ name, imageUrl }) => ({ name, imageUrl }))).toEqual([
+      { name: 'Leche 1L', imageUrl: null },
+      { name: fx.soda.name, imageUrl: 'https://example.com/soda.png' },
+    ])
+  })
+
   test('lists every published product with zero stock; unpublished ones only with lots or a minimum', async () => {
     const fx = await setupInventory()
     await updateProduct(fx.owner, fx.soda.id, { published: false })

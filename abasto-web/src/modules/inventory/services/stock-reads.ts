@@ -31,6 +31,8 @@ export type ProductStock = {
   name: string
   sku: string
   unit: string
+  /** Catalog photo; null when the product has none. */
+  imageUrl: string | null
   onHand: number
   /** Held by open orders (Reservado or Preparado). */
   reserved: number
@@ -111,6 +113,7 @@ export async function getWarehouseStock(
       name: products.name,
       sku: products.sku,
       unit: products.unit,
+      imageUrl: products.imageUrl,
       published: products.published,
     })
     .from(products)
@@ -141,6 +144,7 @@ export async function getWarehouseStock(
         name: product.name,
         sku: product.sku,
         unit: product.unit,
+        imageUrl: product.imageUrl,
         onHand,
         reserved,
         inRoute,
