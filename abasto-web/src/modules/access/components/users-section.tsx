@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { X } from 'lucide-react'
 import {
   Table,
@@ -8,6 +10,7 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { AssignWarehouseDialog } from '#/modules/access/components/assign-warehouse-dialog'
+import { UnassignWarehouseDialog } from '#/modules/access/components/unassign-warehouse-dialog'
 import { useUserActions } from '#/modules/access/hooks/use-user-actions'
 import { chipLabel, userRoleLabel } from '#/modules/access/lib/role-labels'
 import type { ManagedUser } from '#/modules/access/services/access'
@@ -24,6 +27,21 @@ const cell = 'border-t border-row-border px-[11px] py-[13px] md:px-3.5 md:py-4'
 
 export function UsersSection({ users, warehouses }: UsersSectionProps) {
   const { unassign, pending } = useUserActions()
+  const [removal, setRemoval] = useState<{
+    userId: string
+    userName: string
+    warehouseId: string
+    warehouseName: string
+  } | null>(null)
+
+  async function confirmRemoval() {
+    if (!removal) return
+    const result = await unassign({
+      userId: removal.userId,
+      warehouseId: removal.warehouseId,
+    })
+    if (result) setRemoval(null)
+  }
 
   return (
     <section aria-labelledby="users-heading">
@@ -70,9 +88,11 @@ export function UsersSection({ users, warehouses }: UsersSectionProps) {
                             aria-label={`Quitar ${assignment.warehouseName} a ${member.name}`}
                             className="rounded-full p-0.5 hover:bg-[#ded6e4]"
                             onClick={() =>
-                              void unassign({
+                              setRemoval({
                                 userId: member.id,
+                                userName: member.name,
                                 warehouseId: assignment.warehouseId,
+                                warehouseName: assignment.warehouseName,
                               })
                             }
                           >
@@ -97,6 +117,15 @@ export function UsersSection({ users, warehouses }: UsersSectionProps) {
           </TableBody>
         </Table>
       </div>
+      {removal ? (
+        <UnassignWarehouseDialog
+          userName={removal.userName}
+          warehouseName={removal.warehouseName}
+          pending={pending}
+          onConfirm={() => void confirmRemoval()}
+          onClose={() => setRemoval(null)}
+        />
+      ) : null}
     </section>
   )
 }
