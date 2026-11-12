@@ -25,9 +25,15 @@ type InventoryDialogProps = {
 
 const sizes = {
   standard: 'max-w-[calc(100vw-24px)] md:max-w-[530px]',
-  count:
-    'max-w-[calc(100vw-20px)] px-[19px] py-[23px] md:max-w-[800px] md:p-[29px]',
-  wide: 'w-[calc(100vw-20px)] max-w-[calc(100vw-20px)] p-5 md:w-[min(1080px,calc(100vw-32px))] md:max-w-[1080px] md:p-[29px]',
+  count: 'max-w-[calc(100vw-20px)] md:max-w-[800px]',
+  wide: 'w-[calc(100vw-20px)] max-w-[calc(100vw-20px)] md:w-[min(1080px,calc(100vw-32px))] md:max-w-[1080px]',
+}
+
+/** Horizontal padding shared by the fixed header and the scrolling body. */
+const gutters = {
+  standard: 'px-[23px] md:px-[29px]',
+  count: 'px-[19px] md:px-[29px]',
+  wide: 'px-5 md:px-[29px]',
 }
 
 /** Full screen: wins over every size; inner lists drop their height cap via `group-data-maximized/dialog`. */
@@ -55,12 +61,20 @@ export function InventoryDialog({
         showCloseButton={false}
         data-maximized={maximized || undefined}
         className={cn(
-          'group/dialog max-h-[92dvh] gap-[18px] overflow-y-auto rounded-2xl border border-transparent bg-white p-[23px] text-base sm:max-w-[calc(100vw-24px)] md:gap-5 md:p-[29px]',
+          // The content never scrolls: the header and its corner buttons stay put while the body scrolls.
+          'group/dialog flex max-h-[92dvh] flex-col gap-0 overflow-hidden rounded-2xl border border-transparent bg-white p-0 text-base sm:max-w-[calc(100vw-24px)]',
           sizes[size],
           maximized && maximizedClass,
         )}
       >
-        <DialogHeader className="text-left">
+        <DialogHeader
+          className={cn(
+            'shrink-0 pt-[23px] text-left md:pt-[29px]',
+            gutters[size],
+            // Room for the corner buttons, after the gutters so it wins.
+            'pr-20 md:pr-20',
+          )}
+        >
           {eyebrow && (
             <span className="text-xs font-bold tracking-[1.5px] text-ink-eyebrow">
               {eyebrow}
@@ -73,7 +87,14 @@ export function InventoryDialog({
             {description}
           </DialogDescription>
         </DialogHeader>
-        {children}
+        <div
+          className={cn(
+            'grid min-h-0 flex-1 content-start gap-[18px] overflow-y-auto pt-[18px] pb-[23px] [scrollbar-width:thin] md:gap-5 md:pt-5 md:pb-[29px]',
+            gutters[size],
+          )}
+        >
+          {children}
+        </div>
         <span className="absolute top-4 right-4 flex items-center gap-3">
           {canMaximize && (
             <button
