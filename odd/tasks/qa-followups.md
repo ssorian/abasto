@@ -18,7 +18,7 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - T2 [S3 unassign] parent inline — confirm dialog before removing a warehouse from a user. Status: done; no DOM test runner (Radix portal renders empty in SSR), tsc/eslint clean, browser check in T5. Commit: f25ac74
 - T3 [S3 count-to-0, S4, S5] parent inline (Writer rule did not fire: one heavy unit) — blind count + count-to-0 confirm; blind cash close + note column (migration 0030), history shows note. Risk: item 1 (cash session schema, migration). Status: done, RED→GREEN in `stock-drafts.test.ts` and `cash-sessions.test.ts`; 1146 tests pass; 0030 applied to dev DB. Commits: 75b32de (count), 42d1ee7 (cash)
 - T4 [S2] parent inline — production build timing, record in QA doc. Status: done (measured, recorded in the QA doc; still 1.2–4.4 s, not fixed: profiling and fixing is a separate decision, see L6).
-- T5 [S1-S6] verify — independent verification (risk items 1 and 3). Status: pending.
+- T5 [S1-S6] verify — independent verification (risk items 1 and 3). Status: done (mwd2lla5): S2–S6 pass, S1 partial (≈30 files use raw `<button>`, not guarded); minor: zero confirmation not reset on product/quantity change, fixed by parent. Browser check not run (no Playwright tool for the verifier).
 
 ## Log
 
@@ -28,3 +28,4 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - L4 (parent): delivery — single branch, no PR yet (as the previous batch); the 4211-line slice count is mostly the generated drizzle snapshot `0030_snapshot.json`; authored lines ≈ 440.
 - L5 (open decision): the Mostrador cash panel still shows "EFECTIVO ESPERADO" (and opening, sales, entries, withdrawals) while the drawer is open, so the close dialog is blind but the screen is not. Hiding the panel figures is a product decision for the user.
 - L6 (evidence, parent): production build SSR `/inventario` 2.5–4.4 s, `/reportes` 2.2–3.9 s, `/` 1.2–2.7 s, `/almacenes` and `/repartos` 1.3–1.9 s; login needed `Origin: http://localhost:3000` (auth base URL). Left unfixed pending the user's decision.
+- L7 (evidence, verify mwd2lla5): bun test 1146 pass / 2 skip / 0 fail; tsc, eslint, prettier clean; 0030 compatible with the 0010 immutability trigger and the closed-fields check.

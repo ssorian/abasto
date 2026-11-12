@@ -102,6 +102,7 @@ export function CountDialog({
             onChange={(event) => {
               setProductId(event.target.value)
               setPresentationId('')
+              setZeroConfirmed(false)
             }}
           >
             <option value="">Selecciona un producto</option>
@@ -127,6 +128,8 @@ export function CountDialog({
                 }
                 if (patch.packs !== undefined) setPacks(patch.packs)
                 if (patch.loose !== undefined) setLoose(patch.loose)
+                // A confirmation is for this exact zero, not a later one.
+                setZeroConfirmed(false)
               }}
             />
             {mustConfirmZero && (
