@@ -13,7 +13,7 @@ import {
   ListTable,
 } from '#/modules/inventory/components/list-panel'
 import { Picker } from '#/modules/inventory/components/picker'
-import { SearchBox } from '#/modules/inventory/components/search-box'
+import { SearchBox } from '#/components/search-box'
 import { StockBadge } from '#/modules/inventory/components/stock-badge'
 import { dateLabel } from '#/modules/inventory/lib/format'
 import { formatQuantity } from '#/modules/inventory/lib/quantity'

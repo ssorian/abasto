@@ -1,7 +1,10 @@
+import { normalize } from '#/modules/inventory/lib/format'
+
 export type PriceInfo = {
   presentationId: string
   productId: string
   productName: string
+  sku: string
   presentationName: string
   factor: number
   priceCents: number | null
@@ -22,21 +25,35 @@ export type SellableOption = {
   available: number
   /** Base units of the product still available, shared by all its presentations. */
   availableBase: number
+  productName: string
+  sku: string
+  /** Catalog photo; null when the product has none. */
+  imageUrl: string | null
+  supplierId: string | null
+  supplierName: string | null
+}
+
+/** Product facts the stock read carries beyond availability. */
+type StockInfo = {
+  productId: string
+  available: number
+  unit: string
+  imageUrl?: string | null
+  supplierId?: string | null
+  supplierName?: string | null
 }
 
 /** Priced presentations with the whole units available (base units ÷ factor). */
 export function buildSellable(
   prices: ReadonlyArray<PriceInfo>,
-  stock: ReadonlyArray<{
-    productId: string
-    available: number
-    unit: string
-  }>,
+  stock: ReadonlyArray<StockInfo>,
 ): Array<SellableOption> {
+  const stockOf = new Map(stock.map((s) => [s.productId, s]))
   const availableOf = new Map(stock.map((s) => [s.productId, s.available]))
   const unitOf = new Map(stock.map((s) => [s.productId, s.unit]))
-  return prices.flatMap((price) =>
-    price.priceCents === null
+  return prices.flatMap((price) => {
+    const product = stockOf.get(price.productId)
+    return price.priceCents === null
       ? []
       : [
           {
@@ -51,9 +68,52 @@ export function buildSellable(
               (availableOf.get(price.productId) ?? 0) / price.factor,
             ),
             availableBase: availableOf.get(price.productId) ?? 0,
+            productName: price.productName,
+            sku: price.sku,
+            imageUrl: product?.imageUrl ?? null,
+            supplierId: product?.supplierId ?? null,
+            supplierName: product?.supplierName ?? null,
           },
-        ],
+        ]
+  })
+}
+
+export type SellableFilter = {
+  /** Name or SKU, case- and accent-insensitive. */
+  query: string
+  /** Supplier id; empty means every supplier. */
+  supplierId: string
+  /** When set, only these presentations (the ones already in the order). */
+  onlyIds?: ReadonlySet<string>
+}
+
+/** Options the new-order table shows for the current search and filters. */
+export function filterSellable(
+  options: ReadonlyArray<SellableOption>,
+  { query, supplierId, onlyIds }: SellableFilter,
+): Array<SellableOption> {
+  const needle = normalize(query.trim())
+  return options.filter(
+    (option) =>
+      (!supplierId || option.supplierId === supplierId) &&
+      (!onlyIds || onlyIds.has(option.presentationId)) &&
+      (!needle ||
+        normalize(option.productName).includes(needle) ||
+        normalize(option.sku).includes(needle)),
   )
+}
+
+/** Suppliers with something to sell, once each and by name, for the supplier filter. */
+export function sellableSuppliers(
+  options: ReadonlyArray<SellableOption>,
+): Array<{ id: string; name: string; active: boolean }> {
+  const byId = new Map<string, string>()
+  for (const { supplierId, supplierName } of options) {
+    if (supplierId && supplierName) byId.set(supplierId, supplierName)
+  }
+  return [...byId]
+    .map(([id, name]) => ({ id, name, active: true }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
 }
 
 /**

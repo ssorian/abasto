@@ -23,6 +23,8 @@ function row(
     sku: `SKU-${name}`,
     unit: 'piezas',
     imageUrl: null,
+    supplierId: null,
+    supplierName: null,
     onHand,
     inRoute: 0,
     reserved: 0,

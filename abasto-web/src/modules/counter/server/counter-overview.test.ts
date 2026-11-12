@@ -3,6 +3,8 @@ import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import { summarizeSession } from '#/modules/cash/lib/cash-summary'
 import { recordCashEntry } from '#/modules/cash/services/cash-movements'
+import { updateProduct } from '#/modules/catalog/services/products'
+import { createSupplier } from '#/modules/catalog/services/suppliers'
 import { getCounterOverview } from '#/modules/counter/server/counter-overview'
 import {
   createCustomer,
@@ -74,6 +76,23 @@ describe('getCounterOverview', () => {
     expect(view.cash?.session.warehouseId).toBe(fx.a.id)
     expect(view.cash?.expectedCents).toBe(0)
     expect(view.canViewCashHistory).toBe(true)
+  })
+
+  test('each sellable option names its product, SKU, photo and supplier', async () => {
+    const fx = await setupOrders()
+    const lala = await createSupplier(fx.owner, { name: 'Lala' })
+    await updateProduct(fx.owner, fx.milkBox.id, {
+      supplierId: lala.id,
+      imageUrl: 'https://example.com/leche.png',
+    })
+    const view = await getCounterOverview(fx.staffA)
+    expect(view.sellable[0]).toMatchObject({
+      productName: fx.milkBox.name,
+      sku: fx.milkBox.sku,
+      imageUrl: 'https://example.com/leche.png',
+      supplierId: lala.id,
+      supplierName: 'Lala',
+    })
   })
 
   test('the owner sees every warehouse, can set the hours and picks one with the id', async () => {
