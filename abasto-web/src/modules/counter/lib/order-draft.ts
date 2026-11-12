@@ -34,6 +34,24 @@ export const setLineQuantity = (
     line.presentationId === presentationId ? { ...line, quantity } : line,
   )
 
+/**
+ * Quantity typed straight into a product row: the first digit adds the line,
+ * later edits change it and clearing the field takes it out of the order.
+ */
+export function typeLineQuantity(
+  lines: Array<DraftLine>,
+  presentationId: string,
+  quantity: string,
+): Array<DraftLine> {
+  const inOrder = lines.some((line) => line.presentationId === presentationId)
+  if (quantity.trim() === '') {
+    return inOrder ? removeLine(lines, presentationId) : lines
+  }
+  return inOrder
+    ? setLineQuantity(lines, presentationId, quantity)
+    : [...lines, { presentationId, quantity }]
+}
+
 export const removeLine = (lines: Array<DraftLine>, presentationId: string) =>
   lines.filter((line) => line.presentationId !== presentationId)
 

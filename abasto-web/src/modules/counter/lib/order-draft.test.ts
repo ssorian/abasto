@@ -4,6 +4,7 @@ import {
   draftToOrderInput,
   removeLine,
   setLineQuantity,
+  typeLineQuantity,
 } from '#/modules/counter/lib/order-draft'
 
 describe('order draft', () => {
@@ -75,5 +76,27 @@ describe('order draft', () => {
           'La cantidad de cada producto debe ser un entero mayor que cero.',
       })
     }
+  })
+})
+
+describe('typeLineQuantity', () => {
+  const lines = [{ presentationId: 'a', quantity: '2' }]
+
+  test('typing in an empty row adds the line with that text', () => {
+    expect(typeLineQuantity(lines, 'b', '3')).toEqual([
+      { presentationId: 'a', quantity: '2' },
+      { presentationId: 'b', quantity: '3' },
+    ])
+  })
+
+  test('typing in a row already in the order changes its quantity', () => {
+    expect(typeLineQuantity(lines, 'a', '12')).toEqual([
+      { presentationId: 'a', quantity: '12' },
+    ])
+  })
+
+  test('clearing the row removes the line; clearing an empty row changes nothing', () => {
+    expect(typeLineQuantity(lines, 'a', ' ')).toEqual([])
+    expect(typeLineQuantity(lines, 'b', '')).toBe(lines)
   })
 })

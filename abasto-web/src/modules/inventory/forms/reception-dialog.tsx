@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { ProductImage } from '#/components/product-image'
+import { SearchBox } from '#/components/search-box'
+
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import { ExpiryField } from '#/modules/inventory/components/expiry-field'
 import { FieldInput } from '#/modules/inventory/components/form-controls'
@@ -156,9 +159,10 @@ export function ReceptionDialog({
     (sum, line) => sum + (Number(extras[line.productId]?.boxes) || 0),
     0,
   )
-  const candidates = supplierProducts(products, order.supplierId, query)
-    .filter((product) => !onOrder.has(product.id) && !extras[product.id])
-    .slice(0, 6)
+  // Every product of the order's supplier is listed up front; the search only narrows it.
+  const candidates = supplierProducts(products, order.supplierId, query).filter(
+    (product) => !onOrder.has(product.id) && !extras[product.id],
+  )
   const mustConfirmExpired =
     outcome.canConfirm && (expired.length > 0 || extrasExpired)
   const totals = receptionTotals(lines, draft)
@@ -370,33 +374,68 @@ export function ReceptionDialog({
               Productos de {order.supplierName} que llegaron sin pedirlos.
               Entran completos al inventario con el código del pedido.
             </p>
-            <FieldInput
-              aria-label={`Buscar producto de ${order.supplierName}`}
-              placeholder="Buscar por nombre o SKU"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            {candidates.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {candidates.map((product) => (
-                  <ActionButton
-                    key={product.id}
-                    type="button"
-                    tone="secondary"
-                    className="min-h-9 px-3"
-                    onClick={() =>
-                      setExtras((current) => addExtra(current, product.id))
-                    }
-                  >
-                    Agregar {product.name}
-                  </ActionButton>
-                ))}
+            <div className="flex flex-wrap items-center gap-3">
+              <span
+                aria-label="Proveedor del pedido"
+                className="inline-flex h-[45px] items-center rounded-[9px] border border-[#eee7e0] bg-[#faf7f4] px-3.5 text-sm text-[#5f4a51] md:h-11"
+              >
+                {order.supplierName}
+              </span>
+              <div className="flex min-w-[240px] flex-1">
+                <SearchBox
+                  label={`Buscar producto de ${order.supplierName}`}
+                  placeholder="Buscar por nombre o SKU"
+                  value={query}
+                  onChange={setQuery}
+                />
               </div>
-            ) : (
-              <p className="text-xs text-[#907e84]">
-                Sin productos que coincidan
-              </p>
-            )}
+            </div>
+            <ListPanel className="max-h-[260px] overflow-auto group-data-maximized/dialog:max-h-[420px]">
+              {candidates.length > 0 ? (
+                <ul className="divide-y divide-[#f5f1ed]">
+                  {candidates.map((product) => (
+                    <li
+                      key={product.id}
+                      className="flex items-center gap-3 px-3.5 py-2.5"
+                    >
+                      <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#faf9f7]">
+                        <ProductImage
+                          src={product.imageUrl || null}
+                          name={product.name}
+                          className="size-full object-contain p-1 mix-blend-multiply"
+                          placeholderClassName="size-5"
+                        />
+                      </span>
+                      <span className="min-w-0 flex-1 text-sm">
+                        <strong className="block font-semibold">
+                          {product.name}
+                        </strong>
+                        <small className="block text-[#907e84]">
+                          {product.sku}
+                        </small>
+                      </span>
+                      <ActionButton
+                        type="button"
+                        tone="secondary"
+                        className="min-h-9 px-3"
+                        aria-label={`Agregar ${product.name}`}
+                        onClick={() =>
+                          setExtras((current) => addExtra(current, product.id))
+                        }
+                      >
+                        Agregar
+                      </ActionButton>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="px-3.5 py-4 text-center text-xs text-[#907e84]">
+                  {query.trim()
+                    ? 'Sin productos que coincidan'
+                    : `No hay más productos de ${order.supplierName} para agregar`}
+                </p>
+              )}
+            </ListPanel>
             {extraLines.length > 0 && (
               <ListPanel className="overflow-auto">
                 <ListTable className="min-w-[900px]">

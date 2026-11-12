@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { ArrowRightIcon, CheckIcon, TagIcon } from 'lucide-react'
 
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
-import { ProductImage } from '#/modules/catalog/components/product-image'
+import { ProductImage } from '#/components/product-image'
 import { presentationLabel } from '#/modules/catalog/lib/catalog-presentations'
 
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'

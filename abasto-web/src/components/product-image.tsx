@@ -8,6 +8,8 @@ type ProductImageProps = {
   src: string | null
   name: string
   className?: string
+  /** Size of the placeholder icon; defaults to the catalog card size. */
+  placeholderClassName?: string
 }
 
 /**
@@ -15,7 +17,12 @@ type ProductImageProps = {
  * placeholder icon takes its place. The failure is remembered per URL, so a
  * corrected URL gets a fresh try.
  */
-export function ProductImage({ src, name, className }: ProductImageProps) {
+export function ProductImage({
+  src,
+  name,
+  className,
+  placeholderClassName,
+}: ProductImageProps) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   if (src && failedUrl !== src) {
     return (
@@ -38,7 +45,10 @@ export function ProductImage({ src, name, className }: ProductImageProps) {
     <PackageIcon
       aria-label={name}
       strokeWidth={1}
-      className={cn('m-auto h-[95px] w-[75px] text-[#b29da4]')}
+      className={cn(
+        'm-auto h-[95px] w-[75px] text-[#b29da4]',
+        placeholderClassName,
+      )}
     />
   )
 }

@@ -3,7 +3,7 @@ import { db } from '#/db'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { user } from '#/db/auth-schema'
-import { products } from '#/modules/catalog/db/schema'
+import { products, suppliers } from '#/modules/catalog/db/schema'
 import {
   lots,
   stockMinimums,
@@ -31,6 +31,11 @@ export type ProductStock = {
   name: string
   sku: string
   unit: string
+  /** Catalog photo; null when the product has none. */
+  imageUrl: string | null
+  /** Catalog supplier; null when the product has none. */
+  supplierId: string | null
+  supplierName: string | null
   onHand: number
   /** Held by open orders (Reservado or Preparado). */
   reserved: number
@@ -111,9 +116,13 @@ export async function getWarehouseStock(
       name: products.name,
       sku: products.sku,
       unit: products.unit,
+      imageUrl: products.imageUrl,
+      supplierId: products.supplierId,
+      supplierName: suppliers.name,
       published: products.published,
     })
     .from(products)
+    .leftJoin(suppliers, eq(suppliers.id, products.supplierId))
   return catalog
     .filter((product) => product.published || productIds.has(product.id))
     .map((product) => {
@@ -141,6 +150,9 @@ export async function getWarehouseStock(
         name: product.name,
         sku: product.sku,
         unit: product.unit,
+        imageUrl: product.imageUrl,
+        supplierId: product.supplierId,
+        supplierName: product.supplierName,
         onHand,
         reserved,
         inRoute,

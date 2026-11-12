@@ -20,7 +20,7 @@ import {
   ListRow,
   ListTable,
 } from '#/modules/inventory/components/list-panel'
-import { SearchBox } from '#/modules/inventory/components/search-box'
+import { SearchBox } from '#/components/search-box'
 import { OrderTable } from '#/modules/inventory/forms/order-table'
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import { formatCents } from '#/modules/inventory/lib/cents'
