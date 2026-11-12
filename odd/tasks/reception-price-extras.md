@@ -13,8 +13,8 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 
 ## Tasks
 
-- T1 [S1-S3] inline — price per piece at reception: schema/migration (ordered price), service, server input, draft, dialog, tests. Status: pending.
-- T2 [S4] inline — unordered products at reception: service, server input, draft, dialog, tests. Status: pending.
+- T1 [S1-S3] inline — price per piece at reception: schema/migration (ordered price), service, server input, draft, dialog, tests. Status: done. Commit: 3a73cc2 (RED 8/8 service + draft module missing; GREEN 8/8 + 42/42; full suite 1165 pass/0 fail; tsc, eslint clean). Slice: ~450 authored lines; the rest is the generated drizzle snapshot 0031.
+- T2 [S4] inline + worker (dialog UI, context backstop) — unordered products at reception: migration 0032 `ordered` flag, service, server input, draft, dialog, tests. Status: done. Commit: see L4 (RED 11/12 service; GREEN service 20/20 with price tests, draft 6/6; full suite 1183 pass/0 fail; tsc, eslint clean).
 - T3 [S5] verify (Risk: item 1, costs feed lots and balances) — independent verify. Status: pending.
 
 ## Log
@@ -22,3 +22,4 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - L1 (user, screenshot of "Recibir pedido"): "Mira aquí requerimos .. que al Recibir pedido, aparezca el precio unitario por pieza y el total, con editable el precio por pieza porque pasa mucho que lo pedimos a un precio y llega con otro precio .. así desde aquí rápido lo editamos para ya darlo de entrada correctamente por Fas" / "Y también aquí mismo .. agregar un producto nuevo que llegó y no lo solicitamos .. también pasa que nos mandan cosas sin pedir .." / "Como cubrimos este caso de uso?"
 - L2 (parent proposal): editable list price per piece + totals, keep ordered price; extras as new purchase lines; three open decisions.
 - L3 (user): "Si confirmo" + choices: catalog "Checkbox, marcado por defecto (Recomendado)"; edit "Precio de lista por pieza (Recomendado)"; extras "Del catálogo de ese proveedor (Recomendado)".
+- L4 (parent): T2 committed; full suite 1183/0 after tsc. No browser check yet.

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  boolean,
   check,
   date,
   index,
@@ -133,6 +134,8 @@ export const purchaseLines = pgTable(
      * lines that were not part of a supplier order.
      */
     orderedListPricePerPiece: integer('ordered_list_price_per_piece'),
+    /** False for products that arrived with the delivery without being ordered. */
+    ordered: boolean('ordered').notNull().default(true),
     grossCostCents: integer('gross_cost_cents').notNull().default(0),
     fixedDiscountPerPiece: integer('fixed_discount_per_piece')
       .notNull()

@@ -14,6 +14,11 @@ import { orderCode } from '#/modules/inventory/lib/order-code'
 import { lineShareCents } from '#/modules/inventory/lib/pending-value'
 import { loadBoxProducts } from '#/modules/inventory/services/box-products'
 import {
+  insertExtraLines,
+  validateExtraShapes,
+} from '#/modules/inventory/services/reception-extras'
+import type { ReceptionExtraInput } from '#/modules/inventory/services/reception-extras'
+import {
   applyReceivedPrices,
   saveCatalogPrices,
 } from '#/modules/inventory/services/reception-prices'
@@ -55,6 +60,8 @@ export type ReceptionInput = {
   lines: Array<ReceptionLineInput>
   /** Also save every changed list price per piece on its catalog product. */
   updateCatalogPrices?: boolean
+  /** Products of the same supplier that arrived without being ordered. */
+  extras?: Array<ReceptionExtraInput>
   /** Open "Por reponer" balances of the same supplier (other orders) that arrived with this delivery. */
   replacements?: Array<{
     pendingId: string
@@ -131,6 +138,21 @@ function validateLines(
 const isExpired = (item: { expiresOn?: string }, today: string) =>
   Boolean(item.expiresOn) && item.expiresOn! < today
 
+/** Unordered products: shape, then the same expiry rules as ordered lines. */
+function validateExtras(input: ReceptionInput, today: string) {
+  const extras = input.extras ?? []
+  validateExtraShapes(extras)
+  for (const extra of extras) {
+    if (extra.expiresOn && !isIsoDate(extra.expiresOn)) {
+      throw new AppError('invalid', 'La fecha de caducidad no es válida.')
+    }
+    if (!declaresExpiry(extra)) throw missingExpiry()
+    if (isExpired(extra, today) && !input.confirmExpired) {
+      throw expiredNotConfirmed()
+    }
+  }
+}
+
 function validateReplacements(input: ReceptionInput, today: string) {
   const seen = new Set<string>()
   for (const item of input.replacements ?? []) {
@@ -196,6 +218,8 @@ export async function receiveSupplierOrder(
     const today = businessDate()
     validateLines(ordered, input, today)
     validateReplacements(input, today)
+    validateExtras(input, today)
+    const extras = input.extras ?? []
     const repriced = await applyReceivedPrices(
       tx,
       ordered,
@@ -234,9 +258,27 @@ export async function receiveSupplierOrder(
     const boxProducts = await loadBoxProducts(tx, [
       ...stored.map((line) => line.productId),
       ...balances.map((balance) => balance.productId),
+      ...extras.map((extra) => extra.productId),
     ])
     if (input.updateCatalogPrices) {
-      await saveCatalogPrices(tx, actor, repriced.changed, boxProducts)
+      const extraPrices = extras.flatMap((extra) =>
+        extra.listPricePerPiece !== undefined &&
+        extra.listPricePerPiece !==
+          boxProducts.get(extra.productId)?.listPricePerPiece
+          ? [
+              {
+                productId: extra.productId,
+                listPricePerPiece: extra.listPricePerPiece,
+              },
+            ]
+          : [],
+      )
+      await saveCatalogPrices(
+        tx,
+        actor,
+        [...repriced.changed, ...extraPrices],
+        boxProducts,
+      )
     }
     const prices = await standardBoxPrices(
       tx,
@@ -348,6 +390,35 @@ export async function receiveSupplierOrder(
           })
         }
       }
+    }
+    const extraLines = await insertExtraLines(
+      tx,
+      order,
+      new Set(stored.map((line) => line.productId)),
+      extras,
+      boxProducts,
+      code,
+    )
+    for (const line of extraLines) {
+      lots.push(
+        await receiveLot(tx, {
+          productId: line.productId,
+          warehouseId: order.warehouseId,
+          purchaseLineId: line.id,
+          purchaseId: order.id,
+          code,
+          expiresOn: line.expiresOn,
+          units: line.quantity,
+          costCents: line.totalCostCents,
+          salePriceCents: lotSalePrice(
+            prices.get(line.productId),
+            line.totalCostCents,
+            line.quantity / line.boxFactor,
+          ),
+          reason: 'Compra sin pedido',
+          actorId: actor.userId,
+        }),
+      )
     }
     if (owed.length) {
       await tx.insert(supplierPendings).values(

@@ -75,6 +75,17 @@ export const receiveOrderInput = z.object({
     }),
   ),
   updateCatalogPrices: z.boolean().optional(),
+  extras: z
+    .array(
+      z.object({
+        productId: id,
+        boxes: z.number(),
+        listPricePerPiece: z.number().optional(),
+        expiresOn: z.string().optional(),
+        noExpiry: z.boolean().optional(),
+      }),
+    )
+    .optional(),
   replacements: z
     .array(
       z.object({

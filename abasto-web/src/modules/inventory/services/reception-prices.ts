@@ -51,7 +51,13 @@ export function requirePiecePrice(price: number) {
  * The gross and net cost of a line at another list price per piece, keeping
  * its discount and promotion; rejects a net below zero.
  */
-export function repricedCosts(line: PricedLine, listPricePerPiece: number) {
+export function repricedCosts(
+  line: Pick<
+    PricedLine,
+    'quantity' | 'fixedDiscountPerPiece' | 'promotionPerPiece'
+  >,
+  listPricePerPiece: number,
+) {
   requirePiecePrice(listPricePerPiece)
   if (line.fixedDiscountPerPiece + line.promotionPerPiece > listPricePerPiece) {
     throw aboveListPrice()

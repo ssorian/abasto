@@ -341,6 +341,7 @@ export function InventoryPage({
         <ReceptionDialog
           order={dialog.order}
           restock={pendings.restock}
+          products={products}
           onClose={() => setDialog(null)}
         />
       )}
