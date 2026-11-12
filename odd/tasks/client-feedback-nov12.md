@@ -12,11 +12,13 @@ UI copy is Spanish (es-MX); code and identifiers in English.
 
 ## Tasks
 
-- T1 — S2 — inline — InventoryDialog: fixed header with corner buttons, body scrolls.
-- T2 — S1 — inline — reception-dialog: hide candidates until a query is typed.
-- T3 — S3 — pending exploration — counter new-order dialog redesign.
-- T4 — S4 — pending exploration — inventory product thumbnail.
+- [x] T1 — S2 — inline — InventoryDialog and CounterDialog: fixed header with corner buttons, only the body scrolls. Commit 0a948f2.
+- [x] T2 — S1 — inline — reception-dialog: no candidates until a query is typed. Commit e0d8694.
+- [x] T3 — S3 — inline — counter new-order dialog: product table with photo, price, quantity per row; search by name/SKU; supplier filter; «Solo agregados». Sellable options carry productName, sku, imageUrl, supplier (via ProductStock). SearchBox moved to src/components. Commit e2088d7.
+- [x] T4 — S4 — inline — ProductStock.imageUrl + thumbnail in products-tab; ProductImage moved to src/components. Commit 774c6c2.
 
 ## Log
 
 - L1 — User: "Vamos a corregir algunos detalles que nos pidio el cliente [Image#1], [Image#2] Esta se refiere a que se pierde el boton para cerrar el dialog y la scrollbar estorba, [Image#3] [Image#4]" (images quoted in S1–S4).
+- L2 — Verification: Playwright against the local docker Postgres (not Supabase). S2, S3 and S4 checked on screen; S1 not checked on screen (no supplier order waiting in the local data), covered by typecheck only.
+- L3 — Slice boundary: 710 authored lines in 4 commits. Suggested review split: PR 1 = 0a948f2, e0d8694, 774c6c2 (dialogs, unordered arrivals, inventory photo); PR 2 = e2088d7 (counter new-order table), chained on PR 1.
