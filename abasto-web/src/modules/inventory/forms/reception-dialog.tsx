@@ -156,9 +156,13 @@ export function ReceptionDialog({
     (sum, line) => sum + (Number(extras[line.productId]?.boxes) || 0),
     0,
   )
-  const candidates = supplierProducts(products, order.supplierId, query)
-    .filter((product) => !onOrder.has(product.id) && !extras[product.id])
-    .slice(0, 6)
+  // Nothing is offered until the user searches, so the section stays a single search box.
+  const searching = query.trim() !== ''
+  const candidates = searching
+    ? supplierProducts(products, order.supplierId, query)
+        .filter((product) => !onOrder.has(product.id) && !extras[product.id])
+        .slice(0, 6)
+    : []
   const mustConfirmExpired =
     outcome.canConfirm && (expired.length > 0 || extrasExpired)
   const totals = receptionTotals(lines, draft)
@@ -393,9 +397,11 @@ export function ReceptionDialog({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-[#907e84]">
-                Sin productos que coincidan
-              </p>
+              searching && (
+                <p className="text-xs text-[#907e84]">
+                  Sin productos que coincidan
+                </p>
+              )
             )}
             {extraLines.length > 0 && (
               <ListPanel className="overflow-auto">
