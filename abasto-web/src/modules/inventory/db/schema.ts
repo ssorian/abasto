@@ -131,7 +131,8 @@ export const purchaseLines = pgTable(
      * List price per piece when the line was ordered. Reception may correct
      * list_price_per_piece to what the supplier charged (and recompute the
      * gross and net cost); this keeps the original for comparison. Null on
-     * lines that were not part of a supplier order.
+     * products added at reception without being ordered; lines older than
+     * migration 0031 (including direct purchases) copy their list price.
      */
     orderedListPricePerPiece: integer('ordered_list_price_per_piece'),
     /** False for products that arrived with the delivery without being ordered. */

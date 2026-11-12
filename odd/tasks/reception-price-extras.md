@@ -15,7 +15,7 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 
 - T1 [S1-S3] inline — price per piece at reception: schema/migration (ordered price), service, server input, draft, dialog, tests. Status: done. Commit: 3a73cc2 (RED 8/8 service + draft module missing; GREEN 8/8 + 42/42; full suite 1165 pass/0 fail; tsc, eslint clean). Slice: ~450 authored lines; the rest is the generated drizzle snapshot 0031.
 - T2 [S4] inline + worker (dialog UI, context backstop) — unordered products at reception: migration 0032 `ordered` flag, service, server input, draft, dialog, tests. Status: done. Commit: see L4 (RED 11/12 service; GREEN service 20/20 with price tests, draft 6/6; full suite 1183 pass/0 fail; tsc, eslint clean).
-- T3 [S5] verify (Risk: item 1, costs feed lots and balances) — independent verify. Status: pending.
+- T3 [S5] verify (Risk: item 1, costs feed lots and balances) — independent verify. Status: done.
 
 ## Log
 
@@ -23,3 +23,4 @@ Test runner: `bun test` in `abasto-web` against the isolated test database (`bun
 - L2 (parent proposal): editable list price per piece + totals, keep ordered price; extras as new purchase lines; three open decisions.
 - L3 (user): "Si confirmo" + choices: catalog "Checkbox, marcado por defecto (Recomendado)"; edit "Precio de lista por pieza (Recomendado)"; extras "Del catálogo de ese proveedor (Recomendado)".
 - L4 (parent): T2 committed; full suite 1183/0 after tsc. No browser check yet.
+- L5 (independent verify): S1-S5 PASS; inventory tests 335/0, tsc, eslint, build green. Low: ordered vs received price and the not-ordered flag are stored but not shown after reception (no UI reads them); 0031 backfill also fills direct-purchase lines (schema comment corrected). Info: extras accept inactive products, like order creation. Browser check not done.
