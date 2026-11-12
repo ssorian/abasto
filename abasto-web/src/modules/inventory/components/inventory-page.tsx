@@ -366,7 +366,6 @@ export function InventoryPage({
         <CountDialog
           warehouseId={selected.id}
           products={products}
-          stock={stock}
           onClose={() => setDialog(null)}
         />
       )}

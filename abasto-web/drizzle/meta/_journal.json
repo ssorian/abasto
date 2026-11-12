@@ -211,6 +211,13 @@
       "when": 1794420317562,
       "tag": "0029_rider_difference",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1794458587572,
+      "tag": "0030_cash_session_note",
+      "breakpoints": true
     }
   ]
 }

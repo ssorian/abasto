@@ -54,20 +54,9 @@ export function differenceLabel(differenceCents: number): string {
   return differenceCents < 0 ? `Faltan ${amount}` : `Sobran ${amount}`
 }
 
-/** Counted pesos typed at close → cents and the difference against the expected cash. */
-export function closePreview(
-  expectedCents: number,
-  countedText: string,
-): Parsed<{ countedCents: number; differenceCents: number }> {
-  const counted = parsePesosToCents(countedText, { allowZero: true })
-  if (!counted.ok) return counted
-  return {
-    ok: true,
-    value: {
-      countedCents: counted.value,
-      differenceCents: counted.value - expectedCents,
-    },
-  }
+/** Counted pesos typed at a blind close → cents; the server computes the difference. */
+export function countedCash(countedText: string): Parsed<number> {
+  return parsePesosToCents(countedText, { allowZero: true })
 }
 
 const labels: Record<Exclude<CashMovementType, 'rider_difference'>, string> = {

@@ -81,6 +81,21 @@ Severity labels: **Bug** (wrong behavior or data), **Confusing** (works but misl
 | M6 | At 390 px, `/mostrador` and `/inventario` scroll horizontally as a whole page (`scrollWidth` 551 and 416). Tables should scroll inside their own container. The store looks fine at 390 px. |
 | M7 | Exported CSV file name mixes English: `abasto-ventas-day-2026-11-04-2026-11-10.csv`. |
 
+### B4 follow-up: production build timing (2026-11-11)
+
+`bun run build`, then `PORT=3100 bun .output/server/index.mjs` against the dev database, logged in as the seeded owner, `curl` total time per request. One warm-up round, then three rounds:
+
+| Page | Warm-up | Round 1 | Round 2 | Round 3 |
+| --- | --- | --- | --- | --- |
+| `/` | 2.71 s | 2.66 s | 2.41 s | 1.23 s |
+| `/inventario` | 2.73 s | 4.36 s | 3.43 s | 2.54 s |
+| `/almacenes` | 1.60 s | 1.92 s | 1.45 s | 1.37 s |
+| `/repartos` | 1.45 s | 1.78 s | 1.26 s | 1.52 s |
+| `/reportes` | 2.88 s | 3.89 s | 2.22 s | 2.66 s |
+| `/direccion` | 0.31 s (307) | 0.54 s (307) | 0.18 s (307) | 0.31 s (307) |
+
+Faster than the dev server (`/inventario` was 9–14 s), but still 1.2–4.4 s for a tiny data set, so B4 is not solved. `/direccion` answers with a redirect, so its time does not measure a render. The next step is to profile the `/inventario` loader (`src/routes/inventario.tsx`), which waits for the overview before it loads transfers, orders and balances.
+
 ## 4. What worked
 
 - Login with correct and wrong credentials ("Correo o contraseña incorrectos."), logout, redirect to `/login?redirect=…`.

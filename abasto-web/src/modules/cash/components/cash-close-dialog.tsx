@@ -2,31 +2,35 @@ import { useState } from 'react'
 
 import { ActionButton } from '#/modules/counter/components/action-button'
 import { CounterDialog } from '#/modules/counter/components/counter-dialog'
-import { Field, FieldInput } from '#/modules/counter/components/form-controls'
+import {
+  Field,
+  FieldInput,
+  FieldTextarea,
+} from '#/modules/counter/components/form-controls'
 import { useCashActions } from '#/modules/cash/hooks/use-cash-actions'
-import { closePreview, differenceLabel } from '#/modules/cash/lib/cash-summary'
+import { countedCash, differenceLabel } from '#/modules/cash/lib/cash-summary'
 import { formatCents } from '#/modules/pricing/lib/money'
 import type { CashSession } from '#/modules/cash/services/cash-ledger'
 
 type CashCloseDialogProps = {
   warehouseId: string
-  expectedCents: number
   onClose: () => void
 }
 
+/** Blind close: the expected cash is revealed only after the count is recorded. */
 export function CashCloseDialog({
   warehouseId,
-  expectedCents,
   onClose,
 }: CashCloseDialogProps) {
   const actions = useCashActions(warehouseId)
   const [text, setText] = useState('')
+  const [note, setNote] = useState('')
   const [closed, setClosed] = useState<CashSession>()
-  const preview = text.trim() ? closePreview(expectedCents, text) : null
+  const counted = text.trim() ? countedCash(text) : null
 
   async function submit() {
-    if (!preview?.ok) return
-    await actions.close(preview.value.countedCents, setClosed)
+    if (!counted?.ok) return
+    await actions.close(counted.value, note, setClosed)
   }
 
   if (closed) {
@@ -49,6 +53,12 @@ export function CashCloseDialog({
           <dd className="text-right font-[650]">
             {differenceLabel(closed.differenceCents ?? 0)}
           </dd>
+          {closed.note && (
+            <>
+              <dt>Nota</dt>
+              <dd className="text-right break-words">{closed.note}</dd>
+            </>
+          )}
         </dl>
         <div className="flex justify-end">
           <ActionButton tone="primary" onClick={onClose}>
@@ -62,7 +72,7 @@ export function CashCloseDialog({
   return (
     <CounterDialog
       title="Cerrar caja"
-      description={`El sistema espera ${formatCents(expectedCents)} en la caja. Cuenta el efectivo y escribe cuánto hay.`}
+      description="Cuenta el efectivo y escribe cuánto hay. Al cerrar verás lo que esperaba el sistema y la diferencia."
       onClose={onClose}
     >
       <Field label="Efectivo contado (pesos)">
@@ -74,22 +84,22 @@ export function CashCloseDialog({
           onChange={(event) => setText(event.target.value)}
         />
       </Field>
-      {preview && (
-        <p
-          className={
-            preview.ok ? 'text-sm font-[650]' : 'text-sm text-[#a1372e]'
-          }
-        >
-          {preview.ok
-            ? differenceLabel(preview.value.differenceCents)
-            : preview.message}
-        </p>
+      {counted && !counted.ok && (
+        <p className="text-sm text-[#a1372e]">{counted.message}</p>
       )}
+      <Field label="Nota (opcional)">
+        <FieldTextarea
+          maxLength={500}
+          placeholder="Explica una diferencia, por ejemplo: faltó cambio."
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+        />
+      </Field>
       <div className="flex justify-end gap-3">
         <ActionButton onClick={onClose}>Cancelar</ActionButton>
         <ActionButton
           tone="primary"
-          disabled={actions.pending || !preview?.ok}
+          disabled={actions.pending || !counted?.ok}
           onClick={submit}
         >
           Cerrar caja

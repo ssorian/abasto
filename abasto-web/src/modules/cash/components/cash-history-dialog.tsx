@@ -60,6 +60,7 @@ export function CashHistoryDialog({
                 <Th>Esperado</Th>
                 <Th>Contado</Th>
                 <Th>Diferencia</Th>
+                <Th>Nota</Th>
               </tr>
             </thead>
             <tbody>
@@ -88,6 +89,7 @@ export function CashHistoryDialog({
                         ? '—'
                         : differenceLabel(session.differenceCents)}
                     </Td>
+                    <Td>{session.note ?? '—'}</Td>
                   </tr>
                 )
               })}

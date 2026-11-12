@@ -94,7 +94,12 @@ export type CountDraft = TypedQuantity & {
   productId: string
   warehouseId: string
   note: string
+  /** A count of 0 wipes the stock, so the user has to confirm it. */
+  zeroConfirmed?: boolean
 }
+
+export const zeroCountUnconfirmed =
+  'Confirma que no queda nada: el conteo deja las existencias en 0.'
 
 /** Message for a count left blank: only an explicit number (0 included) is a count. */
 export const countRequired =
@@ -117,6 +122,9 @@ export function countInputFromDraft(draft: CountDraft): Parsed<{
   if (!draft.packs.trim() && !draft.loose.trim()) return fail(countRequired)
   const counted = toBaseUnits(draft, { allowZero: true })
   if (!counted.ok) return counted
+  if (counted.value === 0 && !draft.zeroConfirmed) {
+    return fail(zeroCountUnconfirmed)
+  }
   const note = draft.note.trim()
   return {
     ok: true,
@@ -128,10 +136,6 @@ export function countInputFromDraft(draft: CountDraft): Parsed<{
     },
   }
 }
-
-/** Counted minus expected, in base units. */
-export const countDifference = (expected: number, counted: number) =>
-  counted - expected
 
 export type MinimumDraft = TypedQuantity & {
   productId: string

@@ -29,6 +29,13 @@ describe('cash server function inputs', () => {
       parseInput(closeCashInput, { warehouseId: 'w', countedCents: 0 }),
     ).toEqual({ warehouseId: 'w', countedCents: 0 })
     expect(
+      parseInput(closeCashInput, {
+        warehouseId: 'w',
+        countedCents: 0,
+        note: 'Faltó cambio',
+      }),
+    ).toEqual({ warehouseId: 'w', countedCents: 0, note: 'Faltó cambio' })
+    expect(
       parseInput(cashMovementInput, {
         warehouseId: 'w',
         amountCents: 100,

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { cva } from 'class-variance-authority'
 import type { VariantProps } from 'class-variance-authority'
+import { useHydrated } from '#/hooks/use-hydrated'
 import { cn } from '#/lib/utils/cn'
 import { Slot } from 'radix-ui'
 
@@ -46,19 +47,24 @@ function Button({
   variant = 'default',
   size = 'default',
   asChild = false,
+  disabled,
   ...props
 }: React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
   const Comp = asChild ? Slot.Root : 'button'
+  // A link (asChild) works without JavaScript; a real button does not.
+  const hydrating = !useHydrated() && !asChild
 
   return (
     <Comp
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      data-hydrating={hydrating || undefined}
       className={cn(buttonVariants({ variant, size, className }))}
+      disabled={disabled || hydrating || undefined}
       {...props}
     />
   )

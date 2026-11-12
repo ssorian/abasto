@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
   countInputFromDraft,
-  countDifference,
   minimumInputFromDraft,
   additionInputFromDraft,
   removalInputFromDraft,
@@ -10,7 +9,7 @@ import {
 
 const qty = { packs: '2', loose: '3', factor: 12 }
 
-describe('countInputFromDraft and countDifference', () => {
+describe('countInputFromDraft', () => {
   test('accepts an explicit zero and trims the note', () => {
     for (const typed of [
       { packs: '', loose: '0' },
@@ -23,6 +22,7 @@ describe('countInputFromDraft and countDifference', () => {
           ...typed,
           factor: 12,
           note: ' vacío ',
+          zeroConfirmed: true,
         }),
       ).toEqual({
         ok: true,
@@ -34,6 +34,23 @@ describe('countInputFromDraft and countDifference', () => {
         },
       })
     }
+  })
+
+  test('a zero count is refused until the user confirms it', () => {
+    expect(
+      countInputFromDraft({
+        productId: 'p1',
+        warehouseId: 'w1',
+        packs: '',
+        loose: '0',
+        factor: 12,
+        note: '',
+      }),
+    ).toEqual({
+      ok: false,
+      message:
+        'Confirma que no queda nada: el conteo deja las existencias en 0.',
+    })
   })
 
   test('an empty quantity is not a count: it asks for a number', () => {
@@ -70,11 +87,6 @@ describe('countInputFromDraft and countDifference', () => {
         note: '',
       }),
     ).toEqual({ ok: false, message: 'Selecciona el producto.' })
-  })
-
-  test('difference is counted minus expected', () => {
-    expect(countDifference(30, 27)).toBe(-3)
-    expect(countDifference(0, 5)).toBe(5)
   })
 })
 
