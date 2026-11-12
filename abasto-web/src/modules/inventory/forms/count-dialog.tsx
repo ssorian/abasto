@@ -20,25 +20,24 @@ import {
 } from '#/modules/inventory/lib/pack-info'
 import { formatQuantity } from '#/modules/inventory/lib/quantity'
 import {
-  countDifference,
   countInputFromDraft,
   typedCount,
 } from '#/modules/inventory/lib/stock-drafts'
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
-import type { ProductStock } from '#/modules/inventory/services/stock-reads'
 
 type CountDialogProps = {
   warehouseId: string
   products: ReadonlyArray<CatalogProduct>
-  stock: ReadonlyArray<ProductStock>
   onClose: () => void
 }
 
-/** Physical count of one product; the system applies the difference (FEFO / newest lot). */
+/**
+ * Blind physical count of one product: the system quantity stays hidden until
+ * the count is recorded, then the difference is applied (FEFO / newest lot).
+ */
 export function CountDialog({
   warehouseId,
   products,
-  stock,
   onClose,
 }: CountDialogProps) {
   const actions = useInventoryActions()
@@ -49,15 +48,16 @@ export function CountDialog({
   const [packs, setPacks] = useState('')
   const [loose, setLoose] = useState('')
   const [note, setNote] = useState('')
+  const [zeroConfirmed, setZeroConfirmed] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const selectedId = presentations.some(({ id }) => id === presentationId)
     ? presentationId
     : (presentations.at(0)?.id ?? '')
   const factor = presentations.find(({ id }) => id === selectedId)?.factor ?? 1
-  const expected = stock.find((row) => row.productId === productId)?.onHand ?? 0
-  // Blank is not zero: no difference is shown until a number is typed.
+  // Blank is not zero: only a typed 0 asks for confirmation.
   const counted = typedCount({ packs, loose, factor })
+  const mustConfirmZero = counted === 0
   const pack = product ? packInfoOf(product) : null
 
   async function submit() {
@@ -68,6 +68,7 @@ export function CountDialog({
       loose,
       factor,
       note,
+      zeroConfirmed,
     })
     if (!parsed.ok) return setError(parsed.message)
     setError(null)
@@ -85,7 +86,7 @@ export function CountDialog({
   return (
     <InventoryDialog
       title="Conteo físico"
-      description="Cuenta lo que hay en el estante. Si no coincide con el sistema, la diferencia se aplica a los lotes y queda en Movimientos."
+      description="Cuenta lo que hay en el estante sin mirar el sistema. Al registrar el conteo verás la diferencia; se aplica a los lotes y queda en Movimientos."
       onClose={onClose}
     >
       <form
@@ -128,12 +129,23 @@ export function CountDialog({
                 if (patch.loose !== undefined) setLoose(patch.loose)
               }}
             />
-            {counted !== null && (
-              <p className="text-xs leading-[1.7] text-[#856972]">
-                El sistema tiene {formatQuantity(expected, pack)}. Diferencia:{' '}
-                {countDifference(expected, counted) > 0 ? '+' : ''}
-                {formatQuantity(countDifference(expected, counted), pack)}.
-              </p>
+            {mustConfirmZero && (
+              <label
+                role="alert"
+                className="flex items-start gap-2 rounded-lg border border-[#e3b9bd] bg-[#fbecee] p-3 text-sm text-[#8f2d36]"
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={zeroConfirmed}
+                  onChange={(event) => setZeroConfirmed(event.target.checked)}
+                />
+                <span>
+                  <strong>Conteo en 0.</strong> Las existencias de este producto
+                  quedarán en 0. Marca la casilla para confirmar que no queda
+                  nada.
+                </span>
+              </label>
             )}
             <Field label="Nota (opcional)">
               <FieldTextarea
@@ -148,7 +160,11 @@ export function CountDialog({
           <ActionButton type="button" onClick={onClose}>
             Cancelar
           </ActionButton>
-          <ActionButton tone="primary" type="submit" disabled={actions.pending}>
+          <ActionButton
+            tone="primary"
+            type="submit"
+            disabled={actions.pending || (mustConfirmZero && !zeroConfirmed)}
+          >
             {actions.pending ? 'Guardando…' : 'Registrar conteo'}
           </ActionButton>
         </DialogActions>
