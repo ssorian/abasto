@@ -30,6 +30,7 @@ import { OrderDetailDialog } from '#/modules/inventory/forms/order-detail-dialog
 import { OrderDialog } from '#/modules/inventory/forms/order-dialog'
 import { ReceptionDialog } from '#/modules/inventory/forms/reception-dialog'
 import { ReturnDialog } from '#/modules/inventory/forms/return-dialog'
+import { tabBadges } from '#/modules/inventory/lib/tab-badges'
 import type { InventoryAction } from '#/modules/inventory/lib/inventory-action'
 import {
   packInfoOf,
@@ -201,6 +202,11 @@ export function InventoryPage({
       : undefined
   const lotsProduct = products.find(({ id }) => id === lotsRow?.productId)
 
+  const badges = tabBadges({
+    orders: supplierOrders,
+    restock: pendings.restock,
+    returns: pendings.returns,
+  })
   const supplierNames = new Map(
     suppliers.map((supplier) => [supplier.id, supplier.name]),
   )
@@ -266,6 +272,14 @@ export function InventoryPage({
             >
               <Icon size={17} />
               {name}
+              {name in badges && (
+                <span
+                  className="rounded-full bg-[#542280] px-1.5 text-[11px] leading-[18px] font-[650] text-white"
+                  aria-label={`${badges[name as keyof typeof badges]} pendientes`}
+                >
+                  {badges[name as keyof typeof badges]}
+                </span>
+              )}
             </TabsTrigger>
           ))}
         </TabsList>

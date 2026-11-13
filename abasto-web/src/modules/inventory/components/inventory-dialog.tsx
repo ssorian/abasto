@@ -19,7 +19,9 @@ type InventoryDialogProps = {
   /** Small uppercase line above the title. */
   eyebrow?: string
   onClose: () => void
-  size?: 'standard' | 'count' | 'wide'
+  size?: 'standard' | 'count' | 'wide' | 'wider'
+  /** Pinned under the scrolling body, so totals and buttons stay visible. */
+  footer?: ReactNode
   children: ReactNode
 }
 
@@ -27,6 +29,8 @@ const sizes = {
   standard: 'max-w-[calc(100vw-24px)] md:max-w-[530px]',
   count: 'max-w-[calc(100vw-20px)] md:max-w-[800px]',
   wide: 'w-[calc(100vw-20px)] max-w-[calc(100vw-20px)] md:w-[min(1080px,calc(100vw-32px))] md:max-w-[1080px]',
+  wider:
+    'w-[calc(100vw-20px)] max-w-[calc(100vw-20px)] md:w-[min(1320px,calc(100vw-32px))] md:max-w-[1320px]',
 }
 
 /** Horizontal padding shared by the fixed header and the scrolling body. */
@@ -34,6 +38,7 @@ const gutters = {
   standard: 'px-[23px] md:px-[29px]',
   count: 'px-[19px] md:px-[29px]',
   wide: 'px-5 md:px-[29px]',
+  wider: 'px-5 md:px-[29px]',
 }
 
 /** Full screen: wins over every size; inner lists drop their height cap via `group-data-maximized/dialog`. */
@@ -50,10 +55,11 @@ export function InventoryDialog({
   eyebrow,
   onClose,
   size = 'standard',
+  footer,
   children,
 }: InventoryDialogProps) {
   // Only wide dialogs hold long tables, so only they can fill the screen.
-  const canMaximize = size === 'wide'
+  const canMaximize = size === 'wide' || size === 'wider'
   const [maximized, setMaximized] = useState(false)
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -89,12 +95,23 @@ export function InventoryDialog({
         </DialogHeader>
         <div
           className={cn(
-            'grid min-h-0 flex-1 content-start gap-[18px] overflow-y-auto pt-[18px] pb-[23px] [scrollbar-width:thin] md:gap-5 md:pt-5 md:pb-[29px]',
+            'grid min-h-0 flex-1 content-start gap-[18px] overflow-y-auto pt-[18px] [scrollbar-width:thin] md:gap-5 md:pt-5',
+            footer ? 'pb-4' : 'pb-[23px] md:pb-[29px]',
             gutters[size],
           )}
         >
           {children}
         </div>
+        {footer && (
+          <div
+            className={cn(
+              'grid shrink-0 gap-3 border-t border-[#f4eee8] bg-white py-4',
+              gutters[size],
+            )}
+          >
+            {footer}
+          </div>
+        )}
         <span className="absolute top-4 right-4 flex items-center gap-3">
           {canMaximize && (
             <button

@@ -22,6 +22,7 @@ import { SectionRow } from '#/modules/inventory/components/section-row'
 import { StockBadge } from '#/modules/inventory/components/stock-badge'
 import { formatCents } from '#/modules/inventory/lib/cents'
 import { dateLabel } from '#/modules/inventory/lib/format'
+import { showsPayable } from '#/modules/inventory/lib/order-payable'
 import { orderFilters } from '#/modules/inventory/lib/pending-labels'
 import type { PurchaseStatus } from '#/modules/inventory/db/schema'
 import type { SupplierOrderSummary } from '#/modules/inventory/services/supplier-orders'
@@ -64,15 +65,7 @@ export function SupplierOrdersTab({
     <>
       <SectionRow
         title="Por recibir"
-        description="Pedidos a proveedores que esperan llegar. Al recibirlos verificas lo que llegó y entran las existencias."
-        action={
-          canManage ? (
-            <ActionButton tone="primary" onClick={onNew}>
-              <PlusIcon size={19} />
-              Nuevo pedido
-            </ActionButton>
-          ) : undefined
-        }
+        description="Pedidos a proveedores que esperan llegar."
       />
       <div className="mb-4 max-w-[220px]">
         <FieldSelect
@@ -123,8 +116,12 @@ export function SupplierOrdersTab({
                   </ListCell>
                   <ListCell>{order.lineCount}</ListCell>
                   <ListCell>
-                    {formatCents(order.totalCostCents)} · a pagar{' '}
-                    {formatCents(order.payableCents)}
+                    {formatCents(order.totalCostCents)}
+                    {showsPayable(order) && (
+                      <small className="block text-[#907e84]">
+                        a pagar {formatCents(order.payableCents)}
+                      </small>
+                    )}
                     {order.status === 'Recibido' && <Shortages order={order} />}
                   </ListCell>
                   <ListCell>
@@ -174,7 +171,14 @@ export function SupplierOrdersTab({
               ? 'Pide mercancía a un proveedor y aparecerá aquí hasta que llegue.'
               : 'Los pedidos de este almacén aparecerán aquí.'
           }
-        />
+        >
+          {canManage && (
+            <ActionButton tone="primary" onClick={onNew}>
+              <PlusIcon size={19} />
+              Nuevo pedido
+            </ActionButton>
+          )}
+        </EmptyPanel>
       )}
     </>
   )

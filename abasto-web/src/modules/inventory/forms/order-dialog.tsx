@@ -182,11 +182,37 @@ export function OrderDialog({
       <InventoryDialog
         title="Nuevo pedido al proveedor"
         eyebrow="POR RECIBIR"
-        description="Elige el proveedor y escribe las cajas de cada producto. El costo por pieza, el descuento y la promoción vienen del catálogo y definen el costo neto. El pedido no mueve existencias: espera en «Por recibir» hasta que llegue y lo verifiques."
+        description="Elige el proveedor y las cajas de cada producto. No mueve existencias hasta que lo recibas."
         size="wide"
         onClose={onClose}
+        footer={
+          <>
+            {(error ?? tooMuch) && (
+              <FormError>{error ?? tooMuch ?? ''}</FormError>
+            )}
+            <DialogActions className="mt-0 border-t-0 pt-0">
+              <strong className="text-base text-[#5f4a51]">
+                {orderTotalsText(total, discountCents)}
+              </strong>
+              <span className="flex gap-3">
+                <ActionButton type="button" onClick={onClose}>
+                  Cancelar
+                </ActionButton>
+                <ActionButton
+                  tone="primary"
+                  type="submit"
+                  form="order-form"
+                  disabled={actions.pending}
+                >
+                  {actions.pending ? 'Guardando…' : 'Registrar pedido'}
+                </ActionButton>
+              </span>
+            </DialogActions>
+          </>
+        }
       >
         <form
+          id="order-form"
           className="grid gap-4"
           onSubmit={(event) => {
             event.preventDefault()
@@ -310,6 +336,10 @@ export function OrderDialog({
                   </ListPanel>
                 </section>
               )}
+              <p className="text-xs text-[#9c898f]">
+                El costo por pieza, el descuento y la promoción vienen del
+                catálogo y definen el costo neto.
+              </p>
               <div className="flex flex-wrap items-end gap-3">
                 <div className="min-w-[240px] flex-1">
                   <SearchBox
@@ -358,26 +388,6 @@ export function OrderDialog({
               Selecciona un proveedor para ver sus productos.
             </p>
           )}
-          {(error ?? tooMuch) && (
-            <FormError>{error ?? tooMuch ?? ''}</FormError>
-          )}
-          <DialogActions>
-            <strong className="text-base text-[#5f4a51]">
-              {orderTotalsText(total, discountCents)}
-            </strong>
-            <span className="flex gap-3">
-              <ActionButton type="button" onClick={onClose}>
-                Cancelar
-              </ActionButton>
-              <ActionButton
-                tone="primary"
-                type="submit"
-                disabled={actions.pending}
-              >
-                {actions.pending ? 'Guardando…' : 'Registrar pedido'}
-              </ActionButton>
-            </span>
-          </DialogActions>
         </form>
       </InventoryDialog>
       {canEditPrices && editing && (
