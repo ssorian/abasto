@@ -1,5 +1,4 @@
 import {
-  ArrowDownToLineIcon,
   ClipboardCheckIcon,
   LayoutGridIcon,
   ClockIcon,
@@ -15,7 +14,6 @@ import { PageHeading } from '#/components/page-heading'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import { CountsTab } from '#/modules/inventory/components/counts-tab'
-import { EntriesTab } from '#/modules/inventory/components/entries-tab'
 import { MovementsTab } from '#/modules/inventory/components/movements-tab'
 import type { ProductLabel } from '#/modules/inventory/components/movement-table'
 import { activeProducts } from '#/modules/inventory/lib/active-products'
@@ -87,7 +85,6 @@ type InventoryPageProps = {
 
 const tabs: Array<{ name: string; icon: LucideIcon }> = [
   { name: 'Productos', icon: LayoutGridIcon },
-  { name: 'Entradas', icon: ArrowDownToLineIcon },
   { name: 'Por recibir', icon: ClockIcon },
   { name: 'Saldos', icon: ScaleIcon },
   { name: 'Movimientos', icon: RotateCcwIcon },
@@ -312,14 +309,6 @@ export function InventoryPage({
               setDialog({ kind: 'lots', productId: row.productId })
             }
             onMinimum={(productId) => setDialog({ kind: 'minimum', productId })}
-          />
-        </TabsContent>
-        <TabsContent value="Entradas" className="text-base">
-          <EntriesTab
-            rows={overview.movements}
-            products={labels}
-            canManage={canManage}
-            onNew={() => setDialog({ kind: 'order' })}
           />
         </TabsContent>
         <TabsContent value="Por recibir" className="text-base">

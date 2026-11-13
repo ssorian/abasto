@@ -207,7 +207,7 @@ export function ProductsTab({
             total
               ? 'Prueba con otra búsqueda, estado o proveedor.'
               : canManage
-                ? 'Registra una compra en Entradas para dar de alta productos en este almacén.'
+                ? 'Recibe un pedido en «Por recibir» para dar de alta productos en este almacén.'
                 : 'Cuando el encargado registre compras, verás aquí las existencias.'
           }
         />
