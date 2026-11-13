@@ -27,7 +27,6 @@ type SupplierPendingsTabProps = {
   history: ReadonlyArray<PendingEntry>
   suppliers: ReadonlyMap<string, string>
   products: ReadonlyMap<string, ProductLabel>
-  onWriteOff: (pending: PendingBalance) => void
   onReturn: (pending: PendingBalance) => void
 }
 
@@ -38,23 +37,20 @@ export function SupplierPendingsTab({
   history,
   suppliers,
   products,
-  onWriteOff,
   onReturn,
 }: SupplierPendingsTabProps) {
   return (
     <>
       <SectionRow
         title="Saldos de proveedores"
-        description="Lo faltante se repone en una recepción o se descuenta de un pago. Lo dañado o caducado se devuelve al proveedor."
+        description="Lo faltante se repone en una recepción o se descuenta en el siguiente pedido al proveedor. Lo dañado o caducado se devuelve al proveedor."
       />
       <BalanceSection
         title="Por reponer"
         description="Cajas que nunca llegaron."
         emptyTitle="Ningún proveedor te debe cajas"
         emptyDescription="Lo faltante de un pedido recibido aparecerá aquí."
-        action="Descontar del pago"
         rows={restock}
-        onAction={onWriteOff}
       />
       <BalanceSection
         title="Por devolver"
@@ -122,9 +118,10 @@ type BalanceSectionProps = {
   description: string
   emptyTitle: string
   emptyDescription: string
-  action: string
   rows: ReadonlyArray<PendingBalance>
-  onAction: (pending: PendingBalance) => void
+  /** Row action; omitted for balances settled elsewhere (restock: on the next order). */
+  action?: string
+  onAction?: (pending: PendingBalance) => void
 }
 
 function BalanceSection({
@@ -144,7 +141,14 @@ function BalanceSection({
         <ListPanel>
           <ListTable>
             <ListHead>
-              {['Proveedor', 'Producto', 'Pedido', 'Debe', 'Valor', '']}
+              {[
+                'Proveedor',
+                'Producto',
+                'Pedido',
+                'Debe',
+                'Valor',
+                ...(action ? [''] : []),
+              ]}
             </ListHead>
             <ListBody>
               {rows.map((row) => (
@@ -163,16 +167,18 @@ function BalanceSection({
                     {boxCountLabel(row.owedBoxes, row.boxFactor)}
                   </ListCell>
                   <ListCell>{formatCents(row.owedValueCents)}</ListCell>
-                  <ListCell>
-                    <span className="flex justify-end">
-                      <ActionButton
-                        className="min-h-9 px-3"
-                        onClick={() => onAction(row)}
-                      >
-                        {action}
-                      </ActionButton>
-                    </span>
-                  </ListCell>
+                  {action && onAction && (
+                    <ListCell>
+                      <span className="flex justify-end">
+                        <ActionButton
+                          className="min-h-9 px-3"
+                          onClick={() => onAction(row)}
+                        >
+                          {action}
+                        </ActionButton>
+                      </span>
+                    </ListCell>
+                  )}
                 </ListRow>
               ))}
             </ListBody>

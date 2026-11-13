@@ -30,7 +30,6 @@ import { OrderDetailDialog } from '#/modules/inventory/forms/order-detail-dialog
 import { OrderDialog } from '#/modules/inventory/forms/order-dialog'
 import { ReceptionDialog } from '#/modules/inventory/forms/reception-dialog'
 import { ReturnDialog } from '#/modules/inventory/forms/return-dialog'
-import { WriteOffDialog } from '#/modules/inventory/forms/write-off-dialog'
 import {
   packInfoOf,
   quantityPresentations,
@@ -97,7 +96,6 @@ type Dialog =
   | { kind: 'orderDetail'; order: SupplierOrderSummary }
   | { kind: 'receiveOrder'; order: SupplierOrderSummary }
   | { kind: 'cancelOrder'; order: SupplierOrderSummary }
-  | { kind: 'writeOff'; pending: PendingBalance }
   | { kind: 'return'; pending: PendingBalance }
   | { kind: 'count' }
   | { kind: 'transfer' }
@@ -295,7 +293,6 @@ export function InventoryPage({
             history={pendings.history}
             suppliers={supplierNames}
             products={labels}
-            onWriteOff={(pending) => setDialog({ kind: 'writeOff', pending })}
             onReturn={(pending) => setDialog({ kind: 'return', pending })}
           />
         </TabsContent>
@@ -357,12 +354,6 @@ export function InventoryPage({
       {dialog?.kind === 'cancelOrder' && (
         <CancelOrderDialog
           order={dialog.order}
-          onClose={() => setDialog(null)}
-        />
-      )}
-      {dialog?.kind === 'writeOff' && (
-        <WriteOffDialog
-          pending={dialog.pending}
           onClose={() => setDialog(null)}
         />
       )}

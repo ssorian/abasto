@@ -22,7 +22,6 @@ import {
 import {
   listSupplierPendings,
   returnPendings,
-  writeOffPendings,
 } from '#/modules/inventory/services/supplier-pendings'
 import {
   errorOf,
@@ -354,10 +353,9 @@ describe('replacements at reception', () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 10, 3, 0)
     const balance = (await restockMilk(fx))!
-    await writeOffPendings(fx.owner, {
-      pendingId: balance.pendingId,
-      boxes: 3,
-    })
+    await receiveMilk(fx, 1, 0, 0, [
+      { pendingId: balance.pendingId, boxes: 3, noExpiry: true },
+    ])
     const order = await orderMilk(fx, 1)
     const before = await supplierState()
     const error = await errorOf(() =>
@@ -559,10 +557,9 @@ describe('discounts on a new order', () => {
     const second = (await view(fx)).restock.find(
       (row) => row.pendingId !== balance.pendingId,
     )!
-    await writeOffPendings(fx.owner, {
-      pendingId: second.pendingId,
-      boxes: 1,
-    })
+    await receiveMilk(fx, 1, 0, 0, [
+      { pendingId: second.pendingId, boxes: 1, noExpiry: true },
+    ])
     const cases: Array<
       [Array<{ pendingId: string }>, number, AppErrorCode, string]
     > = [
@@ -659,110 +656,6 @@ describe('discounts on a new order', () => {
         (row) => row.discountCents > 0,
       ),
     ).toHaveLength(1)
-  })
-})
-
-describe('writeOffPendings', () => {
-  test('writes owed boxes off with their value and lowers the balance', async () => {
-    const fx = await setupSupplierOrders()
-    await receiveMilk(fx, 10, 3, 2)
-    const balance = (await restockMilk(fx))!
-    const before = await supplierState()
-    const result = await writeOffPendings(fx.managerA, {
-      pendingId: balance.pendingId,
-      boxes: 2,
-    })
-    expect(result.valueCents).toBe(2688)
-    const after = await supplierState()
-    expect(after.inventory).toEqual(before.inventory)
-    const entry = after.pendings.find((row) => row.type === 'written_off')
-    expect(entry).toMatchObject({
-      supplierId: fx.supplier.id,
-      productId: fx.milk.id,
-      settlesId: balance.pendingId,
-      purchaseId: null,
-      quantity: -24,
-      valueCents: -2688,
-      actorId: fx.managerA.userId,
-    })
-    expect(await restockMilk(fx)).toMatchObject({
-      owedBoxes: 1,
-      owedValueCents: 1344,
-    })
-    await writeOffPendings(fx.owner, {
-      pendingId: balance.pendingId,
-      boxes: 1,
-    })
-    expect(await restockMilk(fx)).toBeUndefined()
-  })
-
-  test('rejects over-settlement, bad boxes, damaged balances and missing permission without changes', async () => {
-    const fx = await setupSupplierOrders()
-    await receiveMilk(fx, 10, 3, 2)
-    const balance = (await restockMilk(fx))!
-    const damaged = (await returnMilk(fx))!
-    const input = { pendingId: balance.pendingId, boxes: 1, noExpiry: true }
-    const cases: Array<
-      [
-        Parameters<typeof writeOffPendings>[0],
-        typeof input,
-        AppErrorCode,
-        string,
-      ]
-    > = [
-      [
-        fx.owner,
-        { ...input, boxes: 4 },
-        'invalid',
-        'Las cajas a cancelar superan el saldo del proveedor.',
-      ],
-      [
-        fx.owner,
-        { ...input, boxes: 0 },
-        'invalid',
-        'Las cajas a cancelar deben ser un número entero mayor que cero.',
-      ],
-      [
-        fx.owner,
-        { ...input, boxes: 1.5 },
-        'invalid',
-        'Las cajas a cancelar deben ser un número entero mayor que cero.',
-      ],
-      [
-        fx.owner,
-        { ...input, pendingId: crypto.randomUUID() },
-        'not_found',
-        'No encontramos ese saldo.',
-      ],
-      [
-        fx.owner,
-        { ...input, pendingId: damaged.pendingId },
-        'invalid',
-        'Solo se pueden cancelar faltantes por reponer.',
-      ],
-      [unassigned(fx.managerB), input, 'forbidden', forbidden],
-    ]
-    for (const [actor, payload, code, message] of cases) {
-      const before = await supplierState()
-      const error = await errorOf(() => writeOffPendings(actor, payload))
-      expect([error.code, error.message]).toEqual([code, message])
-      expect(await supplierState()).toEqual(before)
-    }
-  })
-
-  test('concurrent write-offs cannot settle more than is owed', async () => {
-    const fx = await setupSupplierOrders()
-    await receiveMilk(fx, 10, 3, 0)
-    const balance = (await restockMilk(fx))!
-    const input = { pendingId: balance.pendingId, boxes: 2, noExpiry: true }
-    const results = await Promise.allSettled([
-      writeOffPendings(fx.owner, input),
-      writeOffPendings(fx.owner, input),
-    ])
-    expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(
-      1,
-    )
-    expect(await restockMilk(fx)).toMatchObject({ owedBoxes: 1 })
   })
 })
 
@@ -899,7 +792,7 @@ const switchMilkToBoxOf24 = (fx: SupplierFixture) =>
   })
 
 describe('boxes use the factor of the order line, not the current default', () => {
-  test('owed boxes and write-offs keep the factor the boxes were ordered with', async () => {
+  test('owed boxes and partial replacements keep the factor the boxes were ordered with', async () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 10, 3, 2)
     await switchMilkToBoxOf24(fx)
@@ -910,11 +803,13 @@ describe('boxes use the factor of the order line, not the current default', () =
       owedBoxes: 3,
       owedValueCents: 4032,
     })
-    const result = await writeOffPendings(fx.owner, {
-      pendingId: balance.pendingId,
-      boxes: 2,
+    const result = await receiveMilk(fx, 1, 0, 0, [
+      { pendingId: balance.pendingId, boxes: 2, noExpiry: true },
+    ])
+    expect(result.replacementLots[0]).toMatchObject({
+      receivedQuantity: 24,
+      receivedCostCents: 2688,
     })
-    expect(result.valueCents).toBe(2688)
     expect(await restockMilk(fx)).toMatchObject({
       owedQuantity: 12,
       owedBoxes: 1,
@@ -941,16 +836,27 @@ describe('boxes use the factor of the order line, not the current default', () =
     await receiveMilk(fx, 10, 3, 0)
     await switchMilkToBoxOf24(fx)
     const balance = (await restockMilk(fx))!
+    const order = await orderMilk(fx, 1)
     const before = await supplierState()
     const error = await errorOf(() =>
-      writeOffPendings(fx.owner, {
-        pendingId: balance.pendingId,
-        boxes: 4,
+      receiveSupplierOrder(fx.owner, {
+        purchaseId: order.id,
+        lines: [
+          {
+            lineId: order.lines[0].id,
+            missingBoxes: 0,
+            damagedBoxes: 0,
+            noExpiry: true,
+          },
+        ],
+        replacements: [
+          { pendingId: balance.pendingId, boxes: 4, noExpiry: true },
+        ],
       }),
     )
     expect([error.code, error.message]).toEqual([
       'invalid',
-      'Las cajas a cancelar superan el saldo del proveedor.',
+      'Las cajas de reposición superan el saldo del proveedor.',
     ])
     expect(await supplierState()).toEqual(before)
   })

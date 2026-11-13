@@ -16,7 +16,6 @@ import {
   receiveSupplierOrderFn,
   returnPendingsFn,
   supplierOrderFn,
-  writeOffPendingsFn,
 } from '#/modules/inventory/server/supplier-orders'
 import type { OrderStock } from '#/modules/inventory/lib/order-rows'
 import { formatCents } from '#/modules/inventory/lib/cents'
@@ -50,13 +49,6 @@ export function useInventoryActions() {
       ),
     receiveOrder: (input: ReceptionInput, success: string) =>
       run(() => receiveSupplierOrderFn({ data: input }), success),
-    writeOff: (input: { pendingId: string; boxes: number }) =>
-      run(() => writeOffPendingsFn({ data: input }), {
-        onSuccess: ({ valueCents }) =>
-          toast.success(
-            `Se descontaron ${formatCents(valueCents)} del pago al proveedor.`,
-          ),
-      }),
     returnPending: (input: ReturnRequest) =>
       run(() => returnPendingsFn({ data: input }), {
         onSuccess: ({ creditCents }) =>

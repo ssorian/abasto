@@ -127,46 +127,6 @@ const badBoxes = (verb: string) =>
   )
 
 /**
- * "A lo chino": the supplier no longer owes these missing boxes and the value
- * is discounted from what we pay. Only for "Por reponer" balances. Only the
- * owner or a warehouse manager (supplier balances are not tied to one warehouse).
- */
-export async function writeOffPendings(
-  actor: Actor,
-  input: { pendingId: string; boxes: number },
-): Promise<{ valueCents: number }> {
-  authorizeSupplierBalance(actor)
-  if (!Number.isSafeInteger(input.boxes) || input.boxes <= 0) {
-    throw badBoxes('cancelar')
-  }
-  return db.transaction(async (tx) => {
-    const balance = await lockedBalance(tx, input.pendingId)
-    if (balance.kind !== 'restock') {
-      throw new AppError(
-        'invalid',
-        'Solo se pueden cancelar faltantes por reponer.',
-      )
-    }
-    const { valueCents } = await settleBalance(
-      tx,
-      {
-        balance,
-        boxes: input.boxes,
-        type: 'written_off',
-        purchaseId: null,
-        actorId: actor.userId,
-      },
-      () =>
-        new AppError(
-          'invalid',
-          'Las cajas a cancelar superan el saldo del proveedor.',
-        ),
-    )
-    return { valueCents }
-  })
-}
-
-/**
  * Closes boxes of a "Por devolver" balance because the supplier took them
  * back, either replacing them or crediting an amount (a discount; by default
  * the original value of the boxes). Nothing enters stock here.
