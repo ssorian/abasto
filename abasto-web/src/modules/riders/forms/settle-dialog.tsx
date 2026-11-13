@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { ActionButton } from '#/modules/inventory/components/action-button'
@@ -15,6 +16,7 @@ import { formatCents } from '#/modules/pricing/lib/money'
 import { useRiderActions } from '#/modules/riders/hooks/use-rider-actions'
 import { describeQuantity } from '#/modules/riders/lib/box-quantities'
 import { differenceLabel } from '#/modules/riders/lib/assignment-view'
+import { exactAmountText } from '#/modules/riders/lib/exact-amount'
 import { previewSettlement } from '#/modules/riders/lib/settlement-preview'
 import type { AssignmentDetail } from '#/modules/riders/services/assignment-reads'
 
@@ -92,8 +94,10 @@ export function SettleDialog({
       >
         {!cashOpen && (
           <WarningInline>
-            Para liquidar necesitas la caja abierta en este almacén. Ábrela en
-            Mostrador y vuelve aquí.
+            Abre la caja en Mostrador para liquidar.{' '}
+            <Link to="/mostrador" className="font-semibold underline">
+              Ir a Mostrador
+            </Link>
           </WarningInline>
         )}
         {assignment.lines.map((line, index) => {
@@ -155,14 +159,26 @@ export function SettleDialog({
             label="Monto esperado"
             value={formatCents(preview.expectedCents)}
           />
-          <Field label="Dinero entregado (pesos)">
-            <FieldInput
-              inputMode="decimal"
-              placeholder="0.00"
-              value={delivered}
-              onChange={(event) => setDelivered(event.target.value)}
-            />
-          </Field>
+          <div className="flex flex-col gap-[7px]">
+            <Field label="Dinero entregado (pesos)">
+              <FieldInput
+                inputMode="decimal"
+                placeholder="0.00"
+                value={delivered}
+                onChange={(event) => setDelivered(event.target.value)}
+              />
+            </Field>
+            <ActionButton
+              type="button"
+              className="min-h-9 self-start px-3"
+              disabled={preview.lines.some((row) => row.error)}
+              onClick={() =>
+                setDelivered(exactAmountText(preview.expectedCents))
+              }
+            >
+              Exacto
+            </ActionButton>
+          </div>
           <Figure
             label="Diferencia"
             value={

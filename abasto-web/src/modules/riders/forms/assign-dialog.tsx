@@ -1,6 +1,7 @@
 import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { useId, useState } from 'react'
 
+import { ProductPicker } from '#/components/product-picker'
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import {
   Field,
@@ -104,22 +105,18 @@ export function AssignDialog({ riders, products, onClose }: AssignDialogProps) {
             >
               <div className="flex min-w-0 flex-col gap-[7px]">
                 <Field label="Producto">
-                  <FieldSelect
+                  <ProductPicker
+                    label="Producto"
                     value={line.productId}
-                    aria-describedby={product ? hintId : undefined}
-                    onChange={(event) =>
-                      patch(index, { productId: event.target.value })
-                    }
-                  >
-                    <option value="">Elige el producto</option>
-                    {products
+                    products={products
                       .filter((p) => !taken.has(p.productId))
-                      .map((p) => (
-                        <option key={p.productId} value={p.productId}>
-                          {p.name}
-                        </option>
-                      ))}
-                  </FieldSelect>
+                      .map((p) => ({
+                        id: p.productId,
+                        name: p.name,
+                        sku: p.sku ?? '',
+                      }))}
+                    onChange={(productId) => patch(index, { productId })}
+                  />
                 </Field>
                 {product && (
                   <small

@@ -10,6 +10,7 @@ import { AssignDialog } from '#/modules/riders/forms/assign-dialog'
 import { CancelAssignmentDialog } from '#/modules/riders/forms/cancel-assignment-dialog'
 import { RiderDialog } from '#/modules/riders/forms/rider-dialog'
 import { SettleDialog } from '#/modules/riders/forms/settle-dialog'
+import { newAssignmentBlock } from '#/modules/riders/lib/assign-availability'
 import type { RidersOverview } from '#/modules/riders/lib/riders-view'
 import type { AssignmentDetail } from '#/modules/riders/services/assignment-reads'
 import type { Rider } from '#/modules/riders/services/riders'
@@ -62,6 +63,11 @@ export function RepartosPage({
     (rider) => rider.active && !onRoute.has(rider.id),
   )
   const hasOpen = onRoute.size > 0
+  const blockedReason = newAssignmentBlock({
+    activeRiders: overview.riders.filter(({ active }) => active).length,
+    freeRiders: freeRiders.length,
+    products: overview.products.length,
+  })
 
   return (
     <>
@@ -99,7 +105,8 @@ export function RepartosPage({
       )}
       <AssignmentsSection
         assignments={overview.assignments}
-        canAssign={freeRiders.length > 0 && overview.products.length > 0}
+        canAssign={blockedReason === null}
+        blockedReason={blockedReason}
         onNew={() => setOpen({ kind: 'assign' })}
         onSettle={(assignment) => setOpen({ kind: 'settle', assignment })}
         onCancel={(assignment) => setOpen({ kind: 'cancel', assignment })}
