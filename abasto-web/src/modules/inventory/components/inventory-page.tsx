@@ -73,6 +73,7 @@ type InventoryPageProps = {
   pendings: {
     restock: Array<PendingBalance>
     returns: Array<PendingBalance>
+    credits: Array<PendingBalance>
     history: Array<PendingEntry>
   }
   /** Pre-filled product search, e.g. from Catálogo "Consultar inventario". */
@@ -327,6 +328,7 @@ export function InventoryPage({
           <SupplierPendingsTab
             restock={pendings.restock}
             returns={pendings.returns}
+            credits={pendings.credits}
             history={pendings.history}
             suppliers={supplierNames}
             products={labels}
@@ -371,7 +373,7 @@ export function InventoryPage({
           suppliers={suppliers}
           products={pickable}
           canEditProducts={canEditProducts}
-          restock={pendings.restock}
+          discountable={[...pendings.restock, ...pendings.credits]}
           initialProductId={dialog.productId}
           onClose={closeDialog}
         />

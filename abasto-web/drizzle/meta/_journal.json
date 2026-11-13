@@ -253,6 +253,13 @@
       "when": 1794585701047,
       "tag": "0035_supplier_pending_scrapped",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794585859440,
+      "tag": "0036_supplier_pending_credit",
+      "breakpoints": true
     }
   ]
 }

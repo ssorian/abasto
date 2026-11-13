@@ -112,10 +112,10 @@ export async function createSupplierOrder(
       discounts.map((item) => item.pendingId),
     )
     for (const balance of balances) {
-      if (balance.kind !== 'restock') {
+      if (balance.kind === 'return') {
         throw new AppError(
           'invalid',
-          'Solo se pueden descontar faltantes por reponer.',
+          'Solo se pueden descontar faltantes por reponer o descuentos a favor.',
         )
       }
       if (openOf(balance).units === 0) {

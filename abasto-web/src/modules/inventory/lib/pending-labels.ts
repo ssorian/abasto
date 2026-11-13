@@ -9,6 +9,7 @@ export const pendingTypeLabels: Record<PendingType, string> = {
   returned: 'Devuelto al proveedor',
   reopened: 'Reabierto',
   scrapped: 'Merma',
+  credit: 'Descuento a favor',
 }
 
 /** Order statuses in the filter of "Por recibir". */

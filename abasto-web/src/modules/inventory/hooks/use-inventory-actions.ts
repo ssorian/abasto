@@ -59,7 +59,9 @@ export function useInventoryActions() {
           toast.success(
             creditCents === null
               ? 'Devolución registrada: el proveedor repondrá las cajas.'
-              : `Devolución registrada con descuento de ${formatCents(creditCents)}.`,
+              : creditCents === 0
+                ? 'Devolución registrada sin descuento.'
+                : `Devolución registrada: ${formatCents(creditCents)} a favor para el siguiente pedido.`,
           ),
       }),
     scrapPending: (input: ScrapRequest) =>

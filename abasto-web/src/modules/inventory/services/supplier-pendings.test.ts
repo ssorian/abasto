@@ -147,6 +147,7 @@ describe('listSupplierPendings', () => {
     expect(await listSupplierPendings(fx.owner, fx.cocaCola.id)).toEqual({
       restock: [],
       returns: [],
+      credits: [],
       history: [],
     })
     const all = await listSupplierPendings(fx.owner)
@@ -586,7 +587,7 @@ describe('discounts on a new order', () => {
         [{ pendingId: damaged.pendingId }],
         5,
         'invalid',
-        'Solo se pueden descontar faltantes por reponer.',
+        'Solo se pueden descontar faltantes por reponer o descuentos a favor.',
       ],
       [
         [{ pendingId: crypto.randomUUID() }],
@@ -778,6 +779,64 @@ describe('returnPendings', () => {
   })
 })
 
+describe('return credits', () => {
+  const creditMilk = async (fx: SupplierFixture) =>
+    (await view(fx)).credits.find((row) => row.productId === fx.milk.id)
+
+  test('a discount leaves a credit that is only discounted when chosen on an order', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 0, 3)
+    const damaged = (await returnMilk(fx))!
+    await returnPendings(fx.owner, {
+      pendingId: damaged.pendingId,
+      boxes: 2,
+      resolution: 'discount',
+      creditCents: 2500,
+    })
+    const credit = (await creditMilk(fx))!
+    expect(credit).toMatchObject({
+      kind: 'credit',
+      supplierId: fx.supplier.id,
+      owedBoxes: 2,
+      owedValueCents: 2500,
+      originCode: damaged.originCode,
+    })
+    expect((await view(fx)).restock).toEqual([])
+    // Never automatic: an order that does not choose it leaves it open.
+    const plain = await orderMilk(fx, 5)
+    expect(plain.discountCents).toBe(0)
+    expect(await creditMilk(fx)).toMatchObject({ owedValueCents: 2500 })
+    const order = await orderMilk(fx, 5, {
+      discounts: [{ pendingId: credit.pendingId }],
+    })
+    expect(order).toMatchObject({ discountCents: 2500, payableCents: 4220 })
+    expect(await creditMilk(fx)).toBeUndefined()
+    await cancelSupplierOrder(fx.owner, order.id)
+    expect(await creditMilk(fx)).toMatchObject({
+      pendingId: credit.pendingId,
+      owedValueCents: 2500,
+    })
+  })
+
+  test('a replacement or a zero discount leaves no credit', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 0, 3)
+    const damaged = (await returnMilk(fx))!
+    await returnPendings(fx.owner, {
+      pendingId: damaged.pendingId,
+      boxes: 1,
+      resolution: 'replacement',
+    })
+    await returnPendings(fx.owner, {
+      pendingId: damaged.pendingId,
+      boxes: 1,
+      resolution: 'discount',
+      creditCents: 0,
+    })
+    expect((await view(fx)).credits).toEqual([])
+  })
+})
+
 describe('scrapPendings', () => {
   test('closing damaged boxes as merma records their value as lost and leaves stock alone', async () => {
     const fx = await setupSupplierOrders()
@@ -798,8 +857,8 @@ describe('scrapPendings', () => {
     const after = await supplierState()
     expect(after.inventory).toEqual(before.inventory)
     const scrapped = after.pendings.filter((row) => row.type === 'scrapped')
-    expect(scrapped).toHaveLength(2)
-    expect(scrapped[0]).toMatchObject({
+    expect(scrapped.map((row) => row.quantity).sort()).toEqual([-12, -24])
+    expect(scrapped.find((row) => row.quantity === -12)).toMatchObject({
       settlesId: damaged.pendingId,
       purchaseId: null,
       quantity: -12,

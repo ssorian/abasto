@@ -10,6 +10,7 @@ import {
   supplierPendings,
 } from '#/modules/inventory/db/schema'
 import type {
+  OriginType,
   PendingKind,
   ReturnResolution,
 } from '#/modules/inventory/db/schema'
@@ -118,7 +119,7 @@ export async function loadBalances(
     .orderBy(asc(supplierPendings.createdAt), asc(supplierPendings.id))
   return rows.map(({ type, reference, folio, ...row }) => ({
     ...row,
-    kind: pendingKindOf(type as 'missing' | 'damaged'),
+    kind: pendingKindOf(type as OriginType),
     originCode: row.purchaseId ? orderCode({ reference, folio }) : '',
   }))
 }

@@ -71,7 +71,7 @@ export const Route = createFileRoute('/inventario')({
     const supplierOrders = ordersResult ? unwrap(ordersResult) : []
     const pendings = pendingsResult
       ? unwrap(pendingsResult)
-      : { restock: [], returns: [], history: [] }
+      : { restock: [], returns: [], credits: [], history: [] }
     return {
       overview: loaded,
       supplierOrders,
@@ -107,6 +107,7 @@ function InventoryRoute() {
       pendings={{
         restock: [...pendings.restock],
         returns: [...pendings.returns],
+        credits: [...pendings.credits],
         history: [...pendings.history],
       }}
       initialQuery={q ?? ''}

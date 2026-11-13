@@ -23,6 +23,7 @@ import type {
 type SupplierPendingsTabProps = {
   restock: ReadonlyArray<PendingBalance>
   returns: ReadonlyArray<PendingBalance>
+  credits: ReadonlyArray<PendingBalance>
   history: ReadonlyArray<PendingEntry>
   suppliers: ReadonlyMap<string, string>
   products: ReadonlyMap<string, ProductLabel>
@@ -34,6 +35,7 @@ type SupplierPendingsTabProps = {
 export function SupplierPendingsTab({
   restock,
   returns,
+  credits,
   history,
   suppliers,
   products,
@@ -61,6 +63,12 @@ export function SupplierPendingsTab({
           { label: 'Marcar como devuelto', onAction: onReturn },
           { label: 'Dar por merma', onAction: onScrap },
         ]}
+      />
+      <BalanceSection
+        title="Descuentos a favor"
+        description="Lo que el proveedor descontó por cajas devueltas; se elige al registrar el siguiente pedido."
+        emptyTitle="No tienes descuentos a favor"
+        rows={credits}
       />
       {history.length > 0 && (
         <>

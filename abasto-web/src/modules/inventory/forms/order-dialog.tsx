@@ -60,8 +60,8 @@ type OrderDialogProps = {
   products: ReadonlyArray<CatalogProduct>
   /** Whether the actor may edit catalog products (owner); a manager of the receiving warehouse edits its prices and costs too. */
   canEditProducts: boolean
-  /** Open "Por reponer" balances of every supplier; the dialog keeps the chosen supplier's. */
-  restock: ReadonlyArray<PendingBalance>
+  /** Open balances that can be discounted ("Por reponer" and "Descuentos a favor") of every supplier; the dialog keeps the chosen supplier's. */
+  discountable: ReadonlyArray<PendingBalance>
   /** Product to start from, e.g. a low-stock alert: picks its supplier and finds it. */
   initialProductId?: string
   onClose: () => void
@@ -74,7 +74,7 @@ export function OrderDialog({
   suppliers,
   products,
   canEditProducts,
-  restock,
+  discountable,
   initialProductId,
   onClose,
 }: OrderDialogProps) {
@@ -135,8 +135,8 @@ export function OrderDialog({
   }, [products, draft.supplierId, draft.boxes, query, onlyBoxes, stock])
   const total = orderTotalCents(own, draft)
   const owedHere = useMemo(
-    () => restock.filter((row) => row.supplierId === draft.supplierId),
-    [restock, draft.supplierId],
+    () => discountable.filter((row) => row.supplierId === draft.supplierId),
+    [discountable, draft.supplierId],
   )
   const discountCents = discountTotalCents(owedHere, discounted)
   const tooMuch = discountIssue(total, discountCents)
@@ -282,12 +282,12 @@ export function OrderDialog({
               {owedHere.length > 0 && (
                 <section className="grid gap-2.5">
                   <h3 className="text-sm font-[650] text-[#5f4a51]">
-                    Faltantes por reponer
+                    Faltantes y descuentos a favor
                   </h3>
                   <p className="text-xs text-[#9c898f]">
-                    Descontar cierra el faltante: su valor se resta del pago de
-                    este pedido y las cajas ya no se esperan. Se aplica al
-                    registrar el pedido.
+                    Descontar cierra el saldo: su valor se resta del pago de
+                    este pedido y, si es un faltante, las cajas ya no se
+                    esperan. Se aplica al registrar el pedido.
                   </p>
                   <ListPanel>
                     <ListTable>
@@ -301,6 +301,11 @@ export function OrderDialog({
                             <ListRow key={row.pendingId}>
                               <ListCell>
                                 <strong>{row.productName}</strong>
+                                <small className="block text-[#907e84]">
+                                  {row.kind === 'credit'
+                                    ? 'Descuento a favor'
+                                    : 'Faltante'}
+                                </small>
                               </ListCell>
                               <ListCell>{row.originCode}</ListCell>
                               <ListCell>
