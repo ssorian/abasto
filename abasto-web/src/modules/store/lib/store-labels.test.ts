@@ -5,6 +5,7 @@ import {
   canAddToCart,
   canCancelOrder,
   formatPickupDate,
+  holdUntilLabel,
   orderStatusTone,
   pickupDeadlineLabel,
   storeOrderCode,
@@ -65,6 +66,13 @@ describe('store labels', () => {
     )
     expect(pickupDeadlineLabel('Recogido', date)).toBeNull()
     expect(pickupDeadlineLabel('Cancelado', date)).toBeNull()
+  })
+
+  test('confirmation hold line names the deadline', () => {
+    const date = new Date('2026-11-09T20:30:00Z')
+    expect(holdUntilLabel(date)).toBe(
+      `Pasa por él antes de ${formatPickupDate(date)}`,
+    )
   })
 
   test('order code has a plain hyphen and no spaces', () => {

@@ -144,8 +144,7 @@ export function StoreShell({
                 search={{ redirect: location.href }}
                 className="st-btn st-btn--quiet min-h-11 px-3 text-[15px]"
               >
-                <span className="sm:hidden">Entrar</span>
-                <span className="hidden sm:inline">Iniciar sesión</span>
+                Entrar
               </Link>
             )}
           </div>

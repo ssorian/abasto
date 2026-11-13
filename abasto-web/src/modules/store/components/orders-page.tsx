@@ -51,7 +51,7 @@ export function OrdersPage({ user, orders }: OrdersPageProps) {
           search={{ redirect: location.href }}
           className="st-btn justify-self-center"
         >
-          Iniciar sesión
+          Entrar
         </Link>
       </div>
     )

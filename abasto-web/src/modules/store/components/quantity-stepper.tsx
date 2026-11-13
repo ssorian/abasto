@@ -9,18 +9,12 @@ type QuantityStepperProps = {
   label: string
   /** Lowest value; the pick list uses 0 so the minus button can remove a line. */
   min?: number
-  /** Dense 36px variant without the cell bar, for the desktop pick list. */
+  /** Dense 36px variant for the desktop pick list. */
   compact?: boolean
   className?: string
 }
 
-const CELLS = 12
-
-/**
- * Pick-face stepper: minus, typed quantity, plus, and under it the quantity
- * drawn as a bar of whole cells (the twelfth cell turns plum past twelve).
- * The compact variant drops the bar.
- */
+/** Pick-face stepper: minus, typed quantity, plus. */
 export function QuantityStepper({
   value,
   onChange,
@@ -70,17 +64,6 @@ export function QuantityStepper({
           <PlusIcon className="size-5" strokeWidth={2} aria-hidden />
         </button>
       </div>
-      {compact ? null : (
-        <div
-          className="st-cells"
-          aria-hidden
-          data-over={value > CELLS ? '' : undefined}
-        >
-          {Array.from({ length: CELLS }, (_, cell) => (
-            <i key={cell} data-on={cell < value ? '' : undefined} />
-          ))}
-        </div>
-      )}
     </div>
   )
 }

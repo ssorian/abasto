@@ -134,7 +134,7 @@ export function CartSheet({
                 onClick={() => handleOpenChange(false)}
                 className="st-btn st-btn--outline"
               >
-                Ver mis pedidos
+                Mis pedidos
               </Link>
             </div>
           ) : !resolved.length && !gone.length ? (
