@@ -6,6 +6,7 @@ import {
   listSuppliersFn,
 } from '#/modules/catalog/server/catalog'
 import { InventoryPage } from '#/modules/inventory/components/inventory-page'
+import { inventoryActionOf } from '#/modules/inventory/lib/inventory-action'
 import { inventoryOverviewFn } from '#/modules/inventory/server/inventory'
 import {
   supplierOrdersFn,
@@ -18,6 +19,10 @@ type InventorySearch = {
   q?: string
   /** Optional warehouse id, e.g. from Almacenes "Ver inventario". */
   almacen?: string
+  /** Dialog to open on arrival, e.g. from an Inicio alert: `quitar` or `pedido`. */
+  accion?: string
+  producto?: string
+  lote?: string
 }
 
 export const Route = createFileRoute('/inventario')({
@@ -28,6 +33,13 @@ export const Route = createFileRoute('/inventario')({
     ...(typeof search.almacen === 'string' && search.almacen !== ''
       ? { almacen: search.almacen }
       : {}),
+    ...(() => {
+      const action = inventoryActionOf(search)
+      if (!action) return {}
+      return action.kind === 'quitar'
+        ? { accion: 'quitar', producto: action.productId, lote: action.lotId }
+        : { accion: 'pedido', producto: action.productId }
+    })(),
   }),
   loaderDeps: ({ search }) => ({ almacen: search.almacen }),
   loader: async ({ deps }) => {
@@ -70,7 +82,8 @@ export const Route = createFileRoute('/inventario')({
 })
 
 function InventoryRoute() {
-  const { q } = Route.useSearch()
+  const search = Route.useSearch()
+  const { q } = search
   const { overview, products, suppliers, transfers, supplierOrders, pendings } =
     Route.useLoaderData()
   const { user } = Route.useRouteContext()
@@ -91,6 +104,13 @@ function InventoryRoute() {
         history: [...pendings.history],
       }}
       initialQuery={q ?? ''}
+      initialAction={inventoryActionOf(search)}
+      onActionDone={() =>
+        void navigate({
+          replace: true,
+          search: ({ accion: _a, producto: _p, lote: _l, ...rest }) => rest,
+        })
+      }
       onSelectWarehouse={(almacen) =>
         void navigate({ search: (current) => ({ ...current, almacen }) })
       }

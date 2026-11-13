@@ -19,6 +19,7 @@ import {
   HomePanel,
   HomeRow,
   HomeRowFigure,
+  homeRowAction,
 } from '#/modules/overview/components/home-panel'
 import { OverviewMetrics } from '#/modules/overview/components/overview-metrics'
 import { attentionOf } from '#/modules/overview/lib/attention'
@@ -52,6 +53,26 @@ export function OverviewPage({ overview }: { overview: Overview }) {
   const attention = attentionOf(overview)
   // With one warehouse its name on every row is noise.
   const where = (name: string) => (warehouses.length > 1 ? `${name} · ` : '')
+  // Money fields come only for warehouses the actor manages; only those get actions.
+  const manages = (warehouseId: string) =>
+    warehouses.some(
+      (item) => item.id === warehouseId && item.salesCents !== undefined,
+    )
+  const removeLot = (lot: Overview['expired'][number]) =>
+    manages(lot.warehouseId) ? (
+      <Link
+        to="/inventario"
+        search={{
+          almacen: lot.warehouseId,
+          accion: 'quitar',
+          producto: lot.productId,
+          lote: lot.lotId,
+        }}
+        className={homeRowAction}
+      >
+        Quitar
+      </Link>
+    ) : undefined
 
   return (
     <>
@@ -100,6 +121,7 @@ export function OverviewPage({ overview }: { overview: Overview }) {
                     <HomeRow
                       key={lot.lotId}
                       title={lot.name}
+                      action={removeLot(lot)}
                       detail={`${where(lot.warehouseName)}${lot.onHand} ${lot.unit} · no se pueden vender, registra la pérdida`}
                       aside={
                         <StatusBadge tone="red" className={rowStatus}>
@@ -173,6 +195,7 @@ export function OverviewPage({ overview }: { overview: Overview }) {
                     <HomeRow
                       key={lot.lotId}
                       title={lot.name}
+                      action={removeLot(lot)}
                       detail={`${where(lot.warehouseName)}${lot.onHand} ${lot.unit}`}
                       aside={
                         <StatusBadge
@@ -200,6 +223,21 @@ export function OverviewPage({ overview }: { overview: Overview }) {
                       key={`${item.warehouseId}-${item.productId}`}
                       title={item.name}
                       detail={`${where(item.warehouseName)}Mínimo ${item.minimum} ${item.unit}`}
+                      action={
+                        manages(item.warehouseId) ? (
+                          <Link
+                            to="/inventario"
+                            search={{
+                              almacen: item.warehouseId,
+                              accion: 'pedido',
+                              producto: item.productId,
+                            }}
+                            className={homeRowAction}
+                          >
+                            Pedir
+                          </Link>
+                        ) : undefined
+                      }
                       aside={
                         <HomeRowFigure>
                           {item.available} {item.unit}

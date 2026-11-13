@@ -62,6 +62,8 @@ type OrderDialogProps = {
   canEditProducts: boolean
   /** Open "Por reponer" balances of every supplier; the dialog keeps the chosen supplier's. */
   restock: ReadonlyArray<PendingBalance>
+  /** Product to start from, e.g. a low-stock alert: picks its supplier and finds it. */
+  initialProductId?: string
   onClose: () => void
 }
 
@@ -73,18 +75,20 @@ export function OrderDialog({
   products,
   canEditProducts,
   restock,
+  initialProductId,
   onClose,
 }: OrderDialogProps) {
   const actions = useInventoryActions()
+  const initialProduct = products.find(({ id }) => id === initialProductId)
   const [draft, setDraft] = useState<OrderDraft>(() => ({
-    supplierId: '',
+    supplierId: initialProduct?.supplierId ?? '',
     warehouseId: initialWarehouseId,
     expectedOn: '',
     reference: '',
     boxes: {},
   }))
   const [editingId, setEditingId] = useState<string>()
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialProduct?.name ?? '')
   const [onlyBoxes, setOnlyBoxes] = useState(false)
   // Undefined while loading, so rows neither warn nor show stock until they arrive.
   const [standard, setStandard] = useState<Record<string, number>>()

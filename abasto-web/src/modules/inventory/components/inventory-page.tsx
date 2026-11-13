@@ -30,6 +30,7 @@ import { OrderDetailDialog } from '#/modules/inventory/forms/order-detail-dialog
 import { OrderDialog } from '#/modules/inventory/forms/order-dialog'
 import { ReceptionDialog } from '#/modules/inventory/forms/reception-dialog'
 import { ReturnDialog } from '#/modules/inventory/forms/return-dialog'
+import type { InventoryAction } from '#/modules/inventory/lib/inventory-action'
 import {
   packInfoOf,
   quantityPresentations,
@@ -75,6 +76,10 @@ type InventoryPageProps = {
   }
   /** Pre-filled product search, e.g. from Catálogo "Consultar inventario". */
   initialQuery: string
+  /** Dialog to open on arrival, e.g. from an Inicio alert. */
+  initialAction?: InventoryAction
+  /** Called when that dialog closes, so a reload does not reopen it. */
+  onActionDone?: () => void
   onSelectWarehouse: (warehouseId: string) => void
 }
 
@@ -92,7 +97,7 @@ const headingButton =
   'max-md:min-h-[43px] max-md:px-[11px] max-md:py-[9px] max-md:text-[11px]'
 
 type Dialog =
-  | { kind: 'order' }
+  | { kind: 'order'; productId?: string }
   | { kind: 'orderDetail'; order: SupplierOrderSummary }
   | { kind: 'receiveOrder'; order: SupplierOrderSummary }
   | { kind: 'cancelOrder'; order: SupplierOrderSummary }
@@ -102,7 +107,7 @@ type Dialog =
   | { kind: 'receive'; transfer: TransferListItem }
   | { kind: 'cancel'; transfer: TransferListItem }
   | { kind: 'minimum'; productId: string }
-  | { kind: 'lots'; productId: string }
+  | { kind: 'lots'; productId: string; removeLotId?: string }
 
 export function InventoryPage({
   overview,
@@ -113,6 +118,8 @@ export function InventoryPage({
   supplierOrders,
   pendings,
   initialQuery,
+  initialAction,
+  onActionDone,
   onSelectWarehouse,
 }: InventoryPageProps) {
   const [tab, setTab] = useState('Productos')
@@ -120,7 +127,21 @@ export function InventoryPage({
   const [filter, setFilter] = useState<StatusFilter>('Todos')
   const [supplierId, setSupplierId] = useState('')
   const [moveType, setMoveType] = useState('Todos')
-  const [dialog, setDialog] = useState<Dialog | null>(null)
+  const [dialog, setDialog] = useState<Dialog | null>(() =>
+    initialAction?.kind === 'quitar'
+      ? {
+          kind: 'lots',
+          productId: initialAction.productId,
+          removeLotId: initialAction.lotId,
+        }
+      : initialAction?.kind === 'pedido'
+        ? { kind: 'order', productId: initialAction.productId }
+        : null,
+  )
+  const closeDialog = () => {
+    setDialog(null)
+    if (initialAction) onActionDone?.()
+  }
 
   const labels = useMemo(
     () =>
@@ -334,7 +355,8 @@ export function InventoryPage({
           products={products}
           canEditProducts={canEditProducts}
           restock={pendings.restock}
-          onClose={() => setDialog(null)}
+          initialProductId={dialog.productId}
+          onClose={closeDialog}
         />
       )}
       {dialog?.kind === 'orderDetail' && (
@@ -413,7 +435,8 @@ export function InventoryPage({
           presentations={lotsProduct ? quantityPresentations(lotsProduct) : []}
           today={overview.today}
           canManage={canManage}
-          onClose={() => setDialog(null)}
+          removeLotId={dialog?.kind === 'lots' ? dialog.removeLotId : undefined}
+          onClose={closeDialog}
         />
       )}
     </div>

@@ -71,9 +71,11 @@ type HomeRowProps = {
   title: string
   detail: string
   aside: ReactNode
+  /** Direct action for this row, e.g. a link that opens the right dialog. */
+  action?: ReactNode
 }
 
-export function HomeRow({ title, detail, aside }: HomeRowProps) {
+export function HomeRow({ title, detail, aside, action }: HomeRowProps) {
   return (
     <div className="flex items-center justify-between gap-3.5 border-t border-row-border py-[13px]">
       <div className="min-w-0 flex-1">
@@ -85,9 +87,14 @@ export function HomeRow({ title, detail, aside }: HomeRowProps) {
         </small>
       </div>
       {aside}
+      {action}
     </div>
   )
 }
+
+/** Small link-button for a row action. */
+export const homeRowAction =
+  'inline-flex min-h-8 items-center rounded-[8px] border border-panel-border bg-white px-2.5 text-[11px] font-[650] whitespace-nowrap text-ink-link hover:bg-[#faf6f1]'
 
 export function HomeRowFigure({ children }: { children: ReactNode }) {
   return (

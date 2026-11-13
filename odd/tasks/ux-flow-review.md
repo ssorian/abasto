@@ -13,10 +13,13 @@ Branch: feat/ux-flow-review. Do not touch the pre-existing uncommitted inventory
 - S6: Login shows the brand and offers a show/hide password toggle.
 
 ## Tasks
-- T1 [S1, S3] Restructure Inicio: attention block first, expired lots alert, remove duplicates and zero rows — route: pending — commit: —
-- T2 [S2] Direct actions from Inicio alerts — route: pending — commit: —
-- T3 [S4, S5, S6] Role label, date, footer, breadcrumb, login brand and password toggle — route: pending — commit: —
+- T1 [S1, S3] Restructure Inicio: attention block first, expired lots alert, remove duplicates and zero rows — route: inline — commit: ccd54d9 ✅
+- T2 [S2] Direct actions from Inicio alerts — route: inline — commit: (see L4) ✅
+- T3 [S4, S5, S6] Role label, date, footer, breadcrumb, login brand and password toggle — route: inline — commit: ccd54d9 ✅
 
 ## Log
 - L1 (user, verbatim): "Analiza docs/qa/2026-11-12-flow-map/ la idea es que analices todo el flujo y detectes fricciones, fallas y cosas que hagan confusa y dificil la experiencia de usuario, vas a avanzar paso a paso con el flujo uno por uno y cuando detectes si algo necesita mi decision me preguntes para aplicarla, la idea es mejorar el flujo de la UI, quitar cosas inecesarias y en general mejorar mucho la experiencia de usuario"
 - L2 (user decisions, Flow 1): Orden Inicio = "Alertas primero (Recomendado)"; Acciones = "Sí, acciones directas"; Vencidos = "Sí, como alerta roja".
+- L3 (evidence): ccd54d9 — overview tests + full suite 1198 pass / 0 fail; visual check owner and manager on dev DB. Slice boundary: ccd54d9 is ~740 authored lines (overview page rewrite); next slices stay under ~400.
+- L4 (user decision): T2 was blocked by uncommitted pre-existing inventory work; user chose "Commiteá primero lo de inventario" → committed separately as refactor(inventory): remove the standalone supplier write-off. T2 then implemented via /inventario search params (accion=quitar|pedido, producto, lote); verified in browser (Quitar opens lot removal with "Pérdida: vencido"; Pedir opens Nuevo pedido with supplier, warehouse and product prefilled; closing clears the URL). Tests: inventory + overview 348 pass / 0 fail.
+- L5 (observation for Flow 4): navigating to /inventario as owner takes ~10-15 s on the dev server.
