@@ -517,11 +517,11 @@ describe('receiveSupplierOrder', () => {
         { receivedBoxes: 2, damagedBoxes: 0 },
       ]),
     )
-    // The two surplus boxes enter the same lot, at the line's cost per piece.
+    // The two surplus boxes enter the same lot without cost: the lot is worth what was paid.
     expect(result.lots[0]).toMatchObject({
       receivedQuantity: 144,
       onHand: 144,
-      receivedCostCents: 16128,
+      receivedCostCents: 13440,
     })
     const stored = await getSupplierOrder(fx.owner, order.id)
     // What is owed to the supplier stays computed on the ordered boxes.
@@ -535,7 +535,7 @@ describe('receiveSupplierOrder', () => {
     expect((await supplierState()).pendings).toEqual([])
   })
 
-  test('damaged boxes come out of what was received, surplus included', async () => {
+  test('damaged boxes fall on the free surplus first: only paid boxes are owed back', async () => {
     const fx = await setupSupplierOrders()
     const order = await pendingOrder(fx)
     const result = await receiveSupplierOrder(
@@ -545,10 +545,49 @@ describe('receiveSupplierOrder', () => {
         { receivedBoxes: 2, damagedBoxes: 0 },
       ]),
     )
-    expect(result.lots[0]).toMatchObject({ receivedQuantity: 108 })
+    // 12 arrived, 3 damaged: 9 good boxes; 2 of the damaged were the free ones.
+    expect(result.lots[0]).toMatchObject({
+      receivedQuantity: 108,
+      receivedCostCents: 12096,
+    })
     const pendings = (await supplierState()).pendings
     expect(pendings).toHaveLength(1)
-    expect(pendings[0]).toMatchObject({ type: 'damaged', quantity: 36 })
+    expect(pendings[0]).toMatchObject({
+      type: 'damaged',
+      quantity: 12,
+      valueCents: 1344,
+    })
+    const stored = await getSupplierOrder(fx.owner, order.id)
+    expect(stored.totalCostCents).toBe(order.totalCostCents)
+    expect(stored.lines[0]).toMatchObject({
+      goodQuantity: 108,
+      damagedQuantity: 12,
+      missingQuantity: 0,
+    })
+  })
+
+  test('more damaged boxes than ordered are fine while they fit in what arrived', async () => {
+    const fx = await setupSupplierOrders()
+    const order = await pendingOrder(fx)
+    const factor = order.lines[1].quantity / 2
+    // 2 ordered, 4 arrived, 3 damaged: 2 free damaged, 1 paid damaged, 1 good.
+    const result = await receiveSupplierOrder(
+      fx.owner,
+      arrive(order, [
+        { receivedBoxes: 10, damagedBoxes: 0 },
+        { receivedBoxes: 4, damagedBoxes: 3 },
+      ]),
+    )
+    expect(result.lots[1]).toMatchObject({ receivedQuantity: factor })
+    const pendings = (await supplierState()).pendings
+    expect(pendings).toHaveLength(1)
+    expect(pendings[0]).toMatchObject({ type: 'damaged', quantity: factor })
+    const stored = await getSupplierOrder(fx.owner, order.id)
+    expect(stored.lines[1]).toMatchObject({
+      goodQuantity: factor,
+      damagedQuantity: factor,
+      missingQuantity: 0,
+    })
   })
 
   test('rejects damaged boxes above the received ones and changes nothing', async () => {

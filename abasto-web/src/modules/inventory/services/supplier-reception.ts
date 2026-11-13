@@ -187,9 +187,9 @@ function validateReplacements(input: ReceptionInput, today: string) {
  * the order gets the order's code (its reference, else `PED-` + folio). Good
  * boxes become one lot per line; boxes not received (ordered − received) become
  * a "Por reponer" balance and damaged ones a "Por devolver" balance, never
- * stock. Boxes received above the ordered ones enter the same lot at the line's
- * cost per piece but are never owed: the line's cost, hence the order total and
- * the payable, stays computed on the ordered boxes. Replacements settle
+ * stock. Boxes received above the ordered ones are free: they enter the same lot
+ * without cost and are never owed (the order total and payable stay on the
+ * ordered boxes), and damaged boxes fall on them first. Replacements settle
  * open "Por reponer" balances of the same supplier (other orders) and enter as
  * lots at their original cost. Stock changes only here, atomically; the
  * purchase row is locked so an order cannot be received twice.
@@ -338,25 +338,34 @@ export async function receiveSupplierOrder(
       const line = stored.find((item) => item.id === entry.lineId)!
       const receivedUnits = entry.receivedBoxes * line.boxFactor
       const missingUnits = Math.max(0, line.quantity - receivedUnits)
+      // Boxes above the ordered ones come free; damaged boxes fall on them first,
+      // so only paid boxes are ever owed back.
+      const freeUnits = Math.max(0, receivedUnits - line.quantity)
       const damagedUnits = entry.damagedBoxes * line.boxFactor
-      // Surplus included: it enters the lot, but the line below caps what is recorded.
+      const paidDamagedUnits = Math.max(0, damagedUnits - freeUnits)
+      const paidGoodUnits = line.quantity - missingUnits - paidDamagedUnits
       const goodUnits = receivedUnits - damagedUnits
       const goodBoxes = goodUnits / line.boxFactor
       const expiresOn = entry.expiresOn || null
       await tx
         .update(purchaseLines)
         .set({
-          // The line keeps good + damaged ≤ ordered; surplus lives in the lot only.
-          goodQuantity: Math.min(goodUnits, line.quantity - damagedUnits),
-          damagedQuantity: damagedUnits,
+          // The line records paid boxes only (good + damaged ≤ ordered); free ones live in the lot.
+          goodQuantity: paidGoodUnits,
+          damagedQuantity: paidDamagedUnits,
           lotCode: code,
           expiresOn,
         })
         .where(eq(purchaseLines.id, line.id))
       if (goodUnits > 0) {
-        // Lot cost: the line's cost per piece for every good piece, surplus
-        // included, so the unit cost and the sale price rule stay the ordered ones.
+        // The lot is worth what was paid for its pieces: free ones add stock, not cost.
         const costCents = lineShareCents(
+          line.totalCostCents,
+          paidGoodUnits,
+          line.quantity,
+        )
+        // The sale price follows the ordered cost per piece, so free boxes never cheapen it.
+        const orderedCostCents = lineShareCents(
           line.totalCostCents,
           goodUnits,
           line.quantity,
@@ -373,7 +382,7 @@ export async function receiveSupplierOrder(
             costCents,
             salePriceCents: lotSalePrice(
               prices.get(line.productId),
-              costCents,
+              orderedCostCents,
               goodBoxes,
             ),
             reason: 'Compra',
@@ -382,7 +391,7 @@ export async function receiveSupplierOrder(
         )
       }
       for (const [type, units] of [
-        ['damaged', damagedUnits],
+        ['damaged', paidDamagedUnits],
         ['missing', missingUnits],
       ] as const) {
         if (units > 0) {
