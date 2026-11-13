@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
@@ -50,13 +50,22 @@ const tabClass =
   'flex-none rounded-none border-0 border-b-2 border-transparent px-3 pb-2 data-[state=active]:border-b-[#3b2251] data-[state=active]:text-[#3b2251]'
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
+  const id = useId()
   return (
-    <fieldset className="grid min-w-0 grid-cols-1 gap-[15px] border-t border-[#f4eee8] pt-4 first:border-t-0 first:pt-0 md:grid-cols-2">
-      <legend className="float-left mb-[2px] w-full text-[11px] font-semibold tracking-[0.06em] text-[#927981] uppercase">
+    <section
+      aria-labelledby={id}
+      className="min-w-0 border-t border-[#f4eee8] pt-4 first:border-t-0 first:pt-0"
+    >
+      <h3
+        id={id}
+        className="mb-[13px] w-full text-[11px] font-semibold tracking-[0.06em] text-[#927981] uppercase"
+      >
         {title}
-      </legend>
-      {children}
-    </fieldset>
+      </h3>
+      <div className="grid grid-cols-1 gap-[15px] md:grid-cols-2">
+        {children}
+      </div>
+    </section>
   )
 }
 

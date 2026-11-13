@@ -20,6 +20,9 @@ type CatalogCardProps = {
   onEdit: () => void
 }
 
+const statusClass =
+  'flex items-center gap-1 rounded-[5px] bg-white px-1.5 py-1 text-xs text-[#62348b]'
+
 export function CatalogCard({
   product,
   supplierName,
@@ -30,19 +33,28 @@ export function CatalogCard({
 }: CatalogCardProps) {
   return (
     <article className="relative overflow-hidden rounded-xl border border-[#eee8e2] bg-white shadow-[0_3px_5px_#35145202] transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[#ddd4d7] hover:shadow-[0_7px_22px_#3712570b]">
-      <div className="relative m-[5px_5px_0] flex h-[162px] items-center justify-center overflow-hidden rounded-[7px] bg-[#faf9f7] md:m-[7px_7px_0] md:h-[205px]">
-        <ProductImage
-          src={product.imageUrl}
-          name={product.name}
-          className="size-full object-contain p-4 mix-blend-multiply"
-        />
-        <span className="absolute top-[9px] right-[9px] flex items-center gap-1 rounded-[5px] bg-white px-1.5 py-1 text-xs text-[#62348b] md:top-3 md:right-3">
+      {product.imageUrl ? (
+        <div className="relative m-[5px_5px_0] flex h-[162px] items-center justify-center overflow-hidden rounded-[7px] bg-[#faf9f7] md:m-[7px_7px_0] md:h-[205px]">
+          <ProductImage
+            src={product.imageUrl}
+            name={product.name}
+            className="size-full object-contain p-4 mix-blend-multiply"
+          />
+          <span
+            className={`${statusClass} absolute top-[9px] right-[9px] md:top-3 md:right-3`}
+          >
+            <CheckIcon size={12} />
+            {product.published ? 'Publicado' : 'Pausado'}
+          </span>
+        </div>
+      ) : (
+        <span className={`${statusClass} absolute top-3 right-3 bg-[#faf9f7]`}>
           <CheckIcon size={12} />
           {product.published ? 'Publicado' : 'Pausado'}
         </span>
-      </div>
+      )}
       <div className="px-[15px] pt-[15px] pb-[15px] md:pb-[22px] wide:px-[19px] wide:pt-[17px]">
-        <span className="block text-xs leading-6 tracking-[0.65px] text-[#ae9fa4]">
+        <span className="block min-h-6 pr-24 text-xs leading-6 tracking-[0.65px] text-[#ae9fa4]">
           {[product.brand, product.sku].filter(Boolean).join(' · ')}
         </span>
         <h3 className="mt-1.5 text-base leading-normal font-[650] md:text-[17px]">
@@ -63,9 +75,6 @@ export function CatalogCard({
           ) : null}
         </div>
         {prices}
-        <p className="mt-1 text-[11px] leading-[1.4] text-[#9f8f94]">
-          El inventario se lleva en {product.unit}.
-        </p>
         {onPrices || canManage ? (
           <div className="my-3.5 flex flex-wrap gap-[9px]">
             {onPrices ? (

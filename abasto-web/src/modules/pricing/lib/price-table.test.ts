@@ -3,7 +3,9 @@ import {
   groupByProduct,
   joinProducts,
   originLabels,
+  hasOwnPriceHistory,
   pendingPrices,
+  pricePlaceholder,
   pricesByProduct,
 } from '#/modules/pricing/lib/price-table'
 import type { PriceTableRow } from '#/modules/pricing/lib/price-table'
@@ -82,5 +84,37 @@ describe('price table', () => {
     expect(result.prices).toEqual([{ presentationId: 'b', priceCents: 25000 }])
     expect(result.errors).toEqual({ c: 'Usa máximo 2 decimales.' })
     expect(pendingPrices(rows, { a: '' }).prices).toEqual([])
+  })
+})
+
+describe('pricePlaceholder', () => {
+  test('shows a derived price as a marked estimate, an own price plainly', () => {
+    expect(pricePlaceholder(row({ origin: 'derived', priceCents: 950 }))).toBe(
+      '≈ 9.50',
+    )
+    expect(pricePlaceholder(row({ origin: 'own', priceCents: 11400 }))).toBe(
+      '114.00',
+    )
+    expect(pricePlaceholder(row({ origin: 'none', priceCents: null }))).toBe(
+      'Sin precio',
+    )
+  })
+})
+
+describe('hasOwnPriceHistory', () => {
+  test('only presentations with their own price have history to show', () => {
+    expect(hasOwnPriceHistory(row({ origin: 'own' }))).toBe(true)
+    expect(hasOwnPriceHistory(row({ origin: 'derived' }))).toBe(false)
+    expect(hasOwnPriceHistory(row({ origin: 'none' }))).toBe(false)
+  })
+})
+
+describe('pendingPrices derived rows', () => {
+  test('typing the derived value still saves it as an own price', () => {
+    const derived = row({ origin: 'derived', priceCents: 950 })
+    expect(pendingPrices([derived], { a: '9.50' }).prices).toEqual([
+      { presentationId: 'a', priceCents: 950 },
+    ])
+    expect(pendingPrices([derived], { a: '' }).prices).toEqual([])
   })
 })

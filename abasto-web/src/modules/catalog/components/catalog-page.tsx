@@ -7,10 +7,14 @@ import { SupplierSelect } from '#/components/supplier-select'
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
 import { CatalogCard } from '#/modules/catalog/components/catalog-card'
 import { CatalogEmpty } from '#/modules/catalog/components/catalog-empty'
+import { CatalogTable } from '#/modules/catalog/components/catalog-table'
 import { CatalogToolbar } from '#/modules/catalog/components/catalog-toolbar'
+import { CatalogViewToggle } from '#/modules/catalog/components/catalog-view-toggle'
 import { ProductFormDialog } from '#/modules/catalog/forms/product-form-dialog'
 import { SuppliersDialog } from '#/modules/catalog/forms/suppliers-dialog'
 import { useCatalogActions } from '#/modules/catalog/hooks/use-catalog'
+import { useCatalogView } from '#/modules/catalog/hooks/use-catalog-view'
+import { inventoryNote } from '#/modules/catalog/lib/catalog-view'
 import { importReferenceProducts } from '#/modules/catalog/lib/catalog-import'
 import {
   filterCatalog,
@@ -65,6 +69,7 @@ export function CatalogPage({
 }: CatalogPageProps) {
   const actions = useCatalogActions()
   const pricingActions = usePricingActions(pricing.selectedId)
+  const [view, setView] = useCatalogView()
   const [query, setQuery] = useState('')
   const [supplierId, setSupplierId] = useState('')
   const [editor, setEditor] = useState<Editor>()
@@ -148,38 +153,58 @@ export function CatalogPage({
           value={supplierId}
           onChange={setSupplierId}
         />
+        <CatalogViewToggle value={view} onChange={setView} />
       </CatalogToolbar>
-      <div className="grid grid-cols-2 gap-2.5 phone:gap-3.5 md:gap-4 tablet:grid-cols-3 wide:gap-5">
-        {visible.map((product) => (
-          <CatalogCard
-            key={product.id}
-            product={product}
-            canManage={canManage}
-            supplierName={
-              product.supplierId
-                ? supplierNames.get(product.supplierId)
-                : undefined
-            }
-            prices={
-              warehouse ? (
-                <CardPrices
-                  group={priceGroups.get(product.id)}
-                  warehouseName={warehouse.name}
-                  netCostPerPiece={
-                    canEditCost ? netCostPerPieceOf(product) : undefined
-                  }
-                />
-              ) : undefined
-            }
-            onPrices={
-              warehouse && priceGroups.get(product.id)?.rows.length
-                ? () => setPricesId(product.id)
-                : undefined
-            }
-            onEdit={() => setEditor({ productId: product.id })}
-          />
-        ))}
-      </div>
+      <p className="mb-3.5 text-xs leading-[1.5] text-[#9f8f94]">
+        {warehouse
+          ? 'Es una referencia: cada lote puede venderse más caro al darle entrada. '
+          : ''}
+        {inventoryNote(products)}
+      </p>
+      {view === 'table' ? (
+        <CatalogTable
+          products={visible}
+          groups={priceGroups}
+          supplierNames={supplierNames}
+          showPrices={Boolean(warehouse)}
+          costOf={canEditCost ? netCostPerPieceOf : undefined}
+          canManage={canManage}
+          onPrices={setPricesId}
+          onEdit={(productId) => setEditor({ productId })}
+        />
+      ) : (
+        <div className="grid grid-cols-2 gap-2.5 phone:gap-3.5 md:gap-4 tablet:grid-cols-3 wide:gap-5">
+          {visible.map((product) => (
+            <CatalogCard
+              key={product.id}
+              product={product}
+              canManage={canManage}
+              supplierName={
+                product.supplierId
+                  ? supplierNames.get(product.supplierId)
+                  : undefined
+              }
+              prices={
+                warehouse ? (
+                  <CardPrices
+                    group={priceGroups.get(product.id)}
+                    warehouseName={warehouse.name}
+                    netCostPerPiece={
+                      canEditCost ? netCostPerPieceOf(product) : undefined
+                    }
+                  />
+                ) : undefined
+              }
+              onPrices={
+                warehouse && priceGroups.get(product.id)?.rows.length
+                  ? () => setPricesId(product.id)
+                  : undefined
+              }
+              onEdit={() => setEditor({ productId: product.id })}
+            />
+          ))}
+        </div>
+      )}
       {visible.length === 0 && <CatalogEmpty />}
       {warehouse && openPrices && openProduct && (
         <ProductPricesDialog
