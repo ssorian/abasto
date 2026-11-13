@@ -28,6 +28,8 @@ export type OverviewTotals = {
 }
 
 export type LowStockItem = {
+  warehouseId: string
+  productId: string
   warehouseName: string
   name: string
   unit: string
@@ -36,11 +38,15 @@ export type LowStockItem = {
 }
 
 export type ExpiringItem = {
+  lotId: string
+  warehouseId: string
+  productId: string
   warehouseName: string
   name: string
   unit: string
   lotCode: string
   expiresOn: string
+  /** Negative once expired. */
   daysLeft: number
   onHand: number
 }
@@ -52,4 +58,6 @@ export type Overview = {
   totals: OverviewTotals
   lowStock: Array<LowStockItem>
   expiring: Array<ExpiringItem>
+  /** Lots past their expiry day that still hold stock. */
+  expired: Array<ExpiringItem>
 }

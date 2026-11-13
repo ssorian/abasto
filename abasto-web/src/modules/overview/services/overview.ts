@@ -18,9 +18,11 @@ import { addDays } from '#/modules/reports/lib/period'
 import { uuidList } from '#/modules/reports/services/report-scope'
 import { getSalesReport } from '#/modules/reports/services/sales-report'
 import {
+  queryExpiredLots,
   queryExpiringLots,
   queryLowStock,
 } from '#/modules/reports/services/stock-alerts'
+import type { LotAlertRow } from '#/modules/reports/types/reports'
 import { listWarehouses } from '#/modules/warehouses/services/warehouses'
 
 const EXPIRING_DAYS = 7
@@ -61,6 +63,19 @@ async function operationalCounts(
   return new Map(result.rows.map((row) => [row.warehouse_id, row]))
 }
 
+const lotItem = (row: LotAlertRow): ExpiringItem => ({
+  lotId: row.lotId,
+  warehouseId: row.warehouseId,
+  productId: row.productId,
+  warehouseName: row.warehouseName,
+  name: row.name,
+  unit: row.unit,
+  lotCode: row.lotCode,
+  expiresOn: row.expiresOn,
+  daysLeft: row.daysLeft,
+  onHand: row.onHand,
+})
+
 const countBy = (rows: ReadonlyArray<{ warehouseId: string }>, id: string) =>
   rows.filter((row) => row.warehouseId === id).length
 
@@ -76,20 +91,22 @@ export async function getOverview(actor: Actor): Promise<Overview> {
   )
   const ids = visible.map((item) => item.id)
   const managed = visible.filter(({ id }) => can(actor, 'warehouse.manage', id))
-  const [counts, lowStockRows, expiringRows, sales] = await Promise.all([
-    operationalCounts(ids, today),
-    queryLowStock(actor, visible),
-    queryExpiringLots(ids, {
-      from: today,
-      to: addDays(today, EXPIRING_DAYS),
-    }),
-    managed.length
-      ? getSalesReport(actor, {
-          period: { preset: 'today' },
-          warehouseIds: managed.map((item) => item.id),
-        })
-      : null,
-  ])
+  const [counts, lowStockRows, expiringRows, expiredRows, sales] =
+    await Promise.all([
+      operationalCounts(ids, today),
+      queryLowStock(actor, visible),
+      queryExpiringLots(ids, {
+        from: today,
+        to: addDays(today, EXPIRING_DAYS),
+      }),
+      queryExpiredLots(ids, today),
+      managed.length
+        ? getSalesReport(actor, {
+            period: { preset: 'today' },
+            warehouseIds: managed.map((item) => item.id),
+          })
+        : null,
+    ])
 
   const warehouses = visible.map((item): WarehouseOverview => {
     const row = counts.get(item.id)
@@ -130,28 +147,20 @@ export async function getOverview(actor: Actor): Promise<Overview> {
   const lowStock = lowStockRows
     .slice(0, LIST_SIZE)
     .map((row): LowStockItem => ({
+      warehouseId: row.warehouseId,
+      productId: row.productId,
       warehouseName: row.warehouseName,
       name: row.name,
       unit: row.unit,
       available: row.available,
       minimum: row.minimum,
     }))
-  const expiring = expiringRows
-    .slice(0, LIST_SIZE)
-    .map((row): ExpiringItem => ({
-      warehouseName: row.warehouseName,
-      name: row.name,
-      unit: row.unit,
-      lotCode: row.lotCode,
-      expiresOn: row.expiresOn,
-      daysLeft: row.daysLeft,
-      onHand: row.onHand,
-    }))
   return {
     today,
     warehouses,
     totals,
     lowStock,
-    expiring,
+    expiring: expiringRows.slice(0, LIST_SIZE).map(lotItem),
+    expired: expiredRows.slice(0, LIST_SIZE).map(lotItem),
   }
 }

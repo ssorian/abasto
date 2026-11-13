@@ -2,13 +2,13 @@ export type SessionUser = {
   name: string
   email: string
   role: 'owner' | 'staff' | 'customer'
-  roleLabel: 'Dueño' | 'Personal' | 'Cliente'
+  roleLabel: 'Dueño' | 'Encargado' | 'Cliente'
   initials: string
 }
 
 const roleLabels = {
   owner: 'Dueño',
-  staff: 'Personal',
+  staff: 'Encargado',
   customer: 'Cliente',
 } as const
 
