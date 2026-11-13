@@ -19,9 +19,9 @@ UI copy is Spanish (es-MX); code and identifiers in English. The database is dev
 - [x] T1 — S1-S4 — inline — counter: «Ventas» label, full-viewport new-order dialog, taller image, one row per product with «Cajas»/«Piezas» inputs disabled without stock. Commit 4cd24ea.
 - [x] T2 — S5 — inline — Preparado removed (service, server fn, UI, store strip, seed); migration 0037_remove_prepared_status maps stored Preparado to Reservado and drops prepared_at. Commit 7a05322.
 - [x] T3 — S6 — inline — server assigns reference E001, E002… (advisory lock, max E-number + 1); dialog shows a read-only folio. Commit 491bdd9.
-- [ ] T5 — S7 — worker — reception «Recibidas» input replaces «Faltantes»; surplus enters free.
-- [ ] T6 — S8 — worker — owner-only lot adjustments (UI + server).
-- [ ] T4 — all — verify (S8 security, S5/S7 data) + full suite + on-screen check.
+- [x] T5 — S7 — worker + inline fix — «Recibidas» replaces «Faltantes»; fewer → Por reponer; surplus enters the lot without cost, damaged boxes fall on the free ones first. Commits f4fdeff, fe2ae00.
+- [x] T6 — S8 — worker — 'stock.adjust' owner-only permission on moveLot; lots dialog and Inicio «Quitar» gated. Commits 5538830, 2cdc4db.
+- [x] T4 — all — three independent verifies (S1-S6 pass; S8 pass after 2cdc4db; S7 pass after fe2ae00); full suite 1332 pass / 0 fail, tsc clean, eslint src 0 errors. On-screen check not done.
 
 ## Log
 
@@ -29,3 +29,5 @@ UI copy is Spanish (es-MX); code and identifiers in English. The database is dev
 - L2 — Decisions (questionnaire): Preparado → "Quitarlo y migrar los datos"; extra boxes → "Entran sin costo"; folio → "Fijo, sin poder editarlo"; caja/pieza → "Una fila por producto con dos campos".
 - L3 — User: "Tienes bastante libertad, no te preocupes por la db, no estamos en produccion y la db actual de supabase es de desarrollo"
 - L4 — Writers were refused by the runtime guard (absolute spec path); T1–T3 done inline. Context backstop reached after T3: T5 and T6 delegated.
+- L5 — User: "cuando acabes haz merge y push".
+- L6 — Verify findings fixed: Inicio «Quitar» shown to managers (2cdc4db); surplus costed and damaged surplus owed back (fe2ae00). Known gap: commit 5538830 alone does not compile (a receivedBoxes test hunk landed there; fixed at f4fdeff); no test pins the sale price with surplus.
