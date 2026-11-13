@@ -89,13 +89,6 @@ function validate(input: SupplierOrderInput) {
 }
 
 /**
- * Queues an order with status Pedido: no lots, no movements. A line is only
- * boxes: the product's list price, fixed discount and promotion per piece are
- * copied into it, so later catalog changes never alter the order. The gross
- * cost is pieces × list price and the lot cost the net line cost: gross −
- * pieces × (discount + promotion), each rounded half up to cents once.
- */
-/**
  * Next automatic folio (E001, E002…): one past the highest `E<number>`
  * reference stored. The transaction lock keeps two orders from taking the same one.
  */
@@ -109,6 +102,13 @@ async function nextSupplierFolio(tx: Tx): Promise<string> {
   return supplierFolio(Number(result.rows[0]?.last ?? 0) + 1)
 }
 
+/**
+ * Queues an order with status Pedido: no lots, no movements. A line is only
+ * boxes: the product's list price, fixed discount and promotion per piece are
+ * copied into it, so later catalog changes never alter the order. The gross
+ * cost is pieces × list price and the lot cost the net line cost: gross −
+ * pieces × (discount + promotion), each rounded half up to cents once.
+ */
 export async function createSupplierOrder(
   actor: Actor,
   input: SupplierOrderInput,

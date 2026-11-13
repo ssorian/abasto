@@ -36,7 +36,7 @@ export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
   const heading = (
     <PageHeading
       title="Ventas"
-      description="Reserva, prepara y entrega los pedidos de tus clientes."
+      description="Reserva y entrega los pedidos de tus clientes."
       actions={
         selected && (
           <ActionButton tone="primary" onClick={() => setComposing(true)}>
