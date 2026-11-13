@@ -1,6 +1,8 @@
 export type AssignableProduct = {
   productId: string
   name: string
+  /** Searchable alongside the name; blank when the source does not provide it. */
+  sku?: string
   /** Base units in the product's largest active presentation ("caja"). */
   boxFactor: number
   /** Base units free to assign in the warehouse. */

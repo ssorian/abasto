@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { authorize } from '#/modules/access/lib/policy'
@@ -89,13 +89,14 @@ export async function listWarehousePrices(
   executor: Executor = db,
 ): Promise<Array<PriceRow>> {
   authorize(actor, 'warehouse.view', warehouseId)
-  return readWarehousePrices(executor, warehouseId)
+  return readWarehousePrices(executor, warehouseId, { archived: false })
 }
 
 /** Same as `listWarehousePrices` without authorization; callers authorize first. */
 export async function readWarehousePrices(
   executor: Executor,
   warehouseId: string,
+  { archived = true }: { archived?: boolean } = {},
 ): Promise<Array<PriceRow>> {
   await requireWarehouse(executor, warehouseId)
   const items = await executor
@@ -112,6 +113,7 @@ export async function readWarehousePrices(
     })
     .from(presentations)
     .innerJoin(products, eq(products.id, presentations.productId))
+    .where(archived ? undefined : isNull(products.archivedAt))
     .orderBy(
       asc(products.name),
       asc(products.sku),

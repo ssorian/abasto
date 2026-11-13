@@ -2,7 +2,6 @@ import { ScaleIcon } from 'lucide-react'
 
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import { boxCountLabel } from '#/modules/inventory/lib/order-rows'
-import { EmptyPanel } from '#/modules/inventory/components/empty-panel'
 import {
   ListBody,
   ListCell,
@@ -27,7 +26,6 @@ type SupplierPendingsTabProps = {
   history: ReadonlyArray<PendingEntry>
   suppliers: ReadonlyMap<string, string>
   products: ReadonlyMap<string, ProductLabel>
-  onWriteOff: (pending: PendingBalance) => void
   onReturn: (pending: PendingBalance) => void
 }
 
@@ -38,29 +36,24 @@ export function SupplierPendingsTab({
   history,
   suppliers,
   products,
-  onWriteOff,
   onReturn,
 }: SupplierPendingsTabProps) {
   return (
     <>
       <SectionRow
         title="Saldos de proveedores"
-        description="Lo faltante se repone en una recepción o se descuenta de un pago. Lo dañado o caducado se devuelve al proveedor."
+        description="Lo faltante se repone o se descuenta en el siguiente pedido; lo dañado o caducado se devuelve."
       />
       <BalanceSection
         title="Por reponer"
         description="Cajas que nunca llegaron."
         emptyTitle="Ningún proveedor te debe cajas"
-        emptyDescription="Lo faltante de un pedido recibido aparecerá aquí."
-        action="Descontar del pago"
         rows={restock}
-        onAction={onWriteOff}
       />
       <BalanceSection
         title="Por devolver"
         description="Cajas dañadas o caducadas que siguen contigo; no son inventario."
         emptyTitle="No tienes cajas por devolver"
-        emptyDescription="Lo dañado o caducado de un pedido recibido aparecerá aquí."
         action="Marcar como devuelto"
         rows={returns}
         onAction={onReturn}
@@ -121,48 +114,63 @@ type BalanceSectionProps = {
   title: string
   description: string
   emptyTitle: string
-  emptyDescription: string
-  action: string
   rows: ReadonlyArray<PendingBalance>
-  onAction: (pending: PendingBalance) => void
+  /** Row action; omitted for balances settled elsewhere (restock: on the next order). */
+  action?: string
+  onAction?: (pending: PendingBalance) => void
 }
 
 function BalanceSection({
   title,
   description,
   emptyTitle,
-  emptyDescription,
   action,
   rows,
   onAction,
 }: BalanceSectionProps) {
+  if (!rows.length) {
+    return (
+      <section className="mt-4 first-of-type:mt-0">
+        <p className="flex items-center gap-2 text-sm text-[#907e84]">
+          <ScaleIcon size={16} />
+          <strong className="font-[650] text-[#5f4a51]">{title}:</strong>
+          {emptyTitle}
+        </p>
+      </section>
+    )
+  }
   return (
     <section className="mt-6 first-of-type:mt-0">
       <h3 className="mb-1 text-base font-[650] text-[#5f4a51]">{title}</h3>
       <p className="mb-3 text-xs text-[#9c898f]">{description}</p>
-      {rows.length ? (
-        <ListPanel>
-          <ListTable>
-            <ListHead>
-              {['Proveedor', 'Producto', 'Pedido', 'Debe', 'Valor', '']}
-            </ListHead>
-            <ListBody>
-              {rows.map((row) => (
-                <ListRow key={row.pendingId}>
-                  <ListCell>
-                    <strong className="text-[#5f4a51]">
-                      {row.supplierName}
-                    </strong>
-                  </ListCell>
-                  <ListCell>
-                    {row.productName}
-                    <small className="block text-[#907e84]">{row.sku}</small>
-                  </ListCell>
-                  <ListCell>{row.originCode}</ListCell>
-                  <ListCell>
-                    {boxCountLabel(row.owedBoxes, row.boxFactor)}
-                  </ListCell>
-                  <ListCell>{formatCents(row.owedValueCents)}</ListCell>
+      <ListPanel>
+        <ListTable>
+          <ListHead>
+            {[
+              'Proveedor',
+              'Producto',
+              'Pedido',
+              'Debe',
+              'Valor',
+              ...(action ? [''] : []),
+            ]}
+          </ListHead>
+          <ListBody>
+            {rows.map((row) => (
+              <ListRow key={row.pendingId}>
+                <ListCell>
+                  <strong className="text-[#5f4a51]">{row.supplierName}</strong>
+                </ListCell>
+                <ListCell>
+                  {row.productName}
+                  <small className="block text-[#907e84]">{row.sku}</small>
+                </ListCell>
+                <ListCell>{row.originCode}</ListCell>
+                <ListCell>
+                  {boxCountLabel(row.owedBoxes, row.boxFactor)}
+                </ListCell>
+                <ListCell>{formatCents(row.owedValueCents)}</ListCell>
+                {action && onAction && (
                   <ListCell>
                     <span className="flex justify-end">
                       <ActionButton
@@ -173,18 +181,12 @@ function BalanceSection({
                       </ActionButton>
                     </span>
                   </ListCell>
-                </ListRow>
-              ))}
-            </ListBody>
-          </ListTable>
-        </ListPanel>
-      ) : (
-        <EmptyPanel
-          icon={ScaleIcon}
-          title={emptyTitle}
-          description={emptyDescription}
-        />
-      )}
+                )}
+              </ListRow>
+            ))}
+          </ListBody>
+        </ListTable>
+      </ListPanel>
     </section>
   )
 }

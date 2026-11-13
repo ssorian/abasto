@@ -8,7 +8,7 @@ import {
   FieldSelect,
 } from '#/modules/reports/components/report-fields'
 import { SupplierSelect } from '#/modules/reports/components/supplier-select'
-import { rangeLabel } from '#/modules/reports/lib/period'
+import { longRangeLabel } from '#/modules/reports/lib/period'
 import { defaultPreset } from '#/modules/reports/lib/search'
 import type {
   DateRange,
@@ -76,14 +76,14 @@ export function OwnerPeriodFilters({
         {range && (
           <span className="flex items-center gap-[9px] text-xs text-[#5d387e]">
             <CalendarDaysIcon size={15} />
-            {rangeLabel(range)}
+            {longRangeLabel(range)}
             {previousRange && (
               <em className="not-italic text-muted-foreground">
                 {' '}
-                · comparado con {rangeLabel(previousRange)}
+                · comparado con{' '}
+                {longRangeLabel(previousRange, Number(range.to.slice(0, 4)))}
               </em>
-            )}{' '}
-            · Ciudad de México
+            )}
           </span>
         )}
       </div>

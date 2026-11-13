@@ -9,6 +9,8 @@ import {
 import { CustomerButton } from '#/modules/customers/components/customer-button'
 import { statusLabel } from '#/modules/customers/lib/customer-labels'
 
+import { StatusBadge } from '#/modules/customers/components/status-badge'
+
 import type {
   CustomerView,
   RuleView,
@@ -17,6 +19,8 @@ import type {
 type CustomersTableProps = {
   customers: ReadonlyArray<CustomerView>
   rules: Readonly<Partial<Record<string, ReadonlyArray<RuleView>>>>
+  /** The owner sees whether each customer has store access. */
+  canManage: boolean
   onView: (customerId: string) => void
 }
 
@@ -29,6 +33,7 @@ const note = 'mt-1 block text-[11px] leading-normal text-[#958389]'
 export function CustomersTable({
   customers,
   rules,
+  canManage,
   onView,
 }: CustomersTableProps) {
   if (customers.length === 0) {
@@ -46,6 +51,7 @@ export function CustomersTable({
             <TableHead className={head}>Cliente</TableHead>
             <TableHead className={head}>Contacto</TableHead>
             <TableHead className={head}>Condiciones</TableHead>
+            {canManage && <TableHead className={head}>Tienda</TableHead>}
             <TableHead className={head}>
               <span className="sr-only">Acciones</span>
             </TableHead>
@@ -63,7 +69,9 @@ export function CustomersTable({
                   className={`${cell} min-w-[170px] whitespace-normal`}
                 >
                   <strong>{customer.name}</strong>
-                  <small className={note}>{statusLabel(customer)}</small>
+                  <StatusBadge active={customer.active}>
+                    {statusLabel(customer)}
+                  </StatusBadge>
                 </TableCell>
                 <TableCell className={cell}>
                   {customer.contact || '—'}
@@ -76,6 +84,11 @@ export function CustomersTable({
                       : `${count} condiciones comerciales`
                     : 'Precio de lista'}
                 </TableCell>
+                {canManage && (
+                  <TableCell className={cell}>
+                    {customer.hasStoreAccess ? 'Con acceso' : 'Sin acceso'}
+                  </TableCell>
+                )}
                 <TableCell className={`${cell} text-right`}>
                   <CustomerButton onClick={() => onView(customer.id)}>
                     Ver cliente

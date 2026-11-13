@@ -1,6 +1,6 @@
 import { OrderLines } from '#/modules/store/components/order-summary'
 import {
-  formatPickupDate,
+  holdUntilLabel,
   storeOrderCode,
 } from '#/modules/store/lib/store-labels'
 import type { StoreOrder } from '#/modules/store/services/storefront'
@@ -17,9 +17,8 @@ export function ReservationTag({ order }: { order: StoreOrder }) {
       </div>
 
       <div className="st-plate st-plate--brand p-3.5">
-        <p className="text-[14px] text-st-ink-soft">Recoge antes de</p>
         <p className="st-stencil text-[20px] leading-tight text-st-brand-hover">
-          {formatPickupDate(order.expiresAt)}
+          {holdUntilLabel(order.expiresAt)}
         </p>
       </div>
 

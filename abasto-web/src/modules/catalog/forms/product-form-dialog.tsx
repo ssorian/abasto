@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
@@ -19,7 +19,11 @@ import {
 import {
   draftFromProduct,
   emptyProductDraft,
+  newProductCostErrors,
 } from '#/modules/catalog/lib/product-draft'
+import { formatBps, formatCents, parsePesos } from '#/modules/pricing/lib/money'
+import { netCostOf, saleCheck } from '#/modules/pricing/lib/product-costs'
+import { formatTenThousandths } from '#/lib/utils/supplier-cost'
 
 import type { PresentationsState } from '#/modules/catalog/forms/presentation-rows'
 import type {
@@ -34,6 +38,11 @@ type ProductFormDialogProps = {
   product?: CatalogProduct
   suppliers: ReadonlyArray<CatalogSupplier>
   /**
+   * Warehouse selected in Catálogo. When creating, the sale price of the
+   * default presentation is saved there; without one it is set later in Precios.
+   */
+  warehouseName?: string
+  /**
    * The only save of the dialog: product fields and presentations together.
    * Resolves to the server message when it failed (shown in the dialog, which
    * stays open) or null when saved, which closes the dialog.
@@ -42,6 +51,11 @@ type ProductFormDialogProps = {
     draft: ProductDraft,
     presentations: PresentationsState,
   ) => Promise<string | null>
+  /**
+   * Archives the product being edited (owner only). Resolves to the refusal
+   * message (shown in the dialog) or null once archived, which closes it.
+   */
+  onArchive?: () => Promise<string | null>
   onClose: () => void
 }
 
@@ -50,20 +64,31 @@ const tabClass =
   'flex-none rounded-none border-0 border-b-2 border-transparent px-3 pb-2 data-[state=active]:border-b-[#3b2251] data-[state=active]:text-[#3b2251]'
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
+  const id = useId()
   return (
-    <fieldset className="grid min-w-0 grid-cols-1 gap-[15px] border-t border-[#f4eee8] pt-4 first:border-t-0 first:pt-0 md:grid-cols-2">
-      <legend className="float-left mb-[2px] w-full text-[11px] font-semibold tracking-[0.06em] text-[#927981] uppercase">
+    <section
+      aria-labelledby={id}
+      className="min-w-0 border-t border-[#f4eee8] pt-4 first:border-t-0 first:pt-0"
+    >
+      <h3
+        id={id}
+        className="mb-[13px] w-full text-[11px] font-semibold tracking-[0.06em] text-[#927981] uppercase"
+      >
         {title}
-      </legend>
-      {children}
-    </fieldset>
+      </h3>
+      <div className="grid grid-cols-1 gap-[15px] md:grid-cols-2">
+        {children}
+      </div>
+    </section>
   )
 }
 
 export function ProductFormDialog({
   product,
   suppliers,
+  warehouseName,
   onSubmit,
+  onArchive,
   onClose,
 }: ProductFormDialogProps) {
   const [draft, setDraft] = useState(() =>
@@ -75,7 +100,10 @@ export function ProductFormDialog({
       : initialPresentationDrafts(draft.unit),
   )
   const [saving, setSaving] = useState(false)
+  const [confirmingArchive, setConfirmingArchive] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
+  const [tab, setTab] = useState('details')
+  const [showCostErrors, setShowCostErrors] = useState(false)
   const patch = (change: Partial<ProductDraft>) =>
     setDraft((current) => ({ ...current, ...change }))
   const changeUnit = (unit: string) => {
@@ -90,8 +118,27 @@ export function ProductFormDialog({
     ({ active, id }) => active || id === draft.supplierId,
   )
 
+  const costErrors = product
+    ? {}
+    : newProductCostErrors(draft, Boolean(warehouseName))
+  const defaultRow = presentations.rows.find(
+    (row) => row.key === presentations.defaultKey,
+  )
+  const defaultFactor = defaultRow?.factor ?? 1
+  const net = draft.listPrice.trim() ? netCostOf(draft, defaultFactor) : null
+  const typedPrice = parsePesos(draft.salePrice)
+  const check =
+    net && typedPrice.ok
+      ? saleCheck(defaultFactor, typedPrice.value, net.perPiece)
+      : null
+
   async function save() {
     setFailure(null)
+    setShowCostErrors(true)
+    if (Object.keys(costErrors).length) {
+      setTab('details')
+      return
+    }
     setSaving(true)
     const message = await onSubmit(draft, presentations)
     setSaving(false)
@@ -99,11 +146,32 @@ export function ProductFormDialog({
     else setFailure(message)
   }
 
+  async function archive() {
+    if (!onArchive) return
+    setFailure(null)
+    setSaving(true)
+    const message = await onArchive()
+    setSaving(false)
+    if (message === null) onClose()
+    else {
+      setConfirmingArchive(false)
+      setFailure(message)
+    }
+  }
+
   const identityFields: Array<readonly [keyof ProductDraft, string]> = [
     ['name', 'Nombre'],
     ['brand', 'Marca'],
     ['sku', 'SKU'],
   ]
+
+  const costFields: Array<readonly [keyof ProductDraft, string]> = [
+    ['listPrice', 'Costo por pieza'],
+    ['fixedDiscount', 'Descuento fijo'],
+    ['promotion', 'Promoción'],
+  ]
+  const errorOf = (key: string) =>
+    showCostErrors ? (costErrors as Record<string, string>)[key] : undefined
 
   const details = (
     <div className="grid gap-[18px]">
@@ -198,6 +266,74 @@ export function ProductFormDialog({
           />
         </Field>
       </Section>
+      {!product && (
+        <Section title="Costo y precio">
+          {costFields.map(([key, label]) => (
+            <Field key={key} label={label}>
+              <TextInput
+                inputMode="decimal"
+                placeholder="0.0000"
+                aria-label={label}
+                aria-invalid={Boolean(errorOf(key))}
+                value={String(draft[key])}
+                onChange={(event) => patch({ [key]: event.target.value })}
+              />
+              {errorOf(key) && (
+                <span className="text-xs text-[#b42318]">{errorOf(key)}</span>
+              )}
+            </Field>
+          ))}
+          <p className="text-xs text-[#9d8c92] md:self-end md:pb-3">
+            Costo del proveedor por pieza, para todos los almacenes. Hasta 4
+            decimales.
+          </p>
+          {warehouseName ? (
+            <Field
+              label={`Precio de venta · ${defaultRow?.name ?? 'presentación principal'} · ${warehouseName}`}
+              className="md:col-span-2"
+            >
+              <TextInput
+                inputMode="decimal"
+                placeholder="0.00"
+                aria-label="Precio de venta"
+                aria-invalid={Boolean(errorOf('salePrice'))}
+                value={draft.salePrice}
+                onChange={(event) => patch({ salePrice: event.target.value })}
+              />
+              {errorOf('salePrice') && (
+                <span className="text-xs text-[#b42318]">
+                  {errorOf('salePrice')}
+                </span>
+              )}
+            </Field>
+          ) : (
+            <p className="rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972] md:col-span-2">
+              No hay un almacén seleccionado en el catálogo, así que el precio
+              de venta se define después en «Precios».
+            </p>
+          )}
+          <dl className="grid gap-x-4 gap-y-1 rounded-xl bg-[#faf6f1] px-3.5 py-3 text-sm md:col-span-2 md:grid-cols-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <dt className="text-[#89747b]">Costo neto por pieza</dt>
+              <dd className="font-bold text-[#4d2b6a]">
+                {net ? `$${formatTenThousandths(net.perPiece)}` : '—'}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-2">
+              <dt className="text-[#89747b]">Margen del precio</dt>
+              <dd className="font-bold text-[#4d2b6a]">
+                {check ? `${formatBps(check.marginBps)}%` : '—'}
+              </dd>
+            </div>
+          </dl>
+          {check?.belowCost && (
+            <p className="text-xs text-[#a08442] md:col-span-2">
+              El precio está por debajo del costo neto (
+              {formatCents(check.costCents)}). Puedes guardarlo.
+            </p>
+          )}
+        </Section>
+      )}
     </div>
   )
 
@@ -205,10 +341,14 @@ export function ProductFormDialog({
     <CatalogModal
       size="editor"
       title={product ? 'Editar producto' : 'Nuevo producto'}
-      description="Aquí se define qué es el producto, su proveedor y sus presentaciones. Los costos y precios de venta se capturan en «Precios»."
+      description={
+        product
+          ? 'Aquí se define qué es el producto, su proveedor y sus presentaciones. Los costos y precios de venta se editan en «Precios».'
+          : 'Aquí se define qué es el producto, su proveedor y sus presentaciones. También capturas su costo y su precio de venta, y todo se guarda junto.'
+      }
       onClose={onClose}
     >
-      <Tabs defaultValue="details" className="flex-col gap-[18px]">
+      <Tabs value={tab} onValueChange={setTab} className="flex-col gap-[18px]">
         <TabsList variant="line" className="h-auto w-full justify-start">
           <TabsTrigger value="details" className={tabClass}>
             Datos del producto
@@ -260,6 +400,47 @@ export function ProductFormDialog({
         <p role="alert" className="mt-[18px] text-sm text-[#b42318]">
           {failure}
         </p>
+      )}
+      {onArchive && (
+        <div className="mt-[18px] rounded-[9px] border border-[#eee7e0] bg-[#faf9f7] p-[13px]">
+          {confirmingArchive ? (
+            <div className="grid gap-3">
+              <p className="text-sm leading-[1.6] text-[#513f45]">
+                ¿Archivar este producto? Dejará de verse en el catálogo, los
+                pedidos y la tienda, pero conserva todo su historial. Podrás
+                restaurarlo cuando quieras desde «Archivados».
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <CatalogButton
+                  disabled={saving}
+                  onClick={() => setConfirmingArchive(false)}
+                >
+                  No archivar
+                </CatalogButton>
+                <CatalogButton
+                  tone="primary"
+                  disabled={saving}
+                  onClick={() => void archive()}
+                >
+                  {saving ? 'Archivando…' : 'Sí, archivar'}
+                </CatalogButton>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs leading-[1.6] text-[#856972]">
+                Si ya no lo vendes, archívalo. Solo se puede sin existencias ni
+                pedidos abiertos, y se puede restaurar.
+              </p>
+              <CatalogButton
+                disabled={saving}
+                onClick={() => setConfirmingArchive(true)}
+              >
+                Archivar producto
+              </CatalogButton>
+            </div>
+          )}
+        </div>
       )}
       <div className="mt-[18px] flex items-center justify-between gap-3 border-t border-[#f4eee8] pt-5">
         <CatalogButton onClick={onClose}>Cancelar</CatalogButton>

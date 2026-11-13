@@ -281,7 +281,7 @@ body:has(.store) {
     font-weight: 650;
   }
 
-  /* ---- Stepper: quantity as a growing bar of cells ------------------------ */
+  /* ---- Stepper: minus, quantity, plus ---------------------- */
 
   .st-stepper {
     display: inline-grid;
@@ -339,29 +339,6 @@ body:has(.store) {
   .st-stepper--compact button svg {
     width: 16px;
     height: 16px;
-  }
-
-  .st-cells {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 3px;
-    height: 5px;
-    margin-top: 5px;
-  }
-
-  .st-cells > i {
-    display: block;
-    border-radius: 3px;
-    background: var(--color-st-line);
-    transition: background-color 160ms var(--st-ease);
-  }
-
-  .st-cells > i[data-on] {
-    background: var(--color-st-brand);
-  }
-
-  .st-cells[data-over] > i:last-child {
-    background: var(--color-st-plum);
   }
 
   /* Add: the collapsed stepper while the line is at zero. */
@@ -575,7 +552,6 @@ body:has(.store) {
     .st-add,
     .st-stepper button,
     .st-stepper input,
-    .st-cells > i,
     .st-tab,
     .st-strip {
       transition: none;

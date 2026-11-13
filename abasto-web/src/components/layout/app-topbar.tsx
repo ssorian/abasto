@@ -1,9 +1,8 @@
 import { useLocation, useRouter } from '@tanstack/react-router'
-import { ChevronRight, LogOut } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 
 import { SidebarTrigger } from '#/components/ui/sidebar'
 import { navItemForPath } from '#/config/navigation'
-import { workspace } from '#/config/workspace'
 import { authClient } from '#/lib/auth-client'
 import type { SessionUser } from '#/modules/access/lib/session-user'
 
@@ -16,9 +15,7 @@ export function AppTopbar({ user }: { user: SessionUser }) {
     <header className="flex h-[66px] shrink-0 items-center justify-between border-b border-topbar-border bg-white px-5 md:h-[77px] md:px-[26px] wide:px-[38px]">
       <div className="flex items-center gap-[7px] text-xs text-crumb md:gap-3">
         <SidebarTrigger className="-ml-1.5 text-crumb md:hidden" />
-        <span className="hidden md:inline">{workspace.appName}</span>
-        <ChevronRight size={14} className="text-[#b1a0a6]" />
-        <strong className="font-[550] text-crumb-strong">
+        <strong className="font-[550] text-crumb-strong md:hidden">
           {current?.label ?? ''}
         </strong>
       </div>

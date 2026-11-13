@@ -14,8 +14,10 @@ import {
   productPatchFromDraft,
 } from '#/modules/catalog/lib/product-draft'
 import {
+  archiveProductFn,
   createProductFn,
   createSupplierFn,
+  restoreProductFn,
   savePieceCostFn,
   updateProductFn,
   updateProductWithPresentationsFn,
@@ -44,6 +46,8 @@ export function useCatalogActions() {
       productId: string | undefined,
       draft: ProductDraft,
       presentations?: { rows: Array<PresentationDraft>; defaultKey: string },
+      /** Warehouse selected in Catálogo: a new product's price is saved there. */
+      warehouseId?: string | null,
     ) =>
       inline(
         () =>
@@ -63,6 +67,7 @@ export function useCatalogActions() {
                   draft,
                   presentations?.rows,
                   presentations?.defaultKey,
+                  warehouseId,
                 ),
               }),
         'Producto guardado.',
@@ -80,6 +85,17 @@ export function useCatalogActions() {
       >,
     ) =>
       inline(() => savePieceCostFn({ data: { id: productId, cost: patch } })),
+    /** Resolves to the refusal message (shown in the dialog) or null once archived. */
+    archiveProduct: (productId: string) =>
+      inline(
+        () => archiveProductFn({ data: { id: productId } }),
+        'Producto archivado. Puedes restaurarlo desde «Archivados».',
+      ),
+    restoreProduct: (productId: string) =>
+      run(
+        () => restoreProductFn({ data: { id: productId } }),
+        'Producto restaurado.',
+      ),
     setPublished: (productId: string, published: boolean) =>
       run(
         () =>

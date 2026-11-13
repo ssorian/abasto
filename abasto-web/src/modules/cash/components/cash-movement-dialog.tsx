@@ -5,11 +5,14 @@ import { ActionButton } from '#/modules/counter/components/action-button'
 import { CounterDialog } from '#/modules/counter/components/counter-dialog'
 import { Field, FieldInput } from '#/modules/counter/components/form-controls'
 import { useCashActions } from '#/modules/cash/hooks/use-cash-actions'
+import { formatCents } from '#/modules/pricing/lib/money'
 import { parsePesosToCents } from '#/modules/inventory/lib/cents'
 
 type CashMovementDialogProps = {
   kind: 'entry' | 'withdrawal'
   warehouseId: string
+  /** Cash in the drawer: the limit a withdrawal cannot exceed. */
+  availableCents?: number
   onClose: () => void
 }
 
@@ -30,6 +33,7 @@ const copy = {
 export function CashMovementDialog({
   kind,
   warehouseId,
+  availableCents,
   onClose,
 }: CashMovementDialogProps) {
   const actions = useCashActions(warehouseId)
@@ -47,7 +51,14 @@ export function CashMovementDialog({
 
   return (
     <CounterDialog title={title} description={description} onClose={onClose}>
-      <Field label="Monto (pesos)">
+      <Field
+        label="Monto (pesos)"
+        hint={
+          kind === 'withdrawal' && availableCents !== undefined
+            ? `Hay ${formatCents(availableCents)} en la caja.`
+            : undefined
+        }
+      >
         <FieldInput
           inputMode="decimal"
           autoFocus

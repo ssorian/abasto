@@ -1,6 +1,7 @@
 import { eq, inArray } from 'drizzle-orm'
 import { AppError } from '#/lib/errors'
 import { presentations, products } from '#/modules/catalog/db/schema'
+import { productArchived } from '#/modules/catalog/services/product-reads'
 import { resolveCustomerPrice } from '#/modules/customers/services/commercial-rules'
 import type { CommercialRule } from '#/modules/customers/services/commercial-rules'
 import { fitsInt4, MAX_INT4 } from '#/modules/inventory/services/stock-ledger'
@@ -72,6 +73,7 @@ export async function quoteLines(
       id: presentations.id,
       productId: presentations.productId,
       productName: products.name,
+      archivedAt: products.archivedAt,
       factor: presentations.factor,
       active: presentations.active,
       isDefault: presentations.isDefault,
@@ -106,6 +108,7 @@ export async function quoteLines(
     if (!presentation) {
       throw new AppError('not_found', 'No encontramos esa presentación.')
     }
+    if (presentation.archivedAt) throw productArchived()
     if (!presentation.active) {
       throw new AppError(
         'conflict',

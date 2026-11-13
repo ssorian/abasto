@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   appliedRuleLabel,
   expiryLabel,
+  hasCustomerRule,
   orderCode,
   quoteRuleLabel,
 } from '#/modules/counter/lib/order-format'
@@ -46,5 +47,18 @@ describe('order format', () => {
       'Vence en 20 min',
     )
     expect(expiryLabel(new Date('2026-01-10T11:00:00Z'), now)).toBe('Venció')
+  })
+})
+
+describe('hasCustomerRule', () => {
+  const rule = { minQuantity: 5, discountBps: 1000, priceCents: null }
+
+  test('false when every line was priced at list', () => {
+    expect(hasCustomerRule([{ rule: null }, { rule: null }])).toBe(false)
+    expect(hasCustomerRule([])).toBe(false)
+  })
+
+  test('true as soon as one line has a customer rule', () => {
+    expect(hasCustomerRule([{ rule: null }, { rule }])).toBe(true)
   })
 })

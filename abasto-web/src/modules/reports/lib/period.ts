@@ -46,3 +46,40 @@ export function resolvePeriod(period: PeriodInput, today: string): DateRange {
 
 export const rangeLabel = (range: DateRange) =>
   range.from === range.to ? range.from : `${range.from} al ${range.to}`
+
+const MONTHS = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
+]
+
+/**
+ * Range in long Spanish form: "6 al 12 nov 2026". Pass `knownYear` to drop the
+ * year when the range sits entirely in it (the comparison next to the main range).
+ */
+export function longRangeLabel(range: DateRange, knownYear?: number) {
+  const [fromYear, fromMonth, fromDay] = range.from.split('-').map(Number)
+  const [toYear, toMonth, toDay] = range.to.split('-').map(Number)
+  const month = (value: number) => MONTHS[value - 1]
+  const sameYears = fromYear === toYear
+  const tail = (year: number) => (year === knownYear ? '' : ` ${year}`)
+  if (range.from === range.to) {
+    return `${toDay} ${month(toMonth)}${tail(toYear)}`
+  }
+  if (sameYears && fromMonth === toMonth) {
+    return `${fromDay} al ${toDay} ${month(toMonth)}${tail(toYear)}`
+  }
+  if (sameYears) {
+    return `${fromDay} ${month(fromMonth)} al ${toDay} ${month(toMonth)}${tail(toYear)}`
+  }
+  return `${fromDay} ${month(fromMonth)} ${fromYear} al ${toDay} ${month(toMonth)} ${toYear}`
+}

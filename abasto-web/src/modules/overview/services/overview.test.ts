@@ -94,6 +94,32 @@ describe('Inicio per role', () => {
       'Leche entera 1L',
     ])
     expect(overview.expiring.map((row) => row.name)).toEqual(['Refresco 600ml'])
+    expect(overview.expiring[0]).toMatchObject({
+      warehouseId: fx.a.id,
+      productId: fx.soda.id,
+      daysLeft: 3,
+    })
+    expect(overview.expired).toEqual([])
+  })
+
+  test('expired lots that still hold stock are listed', async () => {
+    const fx = await scenario()
+    await receive(fx, {
+      productId: fx.milkBox.id,
+      quantity: 5,
+      expiresOn: '2026-11-01',
+    })
+    const overview = await getOverview(fx.owner)
+    expect(overview.expired).toHaveLength(1)
+    expect(overview.expired[0]).toMatchObject({
+      warehouseId: fx.a.id,
+      productId: fx.milkBox.id,
+      name: 'Leche entera 1L',
+      expiresOn: '2026-11-01',
+      daysLeft: -3,
+    })
+    expect(overview.expired[0].lotId).toBeString()
+    expect(overview.expiring.map((row) => row.name)).toEqual(['Refresco 600ml'])
   })
 
   test('a manager sees only their warehouse, with money', async () => {

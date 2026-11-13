@@ -1,10 +1,6 @@
 import { useState } from 'react'
 
 import { ActionButton } from '#/modules/inventory/components/action-button'
-import {
-  Field,
-  FieldSelect,
-} from '#/modules/inventory/components/form-controls'
 import { FormError } from '#/modules/inventory/components/info-blocks'
 import {
   DialogActions,
@@ -25,8 +21,8 @@ type MinimumDialogProps = {
   warehouseId: string
   products: ReadonlyArray<CatalogProduct>
   stock: ReadonlyArray<ProductStock>
-  /** Product to start on; blank lets the user pick one. */
-  initialProductId: string
+  /** Product whose minimum is set; chosen from its row in Productos. */
+  productId: string
   onClose: () => void
 }
 
@@ -35,11 +31,10 @@ export function MinimumDialog({
   warehouseId,
   products,
   stock,
-  initialProductId,
+  productId,
   onClose,
 }: MinimumDialogProps) {
   const actions = useInventoryActions()
-  const [productId, setProductId] = useState(initialProductId)
   const product = products.find(({ id }) => id === productId)
   const presentations = product ? quantityPresentations(product) : []
   const [presentationId, setPresentationId] = useState('')
@@ -70,6 +65,7 @@ export function MinimumDialog({
   return (
     <InventoryDialog
       title="Mínimo de existencias"
+      eyebrow={product?.name.toUpperCase()}
       description="Te avisamos como «Stock bajo» cuando las existencias disponibles queden por debajo. Escribe 0 para quitarlo."
       onClose={onClose}
     >
@@ -80,22 +76,6 @@ export function MinimumDialog({
           void submit()
         }}
       >
-        <Field label="Producto">
-          <FieldSelect
-            value={productId}
-            onChange={(event) => {
-              setProductId(event.target.value)
-              setPresentationId('')
-            }}
-          >
-            <option value="">Selecciona un producto</option>
-            {products.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </FieldSelect>
-        </Field>
         {product && (
           <>
             <p className="text-xs text-[#9c898f]">

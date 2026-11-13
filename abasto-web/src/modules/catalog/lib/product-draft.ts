@@ -8,8 +8,9 @@ import {
   formatTenThousandths,
   parseTenThousandths,
 } from '#/lib/utils/supplier-cost'
+import { parsePesos } from '#/modules/pricing/lib/money'
 import type {
-  ProductInput,
+  NewProductInput,
   ProductPatch,
 } from '#/modules/catalog/services/products'
 
@@ -28,6 +29,7 @@ export const emptyProductDraft = (): ProductDraft => ({
   listPrice: '',
   fixedDiscount: '',
   promotion: '',
+  salePrice: '',
 })
 
 export const draftFromProduct = (product: CatalogProduct): ProductDraft => ({
@@ -45,6 +47,7 @@ export const draftFromProduct = (product: CatalogProduct): ProductDraft => ({
   listPrice: formatTenThousandths(product.listPricePerPiece),
   fixedDiscount: formatTenThousandths(product.fixedDiscountPerPiece),
   promotion: formatTenThousandths(product.promotionPerPiece),
+  salePrice: '',
 })
 
 type CostKey = 'listPrice' | 'fixedDiscount' | 'promotion'
@@ -84,6 +87,26 @@ export function supplierCostErrors(
   return errors
 }
 
+export const COST_REQUIRED_MESSAGE = 'Escribe el costo por pieza.'
+
+/**
+ * Errors of the "Costo y precio" section of a new product: the supplier cost
+ * (required, same rules as the Prices dialog) and, when a warehouse is
+ * selected, the sale price of the default presentation (required).
+ */
+export function newProductCostErrors(draft: ProductDraft, needsPrice: boolean) {
+  const errors: Partial<Record<CostKey | 'salePrice', string>> =
+    supplierCostErrors(draft)
+  if (!errors.listPrice && !draft.listPrice.trim()) {
+    errors.listPrice = COST_REQUIRED_MESSAGE
+  }
+  if (needsPrice) {
+    const price = parsePesos(draft.salePrice)
+    if (!price.ok) errors.salePrice = price.message
+  }
+  return errors
+}
+
 /**
  * Fields shared by creating and editing; the server trims and validates them.
  * Cost amounts are left out on purpose: they are edited in the Prices dialog,
@@ -101,6 +124,19 @@ const fieldsFromDraft = (draft: ProductDraft) => ({
   supplierCode: draft.supplierCode,
 })
 
+const costAmountsFromDraft = (draft: ProductDraft) => ({
+  listPricePerPiece: amountOf(draft.listPrice),
+  fixedDiscountPerPiece: amountOf(draft.fixedDiscount),
+  promotionPerPiece: amountOf(draft.promotion),
+})
+
+/** The initial price of the default presentation; absent without a warehouse. */
+function salePriceFromDraft(draft: ProductDraft, warehouseId?: string | null) {
+  const price = parsePesos(draft.salePrice)
+  if (!warehouseId || !price.ok) return {}
+  return { price: { warehouseId, priceCents: price.value } }
+}
+
 /**
  * New product. With the presentation rows typed in the form they are sent as
  * is (the server validates them in the same transaction); without them the
@@ -110,9 +146,12 @@ export const productInputFromDraft = (
   draft: ProductDraft,
   rows?: ReadonlyArray<PresentationDraft>,
   defaultKey = '',
-): ProductInput => ({
+  warehouseId?: string | null,
+): NewProductInput => ({
   ...fieldsFromDraft(draft),
   unit: draft.unit,
+  ...costAmountsFromDraft(draft),
+  ...salePriceFromDraft(draft, warehouseId),
   ...(rows
     ? presentationSetFromDrafts(rows, defaultKey)
     : {

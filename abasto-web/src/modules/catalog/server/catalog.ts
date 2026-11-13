@@ -6,23 +6,28 @@ import { presentationSetInput } from '#/modules/catalog/schemas/presentations-sc
 import {
   idInput,
   pieceCostInput,
-  productInput,
+  newProductInput,
   productPatchInput,
   supplierInput,
   supplierPatchInput,
 } from '#/modules/catalog/schemas/product-schema'
+import {
+  archiveProduct,
+  restoreProduct,
+} from '#/modules/catalog/services/product-archive'
 import { updateProductWithPresentations } from '#/modules/catalog/services/product-edit'
 import { savePresentations } from '#/modules/catalog/services/presentations'
 import type { PresentationSet } from '#/modules/catalog/services/presentation-rules'
 import {
   createProduct,
+  listAllProducts,
   listProducts,
   savePieceCost,
   updateProduct,
 } from '#/modules/catalog/services/products'
 import type {
+  NewProductInput,
   PieceCost,
-  ProductInput,
   ProductPatch,
 } from '#/modules/catalog/services/products'
 import {
@@ -46,16 +51,41 @@ export const listProductsFn = createServerFn({ method: 'GET' }).handler(() => {
   return runWithActor((actor) => listProducts(actor))
 })
 
+/** The whole catalog including archived products; only the Catálogo page uses it. */
+export const listCatalogProductsFn = createServerFn({
+  method: 'GET',
+}).handler(() => {
+  neverCached()
+  return runWithActor((actor) => listAllProducts(actor))
+})
+
+/** Owner only; refused while the product has stock or open work. */
+export const archiveProductFn = createServerFn({ method: 'POST' })
+  .validator((data: { id: string }) => data)
+  .handler(({ data }) =>
+    runWithActor((actor) =>
+      archiveProduct(actor, parseInput(idInput, data.id)),
+    ),
+  )
+
+export const restoreProductFn = createServerFn({ method: 'POST' })
+  .validator((data: { id: string }) => data)
+  .handler(({ data }) =>
+    runWithActor((actor) =>
+      restoreProduct(actor, parseInput(idInput, data.id)),
+    ),
+  )
+
 export const listSuppliersFn = createServerFn({ method: 'GET' }).handler(() => {
   neverCached()
   return runWithActor((actor) => listSuppliers(actor))
 })
 
 export const createProductFn = createServerFn({ method: 'POST' })
-  .validator((data: ProductInput) => data)
+  .validator((data: NewProductInput) => data)
   .handler(({ data }) =>
     runWithActor((actor) =>
-      createProduct(actor, parseInput(productInput, data)),
+      createProduct(actor, parseInput(newProductInput, data)),
     ),
   )
 

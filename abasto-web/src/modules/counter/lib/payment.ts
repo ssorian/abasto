@@ -49,3 +49,27 @@ export function receiptLines(
     ['Cambio', formatCents(receipt.changeCents)],
   ]
 }
+
+/** Round pesos steps used for the quick cash amounts, smallest first. */
+const quickSteps = [50, 100, 500, 1000]
+
+/**
+ * Quick "Efectivo recibido" amounts: the exact total, then up to three round
+ * amounts (to the next $50, $100, $500 or $1,000) above it, without repeats.
+ */
+export function quickCashAmounts(
+  totalCents: number,
+): Array<{ label: string; cents: number }> {
+  const above: Array<number> = []
+  for (const step of quickSteps) {
+    const cents = Math.ceil(totalCents / (step * 100)) * step * 100
+    if (cents > totalCents && !above.includes(cents)) above.push(cents)
+  }
+  return [
+    { label: 'Exacto', cents: totalCents },
+    ...above.slice(0, 3).map((cents) => ({
+      label: formatCents(cents).replace('.00', ''),
+      cents,
+    })),
+  ]
+}

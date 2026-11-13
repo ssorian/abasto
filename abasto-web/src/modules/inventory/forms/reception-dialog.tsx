@@ -1,3 +1,4 @@
+import { PlusIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 import { ProductImage } from '#/components/product-image'
@@ -95,6 +96,7 @@ export function ReceptionDialog({
   const [updateCatalog, setUpdateCatalog] = useState(true)
   const [extras, setExtras] = useState<ExtrasDraft>({})
   const [query, setQuery] = useState('')
+  const [showExtras, setShowExtras] = useState(false)
 
   useEffect(() => {
     let current = true
@@ -239,22 +241,96 @@ export function ReceptionDialog({
     <InventoryDialog
       title="Recibir pedido"
       eyebrow={order.supplierName.toUpperCase()}
-      description={`Todo llega bien salvo lo que captures. Lote automático: ${order.code}. Si el proveedor cobró otro costo por pieza, corrígelo aquí. Indica la caducidad de lo que entra o marca «Sin caducidad». Las faltantes quedan «Por reponer» con el proveedor; las dañadas o caducadas quedan «Por devolver» y no entran al inventario.`}
-      size="wide"
+      description={`Todo llega bien salvo lo que captures. Lote automático: ${order.code}.`}
+      size="wider"
       onClose={onClose}
+      footer={
+        detail ? (
+          <>
+            <p className="flex flex-wrap justify-end gap-x-4 gap-y-1 text-sm text-[#5f4a51]">
+              <span>
+                Total del pedido <strong>{formatCents(grandTotalCents)}</strong>
+              </span>
+              {discountCents > 0 && (
+                <>
+                  <span>
+                    Descuento por faltantes{' '}
+                    <strong>−{formatCents(discountCents)}</strong>
+                  </span>
+                  <span>
+                    A pagar{' '}
+                    <strong>
+                      {formatCents(grandTotalCents - discountCents)}
+                    </strong>
+                  </span>
+                </>
+              )}
+            </p>
+            <WarningInline className="mt-0">
+              {outcome.canConfirm
+                ? `${summary}. Al confirmar, el pedido se cierra y ya no se puede editar.`
+                : outcome.summary}
+            </WarningInline>
+            {mustConfirmExpired && (
+              <label
+                role="alert"
+                className="flex items-start gap-2 rounded-lg border border-[#e3b9bd] bg-[#fbecee] p-3 text-sm text-[#8f2d36]"
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={confirmExpired}
+                  onChange={(event) => setConfirmExpired(event.target.checked)}
+                />
+                <span>
+                  <strong>Caducidad vencida.</strong> Estás recibiendo producto
+                  que ya caducó y entrará al inventario como «Vencido». Marca la
+                  casilla para confirmar que quieres recibirlo.
+                </span>
+              </label>
+            )}
+            {error && <FormError>{error}</FormError>}
+            <DialogActions className="mt-0 border-t-0 pt-0">
+              <ActionButton type="button" onClick={onClose}>
+                Cancelar
+              </ActionButton>
+              <ActionButton
+                tone="primary"
+                type="submit"
+                form="reception-form"
+                disabled={
+                  actions.pending ||
+                  !outcome.canConfirm ||
+                  extrasBlocked ||
+                  (mustConfirmExpired && !confirmExpired)
+                }
+              >
+                {actions.pending ? 'Guardando…' : 'Confirmar recepción'}
+              </ActionButton>
+            </DialogActions>
+          </>
+        ) : undefined
+      }
     >
       {!detail ? (
         <p className="py-6 text-center text-sm text-[#907e84]">Cargando…</p>
       ) : (
         <form
+          id="reception-form"
           className="grid gap-4"
           onSubmit={(event) => {
             event.preventDefault()
             void submit()
           }}
         >
-          <ListPanel className="max-h-[360px] overflow-auto group-data-maximized/dialog:max-h-none">
-            <ListTable className="min-w-[900px]">
+          <p className="text-xs text-[#9c898f]">
+            Si el proveedor cobró otro costo por pieza, corrígelo. Las faltantes
+            quedan «Por reponer»; las dañadas o caducadas, «Por devolver», y no
+            entran al inventario. Indica la caducidad de lo que entra o marca
+            «Sin caducidad».
+          </p>
+          <ListPanel className="overflow-auto">
+            <ListTable>
               <ListHead>
                 {[
                   'Producto',
@@ -366,200 +442,196 @@ export function ReceptionDialog({
             </ListTable>
           </ListPanel>
 
-          <section className="grid gap-2.5">
-            <h3 className="text-sm font-[650] text-[#5f4a51]">
-              Llegó sin pedirlo
-            </h3>
-            <p className="text-xs text-[#9c898f]">
-              Productos de {order.supplierName} que llegaron sin pedirlos.
-              Entran completos al inventario con el código del pedido.
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <span
-                aria-label="Proveedor del pedido"
-                className="inline-flex h-[45px] items-center rounded-[9px] border border-[#eee7e0] bg-[#faf7f4] px-3.5 text-sm text-[#5f4a51] md:h-11"
+          {!showExtras && Object.keys(extras).length === 0 ? (
+            <div>
+              <ActionButton
+                type="button"
+                tone="secondary"
+                onClick={() => setShowExtras(true)}
               >
-                {order.supplierName}
-              </span>
-              <div className="flex min-w-[240px] flex-1">
-                <SearchBox
-                  label={`Buscar producto de ${order.supplierName}`}
-                  placeholder="Buscar por nombre o SKU"
-                  value={query}
-                  onChange={setQuery}
-                />
-              </div>
+                <PlusIcon size={18} />
+                Agregar algo que llegó sin pedirlo
+              </ActionButton>
             </div>
-            <ListPanel className="max-h-[260px] overflow-auto group-data-maximized/dialog:max-h-[420px]">
-              {candidates.length > 0 ? (
-                <ul className="divide-y divide-[#f5f1ed]">
-                  {candidates.map((product) => (
-                    <li
-                      key={product.id}
-                      className="flex items-center gap-3 px-3.5 py-2.5"
-                    >
-                      <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#faf9f7]">
-                        <ProductImage
-                          src={product.imageUrl || null}
-                          name={product.name}
-                          className="size-full object-contain p-1 mix-blend-multiply"
-                          placeholderClassName="size-5"
-                        />
-                      </span>
-                      <span className="min-w-0 flex-1 text-sm">
-                        <strong className="block font-semibold">
-                          {product.name}
-                        </strong>
-                        <small className="block text-[#907e84]">
-                          {product.sku}
-                        </small>
-                      </span>
-                      <ActionButton
-                        type="button"
-                        tone="secondary"
-                        className="min-h-9 px-3"
-                        aria-label={`Agregar ${product.name}`}
-                        onClick={() =>
-                          setExtras((current) => addExtra(current, product.id))
-                        }
+          ) : (
+            <section className="grid gap-2.5">
+              <h3 className="text-sm font-[650] text-[#5f4a51]">
+                Llegó sin pedirlo
+              </h3>
+              <p className="text-xs text-[#9c898f]">
+                Productos de {order.supplierName} que llegaron sin pedirlos.
+                Entran completos al inventario con el código del pedido.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <span
+                  aria-label="Proveedor del pedido"
+                  className="inline-flex h-[45px] items-center rounded-[9px] border border-[#eee7e0] bg-[#faf7f4] px-3.5 text-sm text-[#5f4a51] md:h-11"
+                >
+                  {order.supplierName}
+                </span>
+                <div className="flex min-w-[240px] flex-1">
+                  <SearchBox
+                    label={`Buscar producto de ${order.supplierName}`}
+                    placeholder="Buscar por nombre o SKU"
+                    value={query}
+                    onChange={setQuery}
+                  />
+                </div>
+              </div>
+              <ListPanel className="max-h-[260px] overflow-auto group-data-maximized/dialog:max-h-[420px]">
+                {candidates.length > 0 ? (
+                  <ul className="divide-y divide-[#f5f1ed]">
+                    {candidates.map((product) => (
+                      <li
+                        key={product.id}
+                        className="flex items-center gap-3 px-3.5 py-2.5"
                       >
-                        Agregar
-                      </ActionButton>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="px-3.5 py-4 text-center text-xs text-[#907e84]">
-                  {query.trim()
-                    ? 'Sin productos que coincidan'
-                    : `No hay más productos de ${order.supplierName} para agregar`}
-                </p>
-              )}
-            </ListPanel>
-            {extraLines.length > 0 && (
-              <ListPanel className="overflow-auto">
-                <ListTable className="min-w-[900px]">
-                  <ListHead>
-                    {[
-                      'Producto',
-                      'Cajas',
-                      'Costo por pieza',
-                      'Total',
-                      'Caducidad',
-                      '',
-                    ]}
-                  </ListHead>
-                  <ListBody>
-                    {extraLines.map((line) => {
-                      const entry = extras[line.productId]!
-                      const issue = shownExtraIssues[line.productId]
-                      const total = extraTotalCents(line, entry)
-                      const patch = (value: Partial<typeof entry>) =>
-                        setExtras((current) => ({
-                          ...current,
-                          [line.productId]: { ...entry, ...value },
-                        }))
-                      return (
-                        <ListRow key={line.productId} className="align-top">
-                          <ListCell>
-                            <strong>{line.name}</strong>
-                            <small className="block text-[#907e84]">
-                              {line.sku}
-                            </small>
-                            {issue && (
-                              <small className="block max-w-[220px] text-[#b3261e]">
-                                {issue}
-                              </small>
-                            )}
-                          </ListCell>
-                          <ListCell>
-                            <FieldInput
-                              inputMode="numeric"
-                              aria-label={`Cajas de ${line.name} sin pedido`}
-                              aria-invalid={issue ? true : undefined}
-                              className={`${compact} w-[76px]`}
-                              value={entry.boxes}
-                              onChange={(event) =>
-                                patch({ boxes: event.target.value })
-                              }
-                            />
-                          </ListCell>
-                          <ListCell>
-                            <FieldInput
-                              inputMode="decimal"
-                              aria-label={`Costo por pieza de ${line.name} sin pedido`}
-                              aria-invalid={issue ? true : undefined}
-                              className={`${compact} w-[96px]`}
-                              value={
-                                entry.price ??
-                                formatTenThousandths(
-                                  line.price.listPricePerPiece,
-                                )
-                              }
-                              onChange={(event) =>
-                                patch({ price: event.target.value })
-                              }
-                            />
-                          </ListCell>
-                          <ListCell>
-                            <strong
-                              aria-label={`Total de ${line.name} sin pedido`}
-                            >
-                              {total === null ? '—' : formatCents(total)}
-                            </strong>
-                          </ListCell>
-                          <ListCell>
-                            <ExpiryField
-                              label={`${line.name} sin pedido`}
-                              className={`${compact} w-[140px]`}
-                              expiresOn={entry.expiresOn}
-                              noExpiry={entry.noExpiry ?? false}
-                              invalid={Boolean(issue)}
-                              onChange={(value) => patch(value)}
-                            />
-                          </ListCell>
-                          <ListCell>
-                            <ActionButton
-                              type="button"
-                              className="min-h-9 px-3"
-                              onClick={() =>
-                                setExtras((current) =>
-                                  removeExtra(current, line.productId),
-                                )
-                              }
-                            >
-                              Quitar
-                            </ActionButton>
-                          </ListCell>
-                        </ListRow>
-                      )
-                    })}
-                  </ListBody>
-                </ListTable>
+                        <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#faf9f7]">
+                          <ProductImage
+                            src={product.imageUrl || null}
+                            name={product.name}
+                            className="size-full object-contain p-1 mix-blend-multiply"
+                            placeholderClassName="size-5"
+                          />
+                        </span>
+                        <span className="min-w-0 flex-1 text-sm">
+                          <strong className="block font-semibold">
+                            {product.name}
+                          </strong>
+                          <small className="block text-[#907e84]">
+                            {product.sku}
+                          </small>
+                        </span>
+                        <ActionButton
+                          type="button"
+                          tone="secondary"
+                          className="min-h-9 px-3"
+                          aria-label={`Agregar ${product.name}`}
+                          onClick={() =>
+                            setExtras((current) =>
+                              addExtra(current, product.id),
+                            )
+                          }
+                        >
+                          Agregar
+                        </ActionButton>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="px-3.5 py-4 text-center text-xs text-[#907e84]">
+                    {query.trim()
+                      ? 'Sin productos que coincidan'
+                      : `No hay más productos de ${order.supplierName} para agregar`}
+                  </p>
+                )}
               </ListPanel>
-            )}
-          </section>
+              {extraLines.length > 0 && (
+                <ListPanel className="overflow-auto">
+                  <ListTable className="min-w-[900px]">
+                    <ListHead>
+                      {[
+                        'Producto',
+                        'Cajas',
+                        'Costo por pieza',
+                        'Total',
+                        'Caducidad',
+                        '',
+                      ]}
+                    </ListHead>
+                    <ListBody>
+                      {extraLines.map((line) => {
+                        const entry = extras[line.productId]!
+                        const issue = shownExtraIssues[line.productId]
+                        const total = extraTotalCents(line, entry)
+                        const patch = (value: Partial<typeof entry>) =>
+                          setExtras((current) => ({
+                            ...current,
+                            [line.productId]: { ...entry, ...value },
+                          }))
+                        return (
+                          <ListRow key={line.productId} className="align-top">
+                            <ListCell>
+                              <strong>{line.name}</strong>
+                              <small className="block text-[#907e84]">
+                                {line.sku}
+                              </small>
+                              {issue && (
+                                <small className="block max-w-[220px] text-[#b3261e]">
+                                  {issue}
+                                </small>
+                              )}
+                            </ListCell>
+                            <ListCell>
+                              <FieldInput
+                                inputMode="numeric"
+                                aria-label={`Cajas de ${line.name} sin pedido`}
+                                aria-invalid={issue ? true : undefined}
+                                className={`${compact} w-[76px]`}
+                                value={entry.boxes}
+                                onChange={(event) =>
+                                  patch({ boxes: event.target.value })
+                                }
+                              />
+                            </ListCell>
+                            <ListCell>
+                              <FieldInput
+                                inputMode="decimal"
+                                aria-label={`Costo por pieza de ${line.name} sin pedido`}
+                                aria-invalid={issue ? true : undefined}
+                                className={`${compact} w-[96px]`}
+                                value={
+                                  entry.price ??
+                                  formatTenThousandths(
+                                    line.price.listPricePerPiece,
+                                  )
+                                }
+                                onChange={(event) =>
+                                  patch({ price: event.target.value })
+                                }
+                              />
+                            </ListCell>
+                            <ListCell>
+                              <strong
+                                aria-label={`Total de ${line.name} sin pedido`}
+                              >
+                                {total === null ? '—' : formatCents(total)}
+                              </strong>
+                            </ListCell>
+                            <ListCell>
+                              <ExpiryField
+                                label={`${line.name} sin pedido`}
+                                className={`${compact} w-[140px]`}
+                                expiresOn={entry.expiresOn}
+                                noExpiry={entry.noExpiry ?? false}
+                                invalid={Boolean(issue)}
+                                onChange={(value) => patch(value)}
+                              />
+                            </ListCell>
+                            <ListCell>
+                              <ActionButton
+                                type="button"
+                                className="min-h-9 px-3"
+                                onClick={() =>
+                                  setExtras((current) =>
+                                    removeExtra(current, line.productId),
+                                  )
+                                }
+                              >
+                                Quitar
+                              </ActionButton>
+                            </ListCell>
+                          </ListRow>
+                        )
+                      })}
+                    </ListBody>
+                  </ListTable>
+                </ListPanel>
+              )}
+            </section>
+          )}
 
           <div className="grid gap-2 text-sm text-[#5f4a51]">
-            <p className="flex flex-wrap justify-end gap-x-4 gap-y-1">
-              <span>
-                Total del pedido <strong>{formatCents(grandTotalCents)}</strong>
-              </span>
-              {discountCents > 0 && (
-                <>
-                  <span>
-                    Descuento por faltantes{' '}
-                    <strong>−{formatCents(discountCents)}</strong>
-                  </span>
-                  <span>
-                    A pagar{' '}
-                    <strong>
-                      {formatCents(grandTotalCents - discountCents)}
-                    </strong>
-                  </span>
-                </>
-              )}
-            </p>
             {(totals.changed > 0 || extrasRepriced) && (
               <label className="flex items-start gap-2">
                 <input
@@ -676,48 +748,6 @@ export function ReceptionDialog({
               </ListPanel>
             </section>
           )}
-
-          <WarningInline className="mt-0">
-            {outcome.canConfirm
-              ? `${summary}. Al confirmar, el pedido se cierra y ya no se puede editar.`
-              : outcome.summary}
-          </WarningInline>
-          {mustConfirmExpired && (
-            <label
-              role="alert"
-              className="flex items-start gap-2 rounded-lg border border-[#e3b9bd] bg-[#fbecee] p-3 text-sm text-[#8f2d36]"
-            >
-              <input
-                type="checkbox"
-                className="mt-0.5"
-                checked={confirmExpired}
-                onChange={(event) => setConfirmExpired(event.target.checked)}
-              />
-              <span>
-                <strong>Caducidad vencida.</strong> Estás recibiendo producto
-                que ya caducó y entrará al inventario como «Vencido». Marca la
-                casilla para confirmar que quieres recibirlo.
-              </span>
-            </label>
-          )}
-          {error && <FormError>{error}</FormError>}
-          <DialogActions>
-            <ActionButton type="button" onClick={onClose}>
-              Cancelar
-            </ActionButton>
-            <ActionButton
-              tone="primary"
-              type="submit"
-              disabled={
-                actions.pending ||
-                !outcome.canConfirm ||
-                extrasBlocked ||
-                (mustConfirmExpired && !confirmExpired)
-              }
-            >
-              {actions.pending ? 'Guardando…' : 'Confirmar recepción'}
-            </ActionButton>
-          </DialogActions>
         </form>
       )}
     </InventoryDialog>

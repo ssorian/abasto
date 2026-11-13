@@ -10,6 +10,7 @@ import { InventoryChart } from '#/modules/reports/components/owner/inventory-cha
 import { KpiCards } from '#/modules/reports/components/owner/kpi-cards'
 import { OwnerPeriodFilters } from '#/modules/reports/components/owner/owner-period-filters'
 import { ProfitBridge } from '#/modules/reports/components/owner/profit-bridge'
+import { SectionIndex } from '#/modules/reports/components/owner/section-index'
 import { StockAlerts } from '#/modules/reports/components/owner/stock-alerts'
 import { SupplierChart } from '#/modules/reports/components/owner/supplier-chart'
 import { TopProductsChart } from '#/modules/reports/components/owner/top-products-chart'
@@ -93,6 +94,7 @@ export function OwnerReportsPage({
         onChange={onSearch}
       />
       {load.error && <ReportEmpty>{load.error}</ReportEmpty>}
+      {data && <SectionIndex />}
       {data && <Dashboard data={data} search={search} onSearch={onSearch} />}
     </>
   )
@@ -126,43 +128,53 @@ function Dashboard({
   const cash = cashDifferenceSummary(data.cashCuts.rows)
   return (
     <div className="grid gap-[18px]">
-      {hasSales ? (
-        <>
-          <KpiCards
-            current={current}
-            previous={previous}
-            days={days}
-            rows={ranking.rows}
-          />
-          <div className="grid items-start gap-[18px] min-[1100px]:grid-cols-[1.6fr_1fr]">
-            <TrendChart days={days} />
-            <ProfitBridge
+      <section
+        id="reporte-ventas"
+        aria-label="Ventas"
+        className="grid scroll-mt-4 gap-[18px]"
+      >
+        {hasSales ? (
+          <>
+            <KpiCards
               current={current}
               previous={previous}
-              previousRange={ranking.previousRange}
-            />
-          </div>
-          <div className="grid items-start gap-[18px] min-[1100px]:grid-cols-2">
-            <WarehouseComparison
+              days={days}
               rows={ranking.rows}
-              sentence={warehouseSentence(ranking.rows)}
             />
-            <TopProductsChart
-              rows={products}
-              sentence={topProductSentence(products[0])}
-            />
-          </div>
-        </>
-      ) : (
-        <ReportEmpty>No hay pedidos entregados en este periodo.</ReportEmpty>
-      )}
-      <div className="grid items-start gap-[18px] min-[1100px]:grid-cols-3">
-        {hasSales && (
-          <SupplierChart
-            suppliers={suppliers}
-            sentence={supplierSentence(suppliers)}
-          />
+            <div className="grid items-start gap-[18px] min-[1100px]:grid-cols-[1.6fr_1fr]">
+              <TrendChart days={days} />
+              <ProfitBridge
+                current={current}
+                previous={previous}
+                previousRange={ranking.previousRange}
+              />
+            </div>
+            <div className="grid items-start gap-[18px] min-[1100px]:grid-cols-2">
+              <WarehouseComparison
+                rows={ranking.rows}
+                sentence={warehouseSentence(ranking.rows)}
+              />
+              <div className="grid gap-[18px]">
+                <TopProductsChart
+                  rows={products}
+                  sentence={topProductSentence(products[0])}
+                />
+                <SupplierChart
+                  suppliers={suppliers}
+                  sentence={supplierSentence(suppliers)}
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <ReportEmpty>No hay pedidos entregados en este periodo.</ReportEmpty>
         )}
+      </section>
+      <section
+        id="reporte-inventario"
+        aria-label="Inventario"
+        className="grid scroll-mt-4 items-start gap-[18px] min-[1100px]:grid-cols-3"
+      >
         <InventoryChart inventory={inventory} />
         <IdleCapital
           nonMoving={nonMoving}
@@ -173,20 +185,24 @@ function Dashboard({
           )}
           onChange={onSearch}
         />
-      </div>
-      <div className="grid items-start gap-[18px] min-[1100px]:grid-cols-[1.5fr_1fr]">
-        <CashSection
-          rows={data.cashCuts.rows}
-          sentence={cashSentence(cash)}
-          supplierFiltered={Boolean(search.proveedor)}
-        />
         <StockAlerts
           summary={stockAlertSummary(stockAlerts)}
           expiredCount={stockAlerts.expired.length}
           expiringDays={stockAlerts.expiringDays}
         />
-      </div>
-      <RiderShortfallsSection rows={data.cashCuts.riderShortfalls} />
+      </section>
+      <section
+        id="reporte-caja"
+        aria-label="Caja y repartos"
+        className="grid scroll-mt-4 gap-[18px]"
+      >
+        <CashSection
+          rows={data.cashCuts.rows}
+          sentence={cashSentence(cash)}
+          supplierFiltered={Boolean(search.proveedor)}
+        />
+        <RiderShortfallsSection rows={data.cashCuts.riderShortfalls} />
+      </section>
     </div>
   )
 }

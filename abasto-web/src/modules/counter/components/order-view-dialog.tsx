@@ -17,6 +17,7 @@ import { useOrderActions } from '#/modules/counter/hooks/use-order-actions'
 import {
   appliedRuleLabel,
   expiryLabel,
+  hasCustomerRule,
   orderCode,
 } from '#/modules/counter/lib/order-format'
 import {
@@ -92,6 +93,7 @@ export function OrderViewDialog({
   }
   const allowed = availableActions(order.status)
   const gate = chargeGate(order.status, drawerOpen)
+  const showRules = hasCustomerRule(order.lines)
 
   return (
     <CounterDialog
@@ -114,9 +116,9 @@ export function OrderViewDialog({
             <tr>
               <Th>Producto</Th>
               <Th>Cantidad</Th>
-              <Th>Precio de lista</Th>
+              {showRules && <Th>Precio de lista</Th>}
               <Th>Precio final</Th>
-              <Th>Condición aplicada</Th>
+              {showRules && <Th>Condición aplicada</Th>}
               <Th>Importe</Th>
               <Th>Lotes</Th>
             </tr>
@@ -129,9 +131,9 @@ export function OrderViewDialog({
                   <CellNote>{line.presentationName}</CellNote>
                 </Td>
                 <Td>{line.quantity}</Td>
-                <Td>{formatCents(line.listPriceCents)}</Td>
+                {showRules && <Td>{formatCents(line.listPriceCents)}</Td>}
                 <Td>{formatCents(line.unitPriceCents)}</Td>
-                <Td>{appliedRuleLabel(line.rule)}</Td>
+                {showRules && <Td>{appliedRuleLabel(line.rule)}</Td>}
                 <Td>{formatCents(line.lineTotalCents)}</Td>
                 <Td className="whitespace-normal">
                   {line.allocations.map((a) => (
@@ -155,7 +157,11 @@ export function OrderViewDialog({
           <span className="text-sm">
             ¿Cancelar este pedido? Se libera el producto apartado.
           </span>
-          <ActionButton disabled={busy} onClick={() => act(actions.cancel)}>
+          <ActionButton
+            disabled={busy}
+            className="border-transparent bg-[#a1372e] text-white hover:bg-[#8c2e26]"
+            onClick={() => act(actions.cancel)}
+          >
             Sí, cancelar pedido
           </ActionButton>
           <ActionButton onClick={() => setConfirmCancel(false)}>

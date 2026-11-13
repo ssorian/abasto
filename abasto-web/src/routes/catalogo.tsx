@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { unwrap } from '#/lib/boundary'
 import { CatalogPage } from '#/modules/catalog/components/catalog-page'
 import {
-  listProductsFn,
+  listCatalogProductsFn,
   listSuppliersFn,
 } from '#/modules/catalog/server/catalog'
 import { pricingOverviewFn } from '#/modules/pricing/server/pricing'
@@ -14,7 +14,7 @@ export const Route = createFileRoute('/catalogo')({
   loaderDeps: ({ search }) => ({ almacen: search.almacen }),
   loader: async ({ deps }) => {
     const [products, suppliers, pricing] = await Promise.all([
-      listProductsFn(),
+      listCatalogProductsFn(),
       listSuppliersFn(),
       pricingOverviewFn({ data: { warehouseId: deps.almacen } }),
     ])

@@ -20,6 +20,8 @@ type CustomerModalProps = {
   onClose: () => void
   /** Wide variant (up to 1080px) used by the detail and edit dialogs. */
   wide?: boolean
+  /** Optional button next to the title (kept clear of the close icon). */
+  headerAction?: ReactNode
   children: ReactNode
 }
 
@@ -28,6 +30,7 @@ export function CustomerModal({
   description,
   onClose,
   wide = false,
+  headerAction,
   children,
 }: CustomerModalProps) {
   return (
@@ -44,9 +47,12 @@ export function CustomerModal({
           )}
         >
           <DialogHeader className="gap-2 text-left">
-            <DialogTitle className="text-[23px] leading-[1.3] font-semibold tracking-[-0.7px] md:text-[25px]">
-              {title}
-            </DialogTitle>
+            <div className="flex items-start justify-between gap-3 pr-7">
+              <DialogTitle className="text-[23px] leading-[1.3] font-semibold tracking-[-0.7px] md:text-[25px]">
+                {title}
+              </DialogTitle>
+              {headerAction}
+            </div>
             <DialogDescription className="text-[13px] leading-[1.7] text-[#9d8c92] md:text-sm">
               {description}
             </DialogDescription>

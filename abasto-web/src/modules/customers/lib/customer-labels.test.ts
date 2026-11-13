@@ -2,8 +2,11 @@ import { describe, expect, test } from 'bun:test'
 import {
   contactLine,
   formatOrderDate,
+  pickerItems,
   presentationOptions,
+  selectableOptions,
   ruleLabel,
+  rulesSummary,
   statusLabel,
 } from '#/modules/customers/lib/customer-labels'
 
@@ -83,9 +86,52 @@ describe('customer labels', () => {
     ])
   })
 
+  test('archived products keep a name but are not selectable unless in use', () => {
+    const options = presentationOptions([
+      {
+        name: 'Leche',
+        archivedAt: new Date('2026-11-01'),
+        presentations: [{ id: 'a', name: 'Pieza', active: true }],
+      },
+      {
+        name: 'Cola',
+        archivedAt: null,
+        presentations: [{ id: 'c', name: 'Caja', active: true }],
+      },
+    ])
+    expect(options.map((o) => o.label)).toEqual([
+      'Leche · Pieza',
+      'Cola · Caja',
+    ])
+    expect(selectableOptions(options, []).map((o) => o.id)).toEqual(['c'])
+    expect(selectableOptions(options, ['a']).map((o) => o.id)).toEqual([
+      'a',
+      'c',
+    ])
+  })
+
   test('order dates use the business time zone', () => {
     // 2026-01-10 03:30 UTC is still the 9th in Mexico City (UTC-6).
     expect(formatOrderDate(new Date('2026-01-10T03:30:00Z'))).toContain('9')
     expect(formatOrderDate(new Date('2026-01-10T03:30:00Z'))).toContain('2026')
+  })
+})
+
+describe('rules help and presentation picker items', () => {
+  test('empty rules read as list price', () => {
+    expect(rulesSummary(0)).toBe('Sin condiciones: compra a precio de lista.')
+    expect(rulesSummary(2)).toBeNull()
+  })
+
+  test('presentation options become picker items searchable by SKU', () => {
+    expect(
+      pickerItems([
+        { id: 'p1', label: 'Leche · Caja', sku: 'LEC-1' },
+        { id: 'p2', label: 'Arroz · Bulto' },
+      ]),
+    ).toEqual([
+      { id: 'p1', name: 'Leche · Caja', sku: 'LEC-1' },
+      { id: 'p2', name: 'Arroz · Bulto', sku: '' },
+    ])
   })
 })

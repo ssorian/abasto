@@ -120,11 +120,16 @@ export async function getWarehouseStock(
       supplierId: products.supplierId,
       supplierName: suppliers.name,
       published: products.published,
+      archivedAt: products.archivedAt,
     })
     .from(products)
     .leftJoin(suppliers, eq(suppliers.id, products.supplierId))
   return catalog
-    .filter((product) => product.published || productIds.has(product.id))
+    .filter(
+      (product) =>
+        !product.archivedAt &&
+        (product.published || productIds.has(product.id)),
+    )
     .map((product) => {
       const productRows = lotRows.filter((row) => row.productId === product.id)
       const productLots = productRows

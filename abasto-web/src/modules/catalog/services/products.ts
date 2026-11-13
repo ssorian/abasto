@@ -6,6 +6,8 @@ import type { Actor } from '#/modules/access/lib/policy'
 import { violatedUniqueIndex } from '#/modules/catalog/db/constraints'
 import { products, suppliers } from '#/modules/catalog/db/schema'
 import { maxTenThousandths } from '#/lib/utils/supplier-cost'
+import { insertPrices, validatePrices } from '#/modules/pricing/services/prices'
+import { requireWarehouse } from '#/modules/pricing/services/price-reads'
 import {
   validateSet,
   writeSet,
@@ -41,6 +43,9 @@ export type ProductFields = {
   promotionPerPiece?: number
 }
 export type ProductInput = ProductFields & PresentationSet
+/** Sale price of the default presentation in one warehouse, saved with the product. */
+export type InitialPrice = { warehouseId: string; priceCents: number }
+export type NewProductInput = ProductInput & { price?: InitialPrice }
 export type ProductPatch = Partial<ProductFields>
 
 const required = () =>
@@ -185,11 +190,40 @@ export async function insertProduct(
 
 export async function createProduct(
   actor: Actor,
-  input: ProductInput,
+  input: NewProductInput,
 ): Promise<Product> {
   authorize(actor, 'catalog.manage')
+  const { price, ...productFields } = input
+  if (price) authorize(actor, 'warehouse.manage', price.warehouseId)
   try {
-    return await db.transaction((tx) => insertProduct(tx, input))
+    return await db.transaction(async (tx) => {
+      // Validate the price before writing anything; the whole creation is one
+      // transaction, so a later failure also leaves no product or cost behind.
+      if (price) {
+        validatePrices([
+          { presentationId: 'new', priceCents: price.priceCents },
+        ])
+      }
+      const created = await insertProduct(tx, productFields)
+      if (price) {
+        await requireWarehouse(tx, price.warehouseId)
+        const target = created.presentations.find((item) => item.isDefault)
+        if (!target) throw required()
+        await insertPrices(
+          tx,
+          actor,
+          [
+            {
+              presentationId: target.id,
+              warehouseId: price.warehouseId,
+              priceCents: price.priceCents,
+            },
+          ],
+          'manual',
+        )
+      }
+      return created
+    })
   } catch (error) {
     throw mapConflict(error)
   }
@@ -272,8 +306,13 @@ export async function savePieceCost(
   })
 }
 
-/** Any signed-in actor may read the catalog. */
+/** Active products: what every picker and the store offer. Archived ones are left out. */
 export async function listProducts(_actor: Actor): Promise<Array<Product>> {
+  return (await loadProducts(db)).filter((product) => !product.archivedAt)
+}
+
+/** The whole catalog, archived products included (the "Archivados" filter). */
+export async function listAllProducts(_actor: Actor): Promise<Array<Product>> {
   return loadProducts(db)
 }
 

@@ -1,12 +1,14 @@
 import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { useState } from 'react'
 
+import { ProductPicker } from '#/components/product-picker'
 import {
   ActionButton,
   IconButton,
 } from '#/modules/inventory/components/action-button'
 import {
   Field,
+  FieldGroup,
   FieldSelect,
   FieldTextarea,
 } from '#/modules/inventory/components/form-controls'
@@ -64,6 +66,11 @@ export function TransferDialog({
   const [error, setError] = useState<string | null>(null)
 
   const sendable = stock.filter((row) => row.available > 0)
+  const sendableProducts = sendable.map((row) => ({
+    id: row.productId,
+    name: row.name,
+    sku: row.sku,
+  }))
   const patch = (key: number, next: Partial<DraftLine>) =>
     setLines((current) =>
       current.map((line) => (line.key === key ? { ...line, ...next } : line)),
@@ -141,36 +148,27 @@ export function TransferDialog({
                 Producto {index + 1}
               </legend>
               <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                <Field
-                  label="Producto"
-                  hint={
-                    row
-                      ? `Disponible: ${unitCount(row.available, row.unit)}`
-                      : undefined
-                  }
-                >
-                  <FieldSelect
+                <FieldGroup label="Producto">
+                  <ProductPicker
+                    label={`Producto ${index + 1}`}
+                    products={sendableProducts}
                     value={line.productId}
-                    onChange={(event) => {
-                      const next = products.find(
-                        ({ id }) => id === event.target.value,
-                      )
+                    onChange={(id) => {
+                      const next = products.find((item) => item.id === id)
                       patch(line.key, {
-                        productId: event.target.value,
+                        productId: id,
                         presentationId: next
                           ? (quantityPresentations(next).at(0)?.id ?? '')
                           : '',
                       })
                     }}
-                  >
-                    <option value="">Selecciona un producto</option>
-                    {sendable.map((item) => (
-                      <option key={item.productId} value={item.productId}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </FieldSelect>
-                </Field>
+                  />
+                  {row && (
+                    <small className="text-[11px] font-normal text-[#9c888f]">
+                      Disponible: {unitCount(row.available, row.unit)}
+                    </small>
+                  )}
+                </FieldGroup>
                 {lines.length > 1 && (
                   <IconButton
                     aria-label={`Quitar producto ${index + 1}`}

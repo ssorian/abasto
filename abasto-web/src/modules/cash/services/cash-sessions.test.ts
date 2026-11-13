@@ -5,6 +5,7 @@ import { resetDatabase } from '#/db/testing'
 import { cashMovements } from '#/modules/cash/db/schema'
 import {
   closeCashSession,
+  getLastClosedCount,
   getOpenCashSession,
   listCashSessions,
   openCashSession,
@@ -350,5 +351,29 @@ describe('cash movements are append-only', () => {
     ]
     for (const attempt of attempts) await expect(attempt()).rejects.toThrow()
     expect((await paymentState()).cashMovements).toBe(1)
+  })
+})
+
+describe('getLastClosedCount', () => {
+  test('is null before any close, then the latest counted cash; a manager of another warehouse cannot read it', async () => {
+    const { fx, open } = await setup()
+    expect(await getLastClosedCount(fx.managerA, fx.a.id)).toBeNull()
+    await open(1_000)
+    expect(await getLastClosedCount(fx.managerA, fx.a.id)).toBeNull()
+    await closeCashSession(fx.staffA, {
+      warehouseId: fx.a.id,
+      countedCents: 900,
+    })
+    await open(0)
+    await closeCashSession(fx.staffA, {
+      warehouseId: fx.a.id,
+      countedCents: 1_250,
+    })
+    expect(await getLastClosedCount(fx.managerA, fx.a.id)).toBe(1_250)
+    const denied = await errorOf(() => getLastClosedCount(fx.managerB, fx.a.id))
+    expect(denied.code).toBe('forbidden')
+    expect(
+      (await errorOf(() => getLastClosedCount(fx.managerB, fx.a.id))).code,
+    ).toBe('forbidden')
   })
 })

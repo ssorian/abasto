@@ -34,6 +34,8 @@ export type ProductDraft = {
   listPrice: string
   fixedDiscount: string
   promotion: string
+  /** Sale price (pesos) of the default presentation; only used when creating. */
+  salePrice: string
 }
 
 /** Editable row of the presentations dialog. */

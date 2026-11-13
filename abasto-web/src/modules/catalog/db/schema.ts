@@ -53,6 +53,11 @@ export const products = pgTable(
       .default(0),
     promotionPerPiece: integer('promotion_per_piece').notNull().default(0),
     published: boolean('published').notNull().default(true),
+    /**
+     * Set when the owner archives the product: it leaves the catalog, the
+     * pickers and the store but keeps its history; null means active.
+     */
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [

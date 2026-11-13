@@ -4,7 +4,11 @@ import { ActionButton } from '#/modules/counter/components/action-button'
 import { Field, FieldInput } from '#/modules/counter/components/form-controls'
 import { useOrderActions } from '#/modules/counter/hooks/use-order-actions'
 import { drawerClosedNotice } from '#/modules/counter/lib/order-status'
-import { changeFor, contadoPayment } from '#/modules/counter/lib/payment'
+import {
+  changeFor,
+  contadoPayment,
+  quickCashAmounts,
+} from '#/modules/counter/lib/payment'
 import { cn } from '#/lib/utils/cn'
 import { formatCents } from '#/modules/pricing/lib/money'
 import type { PickupWithReceipt } from '#/modules/counter/server/pickup'
@@ -46,7 +50,13 @@ export function PaymentStep({
   const cashReady = drawerOpen && payment.ok
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-[#f0eae3] bg-[#fcfaf8] p-4">
+    <form
+      className="flex flex-col gap-4 rounded-xl border border-[#f0eae3] bg-[#fcfaf8] p-4"
+      onSubmit={(event) => {
+        event.preventDefault()
+        if (cashReady && !busy) void pay()
+      }}
+    >
       <h3 className="text-[17px] font-[650]">
         Cobrar {formatCents(order.totalCents)}
       </h3>
@@ -62,6 +72,22 @@ export function PaymentStep({
           onChange={(event) => setTendered(event.target.value)}
         />
       </Field>
+      <div
+        role="group"
+        aria-label="Montos rápidos"
+        className="flex flex-wrap gap-2"
+      >
+        {quickCashAmounts(order.totalCents).map(({ label, cents }) => (
+          <ActionButton
+            key={cents}
+            type="button"
+            className="min-h-10"
+            onClick={() => setTendered((cents / 100).toFixed(2))}
+          >
+            {label}
+          </ActionButton>
+        ))}
+      </div>
       {tendered.trim() && (
         <p
           className={cn(
@@ -82,15 +108,15 @@ export function PaymentStep({
       <div className="flex flex-wrap gap-3">
         <ActionButton
           tone="primary"
+          type="submit"
           disabled={busy || !cashReady}
-          onClick={pay}
         >
           Cobrar y entregar
         </ActionButton>
-        <ActionButton disabled={busy} onClick={onBack}>
+        <ActionButton type="button" disabled={busy} onClick={onBack}>
           Volver
         </ActionButton>
       </div>
-    </div>
+    </form>
   )
 }

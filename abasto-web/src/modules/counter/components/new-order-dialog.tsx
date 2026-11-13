@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import { ProductPicker } from '#/components/product-picker'
 import { ProductImage } from '#/components/product-image'
 import { SearchBox } from '#/components/search-box'
 import { SupplierSelect } from '#/components/supplier-select'
@@ -18,7 +19,6 @@ import {
 import {
   Field,
   FieldInput,
-  FieldSelect,
   FieldTextarea,
 } from '#/modules/counter/components/form-controls'
 import { useOrderActions } from '#/modules/counter/hooks/use-order-actions'
@@ -48,6 +48,8 @@ type NewOrderDialogProps = {
   sellable: CounterOverview['sellable']
   reservationHours: number
   onClose: () => void
+  /** Called with the new order's id once it is reserved, after closing. */
+  onCreated: (orderId: string) => void
 }
 
 export function NewOrderDialog({
@@ -57,6 +59,7 @@ export function NewOrderDialog({
   sellable,
   reservationHours,
   onClose,
+  onCreated,
 }: NewOrderDialogProps) {
   const actions = useOrderActions()
   const [customerId, setCustomerId] = useState('')
@@ -65,6 +68,11 @@ export function NewOrderDialog({
   const [query, setQuery] = useState('')
   const [supplierId, setSupplierId] = useState('')
   const [onlyAdded, setOnlyAdded] = useState(false)
+  // The shared searchable picker filters by name and SKU; customers have no SKU.
+  const customerItems = useMemo(
+    () => customers.map(({ id, name }) => ({ id, name, sku: '' })),
+    [customers],
+  )
   const quote = useOrderQuote(warehouseId, customerId, lines)
   const optionOf = new Map(
     sellable.map((option) => [option.presentationId, option]),
@@ -93,7 +101,10 @@ export function NewOrderDialog({
       return
     }
     const result = await actions.createOrder(parsed.value)
-    if (result) onClose()
+    if (result) {
+      onClose()
+      onCreated(result.data.id)
+    }
   }
 
   return (
@@ -105,17 +116,13 @@ export function NewOrderDialog({
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Field label="Cliente">
-          <FieldSelect
+          <ProductPicker
+            label="Cliente"
+            placeholder="Busca por nombre del cliente"
+            products={customerItems}
             value={customerId}
-            onChange={(event) => setCustomerId(event.target.value)}
-          >
-            <option value="">Elige un cliente…</option>
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name}
-              </option>
-            ))}
-          </FieldSelect>
+            onChange={setCustomerId}
+          />
         </Field>
         <Field label="Notas del pedido">
           <FieldTextarea

@@ -1,4 +1,5 @@
 import { AppError } from '#/lib/errors'
+import { productArchived } from '#/modules/catalog/services/product-reads'
 import { purchaseLines } from '#/modules/inventory/db/schema'
 import type { BoxProduct } from '#/modules/inventory/services/box-products'
 import {
@@ -63,6 +64,7 @@ export async function insertExtraLines(
     if (!product) {
       throw new AppError('not_found', 'No encontramos ese producto.')
     }
+    if (product.archivedAt) throw productArchived()
     if (product.supplierId !== order.supplierId) {
       throw new AppError(
         'invalid',

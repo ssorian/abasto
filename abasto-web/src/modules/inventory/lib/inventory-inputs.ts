@@ -101,11 +101,6 @@ export const receiveOrderInput = z.object({
 
 export const pendingsInput = z.object({ supplierId: id.optional() })
 
-export const writeOffInput = z.object({
-  pendingId: id,
-  boxes: whole,
-})
-
 export const returnInput = z.object({
   pendingId: id,
   boxes: whole,

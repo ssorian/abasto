@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { ActionButton } from '#/modules/counter/components/action-button'
 import { CounterDialog } from '#/modules/counter/components/counter-dialog'
 import { Field, FieldInput } from '#/modules/counter/components/form-controls'
 import { useCashActions } from '#/modules/cash/hooks/use-cash-actions'
+import { lastCloseHint } from '#/modules/cash/lib/cash-summary'
 import { parsePesosToCents } from '#/modules/inventory/lib/cents'
 
 type CashOpenDialogProps = {
@@ -20,6 +21,13 @@ export function CashOpenDialog({
 }: CashOpenDialogProps) {
   const actions = useCashActions(warehouseId)
   const [text, setText] = useState('')
+  const [lastCounted, setLastCounted] = useState<number | null>(null)
+
+  useEffect(() => {
+    // Only owner and manager may read it; for anyone else there is just no hint.
+    actions.lastClose().then(setLastCounted, () => setLastCounted(null))
+    // Loaded once per warehouse.
+  }, [warehouseId])
 
   async function submit() {
     const opening = parsePesosToCents(text, { allowZero: true })
@@ -35,7 +43,12 @@ export function CashOpenDialog({
     >
       <Field
         label="Efectivo inicial (pesos)"
-        hint="Escribe 0 si empiezas sin efectivo."
+        hint={[
+          lastCloseHint(lastCounted),
+          'Escribe 0 si empiezas sin efectivo.',
+        ]
+          .filter(Boolean)
+          .join('. ')}
       >
         <FieldInput
           inputMode="decimal"

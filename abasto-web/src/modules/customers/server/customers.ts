@@ -27,12 +27,24 @@ export const customersOverviewFn = createServerFn({ method: 'GET' }).handler(
   () =>
     runWithActor(async (actor): Promise<CustomersOverview> => {
       const customers = await listCustomers(actor)
+      const canManage = can(actor, 'customers.manage')
       const rules = await Promise.all(
         customers.map((customer) => listCommercialRules(actor, customer.id)),
       )
       return {
-        canManage: can(actor, 'customers.manage'),
-        customers,
+        canManage,
+        customers: customers.map(
+          ({ id, name, contact, phone, addresses, notes, active, userId }) => ({
+            id,
+            name,
+            contact,
+            phone,
+            addresses,
+            notes,
+            active,
+            hasStoreAccess: canManage && userId !== null,
+          }),
+        ),
         rules: Object.fromEntries(
           customers.map((customer, index) => [customer.id, rules[index]]),
         ),

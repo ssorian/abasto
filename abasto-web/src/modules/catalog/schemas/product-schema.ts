@@ -20,6 +20,13 @@ const productFields = z.object({
 })
 
 export const productInput = productFields.extend(presentationSetInput.shape)
+/** Creation from the catalog dialog: the cost is required, the price optional. */
+export const newProductInput = productInput.extend({
+  listPricePerPiece: z.number(),
+  price: z
+    .object({ warehouseId: z.string().min(1), priceCents: z.number() })
+    .optional(),
+})
 export const productPatchInput = productFields.omit({ unit: true }).partial()
 export const idInput = z.string()
 /** Only the supplier amounts; any other key is dropped. */

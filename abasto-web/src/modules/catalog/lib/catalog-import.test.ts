@@ -77,6 +77,7 @@ describe('CSV row → createProduct input', () => {
         fixedDiscountPerPiece: 0,
         promotionPerPiece: 0,
         published: true,
+        archivedAt: null,
         createdAt: new Date(0),
         presentations: [
           {

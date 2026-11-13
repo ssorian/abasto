@@ -14,14 +14,14 @@ describe('toSessionUser', () => {
     })
   })
 
-  test('anything but owner is Personal; single name and spaces', () => {
+  test('anything but owner is Encargado; single name and spaces', () => {
     const user = toSessionUser({
       name: '  cajero ',
       email: 'c@x.co',
       role: 'staff',
     })
     expect(user.role).toBe('staff')
-    expect(user.roleLabel).toBe('Personal')
+    expect(user.roleLabel).toBe('Encargado')
     expect(user.initials).toBe('C')
   })
 

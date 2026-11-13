@@ -9,7 +9,12 @@ import { NewOrderDialog } from '#/modules/counter/components/new-order-dialog'
 import { OrderList } from '#/modules/counter/components/order-list'
 import { OrderViewDialog } from '#/modules/counter/components/order-view-dialog'
 import { ReservationSetting } from '#/modules/counter/components/reservation-setting'
-import { orderStatusFilters } from '#/modules/counter/lib/order-status'
+import {
+  defaultStatusFilter,
+  filterOrders,
+  orderStatusFilters,
+  statusCounts,
+} from '#/modules/counter/lib/order-status'
 import type { StatusFilter } from '#/modules/counter/lib/order-status'
 import type { CounterOverview } from '#/modules/counter/types/counter-view'
 import { cn } from '#/lib/utils/cn'
@@ -21,7 +26,7 @@ type CounterPageProps = {
 }
 
 export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
-  const [filter, setFilter] = useState<StatusFilter>('Todos')
+  const [filter, setFilter] = useState<StatusFilter>(defaultStatusFilter)
   const [composing, setComposing] = useState(false)
   const [openId, setOpenId] = useState<string>()
   const selected = overview.warehouses.find(
@@ -53,9 +58,8 @@ export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
     )
   }
 
-  const orders = overview.orders.filter(
-    (order) => filter === 'Todos' || order.status === filter,
-  )
+  const orders = filterOrders(overview.orders, filter)
+  const counts = statusCounts(overview.orders)
 
   return (
     <>
@@ -67,7 +71,7 @@ export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
             <FieldSelect
               value={selected.id}
               onChange={(event) => {
-                setFilter('Todos')
+                setFilter(defaultStatusFilter)
                 onSelectWarehouse(event.target.value)
               }}
             >
@@ -103,7 +107,7 @@ export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
                   'border-transparent bg-primary font-[650] text-brand-ink',
               )}
             >
-              {status}
+              {status} ({counts[status]})
             </button>
           ))}
         </div>
@@ -130,6 +134,7 @@ export function CounterPage({ overview, onSelectWarehouse }: CounterPageProps) {
           sellable={overview.sellable}
           reservationHours={overview.reservationHours}
           onClose={() => setComposing(false)}
+          onCreated={setOpenId}
         />
       )}
       {openId && (

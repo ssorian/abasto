@@ -35,6 +35,8 @@ type LotsDialogProps = {
   presentations: ReadonlyArray<{ id: string; name: string; factor: number }>
   today: string
   canManage: boolean
+  /** Lot whose "Quitar existencias" opens right away, e.g. from an Inicio alert. */
+  removeLotId?: string
   onClose: () => void
 }
 
@@ -45,21 +47,31 @@ export function LotsDialog({
   presentations,
   today,
   canManage,
+  removeLotId,
   onClose,
 }: LotsDialogProps) {
-  const [operation, setOperation] = useState<LotOperation | null>(null)
+  const operationFor = (
+    lot: ProductStock['lots'][number],
+    mode: LotOperation['mode'],
+  ): LotOperation => ({
+    mode,
+    lot,
+    productName: stock.name,
+    pack,
+    presentations,
+    today,
+    presentationId: presentations.at(0)?.id ?? '',
+  })
+  const [operation, setOperation] = useState<LotOperation | null>(() => {
+    const lot = canManage
+      ? stock.lots.find(({ id }) => id === removeLotId)
+      : undefined
+    return lot ? operationFor(lot, 'remove') : null
+  })
   const open = (
     lot: ProductStock['lots'][number],
     mode: LotOperation['mode'],
-  ) =>
-    setOperation({
-      mode,
-      lot,
-      productName: stock.name,
-      pack,
-      presentations,
-      presentationId: presentations.at(0)?.id ?? '',
-    })
+  ) => setOperation(operationFor(lot, mode))
 
   return (
     <>

@@ -25,6 +25,8 @@ type AssignmentsSectionProps = {
   assignments: ReadonlyArray<AssignmentDetail>
   /** There is at least one rider and one product that can be assigned. */
   canAssign: boolean
+  /** Why "Nuevo reparto" is unavailable, shown next to the button. */
+  blockedReason?: string | null
   onNew: () => void
   onSettle: (assignment: AssignmentDetail) => void
   onCancel: (assignment: AssignmentDetail) => void
@@ -34,6 +36,7 @@ type AssignmentsSectionProps = {
 export function AssignmentsSection({
   assignments,
   canAssign,
+  blockedReason,
   onNew,
   onSettle,
   onCancel,
@@ -44,10 +47,27 @@ export function AssignmentsSection({
         title="Repartos de hoy"
         description="Lo que sigue en ruta, aunque sea de días anteriores, y lo que se liquidó o canceló hoy."
         action={
-          <ActionButton tone="primary" disabled={!canAssign} onClick={onNew}>
-            <PlusIcon size={19} />
-            Nuevo reparto
-          </ActionButton>
+          <div className="flex flex-col items-end gap-1.5">
+            <ActionButton
+              tone="primary"
+              disabled={!canAssign}
+              aria-describedby={
+                !canAssign && blockedReason ? 'nuevo-reparto-motivo' : undefined
+              }
+              onClick={onNew}
+            >
+              <PlusIcon size={19} />
+              Nuevo reparto
+            </ActionButton>
+            {!canAssign && blockedReason && (
+              <small
+                id="nuevo-reparto-motivo"
+                className="max-w-[300px] text-right text-xs text-[#785e67]"
+              >
+                {blockedReason}
+              </small>
+            )}
+          </div>
         }
       />
       {assignments.length ? (

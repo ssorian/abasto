@@ -48,6 +48,10 @@ const pickupFormat = new Intl.DateTimeFormat('es-MX', {
 /** "lunes, 9 nov 2026, 2:30 p.m." (Mexico City time). */
 export const formatPickupDate = (date: Date) => pickupFormat.format(date)
 
+/** Confirmation line right after reserving: "Pasa por él antes de …". */
+export const holdUntilLabel = (expiresAt: Date) =>
+  `Pasa por él antes de ${formatPickupDate(expiresAt)}`
+
 /**
  * Deadline line for an order: shown while it is open (Reservado, Preparado),
  * in past tense once Vencido, and omitted for Recogido and Cancelado.

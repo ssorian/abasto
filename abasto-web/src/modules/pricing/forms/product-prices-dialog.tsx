@@ -19,7 +19,12 @@ import type {
   PieceCostDraft,
 } from '#/modules/pricing/lib/piece-cost-draft'
 import { savedSummary } from '#/modules/pricing/lib/saved-summary'
-import { originLabels, pendingPrices } from '#/modules/pricing/lib/price-table'
+import {
+  hasOwnPriceHistory,
+  originLabels,
+  pendingPrices,
+  pricePlaceholder,
+} from '#/modules/pricing/lib/price-table'
 import type {
   PriceTableRow,
   ProductGroup,
@@ -30,6 +35,7 @@ import {
   netCostOf,
   saleCheck,
 } from '#/modules/pricing/lib/product-costs'
+import { cn } from '#/lib/utils/cn'
 import { formatTenThousandths } from '#/lib/utils/supplier-cost'
 
 const originTones: Record<PriceTableRow['origin'], StatusTone> = {
@@ -254,12 +260,12 @@ export function ProductPricesDialog({
                     <TextInput
                       aria-label={`Nuevo precio de ${row.presentationName}`}
                       inputMode="decimal"
-                      placeholder={
-                        row.priceCents === null
-                          ? 'Sin precio'
-                          : (row.priceCents / 100).toFixed(2)
-                      }
-                      className="min-h-[38px] w-[120px] py-1.5 text-right"
+                      placeholder={pricePlaceholder(row)}
+                      className={cn(
+                        'min-h-[38px] w-[120px] py-1.5 text-right',
+                        row.origin === 'derived' &&
+                          'placeholder:text-[#a29096] placeholder:italic',
+                      )}
                       value={edits[row.presentationId] ?? ''}
                       onChange={(event) =>
                         setEdits((current) => ({
@@ -276,7 +282,7 @@ export function ProductPricesDialog({
                     )}
                   </div>
                 )}
-                {onHistory && (
+                {onHistory && hasOwnPriceHistory(row) && (
                   <button
                     type="button"
                     aria-label={`Historial de ${row.presentationName}`}

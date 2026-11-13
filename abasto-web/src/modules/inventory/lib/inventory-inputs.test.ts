@@ -13,7 +13,6 @@ import {
   returnInput,
   supplierOrderInput,
   supplierOrdersInput,
-  writeOffInput,
   standardPricesInput,
 } from '#/modules/inventory/lib/inventory-inputs'
 
@@ -124,7 +123,7 @@ describe('supplier order input shapes', () => {
     ).toBe(true)
   })
 
-  test('queue, order id, pendings and write-off', () => {
+  test('queue, order id, pendings and returns', () => {
     expect(
       parseInput(supplierOrdersInput, { warehouseId: 'w1', status: 'Pedido' }),
     ).toEqual({ warehouseId: 'w1', status: 'Pedido' })
@@ -136,9 +135,6 @@ describe('supplier order input shapes', () => {
     })
     expect(fails(orderIdInput, {})).toBe(true)
     expect(parseInput(pendingsInput, {})).toEqual({})
-    const writeOff = { pendingId: 'b1', boxes: 2 }
-    expect(parseInput(writeOffInput, writeOff)).toEqual(writeOff)
-    expect(fails(writeOffInput, { ...writeOff, boxes: 0.5 })).toBe(true)
     const giveBack = {
       pendingId: 'b2',
       boxes: 1,

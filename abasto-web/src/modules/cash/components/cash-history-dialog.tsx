@@ -12,11 +12,18 @@ import { useCashActions } from '#/modules/cash/hooks/use-cash-actions'
 import { messageOf } from '#/hooks/use-action-runner'
 import {
   differenceLabel,
+  differenceTone,
   summarizeSession,
 } from '#/modules/cash/lib/cash-summary'
 import { formatOrderDate } from '#/modules/customers/lib/customer-labels'
 import { formatCents } from '#/modules/pricing/lib/money'
 import type { CashSessionDetail } from '#/modules/cash/services/cash-sessions'
+
+const differenceClass = {
+  short: 'font-[650] text-[#a1372e]',
+  over: 'font-[650] text-[#1f7a4d]',
+  even: '',
+}
 
 /** Every session of the warehouse, newest first. Only owner and manager open it. */
 export function CashHistoryDialog({
@@ -84,7 +91,15 @@ export function CashHistoryDialog({
                         ? '—'
                         : formatCents(session.countedCents)}
                     </Td>
-                    <Td>
+                    <Td
+                      className={
+                        session.differenceCents === null
+                          ? undefined
+                          : differenceClass[
+                              differenceTone(session.differenceCents)
+                            ]
+                      }
+                    >
                       {session.differenceCents === null
                         ? '—'
                         : differenceLabel(session.differenceCents)}

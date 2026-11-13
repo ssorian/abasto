@@ -78,3 +78,13 @@ export function pendingPrices(
   }
   return { prices, errors }
 }
+
+/** Hint of the price input: a derived price reads as an estimate, not an own value. */
+export function pricePlaceholder(row: PriceTableRow) {
+  if (row.priceCents === null) return 'Sin precio'
+  const pesos = (row.priceCents / 100).toFixed(2)
+  return row.origin === 'derived' ? `≈ ${pesos}` : pesos
+}
+
+/** Only an own price has been set (and so recorded) in this warehouse. */
+export const hasOwnPriceHistory = (row: PriceTableRow) => row.origin === 'own'

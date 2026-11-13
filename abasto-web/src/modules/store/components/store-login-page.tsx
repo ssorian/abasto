@@ -1,4 +1,5 @@
 import { Link, useRouter } from '@tanstack/react-router'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 
@@ -22,6 +23,7 @@ export function StoreLoginPage({ redirectTo }: { redirectTo: string }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -82,13 +84,30 @@ export function StoreLoginPage({ redirectTo }: { redirectTo: string }) {
             <label htmlFor="password" className="st-card">
               Contraseña
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              className="st-field"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                className="st-field pr-12"
+              />
+              <button
+                type="button"
+                aria-label={
+                  showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                }
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((shown) => !shown)}
+                className="absolute inset-y-0 right-0 grid w-11 place-items-center text-st-ink-soft hover:text-st-ink"
+              >
+                {showPassword ? (
+                  <EyeOffIcon className="size-5" aria-hidden />
+                ) : (
+                  <EyeIcon className="size-5" aria-hidden />
+                )}
+              </button>
+            </div>
           </div>
 
           {error ? (

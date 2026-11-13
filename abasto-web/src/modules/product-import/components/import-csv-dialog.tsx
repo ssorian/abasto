@@ -103,6 +103,7 @@ function ImportDialogContent({
   const [filename, setFilename] = useState('Datos pegados.csv')
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [error, setError] = useState('')
+  const [picked, setPicked] = useState('')
   const [acknowledged, setAcknowledged] = useState(false)
 
   const reset = () => {
@@ -260,12 +261,23 @@ function ImportDialogContent({
         <p className="mt-[9px] [overflow-wrap:anywhere]">{columnRules[mode]}</p>
       </details>
       <Field label="Seleccionar archivo CSV">
-        <input
-          type="file"
-          accept=".csv,text/csv,text/plain"
-          onChange={(event) => void readFile(event.target.files?.[0])}
-          className="min-h-[43px] w-full rounded-[8px] border border-[#e8e1e3] bg-white px-3 py-2 text-sm font-normal"
-        />
+        <span className="flex min-h-[43px] w-full items-center gap-3 rounded-[8px] border border-[#e8e1e3] bg-white px-3 py-2 text-sm font-normal has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-1 has-[:focus-visible]:outline-[#d8c0e9]">
+          <input
+            type="file"
+            accept=".csv,text/csv,text/plain"
+            onChange={(event) => {
+              void readFile(event.target.files?.[0])
+              setPicked(event.target.files?.[0]?.name ?? '')
+            }}
+            className="sr-only"
+          />
+          <span className="rounded-md bg-[#f3ebf8] px-3 py-1.5 font-[650] whitespace-nowrap text-[#4d2b6a]">
+            Elegir archivo
+          </span>
+          <span className="min-w-0 truncate text-[#907e84]">
+            {picked || 'Ningún archivo elegido'}
+          </span>
+        </span>
       </Field>
       <Field label="O pega aquí el contenido del CSV">
         <FieldTextarea

@@ -31,6 +31,14 @@ export function filterCatalog(
   )
 }
 
+/** Active (not archived) products, and the archived ones. */
+export function splitArchived(products: ReadonlyArray<CatalogProduct>) {
+  return {
+    active: products.filter((product) => !product.archivedAt),
+    archived: products.filter((product) => product.archivedAt),
+  }
+}
+
 export function publicationCounts(products: ReadonlyArray<CatalogProduct>) {
   const published = products.filter((product) => product.published).length
   return { published, paused: products.length - published }

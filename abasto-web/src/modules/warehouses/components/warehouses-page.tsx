@@ -18,12 +18,8 @@ export function WarehousesPage({ warehouses, canCreate }: WarehousesPageProps) {
       />
       {warehouses.length ? (
         <div className="grid grid-cols-1 gap-[15px] tablet:grid-cols-3 wide:gap-[22px]">
-          {warehouses.map((warehouse, index) => (
-            <WarehouseCard
-              key={warehouse.id}
-              warehouse={warehouse}
-              number={String(index + 1).padStart(2, '0')}
-            />
+          {warehouses.map((warehouse) => (
+            <WarehouseCard key={warehouse.id} warehouse={warehouse} />
           ))}
         </div>
       ) : (

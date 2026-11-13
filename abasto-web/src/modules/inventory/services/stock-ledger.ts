@@ -2,6 +2,7 @@ import { and, eq, gte, lte, sql } from 'drizzle-orm'
 import type { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { products, suppliers } from '#/modules/catalog/db/schema'
+import { productArchived } from '#/modules/catalog/services/product-reads'
 import { lots, stockMovements } from '#/modules/inventory/db/schema'
 import type { MovementType } from '#/modules/inventory/db/schema'
 import { warehouses } from '#/modules/warehouses/db/schema'
@@ -115,11 +116,12 @@ export async function requireWarehouse(tx: Tx, id: string) {
 export async function requireProduct(tx: Tx, id: string) {
   const found = (
     await tx
-      .select({ id: products.id })
+      .select({ id: products.id, archivedAt: products.archivedAt })
       .from(products)
       .where(eq(products.id, id))
   ).at(0)
   if (!found) throw new AppError('not_found', 'No encontramos ese producto.')
+  if (found.archivedAt) throw productArchived()
 }
 
 export async function requireSupplier(tx: Tx, id: string) {

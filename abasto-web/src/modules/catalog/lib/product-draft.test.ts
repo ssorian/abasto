@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   draftFromProduct,
   emptyProductDraft,
+  newProductCostErrors,
   productInputFromDraft,
   productPatchFromDraft,
   supplierCostErrors,
@@ -24,6 +25,7 @@ const stored: CatalogProduct = {
   fixedDiscountPerPiece: 1000,
   promotionPerPiece: 500,
   published: false,
+  archivedAt: null,
   createdAt: new Date(0),
   presentations: [],
 }
@@ -102,16 +104,16 @@ describe('product draft ↔ service input', () => {
     expect(patch).not.toHaveProperty('promotionPerPiece')
   })
 
-  test('a new product leaves cost amounts to the server defaults', () => {
+  test('a new product carries the typed cost amounts', () => {
     const input = productInputFromDraft({
       ...emptyProductDraft(),
       name: 'Leche',
       sku: 'X',
       listPrice: '2.5',
     })
-    expect(input).not.toHaveProperty('listPricePerPiece')
-    expect(input).not.toHaveProperty('fixedDiscountPerPiece')
-    expect(input).not.toHaveProperty('promotionPerPiece')
+    expect(input.listPricePerPiece).toBe(25000)
+    expect(input.fixedDiscountPerPiece).toBe(0)
+    expect(input.promotionPerPiece).toBe(0)
   })
 
   test('a product without photo edits as an empty field; blank saves as none', () => {
@@ -198,5 +200,44 @@ describe('supplier terms validation', () => {
         'El descuento y la promoción no pueden superar el costo por pieza.',
     })
     expect(supplierCostErrors({ ...above, promotion: '0.4' })).toEqual({})
+  })
+})
+
+describe('new product cost and price', () => {
+  const draft = {
+    ...emptyProductDraft(),
+    name: 'Agua',
+    sku: 'A-1',
+    listPrice: '10.5',
+    fixedDiscount: '0.5',
+    promotion: '0.25',
+    salePrice: '15',
+  }
+
+  test('sends the cost amounts and the price of the selected warehouse', () => {
+    const input = productInputFromDraft(draft, undefined, '', 'w1')
+    expect(input).toMatchObject({
+      listPricePerPiece: 105000,
+      fixedDiscountPerPiece: 5000,
+      promotionPerPiece: 2500,
+      price: { warehouseId: 'w1', priceCents: 1500 },
+    })
+    expect(productInputFromDraft(draft)).not.toHaveProperty('price')
+  })
+
+  test('requires the cost, and the price only with a warehouse', () => {
+    expect(newProductCostErrors(emptyProductDraft(), false)).toEqual({
+      listPrice: 'Escribe el costo por pieza.',
+    })
+    expect(
+      newProductCostErrors({ ...draft, salePrice: '' }, true).salePrice,
+    ).toBe('Escribe un monto.')
+    expect(newProductCostErrors({ ...draft, salePrice: '' }, false)).toEqual({})
+    expect(
+      newProductCostErrors(
+        { ...draft, fixedDiscount: '10', promotion: '1' },
+        true,
+      ).fixedDiscount,
+    ).toBe('El descuento y la promoción no pueden superar el costo por pieza.')
   })
 })

@@ -137,3 +137,25 @@ export async function listCashSessions(
     .orderBy(desc(cashSessions.openedAt), desc(cashSessions.id))
   return Promise.all(sessions.map(detail))
 }
+
+/** Counted cash of the warehouse's latest close, or null. Owner and that warehouse's manager. */
+export async function getLastClosedCount(
+  actor: Actor,
+  warehouseId: string,
+): Promise<number | null> {
+  authorize(actor, 'warehouse.manage', warehouseId)
+  const last = (
+    await db
+      .select({ countedCents: cashSessions.countedCents })
+      .from(cashSessions)
+      .where(
+        and(
+          eq(cashSessions.warehouseId, warehouseId),
+          eq(cashSessions.status, 'closed'),
+        ),
+      )
+      .orderBy(desc(cashSessions.closedAt), desc(cashSessions.id))
+      .limit(1)
+  ).at(0)
+  return last?.countedCents ?? null
+}

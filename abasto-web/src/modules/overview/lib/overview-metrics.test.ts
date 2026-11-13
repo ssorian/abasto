@@ -14,6 +14,7 @@ const base: Overview = {
     expiringLots: 0,
   },
   lowStock: [],
+  expired: [],
   expiring: [],
 }
 

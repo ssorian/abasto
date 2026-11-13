@@ -54,11 +54,6 @@ export function CardPrices({
       ) : (
         <p className="mt-[7px] text-[#ae9fa4]">Sin presentaciones activas.</p>
       )}
-      {group?.rows.length ? (
-        <p className="mt-2 text-[11px] leading-snug text-[#ae9fa4]">
-          Es una referencia: cada lote puede venderse más caro al darle entrada.
-        </p>
-      ) : null}
     </div>
   )
 }
