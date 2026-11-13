@@ -25,14 +25,12 @@ const forbidden = 'No tienes permiso para esta acción.'
 async function orderFor(
   fx: Awaited<ReturnType<typeof setupSupplierOrders>>,
   warehouseId: string,
-  reference: string,
 ) {
   const actor = warehouseId === fx.a.id ? fx.managerA : fx.managerB
   return createSupplierOrder(actor, {
     supplierId: fx.supplier.id,
     warehouseId,
     expectedOn: '2099-01-10',
-    reference,
     lines: [lineFor(fx.milk, 2)],
   })
 }
@@ -40,13 +38,13 @@ async function orderFor(
 describe('getManagerDashboard', () => {
   test('covers one warehouse: defaults to the first of the manager and lists only its pending orders', async () => {
     const fx = await setupSupplierOrders()
-    await orderFor(fx, fx.a.id, 'PED-A')
-    await orderFor(fx, fx.b.id, 'PED-B')
+    await orderFor(fx, fx.a.id)
+    await orderFor(fx, fx.b.id)
 
     const dashboard = await getManagerDashboard(fx.managerA, week)
     expect(dashboard.warehouse.id).toBe(fx.a.id)
     expect(dashboard.pendingOrders.map((order) => order.reference)).toEqual([
-      'PED-A',
+      'E001',
     ])
     expect(dashboard.sales.warehouses.map((item) => item.id)).toEqual([fx.a.id])
     expect(dashboard.cash.warehouses.map((item) => item.id)).toEqual([fx.a.id])
@@ -57,8 +55,8 @@ describe('getManagerDashboard', () => {
 
   test('a manager of B is refused for warehouse A', async () => {
     const fx = await setupSupplierOrders()
-    await orderFor(fx, fx.a.id, 'PED-A')
-    await orderFor(fx, fx.b.id, 'PED-B')
+    await orderFor(fx, fx.a.id)
+    await orderFor(fx, fx.b.id)
     const error = await errorOf(() =>
       getManagerDashboard(fx.managerB, { ...week, warehouseId: fx.a.id }),
     )
@@ -67,7 +65,7 @@ describe('getManagerDashboard', () => {
 
     const own = await getManagerDashboard(fx.managerB, week)
     expect(own.warehouse.id).toBe(fx.b.id)
-    expect(own.pendingOrders.map((order) => order.reference)).toEqual(['PED-B'])
+    expect(own.pendingOrders.map((order) => order.reference)).toEqual(['E002'])
   })
 
   test('only a manager reads it', async () => {
@@ -117,12 +115,11 @@ describe('getManagerDashboard sales', () => {
 describe('getManagerDashboard supplier filter', () => {
   test('narrows pending orders and stock alerts to the supplier', async () => {
     const fx = await setupSupplierOrders()
-    await orderFor(fx, fx.a.id, 'PED-ALPURA')
+    await orderFor(fx, fx.a.id)
     await createSupplierOrder(fx.managerA, {
       supplierId: fx.cocaCola.id,
       warehouseId: fx.a.id,
       expectedOn: '2099-01-10',
-      reference: 'PED-COLA',
       lines: [lineFor(fx.cola, 1)],
     })
     for (const product of [fx.milk, fx.cola]) {
@@ -135,8 +132,8 @@ describe('getManagerDashboard supplier filter', () => {
 
     const all = await getManagerDashboard(fx.managerA, week)
     expect(all.pendingOrders.map((order) => order.reference).sort()).toEqual([
-      'PED-ALPURA',
-      'PED-COLA',
+      'E001',
+      'E002',
     ])
     const lowStock = (d: typeof all) => d.stock.lowStock.map((row) => row.name)
     expect(lowStock(all)).toEqual(
@@ -147,9 +144,7 @@ describe('getManagerDashboard supplier filter', () => {
       ...week,
       supplierId: fx.cocaCola.id,
     })
-    expect(cola.pendingOrders.map((order) => order.reference)).toEqual([
-      'PED-COLA',
-    ])
+    expect(cola.pendingOrders.map((order) => order.reference)).toEqual(['E002'])
     expect(lowStock(cola)).toEqual(['Cola 600ml'])
 
     const unknown = await getManagerDashboard(fx.managerA, {

@@ -52,7 +52,6 @@ const draft = (boxes: OrderDraft['boxes']): OrderDraft => ({
   supplierId: 's1',
   warehouseId: 'w1',
   expectedOn: '2026-11-10',
-  reference: ' P-1 ',
   boxes,
 })
 
@@ -282,7 +281,7 @@ describe('orderTotalCents', () => {
 })
 
 describe('orderInputFromDraft', () => {
-  test('keeps rows with boxes only and trims the reference', () => {
+  test('keeps rows with boxes only and keeps the optional date', () => {
     const parsed = orderInputFromDraft(draft({ milk: '3', yog: '' }), [
       milk,
       yoghurt,
@@ -293,7 +292,6 @@ describe('orderInputFromDraft', () => {
         supplierId: 's1',
         warehouseId: 'w1',
         expectedOn: '2026-11-10',
-        reference: 'P-1',
         lines: [{ productId: 'milk', boxes: 3 }],
       },
     })
@@ -301,7 +299,7 @@ describe('orderInputFromDraft', () => {
 
   test('omits blank optional fields', () => {
     const parsed = orderInputFromDraft(
-      { ...draft({ milk: '1' }), expectedOn: '', reference: '  ' },
+      { ...draft({ milk: '1' }), expectedOn: '' },
       [milk],
     )
     expect(parsed).toEqual({

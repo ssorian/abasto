@@ -44,7 +44,6 @@ export const supplierOrderInput = z.object({
   supplierId: id,
   warehouseId: id,
   expectedOn: z.string().optional(),
-  reference: z.string().optional(),
   lines: z.array(
     z.object({
       productId: id,

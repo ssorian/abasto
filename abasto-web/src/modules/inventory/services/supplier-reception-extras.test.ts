@@ -26,7 +26,6 @@ async function pendingOrder(fx: SupplierFixture) {
   const created = await createSupplierOrder(fx.owner, {
     supplierId: fx.supplier.id,
     warehouseId: fx.a.id,
-    reference: 'PED-1',
     lines: [lineFor(fx.milk, 10), lineFor(fx.soda, 2)],
   })
   return getSupplierOrder(fx.owner, created.id)
@@ -88,7 +87,7 @@ describe('receiveSupplierOrder: products that arrived without being ordered', ()
     expect(result.lots).toHaveLength(3)
     expect(result.lots[2]).toMatchObject({
       productId: fx.free.id,
-      code: 'PED-1',
+      code: 'E001',
       expiresOn: '2027-01-15',
       receivedQuantity: 18,
       receivedCostCents: 900,
@@ -107,7 +106,7 @@ describe('receiveSupplierOrder: products that arrived without being ordered', ()
       goodQuantity: 18,
       damagedQuantity: 0,
       missingQuantity: 0,
-      lotCode: 'PED-1',
+      lotCode: 'E001',
     })
     expect(stored.totalCostCents).toBe(13440 + 4032 + 900)
     const pendings = await listSupplierPendings(fx.owner, fx.supplier.id)

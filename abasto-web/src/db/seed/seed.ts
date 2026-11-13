@@ -260,7 +260,6 @@ export async function seedDatabase({
   const orderAndReceive = async (
     warehouse: (typeof warehouseNames)[number],
     supplierKey: SupplierKey,
-    reference: string,
     lines: Array<SeedLine>,
     damaged: Partial<Record<string, number>> = {},
   ) => {
@@ -269,7 +268,6 @@ export async function seedDatabase({
     const order = await createSupplierOrder(actor, {
       supplierId: supplierId[supplierKey],
       warehouseId: warehouseId[warehouse],
-      reference,
       lines: lines.map((line) => {
         const boxes = line.boxes + (damaged[line.seed.sku] ?? 0)
         return { productId: line.productId, boxes }
@@ -292,7 +290,6 @@ export async function seedDatabase({
       confirmExpired: true,
     })
   }
-  let folio = 1000
   for (const name of warehouseNames) {
     for (const supplier of supplierSeed) {
       const lines = productSeed
@@ -309,15 +306,15 @@ export async function seedDatabase({
         name === 'Tejupilco' && supplier.key === 'lala'
           ? { [lines[0].seed.sku]: 1 }
           : {}
-      await orderAndReceive(name, supplier.key, `F-${folio++}`, lines, damaged)
+      await orderAndReceive(name, supplier.key, lines, damaged)
     }
   }
   // An older Lala lot about to expire in Tejupilco (FEFO sells it first).
-  await orderAndReceive('Tejupilco', 'lala', `F-${folio++}`, [
+  await orderAndReceive('Tejupilco', 'lala', [
     lineFor('13455', 'Tejupilco', 10, 3),
   ])
   // Expired yoghurt in Arcelia, written off as a loss.
-  const expired = await orderAndReceive('Arcelia', 'lala', `F-${folio++}`, [
+  const expired = await orderAndReceive('Arcelia', 'lala', [
     lineFor('23431', 'Arcelia', 1, -2),
   ])
   await registerLoss(managerOf('Arcelia'), {
@@ -331,7 +328,6 @@ export async function seedDatabase({
   await createSupplierOrder(managerOf('Tejupilco'), {
     supplierId: supplierId.alpura,
     warehouseId: warehouseId.Tejupilco,
-    reference: `P-${folio++}`,
     expectedOn: addDays(today, 3),
     lines: waiting.slice(0, 2).map((seed) => ({
       productId: item(seed.sku).product.id,

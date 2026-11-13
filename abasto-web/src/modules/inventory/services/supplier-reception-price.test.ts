@@ -30,7 +30,6 @@ async function pendingOrder(
   const created = await createSupplierOrder(fx.owner, {
     supplierId: fx.supplier.id,
     warehouseId: fx.a.id,
-    reference: 'PED-1',
     lines: [lineFor(fx.milk, 10), lineFor(fx.soda, 2)],
     ...extra,
   })
@@ -214,7 +213,6 @@ describe('receiveSupplierOrder: list price per piece at reception', () => {
     )
     const pendings = await listSupplierPendings(fx.owner, fx.supplier.id)
     const order = await pendingOrder(fx, {
-      reference: 'PED-2',
       discounts: [{ pendingId: pendings.restock[0].pendingId }],
     })
     const before = await supplierState()

@@ -41,7 +41,6 @@ const orderOf = (
   supplierId: fx.supplier.id,
   warehouseId: fx.a.id,
   expectedOn: '2026-11-10',
-  reference: 'PED-1',
   lines: [lineFor(fx.milk, 10), lineFor(fx.soda, 2)],
   ...overrides,
 })
@@ -71,7 +70,7 @@ describe('createSupplierOrder', () => {
       supplierId: fx.supplier.id,
       warehouseId: fx.a.id,
       expectedOn: '2026-11-10',
-      reference: 'PED-1',
+      reference: 'E001',
       receivedAt: null,
       receivedBy: null,
     })
@@ -383,7 +382,7 @@ describe('receiveSupplierOrder', () => {
     expect(milkLot).toMatchObject({
       productId: fx.milk.id,
       warehouseId: fx.a.id,
-      code: 'PED-1',
+      code: 'E001',
       expiresOn: '2026-12-01',
       receivedQuantity: 120,
       receivedCostCents: 13440,
@@ -414,7 +413,7 @@ describe('receiveSupplierOrder', () => {
     expect(stored.lines[0]).toMatchObject({
       goodQuantity: 120,
       damagedQuantity: 0,
-      lotCode: 'PED-1',
+      lotCode: 'E001',
     })
     expect((await supplierState()).pendings).toEqual([])
   })
@@ -486,7 +485,7 @@ describe('receiveSupplierOrder', () => {
     expect(rows[0]).toMatchObject({ type: 'damaged', valueCents: 1344 })
   })
 
-  test('every lot of the order takes its reference as the code', async () => {
+  test('every lot of the order takes its folio as the code', async () => {
     const fx = await setupSupplierOrders()
     const order = await pendingOrder(fx)
     const result = await receiveSupplierOrder(
@@ -496,29 +495,24 @@ describe('receiveSupplierOrder', () => {
         { missingBoxes: 0, damagedBoxes: 0 },
       ]),
     )
-    expect(order.code).toBe('PED-1')
-    expect(result.lots.map((lot) => lot.code)).toEqual(['PED-1', 'PED-1'])
+    expect(order.code).toBe('E001')
+    expect(result.lots.map((lot) => lot.code)).toEqual(['E001', 'E001'])
   })
 
-  test('without a reference the code is PED- plus the order folio, stable and shared', async () => {
+  test('the folio is automatic and consecutive: E001, E002…, shared by the lots of each order', async () => {
     const fx = await setupSupplierOrders()
-    const first = await createSupplierOrder(
-      fx.owner,
-      orderOf(fx, { reference: '' }),
-    )
+    const first = await createSupplierOrder(fx.owner, orderOf(fx))
     const second = await createSupplierOrder(
-      fx.owner,
-      orderOf(fx, { reference: '   ' }),
+      fx.managerA,
+      orderOf(fx, { reference: 'X-99' }),
     )
     const [a, b] = [
       await getSupplierOrder(fx.owner, first.id),
       await getSupplierOrder(fx.owner, second.id),
     ]
-    expect(a.folio).toBeGreaterThan(0)
-    expect(b.folio).toBe(a.folio + 1)
-    expect(a.code).toBe(`PED-${String(a.folio).padStart(4, '0')}`)
-    expect(b.code).toBe(`PED-${String(b.folio).padStart(4, '0')}`)
-    expect(a.code).not.toBe(b.code)
+    expect([a.reference, a.code]).toEqual(['E001', 'E001'])
+    // A folio typed by the client is ignored: the folio is not editable.
+    expect([b.reference, b.code]).toEqual(['E002', 'E002'])
     const result = await receiveSupplierOrder(
       fx.owner,
       arrive(b, [
@@ -526,13 +520,22 @@ describe('receiveSupplierOrder', () => {
         { missingBoxes: 0, damagedBoxes: 0 },
       ]),
     )
-    expect(result.lots.map((lot) => lot.code)).toEqual([b.code, b.code])
+    expect(result.lots.map((lot) => lot.code)).toEqual(['E002', 'E002'])
     const stored = await getSupplierOrder(fx.owner, b.id)
-    expect(stored.code).toBe(b.code)
-    expect(stored.lines.map((line) => line.lotCode)).toEqual([b.code, b.code])
-    // Listings carry the same code.
+    expect(stored.lines.map((line) => line.lotCode)).toEqual(['E002', 'E002'])
     const listed = await listSupplierOrders(fx.owner, { warehouseId: fx.a.id })
-    expect(listed.find((row) => row.id === b.id)?.code).toBe(b.code)
+    expect(listed.find((row) => row.id === b.id)?.code).toBe('E002')
+  })
+
+  test('the folio continues after the highest E folio already stored', async () => {
+    const fx = await setupSupplierOrders()
+    const first = await createSupplierOrder(fx.owner, orderOf(fx))
+    await db
+      .update(purchases)
+      .set({ reference: 'E041' })
+      .where(eq(purchases.id, first.id))
+    const next = await createSupplierOrder(fx.owner, orderOf(fx))
+    expect((await getSupplierOrder(fx.owner, next.id)).code).toBe('E042')
   })
 
   test('all zero exceptions mean everything arrived well; the expiry goes to the line lot', async () => {

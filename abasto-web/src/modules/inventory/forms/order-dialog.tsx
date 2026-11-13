@@ -84,7 +84,6 @@ export function OrderDialog({
     supplierId: initialProduct?.supplierId ?? '',
     warehouseId: initialWarehouseId,
     expectedOn: '',
-    reference: '',
     boxes: {},
   }))
   const [editingId, setEditingId] = useState<string>()
@@ -269,12 +268,12 @@ export function OrderDialog({
               />
             </Field>
           </FormGrid>
-          <Field label="Folio o referencia (opcional)">
+          <Field label="Folio">
             <FieldInput
-              value={draft.reference}
-              onChange={(event) =>
-                setDraft({ ...draft, reference: event.target.value })
-              }
+              readOnly
+              aria-readonly
+              value="Automático: E001, E002… (se asigna al guardar)"
+              className="text-[#907e84]"
             />
           </Field>
           {draft.supplierId ? (
