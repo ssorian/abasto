@@ -22,8 +22,8 @@ Constraint: "No hay absolutamente nada en prod aun" — schema may change freely
 | T0 | — | inline: commit pre-existing work on `main` ("commitea lo que tenemos y continua") | 733b493, 4d045c0, 673732e, 173f523 |
 | T1 | S1 | inline: `scrapped` pending type, migration 0035, `scrapPendings` service/server fn, pendings tab action + dialog, labels | e67c493 |
 | T2 | S2, S3 | inline: credits from `returned`+`discount` as discountable balances in `createSupplierOrder`, order dialog, reopen on cancel | f0b5c4a |
-| T3 | S4, S5 | worker (context backstop): supplier recovery report service (recovered, pending, lost incl. valued stock losses) | |
-| T4 | S5 | worker (with T3): owner reports card with breakdown, period and supplier filters | |
+| T3 | S4, S5 | worker (context backstop): supplier recovery report service (recovered, pending, lost incl. valued stock losses) | a20c6bc |
+| T4 | S5 | worker (with T3): owner reports card with breakdown, period and supplier filters | a20c6bc |
 
 ## Log
 
@@ -35,3 +35,4 @@ Constraint: "No hay absolutamente nada en prod aun" — schema may change freely
 - **L6**: "commitea lo que tenemos y continua". Not committed: `abasto-web/env` (credentials), `abasto-web/.impeccable/` (tool scratch incl. a DB dump), `docs/qa/2026-11-12-flow-map/shots/` (15 MB screenshots; previous QA commits kept only markdown).
 - **L7**: Evidence — reception lots carry only good units' cost (`supplier-reception.ts:351-355`); missing/damaged go to `supplier_pendings` at line-share value. `written_off` is a legacy settlement type ("Descontado del pago"), so merma uses a new `scrapped` type.
 - **L8**: T1/T2 design as implemented — merma is a `scrapped` settlement of a `damaged` origin (migration 0035). A return closed with resolution `discount` and a credit > 0 also appends a new origin entry `credit` (kind `credit`, "Descuentos a favor", migration 0036) worth `creditCents` for the returned units, same `purchaseId` as the damaged origin; it is listed in `listSupplierPendings().credits`, shown in the Saldos tab and offered next to "Por reponer" balances in the order dialog, discounted only when chosen (`discounted` settlement; cancelling reopens). The `returned` settlement keeps `valueCents` (original value) and `creditCents`; S3 loss = returned value − credit when positive.
+- **L9**: T3/T4 decisions — a return resolved as replacement ("Las repuso") counts as recovered in merchandise, like a received replacement. A discount reopened in a later period shows as a negative discount in that period (a real reversal), not clamped. Pending is the open value today, independent of the period. Verification: T1/T2 independent verify passed (migrations, S1-S3); full suite 1316 pass, 0 fail before the T3/T4 commit.
