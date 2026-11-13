@@ -18,6 +18,7 @@ import {
 import { listReportSuppliers } from '#/modules/reports/services/report-suppliers'
 import { getSalesReport } from '#/modules/reports/services/sales-report'
 import { getStockAlerts } from '#/modules/reports/services/stock-alerts'
+import { getSupplierRecovery } from '#/modules/reports/services/supplier-recovery'
 import type { OwnerDashboard } from '#/modules/reports/types/owner-dashboard'
 import type { PeriodInput } from '#/modules/reports/types/reports'
 
@@ -57,6 +58,7 @@ export async function getOwnerDashboard(
       previousSales,
       cashCuts,
       stockAlerts,
+      supplierRecovery,
     ] = await Promise.all([
       getMarginReport(actor, { period, ...filters }),
       getWarehouseRanking(actor, { period, ...filters }),
@@ -70,6 +72,8 @@ export async function getOwnerDashboard(
       // A cash session mixes suppliers: cash cuts follow the warehouse only.
       getCashCuts(actor, { period, warehouseIds }),
       getStockAlerts(actor, filters),
+      // Supplier balances are company-wide: the warehouse only narrows stock losses.
+      getSupplierRecovery(actor, { period, ...filters }),
     ])
     return {
       ...options,
@@ -82,6 +86,7 @@ export async function getOwnerDashboard(
         previousSales,
         cashCuts,
         stockAlerts,
+        supplierRecovery,
       },
     }
   } catch (error) {

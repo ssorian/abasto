@@ -13,6 +13,7 @@ import type {
   SalesReport,
   StockAlerts,
 } from '#/modules/reports/types/reports'
+import type { SupplierRecovery } from '#/modules/reports/types/supplier-recovery'
 
 /** Every report of the owner dashboard for one set of filters. */
 export type OwnerDashboardData = {
@@ -24,6 +25,7 @@ export type OwnerDashboardData = {
   previousSales: SalesReport
   cashCuts: CashCuts
   stockAlerts: StockAlerts
+  supplierRecovery: SupplierRecovery
 }
 
 export type OwnerDashboard = {

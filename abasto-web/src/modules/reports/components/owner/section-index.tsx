@@ -1,5 +1,6 @@
 export const reportSections = [
   { id: 'reporte-ventas', label: 'Ventas' },
+  { id: 'reporte-proveedores', label: 'Proveedores' },
   { id: 'reporte-inventario', label: 'Inventario' },
   { id: 'reporte-caja', label: 'Caja y repartos' },
 ] as const
