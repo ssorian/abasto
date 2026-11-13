@@ -1,9 +1,6 @@
-import { Link } from '@tanstack/react-router'
-import { TagIcon } from 'lucide-react'
-
 import { ProductImage } from '#/components/product-image'
 import { StatusBadge } from '#/components/status-badge'
-import { CatalogButton } from '#/modules/catalog/components/catalog-button'
+import { CatalogRowActions } from '#/modules/catalog/components/catalog-row-actions'
 import { presentationLabel } from '#/modules/catalog/lib/catalog-presentations'
 import { formatCents } from '#/modules/pricing/lib/money'
 import { formatPieceCost } from '#/modules/pricing/lib/product-costs'
@@ -155,41 +152,24 @@ export function CatalogTable({
                   )}
                 </td>
                 <td className={cell}>
-                  <div className="flex items-center gap-2 whitespace-nowrap">
-                    {product.archivedAt ? (
-                      canManage && (
-                        <CatalogButton
-                          className="min-h-9 px-3"
-                          onClick={() => onRestore(product.id)}
-                        >
-                          Restaurar
-                        </CatalogButton>
-                      )
-                    ) : showPrices && group?.rows.length ? (
-                      <CatalogButton
-                        className="min-h-9 px-3"
-                        onClick={() => onPrices(product.id)}
-                      >
-                        <TagIcon className="size-4" />
-                        Precios
-                      </CatalogButton>
-                    ) : null}
-                    {canManage && !product.archivedAt && (
-                      <CatalogButton
-                        className="min-h-9 px-3"
-                        onClick={() => onEdit(product.id)}
-                      >
-                        Editar
-                      </CatalogButton>
-                    )}
-                    <Link
-                      to="/inventario"
-                      search={{ q: product.name }}
-                      className="text-sm font-[650] text-ink-link hover:underline"
-                    >
-                      Consultar inventario
-                    </Link>
-                  </div>
+                  <CatalogRowActions
+                    productName={product.name}
+                    onRestore={
+                      product.archivedAt && canManage
+                        ? () => onRestore(product.id)
+                        : undefined
+                    }
+                    onPrices={
+                      !product.archivedAt && showPrices && group?.rows.length
+                        ? () => onPrices(product.id)
+                        : undefined
+                    }
+                    onEdit={
+                      canManage && !product.archivedAt
+                        ? () => onEdit(product.id)
+                        : undefined
+                    }
+                  />
                 </td>
               </tr>
             )

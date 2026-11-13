@@ -239,6 +239,13 @@
       "when": 1794546223458,
       "tag": "0033_product_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794580000000,
+      "tag": "0034_freeze_derived_prices",
+      "breakpoints": true
     }
   ]
 }

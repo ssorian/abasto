@@ -6,7 +6,7 @@ import {
   newPresentationDraft,
   presentationSetFromDrafts,
   removeDraft,
-  renameBaseRows,
+  presentationPriceErrors,
 } from '#/modules/catalog/lib/presentation-draft'
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
 
@@ -81,24 +81,37 @@ describe('presentation drafts ↔ savePresentations set', () => {
 })
 
 describe('new product presentations', () => {
-  test('starts with one active base row named after the unit, selected as default', () => {
-    const initial = initialPresentationDrafts('piezas')
+  test('starts with one active piece row, selected as default', () => {
+    const initial = initialPresentationDrafts()
     expect(initial.rows).toHaveLength(1)
     expect(initial.rows[0]).toMatchObject({
-      name: 'piezas',
+      name: 'Pieza',
       factor: 1,
       barcode: '',
+      price: '',
       active: true,
     })
     expect(initial.rows[0].id).toBeUndefined()
     expect(initial.defaultKey).toBe(initial.rows[0].key)
   })
 
-  test('renaming the unit renames only an untouched base row', () => {
-    const initial = initialPresentationDrafts('piezas')
-    const custom = { ...newPresentationDraft(), name: 'Caja', factor: 12 }
-    const renamed = renameBaseRows([...initial.rows, custom], 'piezas', 'kilos')
-    expect(renamed.map((row) => row.name)).toEqual(['kilos', 'Caja'])
+  test('with a warehouse the default needs a price; the others only a valid one', () => {
+    const piece = { ...newPresentationDraft(), name: 'Pieza' }
+    const box = { ...newPresentationDraft(), name: 'Caja', factor: 12 }
+    expect(presentationPriceErrors([piece, box], piece.key, true)).toEqual({
+      [piece.key]: 'Escribe un monto.',
+    })
+    expect(
+      presentationPriceErrors(
+        [
+          { ...piece, price: '15' },
+          { ...box, price: 'x' },
+        ],
+        piece.key,
+        true,
+      ),
+    ).toEqual({ [box.key]: expect.any(String) })
+    expect(presentationPriceErrors([piece, box], piece.key, false)).toEqual({})
   })
 
   test('removing an unsaved default row falls back to the first active row', () => {

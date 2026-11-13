@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, sql } from 'drizzle-orm'
 import { db } from '#/db'
 import { resetDatabase } from '#/db/testing'
 import { cashMovements } from '#/modules/cash/db/schema'
@@ -602,6 +602,28 @@ describe('settleAssignment with a piece price', () => {
     const detail = await assign(2, 5)
     // 29 × 44000 / 12 = 106333.33 → 106333
     expect((await settle(detail, 0, 0)).expectedCents).toBe(106_333)
+  })
+
+  test('a piece price frozen from the old derived one charges loose pieces at the warehouse piece price, even from a dearer lot', async () => {
+    const { assign, settle } = await setupWater(null)
+    // Migration 0034 gives the piece its own price: 44000 / 12 = 3666.67 → 3667.
+    await db.execute(
+      sql.raw(
+        await Bun.file(
+          new URL(
+            '../../../../drizzle/0034_freeze_derived_prices.sql',
+            import.meta.url,
+          ),
+        ).text(),
+      ),
+    )
+    const detail = await assign(2, 5, [
+      { quantity: 100, salePriceCents: 48_000 },
+    ])
+    // 2 boxes at the lot price, 5 loose pieces at the piece price, not 480 / 12.
+    expect((await settle(detail, 0, 0)).expectedCents).toBe(
+      2 * 48_000 + 5 * 3667,
+    )
   })
 
   test('a box that spans two lots is prorated per lot; the loose pieces are the newest', async () => {

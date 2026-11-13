@@ -26,6 +26,12 @@ export const newProductInput = productInput.extend({
   price: z
     .object({ warehouseId: z.string().min(1), priceCents: z.number() })
     .optional(),
+  prices: z
+    .object({
+      warehouseId: z.string().min(1),
+      cents: z.array(z.number().nullable()),
+    })
+    .optional(),
 })
 export const productPatchInput = productFields.omit({ unit: true }).partial()
 export const idInput = z.string()

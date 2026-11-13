@@ -29,7 +29,6 @@ export const emptyProductDraft = (): ProductDraft => ({
   listPrice: '',
   fixedDiscount: '',
   promotion: '',
-  salePrice: '',
 })
 
 export const draftFromProduct = (product: CatalogProduct): ProductDraft => ({
@@ -47,8 +46,23 @@ export const draftFromProduct = (product: CatalogProduct): ProductDraft => ({
   listPrice: formatTenThousandths(product.listPricePerPiece),
   fixedDiscount: formatTenThousandths(product.fixedDiscountPerPiece),
   promotion: formatTenThousandths(product.promotionPerPiece),
-  salePrice: '',
 })
+
+/**
+ * Change of the supplier select. The brand follows the supplier while it is
+ * blank or still the previous supplier's name; a brand typed by hand is kept.
+ */
+export function supplierChange(
+  draft: Pick<ProductDraft, 'supplierId' | 'brand'>,
+  supplierId: string,
+  suppliers: ReadonlyArray<{ id: string; name: string }>,
+): Pick<ProductDraft, 'supplierId' | 'brand'> {
+  const nameOf = (id: string) =>
+    suppliers.find((supplier) => supplier.id === id)?.name ?? ''
+  const follows =
+    !draft.brand.trim() || draft.brand === nameOf(draft.supplierId)
+  return { supplierId, brand: follows ? nameOf(supplierId) : draft.brand }
+}
 
 type CostKey = 'listPrice' | 'fixedDiscount' | 'promotion'
 const costKeys: ReadonlyArray<CostKey> = [
@@ -90,19 +104,13 @@ export function supplierCostErrors(
 export const COST_REQUIRED_MESSAGE = 'Escribe el costo por pieza.'
 
 /**
- * Errors of the "Costo y precio" section of a new product: the supplier cost
- * (required, same rules as the Prices dialog) and, when a warehouse is
- * selected, the sale price of the default presentation (required).
+ * Errors of the supplier cost of a new product: required, same rules as the
+ * Prices dialog. Sale prices are checked per presentation.
  */
-export function newProductCostErrors(draft: ProductDraft, needsPrice: boolean) {
-  const errors: Partial<Record<CostKey | 'salePrice', string>> =
-    supplierCostErrors(draft)
+export function newProductCostErrors(draft: ProductDraft) {
+  const errors = supplierCostErrors(draft)
   if (!errors.listPrice && !draft.listPrice.trim()) {
     errors.listPrice = COST_REQUIRED_MESSAGE
-  }
-  if (needsPrice) {
-    const price = parsePesos(draft.salePrice)
-    if (!price.ok) errors.salePrice = price.message
   }
   return errors
 }
@@ -130,11 +138,17 @@ const costAmountsFromDraft = (draft: ProductDraft) => ({
   promotionPerPiece: amountOf(draft.promotion),
 })
 
-/** The initial price of the default presentation; absent without a warehouse. */
-function salePriceFromDraft(draft: ProductDraft, warehouseId?: string | null) {
-  const price = parsePesos(draft.salePrice)
-  if (!warehouseId || !price.ok) return {}
-  return { price: { warehouseId, priceCents: price.value } }
+/** The typed sale price of each row, by position; absent without a warehouse. */
+function salePricesFromRows(
+  rows?: ReadonlyArray<PresentationDraft>,
+  warehouseId?: string | null,
+) {
+  if (!warehouseId || !rows) return {}
+  const cents = rows.map((row) => {
+    const price = parsePesos(row.price)
+    return price.ok ? price.value : null
+  })
+  return { prices: { warehouseId, cents } }
 }
 
 /**
@@ -151,7 +165,7 @@ export const productInputFromDraft = (
   ...fieldsFromDraft(draft),
   unit: draft.unit,
   ...costAmountsFromDraft(draft),
-  ...salePriceFromDraft(draft, warehouseId),
+  ...salePricesFromRows(rows, warehouseId),
   ...(rows
     ? presentationSetFromDrafts(rows, defaultKey)
     : {

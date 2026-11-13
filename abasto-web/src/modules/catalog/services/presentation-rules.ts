@@ -89,13 +89,14 @@ export function validateSet(
 /**
  * Persists a validated set inside the caller's transaction: stored rows missing
  * from the set are deactivated (never deleted), the rest are updated or inserted.
+ * Resolves to the presentation ids in the order of `rows`.
  */
 export async function writeSet(
   tx: Executor,
   productId: string,
   rows: Array<Row>,
   defaultIndex: number,
-) {
+): Promise<Array<string>> {
   const kept = new Set(rows.map((row) => row.id))
   const stored = await tx
     .select({ id: presentations.id })
@@ -113,6 +114,7 @@ export async function writeSet(
         .where(eq(presentations.id, id))
     }
   }
+  const ids: Array<string> = []
   for (const [index, row] of rows.entries()) {
     const values = {
       name: row.name,
@@ -125,10 +127,14 @@ export async function writeSet(
         .update(presentations)
         .set(values)
         .where(eq(presentations.id, row.id))
+      ids.push(row.id)
     } else {
-      await tx
+      const [inserted] = await tx
         .insert(presentations)
         .values({ ...values, productId, factor: row.factor })
+        .returning({ id: presentations.id })
+      ids.push(inserted.id)
     }
   }
+  return ids
 }

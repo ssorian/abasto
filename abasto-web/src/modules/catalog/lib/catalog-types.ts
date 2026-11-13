@@ -34,8 +34,6 @@ export type ProductDraft = {
   listPrice: string
   fixedDiscount: string
   promotion: string
-  /** Sale price (pesos) of the default presentation; only used when creating. */
-  salePrice: string
 }
 
 /** Editable row of the presentations dialog. */
@@ -47,6 +45,8 @@ export type PresentationDraft = {
   name: string
   factor: number
   barcode: string
+  /** Sale price (pesos) as typed; only used when creating the product. */
+  price: string
   active: boolean
 }
 
@@ -59,7 +59,6 @@ export type SupplierDraft = {
   active: boolean
 }
 
-export const baseUnits = ['cajas', 'piezas', 'bultos', 'paquetes'] as const
 export const categories = [
   'Bebidas',
   'Abarrotes',

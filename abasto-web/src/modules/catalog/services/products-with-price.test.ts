@@ -93,6 +93,60 @@ describe('createProduct with cost and price', () => {
     expect(await priceRows()).toBe(0)
   })
 
+  const boxFirst = {
+    ...newProduct,
+    presentations: [
+      { name: 'Caja x12', factor: 12 },
+      { name: 'Pieza', factor: 1 },
+    ],
+    defaultIndex: 0,
+    listPricePerPiece: 100_000,
+  }
+
+  test('stores one price per presentation, matched by its position in the form', async () => {
+    const fx = await setupInventory()
+    const created = await createProduct(fx.owner, {
+      ...boxFirst,
+      prices: { warehouseId: fx.a.id, cents: [13_000, 1_200] },
+    })
+    const stored = await listWarehousePrices(fx.owner, fx.a.id)
+    const priceOf = (name: string) =>
+      stored.find(
+        (item) =>
+          item.presentationId ===
+          created.presentations.find((row) => row.name === name)?.id,
+      )?.priceCents
+    expect(priceOf('Caja x12')).toBe(13_000)
+    expect(priceOf('Pieza')).toBe(1_200)
+    expect(await priceRows()).toBe(2)
+  })
+
+  test('a blank position saves no price for that presentation', async () => {
+    const fx = await setupInventory()
+    await createProduct(fx.owner, {
+      ...boxFirst,
+      prices: { warehouseId: fx.a.id, cents: [13_000, null] },
+    })
+    expect(await priceRows()).toBe(1)
+  })
+
+  test.each([
+    ['a price of zero in any position', [13_000, 0]],
+    ['more prices than presentations', [13_000, 1_200, 500]],
+  ])('rejects %s and saves nothing', async (_name, cents) => {
+    const fx = await setupInventory()
+    const before = (await listProducts(fx.owner)).length
+    const error = await errorOf(() =>
+      createProduct(fx.owner, {
+        ...boxFirst,
+        prices: { warehouseId: fx.a.id, cents },
+      }),
+    )
+    expect(error.code).toBe('invalid')
+    expect((await listProducts(fx.owner)).length).toBe(before)
+    expect(await priceRows()).toBe(0)
+  })
+
   test('creates with a cost and no price when there is no warehouse', async () => {
     const fx = await setupInventory()
     const created = await createProduct(fx.owner, {

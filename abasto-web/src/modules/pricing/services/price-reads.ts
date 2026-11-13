@@ -10,7 +10,7 @@ import { warehouses } from '#/modules/warehouses/db/schema'
 /** A database or an open transaction. */
 export type Executor = Pick<typeof db, 'select' | 'selectDistinctOn'>
 
-export type PriceOrigin = 'own' | 'derived' | 'none'
+export type PriceOrigin = 'own' | 'none'
 export type PriceRow = {
   productId: string
   productName: string
@@ -80,8 +80,8 @@ export async function currentOwnPrices(
 }
 
 /**
- * Current prices of every active presentation in a warehouse. A presentation
- * without its own price derives from the default one: price × factor / default factor.
+ * Current prices of every active presentation in a warehouse. Each
+ * presentation has its own price; one without it has none and is not sold.
  */
 export async function listWarehousePrices(
   actor: Actor,
@@ -121,32 +121,13 @@ export async function readWarehousePrices(
       asc(presentations.name),
     )
   const own = await currentOwnPrices(executor, [warehouseId])
-  const defaults = new Map(
-    items
-      .filter((item) => item.isDefault)
-      .map((item) => [item.productId, item]),
-  )
   return items
     .filter((item) => item.active)
     .map(({ active: _active, ...item }) => {
       const ownPrice = own.get(priceKey(warehouseId, item.presentationId))
-      if (ownPrice !== undefined) {
-        return { ...item, priceCents: ownPrice, origin: 'own' as const }
-      }
-      const base = defaults.get(item.productId)
-      const basePrice =
-        base && own.get(priceKey(warehouseId, base.presentationId))
-      if (!base || basePrice === undefined) {
-        return { ...item, priceCents: null, origin: 'none' as const }
-      }
-      return {
-        ...item,
-        priceCents: roundDiv(
-          BigInt(basePrice) * BigInt(item.factor),
-          BigInt(base.factor),
-        ),
-        origin: 'derived' as const,
-      }
+      return ownPrice === undefined
+        ? { ...item, priceCents: null, origin: 'none' as const }
+        : { ...item, priceCents: ownPrice, origin: 'own' as const }
     })
 }
 

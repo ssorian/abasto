@@ -5,9 +5,11 @@ import {
   emptyProductDraft,
   newProductCostErrors,
   productInputFromDraft,
+  supplierChange,
   productPatchFromDraft,
   supplierCostErrors,
 } from '#/modules/catalog/lib/product-draft'
+import { newPresentationDraft } from '#/modules/catalog/lib/presentation-draft'
 import type { CatalogProduct } from '#/modules/catalog/lib/catalog-types'
 
 const stored: CatalogProduct = {
@@ -33,8 +35,22 @@ const stored: CatalogProduct = {
 describe('product draft ↔ service input', () => {
   test('a new product carries the presentations typed in the form, with the chosen default', () => {
     const rows = [
-      { key: 'a', name: 'piezas', factor: 1, barcode: ' 7501 ', active: true },
-      { key: 'b', name: 'Caja', factor: 12, barcode: '', active: true },
+      {
+        key: 'a',
+        name: 'piezas',
+        factor: 1,
+        barcode: ' 7501 ',
+        price: '',
+        active: true,
+      },
+      {
+        key: 'b',
+        name: 'Caja',
+        factor: 12,
+        barcode: '',
+        price: '',
+        active: true,
+      },
     ]
     const input = productInputFromDraft(
       { ...emptyProductDraft(), name: 'Leche', sku: 'L-1' },
@@ -211,33 +227,60 @@ describe('new product cost and price', () => {
     listPrice: '10.5',
     fixedDiscount: '0.5',
     promotion: '0.25',
-    salePrice: '15',
   }
+  const piece = { ...newPresentationDraft(), name: 'Pieza', price: '15' }
+  const box = { ...newPresentationDraft(), name: 'Caja', factor: 12, price: '' }
 
-  test('sends the cost amounts and the price of the selected warehouse', () => {
-    const input = productInputFromDraft(draft, undefined, '', 'w1')
+  test('sends the cost amounts and one price per presentation of the selected warehouse', () => {
+    const input = productInputFromDraft(draft, [piece, box], piece.key, 'w1')
     expect(input).toMatchObject({
       listPricePerPiece: 105000,
       fixedDiscountPerPiece: 5000,
       promotionPerPiece: 2500,
-      price: { warehouseId: 'w1', priceCents: 1500 },
+      prices: { warehouseId: 'w1', cents: [1500, null] },
     })
-    expect(productInputFromDraft(draft)).not.toHaveProperty('price')
+    expect(
+      productInputFromDraft(draft, [piece, box], piece.key),
+    ).not.toHaveProperty('prices')
   })
 
-  test('requires the cost, and the price only with a warehouse', () => {
-    expect(newProductCostErrors(emptyProductDraft(), false)).toEqual({
+  test('requires the cost and keeps the discount rule', () => {
+    expect(newProductCostErrors(emptyProductDraft())).toEqual({
       listPrice: 'Escribe el costo por pieza.',
     })
+    expect(newProductCostErrors(draft)).toEqual({})
     expect(
-      newProductCostErrors({ ...draft, salePrice: '' }, true).salePrice,
-    ).toBe('Escribe un monto.')
-    expect(newProductCostErrors({ ...draft, salePrice: '' }, false)).toEqual({})
-    expect(
-      newProductCostErrors(
-        { ...draft, fixedDiscount: '10', promotion: '1' },
-        true,
-      ).fixedDiscount,
+      newProductCostErrors({ ...draft, fixedDiscount: '10', promotion: '1' })
+        .fixedDiscount,
     ).toBe('El descuento y la promoción no pueden superar el costo por pieza.')
+  })
+})
+
+describe('choosing a supplier', () => {
+  const suppliers = [
+    { id: 's1', name: 'Aquafrut' },
+    { id: 's2', name: 'Lala' },
+  ]
+
+  test('a blank brand, or one still equal to the previous supplier, follows the new one', () => {
+    expect(supplierChange(emptyProductDraft(), 's1', suppliers)).toEqual({
+      supplierId: 's1',
+      brand: 'Aquafrut',
+    })
+    const followed = {
+      ...emptyProductDraft(),
+      supplierId: 's1',
+      brand: 'Aquafrut',
+    }
+    expect(supplierChange(followed, 's2', suppliers).brand).toBe('Lala')
+    expect(supplierChange(followed, '', suppliers).brand).toBe('')
+  })
+
+  test('a brand typed by hand is kept', () => {
+    const typed = { ...emptyProductDraft(), supplierId: 's1', brand: 'Boing' }
+    expect(supplierChange(typed, 's2', suppliers)).toEqual({
+      supplierId: 's2',
+      brand: 'Boing',
+    })
   })
 })

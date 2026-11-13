@@ -61,7 +61,7 @@ describe('previewQuote', () => {
     expect(order.totalCents).toBe(preview.totalCents)
   })
 
-  test('a derived box price is quoted and a presentation without price is flagged', async () => {
+  test('the box own price is quoted and a presentation without price is flagged', async () => {
     const { fx, quote } = await setup()
     expect((await quote(2, fx.boxId)).lines[0]).toMatchObject({
       listPriceCents: 12000,

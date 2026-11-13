@@ -9,6 +9,7 @@ import { maxTenThousandths } from '#/lib/utils/supplier-cost'
 import { insertPrices, validatePrices } from '#/modules/pricing/services/prices'
 import { requireWarehouse } from '#/modules/pricing/services/price-reads'
 import {
+  messages,
   validateSet,
   writeSet,
 } from '#/modules/catalog/services/presentation-rules'
@@ -45,7 +46,18 @@ export type ProductFields = {
 export type ProductInput = ProductFields & PresentationSet
 /** Sale price of the default presentation in one warehouse, saved with the product. */
 export type InitialPrice = { warehouseId: string; priceCents: number }
-export type NewProductInput = ProductInput & { price?: InitialPrice }
+/**
+ * Sale prices in one warehouse, saved with the product: `cents[i]` belongs to
+ * `presentations[i]`, and null leaves that presentation without a price.
+ */
+export type InitialPrices = {
+  warehouseId: string
+  cents: Array<number | null>
+}
+export type NewProductInput = ProductInput & {
+  price?: InitialPrice
+  prices?: InitialPrices
+}
 export type ProductPatch = Partial<ProductFields>
 
 const required = () =>
@@ -167,6 +179,11 @@ export async function insertProduct(
   tx: Executor,
   input: ProductInput,
 ): Promise<Product> {
+  return (await insertProductRows(tx, input)).product
+}
+
+/** `insertProduct` that also reports the presentation ids in input order. */
+async function insertProductRows(tx: Executor, input: ProductInput) {
   const { presentations: rawRows, defaultIndex, ...fields } = input
   const values = cleaned(fields) as ProductFields
   if (!rawRows.length || requiredKeys.some((key) => !values[key])) {
@@ -184,8 +201,8 @@ export async function insertProduct(
   })
   await requireSupplier(tx, values.supplierId)
   const [created] = await tx.insert(products).values(values).returning()
-  await writeSet(tx, created.id, rows, defaultIndex)
-  return loadProduct(tx, created.id)
+  const presentationIds = await writeSet(tx, created.id, rows, defaultIndex)
+  return { product: await loadProduct(tx, created.id), presentationIds }
 }
 
 export async function createProduct(
@@ -193,36 +210,50 @@ export async function createProduct(
   input: NewProductInput,
 ): Promise<Product> {
   authorize(actor, 'catalog.manage')
-  const { price, ...productFields } = input
-  if (price) authorize(actor, 'warehouse.manage', price.warehouseId)
+  const { price, prices, ...productFields } = input
+  const warehouseId = prices?.warehouseId ?? price?.warehouseId
+  // Position in `presentations` of every price to save; `price` is the default's.
+  const wanted = prices
+    ? prices.cents.flatMap((priceCents, index) =>
+        priceCents === null ? [] : [{ index, priceCents }],
+      )
+    : price
+      ? [{ index: productFields.defaultIndex, priceCents: price.priceCents }]
+      : []
+  if (warehouseId) authorize(actor, 'warehouse.manage', warehouseId)
   try {
     return await db.transaction(async (tx) => {
-      // Validate the price before writing anything; the whole creation is one
+      // Validate the prices before writing anything; the whole creation is one
       // transaction, so a later failure also leaves no product or cost behind.
-      if (price) {
-        validatePrices([
-          { presentationId: 'new', priceCents: price.priceCents },
-        ])
+      if (prices && prices.cents.length > productFields.presentations.length) {
+        throw new AppError('invalid', messages.rows)
       }
-      const created = await insertProduct(tx, productFields)
-      if (price) {
-        await requireWarehouse(tx, price.warehouseId)
-        const target = created.presentations.find((item) => item.isDefault)
-        if (!target) throw required()
+      if (wanted.length) {
+        validatePrices(
+          wanted.map(({ index, priceCents }) => ({
+            presentationId: String(index),
+            priceCents,
+          })),
+        )
+      }
+      const { product, presentationIds } = await insertProductRows(
+        tx,
+        productFields,
+      )
+      if (warehouseId && wanted.length) {
+        await requireWarehouse(tx, warehouseId)
         await insertPrices(
           tx,
           actor,
-          [
-            {
-              presentationId: target.id,
-              warehouseId: price.warehouseId,
-              priceCents: price.priceCents,
-            },
-          ],
+          wanted.map(({ index, priceCents }) => {
+            const presentationId = presentationIds.at(index)
+            if (!presentationId) throw required()
+            return { presentationId, warehouseId, priceCents }
+          }),
           'manual',
         )
       }
-      return created
+      return product
     })
   } catch (error) {
     throw mapConflict(error)

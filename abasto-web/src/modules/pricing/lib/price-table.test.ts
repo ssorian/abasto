@@ -30,7 +30,7 @@ const rows = [
     presentationId: 'b',
     presentationName: 'Caja',
     priceCents: 24000,
-    origin: 'derived',
+    origin: 'own',
   }),
   row({
     productId: 'p2',
@@ -45,10 +45,9 @@ const rows = [
 ]
 
 describe('price table', () => {
-  test('labels the three origins', () => {
+  test('labels the two origins', () => {
     expect(originLabels).toEqual({
       own: 'Propio',
-      derived: 'Derivado',
       none: 'Sin precio',
     })
   })
@@ -88,10 +87,7 @@ describe('price table', () => {
 })
 
 describe('pricePlaceholder', () => {
-  test('shows a derived price as a marked estimate, an own price plainly', () => {
-    expect(pricePlaceholder(row({ origin: 'derived', priceCents: 950 }))).toBe(
-      '≈ 9.50',
-    )
+  test('shows the current price plainly, or that there is none', () => {
     expect(pricePlaceholder(row({ origin: 'own', priceCents: 11400 }))).toBe(
       '114.00',
     )
@@ -104,17 +100,6 @@ describe('pricePlaceholder', () => {
 describe('hasOwnPriceHistory', () => {
   test('only presentations with their own price have history to show', () => {
     expect(hasOwnPriceHistory(row({ origin: 'own' }))).toBe(true)
-    expect(hasOwnPriceHistory(row({ origin: 'derived' }))).toBe(false)
     expect(hasOwnPriceHistory(row({ origin: 'none' }))).toBe(false)
-  })
-})
-
-describe('pendingPrices derived rows', () => {
-  test('typing the derived value still saves it as an own price', () => {
-    const derived = row({ origin: 'derived', priceCents: 950 })
-    expect(pendingPrices([derived], { a: '9.50' }).prices).toEqual([
-      { presentationId: 'a', priceCents: 950 },
-    ])
-    expect(pendingPrices([derived], { a: '' }).prices).toEqual([])
   })
 })

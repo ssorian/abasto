@@ -211,15 +211,27 @@ export async function seedDatabase({
   const pieceOf = (sku: string) =>
     item(sku).product.presentations.find((p) => p.factor === 1)!.id
 
-  // Prices per warehouse: boxes priced, pieces derived, except one loose price.
+  // Prices per warehouse: every presentation has its own price, proportional
+  // to the box price, except one loose piece priced apart.
   for (const name of warehouseNames) {
     await setPrices(owner, {
       warehouseId: warehouseId[name],
       reason: 'Lista inicial',
-      prices: productSeed.map((seed) => ({
-        presentationId: boxOf(seed.sku),
-        priceCents: seed.boxPriceCents + warehousePriceOffset[name],
-      })),
+      prices: productSeed.flatMap((seed) => {
+        const boxCents = seed.boxPriceCents + warehousePriceOffset[name]
+        return item(seed.sku)
+          .product.presentations.filter((p) => p.active)
+          .map((p) => ({
+            presentationId: p.id,
+            priceCents:
+              p.id === boxOf(seed.sku)
+                ? boxCents
+                : Math.max(
+                    1,
+                    Math.round((boxCents * p.factor) / seed.boxFactor),
+                  ),
+          }))
+      }),
     })
   }
   await setPrices(owner, {

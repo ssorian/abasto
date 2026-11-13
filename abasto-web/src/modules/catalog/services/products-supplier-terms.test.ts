@@ -309,13 +309,10 @@ describe('savePieceCost', () => {
     expect((await counts()).products).toBe(0)
   })
 
-  test('a manager still cannot edit the product itself', async () => {
+  test('a manager may also edit the product itself', async () => {
     const { owner, staff } = await setupActors()
     const product = await createProduct(owner, base)
-    const error = await errorOf(() =>
-      updateProduct(managerOf(staff), product.id, { name: 'Otro' }),
-    )
-    expect(error.code).toBe('forbidden')
-    expect(await getProduct(owner, product.id)).toEqual(product)
+    await updateProduct(managerOf(staff), product.id, { name: 'Otro' })
+    expect((await getProduct(owner, product.id)).name).toBe('Otro')
   })
 })

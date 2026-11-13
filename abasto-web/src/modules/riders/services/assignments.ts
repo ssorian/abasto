@@ -200,8 +200,8 @@ export async function assignRider(
     const standard = new Map(
       prices.map((row) => [row.presentationId, row.priceCents]),
     )
-    // Only a price set for the piece itself counts: a derived one is just the
-    // prorated box price and would add rounding without meaning.
+    // Only a price set for the piece itself counts; without one the piece is
+    // priced as the prorated box price.
     const ownPiece = new Map(
       prices
         .filter((row) => row.origin === 'own')

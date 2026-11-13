@@ -110,7 +110,7 @@ describe('createOrder', () => {
       lineTotalCents: 9000,
       rule: { minQuantity: 10, discountBps: 1000, priceCents: null },
     })
-    // The box has no own price: it derives 12000 from the piece price, no rule.
+    // The box has its own price 12000 and no rule.
     const box = order.lines.find((l) => l.presentationId === fx.boxId)!
     expect(box).toMatchObject({
       unitPriceCents: 12000,

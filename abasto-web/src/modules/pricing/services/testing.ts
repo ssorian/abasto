@@ -39,7 +39,7 @@ export async function setupPricing() {
     ],
     defaultIndex: 0,
   })
-  // Sold by the box by default: pieces derive from the box price.
+  // Sold by the box by default; each presentation has its own price.
   const water = await createProduct(fx.owner, {
     name: 'Agua 1L',
     sku: 'AGU-1',

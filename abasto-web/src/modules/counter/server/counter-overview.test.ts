@@ -57,7 +57,7 @@ describe('getCounterOverview', () => {
     expect(view.customers).toEqual([
       { id: fx.customer.id, name: 'Distribuidora Norte' },
     ])
-    // Piece 1000 and the derived box 12000; 30 − 6 reserved = 24 pieces = 2 boxes.
+    // Piece 1000 and box 12000; 30 − 6 reserved = 24 pieces = 2 boxes.
     expect(view.sellable).toEqual([
       expect.objectContaining({
         presentationId: fx.pieceId,

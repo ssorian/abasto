@@ -288,17 +288,12 @@ describe('archiveProduct', () => {
     )
   })
 
-  test('only the owner can archive or restore', async () => {
+  test('the owner and warehouse managers can archive or restore', async () => {
     const { fx, product, archivedAtOf } = await setup()
-    for (const actor of [fx.managerA, fx.staffA]) {
-      const error = await errorOf(() => archiveProduct(actor, product.id))
-      expect(error.code).toBe('forbidden')
-    }
-    expect(await archivedAtOf()).toBeNull()
-    await archiveProduct(fx.owner, product.id)
-    const error = await errorOf(() => restoreProduct(fx.managerA, product.id))
-    expect(error.code).toBe('forbidden')
+    await archiveProduct(fx.managerA, product.id)
     expect(await archivedAtOf()).toBeInstanceOf(Date)
+    await restoreProduct(fx.managerA, product.id)
+    expect(await archivedAtOf()).toBeNull()
   })
 
   test('unknown products are not found; archiving twice is a no-op', async () => {

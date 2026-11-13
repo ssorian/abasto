@@ -35,12 +35,10 @@ import {
   netCostOf,
   saleCheck,
 } from '#/modules/pricing/lib/product-costs'
-import { cn } from '#/lib/utils/cn'
 import { formatTenThousandths } from '#/lib/utils/supplier-cost'
 
 const originTones: Record<PriceTableRow['origin'], StatusTone> = {
   own: 'green',
-  derived: 'blue',
   none: 'gray',
 }
 
@@ -220,8 +218,8 @@ export function ProductPricesDialog({
           </h3>
           {canEdit && (
             <p className="mt-0.5 text-xs text-[#9d8c92]">
-              Cada lote puede venderse más caro al darle entrada. Una
-              presentación sin precio propio lo deriva de la principal.
+              Cada presentación tiene su propio precio; una sin precio no se
+              vende. Cada lote puede venderse más caro al darle entrada.
             </p>
           )}
         </div>
@@ -247,12 +245,13 @@ export function ProductPricesDialog({
                     )}
                   </strong>
                   <span className="mt-1 flex items-center gap-2 text-xs text-[#89747b]">
-                    <StatusBadge tone={originTones[row.origin]}>
-                      {originLabels[row.origin]}
-                    </StatusBadge>
-                    {row.priceCents === null
-                      ? '—'
-                      : formatCents(row.priceCents)}
+                    {row.priceCents === null ? (
+                      <StatusBadge tone={originTones[row.origin]}>
+                        {originLabels[row.origin]}
+                      </StatusBadge>
+                    ) : (
+                      `Precio actual ${formatCents(row.priceCents)}`
+                    )}
                   </span>
                 </div>
                 {canEdit && (
@@ -261,11 +260,7 @@ export function ProductPricesDialog({
                       aria-label={`Nuevo precio de ${row.presentationName}`}
                       inputMode="decimal"
                       placeholder={pricePlaceholder(row)}
-                      className={cn(
-                        'min-h-[38px] w-[120px] py-1.5 text-right',
-                        row.origin === 'derived' &&
-                          'placeholder:text-[#a29096] placeholder:italic',
-                      )}
+                      className="min-h-[38px] w-[120px] py-1.5 text-right"
                       value={edits[row.presentationId] ?? ''}
                       onChange={(event) =>
                         setEdits((current) => ({

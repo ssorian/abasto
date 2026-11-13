@@ -12,7 +12,6 @@ export type PricingOverview = {
 
 export const originLabels = {
   own: 'Propio',
-  derived: 'Derivado',
   none: 'Sin precio',
 } as const
 
@@ -79,11 +78,10 @@ export function pendingPrices(
   return { prices, errors }
 }
 
-/** Hint of the price input: a derived price reads as an estimate, not an own value. */
+/** Hint of the price input: the current price, or that there is none. */
 export function pricePlaceholder(row: PriceTableRow) {
   if (row.priceCents === null) return 'Sin precio'
-  const pesos = (row.priceCents / 100).toFixed(2)
-  return row.origin === 'derived' ? `≈ ${pesos}` : pesos
+  return (row.priceCents / 100).toFixed(2)
 }
 
 /** Only an own price has been set (and so recorded) in this warehouse. */

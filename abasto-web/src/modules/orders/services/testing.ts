@@ -23,8 +23,8 @@ export const payCash = {
 }
 
 /**
- * Pricing fixture plus a customer, a 1000-cent piece price (box derives
- * 12000) in warehouse A, and an open cash drawer there (opening 0).
+ * Pricing fixture plus a customer, own prices in warehouse A (piece 1000,
+ * box 12000), and an open cash drawer there (opening 0).
  */
 export async function setupOrders() {
   const fx = await setupPricing()
@@ -35,7 +35,10 @@ export async function setupOrders() {
   const box = fx.box(fx.milkBox).id
   await setPrices(fx.owner, {
     warehouseId: fx.a.id,
-    prices: [{ presentationId: piece, priceCents: 1000 }],
+    prices: [
+      { presentationId: piece, priceCents: 1000 },
+      { presentationId: box, priceCents: 12000 },
+    ],
   })
   await openCashSession(fx.staffA, { warehouseId: fx.a.id, openingCents: 0 })
   return { ...fx, customer, pieceId: piece, boxId: box }

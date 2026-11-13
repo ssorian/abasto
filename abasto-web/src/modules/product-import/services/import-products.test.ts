@@ -106,17 +106,21 @@ describe('importProducts', () => {
     expect(await db.select().from(stockMinimums)).toEqual([])
   })
 
-  test('only the owner may import, and a refused import stores nothing', async () => {
+  test('a manager imports only into a managed warehouse; a refused import stores nothing', async () => {
     const fx = await setupPricing()
     const before = await stored()
-    for (const actor of [fx.managerA, fx.managerB]) {
-      const error = await errorOf(() =>
-        importProducts(actor, { warehouseId: fx.a.id, rows: [row()] }),
-      )
-      expect(error.code).toBe('forbidden')
-      expect(error.message).toBe(forbidden)
-    }
+    const error = await errorOf(() =>
+      importProducts(fx.managerB, { warehouseId: fx.a.id, rows: [row()] }),
+    )
+    expect(error.code).toBe('forbidden')
+    expect(error.message).toBe(forbidden)
     expect(await stored()).toEqual(before)
+    const results = await importProducts(fx.managerA, {
+      warehouseId: fx.a.id,
+      rows: [row()],
+    })
+    expect(results).toHaveLength(1)
+    expect(await stored()).not.toEqual(before)
   })
 
   test('an unknown warehouse is refused before any row is written', async () => {

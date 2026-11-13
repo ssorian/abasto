@@ -87,42 +87,19 @@ describe('setPrices', () => {
     expect((await pricingState(fx)).history).toBe(1)
   })
 
-  test('derives other presentations from the default one, rounded to the cent', async () => {
+  test('a presentation without its own price has no price, even when the default has one', async () => {
     const fx = await setupPricing()
     await setPrices(fx.owner, {
       warehouseId: fx.a.id,
       prices: [{ presentationId: fx.piece(fx.milkBox).id, priceCents: 1999 }],
     })
-    // 1999 × 12 / 1
     expect(await rowOf(fx, fx.a.id, fx.box(fx.milkBox).id)).toMatchObject({
-      priceCents: 23988,
-      origin: 'derived',
+      priceCents: null,
+      origin: 'none',
     })
   })
 
-  test('rounds a derived price to the nearest cent', async () => {
-    const fx = await setupPricing()
-    const defaultId = fx.box(fx.water).id
-    await setPrices(fx.owner, {
-      warehouseId: fx.a.id,
-      prices: [{ presentationId: defaultId, priceCents: 1000 }],
-    })
-    // 1000 / 12 = 83.33…
-    expect(await rowOf(fx, fx.a.id, fx.piece(fx.water).id)).toMatchObject({
-      priceCents: 83,
-      origin: 'derived',
-    })
-    await setPrices(fx.owner, {
-      warehouseId: fx.a.id,
-      prices: [{ presentationId: defaultId, priceCents: 1002 }],
-    })
-    // 1002 / 12 = 83.5 → 84
-    expect((await rowOf(fx, fx.a.id, fx.piece(fx.water).id)).priceCents).toBe(
-      84,
-    )
-  })
-
-  test('an own price wins over the derived one', async () => {
+  test('each presentation keeps its own price', async () => {
     const fx = await setupPricing()
     await setPrices(fx.owner, {
       warehouseId: fx.a.id,

@@ -2,6 +2,7 @@ import type {
   CatalogProduct,
   PresentationDraft,
 } from '#/modules/catalog/lib/catalog-types'
+import { parsePesos } from '#/modules/pricing/lib/money'
 import type { PresentationSet } from '#/modules/catalog/services/presentation-rules'
 
 /** Rows for the presentations dialog, including inactive ones. */
@@ -14,6 +15,7 @@ export const draftsFromProduct = (
     name: presentation.name,
     factor: presentation.factor,
     barcode: presentation.barcode ?? '',
+    price: '',
     active: presentation.active,
   }))
 
@@ -22,29 +24,39 @@ export const newPresentationDraft = (): PresentationDraft => ({
   name: '',
   factor: 1,
   barcode: '',
+  price: '',
   active: true,
 })
 
-/** Rows of a product being created: one active base-unit row, selected as default. */
-export function initialPresentationDrafts(unit: string): {
+/** Rows of a product being created: one active piece row, selected as default. */
+export function initialPresentationDrafts(): {
   rows: Array<PresentationDraft>
   defaultKey: string
 } {
-  const base = { ...newPresentationDraft(), name: unit }
+  const base = { ...newPresentationDraft(), name: 'Pieza' }
   return { rows: [base], defaultKey: base.key }
 }
 
-/** When the base unit changes, unsaved base rows still named after it follow along. */
-export const renameBaseRows = (
+/**
+ * Sale price errors of a product being created, by row key. Without a
+ * warehouse there is nowhere to save prices, so nothing is checked. The
+ * default presentation needs a price; the others may stay blank (set later in
+ * Precios) but a typed one must be valid.
+ */
+export function presentationPriceErrors(
   rows: ReadonlyArray<PresentationDraft>,
-  from: string,
-  to: string,
-): Array<PresentationDraft> =>
-  rows.map((row) =>
-    !row.id && row.factor === 1 && row.name === from
-      ? { ...row, name: to }
-      : row,
-  )
+  defaultKey: string,
+  needsPrice: boolean,
+): Record<string, string> {
+  const errors: Record<string, string> = {}
+  if (!needsPrice) return errors
+  for (const row of rows) {
+    if (row.key !== defaultKey && !row.price.trim()) continue
+    const parsed = parsePesos(row.price)
+    if (!parsed.ok) errors[row.key] = parsed.message
+  }
+  return errors
+}
 
 /**
  * Drops a row that was never saved. Stored rows stay (they can only be
