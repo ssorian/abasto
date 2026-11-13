@@ -109,6 +109,21 @@ describe('can', () => {
   })
 })
 
+describe('stock.adjust', () => {
+  test('only the owner may adjust lot stock', () => {
+    expect(can(actor('owner'), 'stock.adjust')).toBe(true)
+    expect(can(actor('owner'), 'stock.adjust', north)).toBe(true)
+  })
+
+  test('warehouse managers and customers may not, in any warehouse', () => {
+    const manager = actor('staff', { [north]: 'manager', [south]: 'manager' })
+    expect(can(manager, 'stock.adjust')).toBe(false)
+    expect(can(manager, 'stock.adjust', north)).toBe(false)
+    expect(can(actor('customer'), 'stock.adjust', north)).toBe(false)
+    expect(can(manager, 'warehouse.manage', north)).toBe(true)
+  })
+})
+
 describe('authorize', () => {
   test('returns silently when the permission is held', () => {
     expect(() => authorize(actor('owner'), 'users.manage')).not.toThrow()

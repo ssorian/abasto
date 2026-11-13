@@ -344,7 +344,7 @@ describe('archived products refuse new stock through other doors', () => {
         lines: order.lines.map((line) => ({
           lineId: line.id,
           noExpiry: true,
-          missingBoxes: 0,
+          receivedBoxes: line.boxes,
           damagedBoxes: 0,
         })),
         extras: [{ productId: fx.free.id, boxes: 1, noExpiry: true }],
@@ -364,7 +364,7 @@ describe('archived products refuse new stock through other doors', () => {
       .where(eq(lots.productId, product.id))
     await archiveDirectly(product.id)
     const error = await errorOf(() =>
-      adjustLot(fx.managerA, {
+      adjustLot(fx.owner, {
         lotId: lot.id,
         quantity: 5,
         reason: 'Hallazgo',
@@ -372,7 +372,7 @@ describe('archived products refuse new stock through other doors', () => {
     )
     expect(error.code).toBe('conflict')
     expect(error.message).toMatch(/archivado/)
-    await adjustLot(fx.managerA, {
+    await adjustLot(fx.owner, {
       lotId: lot.id,
       quantity: -4,
       reason: 'Merma',

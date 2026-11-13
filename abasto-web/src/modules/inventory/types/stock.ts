@@ -4,7 +4,13 @@ import type {
 } from '#/modules/inventory/services/stock-reads'
 
 /** A warehouse the actor can see, with whether they may write to it. */
-export type WarehouseOption = { id: string; name: string; canManage: boolean }
+export type WarehouseOption = {
+  id: string
+  name: string
+  canManage: boolean
+  /** Owner only: add or remove stock from a lot. */
+  canAdjustStock: boolean
+}
 
 /** A ledger row plus the product its lot belongs to. */
 export type MovementEntry = StockMovementRow & { productId: string }

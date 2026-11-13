@@ -50,13 +50,13 @@ test('dispatches racing orders and withdrawals keep stock non-negative and the l
       send(9),
       order(8),
       order(8),
-      registerLoss(fx.managerA, {
+      registerLoss(fx.owner, {
         lotId: first.id,
         quantity: 5,
         category: 'otro',
         reason: 'x',
       }),
-      adjustLot(fx.managerA, { lotId: second.id, quantity: -4, reason: 'x' }),
+      adjustLot(fx.owner, { lotId: second.id, quantity: -4, reason: 'x' }),
       countStock(fx.managerA, {
         productId: fx.milkBox.id,
         warehouseId: fx.a.id,

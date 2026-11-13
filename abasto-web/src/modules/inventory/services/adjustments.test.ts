@@ -42,7 +42,7 @@ async function rejects(
 describe('adjustLot', () => {
   test('a positive adjustment adds stock and records the reason', async () => {
     const { fx, lot } = await setup()
-    await adjustLot(fx.managerA, {
+    await adjustLot(fx.owner, {
       lotId: lot.id,
       quantity: 4,
       reason: 'Sobrante',
@@ -56,7 +56,7 @@ describe('adjustLot', () => {
       lotId: lot.id,
       quantity: 4,
       reason: 'Sobrante',
-      actorId: fx.managerA.userId,
+      actorId: fx.owner.userId,
     })
     expect(await ledgerSum(lot.id)).toBe(14)
   })
@@ -75,8 +75,7 @@ describe('adjustLot', () => {
   test('rejects removing more than the lot holds', async () => {
     const { fx, lot } = await setup()
     await rejects(
-      () =>
-        adjustLot(fx.managerA, { lotId: lot.id, quantity: -11, reason: 'x' }),
+      () => adjustLot(fx.owner, { lotId: lot.id, quantity: -11, reason: 'x' }),
       'conflict',
       'No hay suficiente existencia en ese lote.',
     )
@@ -85,8 +84,7 @@ describe('adjustLot', () => {
   test('rejects a blank reason', async () => {
     const { fx, lot } = await setup()
     await rejects(
-      () =>
-        adjustLot(fx.managerA, { lotId: lot.id, quantity: 1, reason: '   ' }),
+      () => adjustLot(fx.owner, { lotId: lot.id, quantity: 1, reason: '   ' }),
       'invalid',
       'Escribe el motivo del ajuste.',
     )
@@ -95,7 +93,7 @@ describe('adjustLot', () => {
   test.each([0, 1.5])('rejects quantity %p', async (quantity) => {
     const { fx, lot } = await setup()
     await rejects(
-      () => adjustLot(fx.managerA, { lotId: lot.id, quantity, reason: 'x' }),
+      () => adjustLot(fx.owner, { lotId: lot.id, quantity, reason: 'x' }),
       'invalid',
       'La cantidad del ajuste debe ser un entero distinto de cero.',
     )
@@ -115,14 +113,16 @@ describe('adjustLot', () => {
     )
   })
 
-  test('the manager of another warehouse cannot adjust', async () => {
+  test('managers cannot adjust, not even in their own warehouse', async () => {
     const { fx, lot } = await setup()
-    for (const actor of [fx.managerB]) {
-      await rejects(
-        () => adjustLot(actor, { lotId: lot.id, quantity: 1, reason: 'x' }),
-        'forbidden',
-        forbidden,
-      )
+    for (const quantity of [1, -1]) {
+      for (const actor of [fx.managerA, fx.managerB]) {
+        await rejects(
+          () => adjustLot(actor, { lotId: lot.id, quantity, reason: 'x' }),
+          'forbidden',
+          forbidden,
+        )
+      }
     }
   })
 })
@@ -130,7 +130,7 @@ describe('adjustLot', () => {
 describe('registerLoss', () => {
   test('removes stock and records category and reason', async () => {
     const { fx, lot } = await setup()
-    await registerLoss(fx.managerA, {
+    await registerLoss(fx.owner, {
       lotId: lot.id,
       quantity: 3,
       category: 'dañado',
@@ -152,7 +152,7 @@ describe('registerLoss', () => {
     const { fx, lot } = await setup()
     await rejects(
       () =>
-        registerLoss(fx.managerA, {
+        registerLoss(fx.owner, {
           lotId: lot.id,
           quantity: 1,
           category: 'otro',
@@ -167,7 +167,7 @@ describe('registerLoss', () => {
     const { fx, lot } = await setup()
     await rejects(
       () =>
-        registerLoss(fx.managerA, {
+        registerLoss(fx.owner, {
           lotId: lot.id,
           quantity: 1,
           category: 'robo' as 'otro',
@@ -182,7 +182,7 @@ describe('registerLoss', () => {
     const { fx, lot } = await setup()
     await rejects(
       () =>
-        registerLoss(fx.managerA, {
+        registerLoss(fx.owner, {
           lotId: lot.id,
           quantity,
           category: 'otro',
@@ -197,7 +197,7 @@ describe('registerLoss', () => {
     const { fx, lot } = await setup()
     await rejects(
       () =>
-        registerLoss(fx.managerA, {
+        registerLoss(fx.owner, {
           lotId: lot.id,
           quantity: 11,
           category: 'caducado',
@@ -208,19 +208,21 @@ describe('registerLoss', () => {
     )
   })
 
-  test('the manager of another warehouse cannot register losses', async () => {
+  test('managers cannot register losses, not even in their own warehouse', async () => {
     const { fx, lot } = await setup()
-    await rejects(
-      () =>
-        registerLoss(fx.managerB, {
-          lotId: lot.id,
-          quantity: 1,
-          category: 'otro',
-          reason: 'x',
-        }),
-      'forbidden',
-      forbidden,
-    )
+    for (const actor of [fx.managerA, fx.managerB]) {
+      await rejects(
+        () =>
+          registerLoss(actor, {
+            lotId: lot.id,
+            quantity: 1,
+            category: 'otro',
+            reason: 'x',
+          }),
+        'forbidden',
+        forbidden,
+      )
+    }
   })
 })
 

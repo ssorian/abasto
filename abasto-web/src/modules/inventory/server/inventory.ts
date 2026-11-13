@@ -39,6 +39,7 @@ export const inventoryOverviewFn = createServerFn({ method: 'GET' })
       const warehouses = (await listWarehouses(actor)).map((warehouse) => ({
         ...warehouse,
         canManage: can(actor, 'warehouse.manage', warehouse.id),
+        canAdjustStock: can(actor, 'stock.adjust', warehouse.id),
       }))
       const selected =
         warehouses.find(({ id }) => id === warehouseId) ?? warehouses.at(0)

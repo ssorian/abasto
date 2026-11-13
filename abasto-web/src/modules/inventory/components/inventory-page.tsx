@@ -456,7 +456,7 @@ export function InventoryPage({
           }
           presentations={lotsProduct ? quantityPresentations(lotsProduct) : []}
           today={overview.today}
-          canManage={canManage}
+          canAdjustStock={selected.canAdjustStock}
           removeLotId={dialog?.kind === 'lots' ? dialog.removeLotId : undefined}
           onClose={closeDialog}
         />

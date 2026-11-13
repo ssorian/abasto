@@ -13,9 +13,14 @@ export type Actor = {
 /**
  * Company-wide permissions: owner only, except `catalog.manage` (products,
  * presentations, suppliers, import), which any warehouse manager also holds.
+ * `stock.adjust` (add or remove stock from a lot) is strictly owner only.
  */
 export type GlobalPermission =
-  'catalog.manage' | 'warehouses.manage' | 'users.manage' | 'customers.manage'
+  | 'catalog.manage'
+  | 'warehouses.manage'
+  | 'users.manage'
+  | 'customers.manage'
+  | 'stock.adjust'
 
 /** Permissions scoped to one warehouse. */
 export type WarehousePermission =
