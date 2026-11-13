@@ -7,6 +7,7 @@ import { CashHistoryDialog } from '#/modules/cash/components/cash-history-dialog
 import { CashMovementDialog } from '#/modules/cash/components/cash-movement-dialog'
 import { CashOpenDialog } from '#/modules/cash/components/cash-open-dialog'
 import {
+  phoneSummaryLine,
   riderDifferenceLabel,
   summarizeSession,
 } from '#/modules/cash/lib/cash-summary'
@@ -56,6 +57,7 @@ export function CashPanel({
   canViewHistory,
 }: CashPanelProps) {
   const [dialog, setDialog] = useState<Dialog>()
+  const [expanded, setExpanded] = useState(false)
   const close = () => setDialog(undefined)
   const summary =
     cash && summarizeSession(cash.session.openingCents, cash.movements)
@@ -65,66 +67,88 @@ export function CashPanel({
       aria-label="Caja"
       className="mb-5 rounded-xl border border-[#f0eae3] bg-white p-4 md:p-5"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-[17px] font-[650]">
-            Caja · {cash ? 'abierta' : 'cerrada'}
-          </h2>
-          <p className="mt-1 text-xs text-[#9c898f]">
-            {cash
-              ? 'Todo el efectivo de los pedidos entra a esta caja.'
-              : 'Ábrela para poder cobrar pedidos.'}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {cash ? (
-            <>
-              <ActionButton onClick={() => setDialog('entry')}>
-                Entrada
-              </ActionButton>
-              <ActionButton onClick={() => setDialog('withdrawal')}>
-                Retiro
-              </ActionButton>
-              <ActionButton onClick={() => setDialog('close')}>
-                Cerrar caja
-              </ActionButton>
-            </>
-          ) : (
-            <ActionButton tone="primary" onClick={() => setDialog('open')}>
-              Abrir caja
-            </ActionButton>
-          )}
-          {canViewHistory && (
-            <ActionButton onClick={() => setDialog('history')}>
-              Historial
-            </ActionButton>
-          )}
-        </div>
-      </div>
       {summary && (
-        <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
-          <Figure
-            strong
-            label="EFECTIVO ESPERADO"
-            value={formatCents(summary.expectedCents)}
-          />
-          <Figure label="APERTURA" value={formatCents(summary.openingCents)} />
-          <Figure label="VENTAS" value={formatCents(summary.salesCents)} />
-          <Figure label="ENTRADAS" value={formatCents(summary.entriesCents)} />
-          <Figure
-            label="RETIROS"
-            value={formatCents(summary.withdrawalsCents)}
-          />
-          {summary.riderDifferenceCents !== 0 && (
-            <Figure
-              label={riderDifferenceLabel(
-                summary.riderDifferenceCents,
-              ).toUpperCase()}
-              value={formatCents(summary.riderDifferenceCents)}
-            />
-          )}
+        <div className="flex items-center justify-between gap-3 md:hidden">
+          <p className="text-sm font-[650] text-[#3b2251]">
+            {phoneSummaryLine(summary.expectedCents)}
+          </p>
+          <ActionButton
+            className="min-h-9 px-3"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? 'Ocultar' : 'Ver caja'}
+          </ActionButton>
         </div>
       )}
+      <div className={cn(summary && !expanded && 'max-md:hidden')}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-[17px] font-[650]">
+              Caja · {cash ? 'abierta' : 'cerrada'}
+            </h2>
+            <p className="mt-1 text-xs text-[#9c898f]">
+              {cash
+                ? 'Todo el efectivo de los pedidos entra a esta caja.'
+                : 'Ábrela para poder cobrar pedidos.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {cash ? (
+              <>
+                <ActionButton onClick={() => setDialog('entry')}>
+                  Entrada
+                </ActionButton>
+                <ActionButton onClick={() => setDialog('withdrawal')}>
+                  Retiro
+                </ActionButton>
+                <ActionButton onClick={() => setDialog('close')}>
+                  Cerrar caja
+                </ActionButton>
+              </>
+            ) : (
+              <ActionButton tone="primary" onClick={() => setDialog('open')}>
+                Abrir caja
+              </ActionButton>
+            )}
+            {canViewHistory && (
+              <ActionButton onClick={() => setDialog('history')}>
+                Historial
+              </ActionButton>
+            )}
+          </div>
+        </div>
+        {summary && (
+          <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
+            <Figure
+              strong
+              label="EFECTIVO ESPERADO"
+              value={formatCents(summary.expectedCents)}
+            />
+            <Figure
+              label="APERTURA"
+              value={formatCents(summary.openingCents)}
+            />
+            <Figure label="VENTAS" value={formatCents(summary.salesCents)} />
+            <Figure
+              label="ENTRADAS"
+              value={formatCents(summary.entriesCents)}
+            />
+            <Figure
+              label="RETIROS"
+              value={formatCents(summary.withdrawalsCents)}
+            />
+            {summary.riderDifferenceCents !== 0 && (
+              <Figure
+                label={riderDifferenceLabel(
+                  summary.riderDifferenceCents,
+                ).toUpperCase()}
+                value={formatCents(summary.riderDifferenceCents)}
+              />
+            )}
+          </div>
+        )}
+      </div>
       {dialog === 'open' && (
         <CashOpenDialog
           warehouseId={warehouseId}

@@ -5,6 +5,7 @@ import {
   differenceLabel,
   differenceTone,
   lastCloseHint,
+  phoneSummaryLine,
   movementLabel,
   summarizeSession,
 } from '#/modules/cash/lib/cash-summary'
@@ -97,5 +98,13 @@ describe('lastCloseHint', () => {
   test('names the last counted cash, or nothing when there is no close', () => {
     expect(lastCloseHint(100000)).toBe('El último cierre contó $1,000.00')
     expect(lastCloseHint(null)).toBeUndefined()
+  })
+})
+
+describe('phoneSummaryLine', () => {
+  test('reads the open drawer with the expected cash', () => {
+    expect(phoneSummaryLine(52400)).toBe(
+      `Caja abierta · ${formatCents(52400)} esperado`,
+    )
   })
 })

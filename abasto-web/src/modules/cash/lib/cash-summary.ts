@@ -88,3 +88,8 @@ export const riderDifferenceLabel = (amountCents: number) =>
 /** The amount is needed because a rider difference is a shortage or a surplus. */
 export const movementLabel = (type: CashMovementType, amountCents: number) =>
   type === 'rider_difference' ? riderDifferenceLabel(amountCents) : labels[type]
+
+/** One-line state of an open drawer, shown on phones while the panel is collapsed. */
+export function phoneSummaryLine(expectedCents: number): string {
+  return `Caja abierta · ${formatCents(expectedCents)} esperado`
+}

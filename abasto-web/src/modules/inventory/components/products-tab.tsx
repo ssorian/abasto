@@ -12,6 +12,7 @@ import {
   ListRow,
   ListTable,
 } from '#/modules/inventory/components/list-panel'
+import { ProductCards } from '#/modules/inventory/components/product-cards'
 import { Picker } from '#/modules/inventory/components/picker'
 import { SearchBox } from '#/components/search-box'
 import { StockBadge } from '#/modules/inventory/components/stock-badge'
@@ -83,102 +84,122 @@ export function ProductsTab({
         />
       </div>
       {rows.length ? (
-        <ListPanel>
-          <ListTable>
-            <ListHead>
-              {['Producto', 'Existencias', 'Mínimo', 'Estado', 'Caducidad', '']}
-            </ListHead>
-            <ListBody>
-              {rows.map((row) => {
-                const pack = packs.get(row.productId) ?? {
-                  packName: row.unit,
-                  factor: 1,
-                  unit: row.unit,
-                }
-                const nextExpiry = row.lots.find((lot) => lot.expiresOn)
-                const state = expiryState(nextExpiry?.expiresOn ?? null, today)
-                return (
-                  <ListRow key={row.productId}>
-                    <ListCell>
-                      <span className="flex items-center gap-3">
-                        <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#faf9f7]">
-                          <ProductImage
-                            src={row.imageUrl}
-                            name={row.name}
-                            className="size-full object-contain p-1 mix-blend-multiply"
-                            placeholderClassName="size-5"
-                          />
+        <>
+          <ProductCards
+            rows={rows}
+            packs={packs}
+            today={today}
+            canManage={canManage}
+            onLots={onLots}
+            onMinimum={onMinimum}
+          />
+          <ListPanel className="max-md:hidden">
+            <ListTable>
+              <ListHead>
+                {[
+                  'Producto',
+                  'Existencias',
+                  'Mínimo',
+                  'Estado',
+                  'Caducidad',
+                  '',
+                ]}
+              </ListHead>
+              <ListBody>
+                {rows.map((row) => {
+                  const pack = packs.get(row.productId) ?? {
+                    packName: row.unit,
+                    factor: 1,
+                    unit: row.unit,
+                  }
+                  const nextExpiry = row.lots.find((lot) => lot.expiresOn)
+                  const state = expiryState(
+                    nextExpiry?.expiresOn ?? null,
+                    today,
+                  )
+                  return (
+                    <ListRow key={row.productId}>
+                      <ListCell>
+                        <span className="flex items-center gap-3">
+                          <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#faf9f7]">
+                            <ProductImage
+                              src={row.imageUrl}
+                              name={row.name}
+                              className="size-full object-contain p-1 mix-blend-multiply"
+                              placeholderClassName="size-5"
+                            />
+                          </span>
+                          <span>
+                            <strong>{row.name}</strong>
+                            <small className="block text-[#907e84]">
+                              {row.sku}
+                            </small>
+                          </span>
                         </span>
-                        <span>
-                          <strong>{row.name}</strong>
+                      </ListCell>
+                      <ListCell>
+                        <strong>{formatQuantity(row.onHand, pack)}</strong>
+                        {pack.factor > 1 && row.onHand >= pack.factor && (
                           <small className="block text-[#907e84]">
-                            {row.sku}
+                            {formatQuantity(row.onHand, {
+                              packName: row.unit,
+                              factor: 1,
+                              unit: row.unit,
+                            })}
                           </small>
-                        </span>
-                      </span>
-                    </ListCell>
-                    <ListCell>
-                      <strong>{formatQuantity(row.onHand, pack)}</strong>
-                      {pack.factor > 1 && row.onHand >= pack.factor && (
-                        <small className="block text-[#907e84]">
-                          {formatQuantity(row.onHand, {
-                            packName: row.unit,
-                            factor: 1,
-                            unit: row.unit,
-                          })}
-                        </small>
-                      )}
-                      <HeldBreakdown row={row} pack={pack} />
-                    </ListCell>
-                    <ListCell>
-                      {row.minimum > 0
-                        ? formatQuantity(row.minimum, pack)
-                        : '—'}
-                    </ListCell>
-                    <ListCell>
-                      <StockBadge value={productStatus(row)} dot />
-                    </ListCell>
-                    <ListCell>
-                      {nextExpiry?.expiresOn ? (
-                        <>
-                          {dateLabel(nextExpiry.expiresOn)}
-                          {state === 'expired' && (
-                            <StatusBadge tone="red" className="ml-2">
-                              Vencido
-                            </StatusBadge>
-                          )}
-                          {state === 'soon' && (
-                            <StatusBadge tone="amber" className="ml-2">
-                              Por vencer
-                            </StatusBadge>
-                          )}
-                        </>
-                      ) : (
-                        '—'
-                      )}
-                    </ListCell>
-                    <ListCell className="flex justify-end gap-2">
-                      <ActionButton
-                        className="min-h-9 px-3"
-                        onClick={() => onLots(row)}
-                      >
-                        Lotes
-                      </ActionButton>
-                      {canManage && (
+                        )}
+                        <HeldBreakdown row={row} pack={pack} />
+                      </ListCell>
+                      <ListCell>
+                        {row.minimum > 0
+                          ? formatQuantity(row.minimum, pack)
+                          : '—'}
+                      </ListCell>
+                      <ListCell>
+                        <StockBadge value={productStatus(row)} dot />
+                      </ListCell>
+                      <ListCell>
+                        {nextExpiry?.expiresOn ? (
+                          <>
+                            {dateLabel(nextExpiry.expiresOn)}
+                            {state === 'expired' && (
+                              <StatusBadge tone="red" className="ml-2">
+                                Vencido
+                              </StatusBadge>
+                            )}
+                            {state === 'soon' && (
+                              <StatusBadge tone="amber" className="ml-2">
+                                Por vencer
+                              </StatusBadge>
+                            )}
+                          </>
+                        ) : (
+                          '—'
+                        )}
+                      </ListCell>
+                      <ListCell className="flex justify-end gap-2">
                         <ActionButton
                           className="min-h-9 px-3"
-                          onClick={() => onMinimum(row.productId)}
+                          onClick={() => onLots(row)}
                         >
-                          Mínimo
+                          Lotes
                         </ActionButton>
-                      )}
-                    </ListCell>
-                  </ListRow>
-                )
-              })}
-            </ListBody>
-          </ListTable>
-        </ListPanel>
+                        {canManage && (
+                          <ActionButton
+                            className="min-h-9 px-3"
+                            onClick={() => onMinimum(row.productId)}
+                          >
+                            Mínimo
+                          </ActionButton>
+                        )}
+                      </ListCell>
+                    </ListRow>
+                  )
+                })}
+              </ListBody>
+            </ListTable>
+          </ListPanel>
+        </>
       ) : (
         <EmptyPanel
           title={total ? 'Sin resultados' : 'Aún no hay existencias'}

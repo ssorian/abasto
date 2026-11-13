@@ -8,7 +8,7 @@ import {
   ScaleIcon,
   TruckIcon,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
 import { PageHeading } from '#/components/page-heading'
@@ -125,6 +125,13 @@ export function InventoryPage({
   onSelectWarehouse,
 }: InventoryPageProps) {
   const [tab, setTab] = useState('Productos')
+  const tabListRef = useRef<HTMLDivElement>(null)
+  // On phones the strip scrolls sideways: keep the active tab in view.
+  useEffect(() => {
+    tabListRef.current
+      ?.querySelector('[data-state=active]')
+      ?.scrollIntoView({ inline: 'center', block: 'nearest' })
+  }, [tab])
   const [query, setQuery] = useState(initialQuery)
   const [filter, setFilter] = useState<StatusFilter>('Todos')
   const [supplierId, setSupplierId] = useState('')
@@ -264,8 +271,9 @@ export function InventoryPage({
         className="flex-col gap-0"
       >
         <TabsList
+          ref={tabListRef}
           variant="line"
-          className="mb-5 h-12 w-full justify-start gap-[22px] overflow-x-auto overflow-y-hidden rounded-none border-b border-[#ede6df] p-0 md:mb-[25px] md:gap-[17px] md:overflow-visible tablet:gap-6 wide:gap-[26px]"
+          className="max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden mb-5 h-12 w-full justify-start gap-[22px] overflow-x-auto overflow-y-hidden rounded-none border-b border-[#ede6df] p-0 md:mb-[25px] md:gap-[17px] md:overflow-visible tablet:gap-6 wide:gap-[26px]"
         >
           {tabs.map(({ name, icon: Icon }) => (
             <TabsTrigger
