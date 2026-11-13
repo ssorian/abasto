@@ -18,6 +18,13 @@ export function appliedRuleLabel(rule: Rule | null): string {
   return `${formatBps(rule.discountBps ?? 0)}% desde ${rule.minQuantity}`
 }
 
+/**
+ * "Precio de lista" and "Condición aplicada" only say something when a line
+ * was priced by a customer rule; otherwise they repeat the final price.
+ */
+export const hasCustomerRule = (lines: ReadonlyArray<{ rule: Rule | null }>) =>
+  lines.some((line) => line.rule !== null)
+
 export const quoteRuleLabel = appliedRuleLabel
 
 /** "Vence en 1 h 30 min", or "Venció" once the time has passed. */

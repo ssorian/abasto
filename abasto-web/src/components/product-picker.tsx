@@ -14,6 +14,8 @@ type ProductPickerProps = {
   /** Accessible name of the field. */
   label: string
   disabled?: boolean
+  /** Hint shown while nothing is chosen; defaults to product search. */
+  placeholder?: string
 }
 
 /** Searchable product combobox: type to filter by name or SKU, arrows + Enter to choose. */
@@ -23,6 +25,7 @@ export function ProductPicker({
   onChange,
   label,
   disabled,
+  placeholder = 'Busca por nombre o SKU',
 }: ProductPickerProps) {
   const listId = useId()
   const selected = products.find(({ id }) => id === value)
@@ -57,7 +60,7 @@ export function ProductPicker({
           }
           disabled={disabled}
           autoComplete="off"
-          placeholder={selected ? selected.name : 'Busca por nombre o SKU'}
+          placeholder={selected ? selected.name : placeholder}
           value={open ? query : (selected?.name ?? '')}
           className="h-full min-h-[41px] w-full min-w-0 bg-transparent text-sm text-[#3b2251] outline-none placeholder:text-[#a29096]"
           onFocus={() => setOpen(true)}
@@ -118,7 +121,9 @@ export function ProductPicker({
                 }}
               >
                 <strong className="font-medium">{product.name}</strong>
-                <small className="block text-[#907e84]">{product.sku}</small>
+                {product.sku && (
+                  <small className="block text-[#907e84]">{product.sku}</small>
+                )}
               </li>
             ))
           ) : (

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   changeFor,
   contadoPayment,
+  quickCashAmounts,
   receiptLines,
 } from '#/modules/counter/lib/payment'
 
@@ -53,6 +54,35 @@ describe('receiptLines', () => {
       ['Total', '$10.00'],
       ['Efectivo recibido', '$20.00'],
       ['Cambio', '$10.00'],
+    ])
+  })
+})
+
+describe('quickCashAmounts', () => {
+  test('exact total first, then the next round amounts above it', () => {
+    expect(quickCashAmounts(52400)).toEqual([
+      { label: 'Exacto', cents: 52400 },
+      { label: '$550', cents: 55000 },
+      { label: '$600', cents: 60000 },
+      { label: '$1,000', cents: 100000 },
+    ])
+  })
+
+  test('small totals offer small round amounts, never duplicates', () => {
+    expect(quickCashAmounts(2000).map((a) => a.cents)).toEqual([
+      2000, 5000, 10000, 50000,
+    ])
+  })
+
+  test('a total already on a round amount does not repeat it', () => {
+    expect(quickCashAmounts(55000).map((a) => a.cents)).toEqual([
+      55000, 60000, 100000,
+    ])
+  })
+
+  test('cents are rounded up to a whole peso step', () => {
+    expect(quickCashAmounts(1050).map((a) => a.cents)).toEqual([
+      1050, 5000, 10000, 50000,
     ])
   })
 })

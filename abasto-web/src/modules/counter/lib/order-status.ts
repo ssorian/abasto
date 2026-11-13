@@ -1,6 +1,7 @@
 import type { OrderStatus } from '#/modules/orders/db/schema'
 
 export const orderStatusFilters = [
+  'Por atender',
   'Todos',
   'Reservado',
   'Preparado',
@@ -9,6 +10,37 @@ export const orderStatusFilters = [
   'Vencido',
 ] as const
 export type StatusFilter = (typeof orderStatusFilters)[number]
+
+/** The counter opens on the orders that still need someone. */
+export const defaultStatusFilter: StatusFilter = 'Por atender'
+
+const isOpen = (status: OrderStatus) =>
+  status === 'Reservado' || status === 'Preparado'
+
+function matches(status: OrderStatus, filter: StatusFilter) {
+  if (filter === 'Todos') return true
+  if (filter === 'Por atender') return isOpen(status)
+  return status === filter
+}
+
+export function filterOrders<T extends { status: OrderStatus }>(
+  orders: ReadonlyArray<T>,
+  filter: StatusFilter,
+): Array<T> {
+  return orders.filter((order) => matches(order.status, filter))
+}
+
+/** How many orders each filter chip holds (zero included). */
+export function statusCounts(
+  orders: ReadonlyArray<{ status: OrderStatus }>,
+): Record<StatusFilter, number> {
+  return Object.fromEntries(
+    orderStatusFilters.map((filter) => [
+      filter,
+      filterOrders(orders, filter).length,
+    ]),
+  ) as Record<StatusFilter, number>
+}
 
 /** Which actions the service allows from this status (L26 transitions). */
 export function availableActions(status: OrderStatus) {
