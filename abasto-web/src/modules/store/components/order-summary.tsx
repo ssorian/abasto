@@ -40,8 +40,7 @@ export function OrderLines({ order }: { order: StoreOrder }) {
   )
 }
 
-export const isOpenOrder = (order: StoreOrder) =>
-  order.status === 'Reservado' || order.status === 'Preparado'
+export const isOpenOrder = (order: StoreOrder) => order.status === 'Reservado'
 
 /** One order on the orders page: code, status strip, lines and pickup deadline. */
 export function OrderSummary({ order }: { order: StoreOrder }) {

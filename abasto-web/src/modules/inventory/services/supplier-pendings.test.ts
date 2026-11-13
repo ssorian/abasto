@@ -89,7 +89,7 @@ async function receiveMilk(
     lines: [
       {
         lineId: order.lines[0].id,
-        missingBoxes: missing,
+        receivedBoxes: boxes - missing,
         damagedBoxes: damaged,
         noExpiry: true,
       },
@@ -276,7 +276,7 @@ describe('replacements at reception', () => {
       lines: [
         {
           lineId: colaStored.lines[0].id,
-          missingBoxes: 2,
+          receivedBoxes: 0,
           damagedBoxes: 0,
           noExpiry: true,
         },
@@ -287,7 +287,7 @@ describe('replacements at reception', () => {
     const lines = [
       {
         lineId: order.lines[0].id,
-        missingBoxes: 0,
+        receivedBoxes: order.lines[0].boxes,
         damagedBoxes: 0,
         noExpiry: true,
       },
@@ -366,7 +366,7 @@ describe('replacements at reception', () => {
         lines: [
           {
             lineId: order.lines[0].id,
-            missingBoxes: 0,
+            receivedBoxes: order.lines[0].boxes,
             damagedBoxes: 0,
             noExpiry: true,
           },
@@ -465,7 +465,7 @@ describe('discounts on a new order', () => {
       lines: [
         {
           lineId: freeOrder.lines[0].id,
-          missingBoxes: 3,
+          receivedBoxes: 7,
           damagedBoxes: 0,
           noExpiry: true,
         },
@@ -548,7 +548,7 @@ describe('discounts on a new order', () => {
       lines: [
         {
           lineId: colaStored.lines[0].id,
-          missingBoxes: 2,
+          receivedBoxes: 0,
           damagedBoxes: 0,
           noExpiry: true,
         },
@@ -838,7 +838,7 @@ describe('return credits', () => {
         lines: [
           {
             lineId: order.lines[0].id,
-            missingBoxes: 0,
+            receivedBoxes: order.lines[0].boxes,
             damagedBoxes: 0,
             noExpiry: true,
           },
@@ -1051,7 +1051,7 @@ describe('boxes use the factor of the order line, not the current default', () =
         lines: [
           {
             lineId: order.lines[0].id,
-            missingBoxes: 0,
+            receivedBoxes: order.lines[0].boxes,
             damagedBoxes: 0,
             noExpiry: true,
           },

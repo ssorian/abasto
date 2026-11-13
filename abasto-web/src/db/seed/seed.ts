@@ -41,7 +41,6 @@ import { businessDate } from '#/modules/orders/services/clock'
 import {
   cancelOrder,
   pickupOrder,
-  prepareOrder,
 } from '#/modules/orders/services/order-actions'
 import type { PickupPayment } from '#/modules/orders/services/pickup-gate'
 import { createOrder } from '#/modules/orders/services/orders'
@@ -261,7 +260,6 @@ export async function seedDatabase({
   const orderAndReceive = async (
     warehouse: (typeof warehouseNames)[number],
     supplierKey: SupplierKey,
-    reference: string,
     lines: Array<SeedLine>,
     damaged: Partial<Record<string, number>> = {},
   ) => {
@@ -270,7 +268,6 @@ export async function seedDatabase({
     const order = await createSupplierOrder(actor, {
       supplierId: supplierId[supplierKey],
       warehouseId: warehouseId[warehouse],
-      reference,
       lines: lines.map((line) => {
         const boxes = line.boxes + (damaged[line.seed.sku] ?? 0)
         return { productId: line.productId, boxes }
@@ -283,7 +280,7 @@ export async function seedDatabase({
         const line = lines.find((entry) => entry.productId === stock.productId)!
         return {
           lineId: stock.id,
-          missingBoxes: 0,
+          receivedBoxes: stock.boxes,
           damagedBoxes: damaged[line.seed.sku] ?? 0,
           expiresOn: line.expiresOn,
           noExpiry: !line.expiresOn,
@@ -293,7 +290,6 @@ export async function seedDatabase({
       confirmExpired: true,
     })
   }
-  let folio = 1000
   for (const name of warehouseNames) {
     for (const supplier of supplierSeed) {
       const lines = productSeed
@@ -310,18 +306,18 @@ export async function seedDatabase({
         name === 'Tejupilco' && supplier.key === 'lala'
           ? { [lines[0].seed.sku]: 1 }
           : {}
-      await orderAndReceive(name, supplier.key, `F-${folio++}`, lines, damaged)
+      await orderAndReceive(name, supplier.key, lines, damaged)
     }
   }
   // An older Lala lot about to expire in Tejupilco (FEFO sells it first).
-  await orderAndReceive('Tejupilco', 'lala', `F-${folio++}`, [
+  await orderAndReceive('Tejupilco', 'lala', [
     lineFor('13455', 'Tejupilco', 10, 3),
   ])
   // Expired yoghurt in Arcelia, written off as a loss.
-  const expired = await orderAndReceive('Arcelia', 'lala', `F-${folio++}`, [
+  const expired = await orderAndReceive('Arcelia', 'lala', [
     lineFor('23431', 'Arcelia', 1, -2),
   ])
-  await registerLoss(managerOf('Arcelia'), {
+  await registerLoss(owner, {
     lotId: expired.lots[0].id,
     quantity: item('23431').seed.boxFactor,
     category: 'caducado',
@@ -332,7 +328,6 @@ export async function seedDatabase({
   await createSupplierOrder(managerOf('Tejupilco'), {
     supplierId: supplierId.alpura,
     warehouseId: warehouseId.Tejupilco,
-    reference: `P-${folio++}`,
     expectedOn: addDays(today, 3),
     lines: waiting.slice(0, 2).map((seed) => ({
       productId: item(seed.sku).product.id,
@@ -421,11 +416,10 @@ export async function seedDatabase({
     reason: 'Compra de bolsas y hielo',
   })
   await order('Tejupilco', 'sanchez', [['13455', 25]], 'Pasa mañana temprano.')
-  const prepared = await order('Tejupilco', 'donPepe', [
+  await order('Tejupilco', 'donPepe', [
     ['25018', 4],
     ['LU11', 2],
   ])
-  await prepareOrder(managerOf('Tejupilco'), prepared.id)
   const cancelled = await order('Tejupilco', 'esquinita', [['SA80', 2]])
   await cancelOrder(managerOf('Tejupilco'), cancelled.id)
 

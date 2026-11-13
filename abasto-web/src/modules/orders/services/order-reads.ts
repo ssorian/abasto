@@ -56,7 +56,6 @@ export type OrderLineDetail = {
 export type OrderDetail = OrderSummary & {
   notes: string
   createdBy: string
-  preparedAt: Date | null
   closedAt: Date | null
   lines: Array<OrderLineDetail>
 }
@@ -86,7 +85,6 @@ export async function readOrder(
         ...summaryColumns,
         notes: orders.notes,
         createdBy: orders.createdBy,
-        preparedAt: orders.preparedAt,
         closedAt: orders.closedAt,
       })
       .from(orders)

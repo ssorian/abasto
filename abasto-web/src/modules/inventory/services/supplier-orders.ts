@@ -1,11 +1,13 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { db } from '#/db'
+import type { Tx } from '#/modules/inventory/services/stock-ledger'
 import { AppError } from '#/lib/errors'
 import { businessDate } from '#/lib/utils/format'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { grossLineCents, netLineCents } from '#/lib/utils/supplier-cost'
 import { purchaseLines, purchases } from '#/modules/inventory/db/schema'
+import { supplierFolio } from '#/modules/inventory/lib/order-code'
 import { openOf } from '#/modules/inventory/lib/pending-value'
 import { productArchived } from '#/modules/catalog/services/product-reads'
 import { loadBoxProducts } from '#/modules/inventory/services/box-products'
@@ -40,7 +42,6 @@ export type SupplierOrderInput = {
   warehouseId: string
   /** YYYY-MM-DD the supplier should deliver. */
   expectedOn?: string
-  reference?: string
   /** Boxes only: price, discount and promotion come from the catalog product. */
   lines: Array<{ productId: string; boxes: number }>
   /**
@@ -85,6 +86,20 @@ function validate(input: SupplierOrderInput) {
     }
     discounted.add(discount.pendingId)
   }
+}
+
+/**
+ * Next automatic folio (E001, E002…): one past the highest `E<number>`
+ * reference stored. The transaction lock keeps two orders from taking the same one.
+ */
+async function nextSupplierFolio(tx: Tx): Promise<string> {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtext('purchases.supplier_folio'))`,
+  )
+  const result = await tx.execute<{ last: number | null }>(
+    sql`select max(substring(${purchases.reference} from '^E([0-9]+)$')::int) as last from ${purchases}`,
+  )
+  return supplierFolio(Number(result.rows[0]?.last ?? 0) + 1)
 }
 
 /**
@@ -182,7 +197,7 @@ export async function createSupplierOrder(
       .values({
         supplierId: input.supplierId,
         warehouseId: input.warehouseId,
-        reference: input.reference?.trim() ?? '',
+        reference: await nextSupplierFolio(tx),
         purchasedOn: businessDate(),
         expectedOn: input.expectedOn || null,
         status: 'Pedido',

@@ -59,7 +59,7 @@ export function OverviewPage({ overview }: { overview: Overview }) {
       (item) => item.id === warehouseId && item.salesCents !== undefined,
     )
   const removeLot = (lot: Overview['expired'][number]) =>
-    manages(lot.warehouseId) ? (
+    overview.canAdjustStock && manages(lot.warehouseId) ? (
       <Link
         to="/inventario"
         search={{
@@ -87,7 +87,7 @@ export function OverviewPage({ overview }: { overview: Overview }) {
               'h-auto min-h-11 gap-[9px] rounded-[9px] px-[17px] py-2.5 text-sm font-[650] text-brand-ink hover:bg-brand-hover',
             )}
           >
-            Ir a mostrador
+            Ir a ventas
             <ArrowRight className="size-[17px]" />
           </Link>
         }

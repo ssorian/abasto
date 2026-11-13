@@ -35,7 +35,7 @@ async function arrive(
     lines: [
       {
         lineId: order.lines[0].id,
-        missingBoxes: 0,
+        receivedBoxes: boxes,
         damagedBoxes: 0,
         noExpiry: true,
       },

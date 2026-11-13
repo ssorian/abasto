@@ -17,7 +17,7 @@ import {
 } from '#/modules/inventory/services/stock-ledger'
 import { expireOverdueOrders } from '#/modules/orders/services/expiry'
 
-/** Locks the lot, checks the actor manages its warehouse and applies the movement. */
+/** Locks the lot, checks the actor may adjust stock (owner only) and applies the movement. */
 function moveLot(
   actor: Actor,
   lotId: string,
@@ -37,7 +37,7 @@ function moveLot(
         .where(eq(lots.id, lotId))
     ).at(0)
     if (!found) throw new AppError('not_found', 'No encontramos ese lote.')
-    authorize(actor, 'warehouse.manage', found.warehouseId)
+    authorize(actor, 'stock.adjust', found.warehouseId)
     // Archived products only lose stock; nothing new may enter them.
     if (quantity > 0 && found.archivedAt) throw productArchived()
     // Overdue orders release their units before the lot is locked.

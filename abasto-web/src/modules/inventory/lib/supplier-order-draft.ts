@@ -31,7 +31,6 @@ export type OrderDraft = {
   supplierId: string
   warehouseId: string
   expectedOn: string
-  reference: string
   boxes: Readonly<Record<string, string | undefined>>
 }
 
@@ -194,14 +193,12 @@ export function orderInputFromDraft(
     lines.push({ productId: product.id, boxes: boxes.value })
   }
   if (!lines.length) return fail('Escribe las cajas de al menos un producto.')
-  const reference = draft.reference.trim()
   return {
     ok: true,
     value: {
       supplierId: draft.supplierId,
       warehouseId: draft.warehouseId,
       ...(draft.expectedOn ? { expectedOn: draft.expectedOn } : {}),
-      ...(reference ? { reference } : {}),
       lines,
     },
   }

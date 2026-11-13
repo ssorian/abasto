@@ -28,7 +28,6 @@ import {
   getSupplierOrder,
   receiveSupplierOrder,
 } from '#/modules/inventory/services/supplier-orders'
-import { prepareOrder } from '#/modules/orders/services/order-actions'
 import { createOrder } from '#/modules/orders/services/orders'
 import { getOrder } from '#/modules/orders/services/order-reads'
 import {
@@ -200,21 +199,15 @@ describe('archiveProduct', () => {
     )
   })
 
-  test('refuses with an open customer order (Reservado and Preparado)', async () => {
+  test('refuses with an open customer order (Reservado)', async () => {
     const { fx, product, archivedAtOf, emptyLots } = await setup()
     await receive(fx, { productId: product.id, quantity: 20 })
-    const order = await createOrder(fx.staffA, {
+    await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.pieceId, quantity: 2 }],
     })
     await emptyLots()
-    await refused(
-      () => archiveProduct(fx.owner, product.id),
-      archivedAtOf,
-      /pedidos de clientes/,
-    )
-    await prepareOrder(fx.staffA, order.id)
     await refused(
       () => archiveProduct(fx.owner, product.id),
       archivedAtOf,
@@ -351,7 +344,7 @@ describe('archived products refuse new stock through other doors', () => {
         lines: order.lines.map((line) => ({
           lineId: line.id,
           noExpiry: true,
-          missingBoxes: 0,
+          receivedBoxes: line.boxes,
           damagedBoxes: 0,
         })),
         extras: [{ productId: fx.free.id, boxes: 1, noExpiry: true }],
@@ -371,7 +364,7 @@ describe('archived products refuse new stock through other doors', () => {
       .where(eq(lots.productId, product.id))
     await archiveDirectly(product.id)
     const error = await errorOf(() =>
-      adjustLot(fx.managerA, {
+      adjustLot(fx.owner, {
         lotId: lot.id,
         quantity: 5,
         reason: 'Hallazgo',
@@ -379,7 +372,7 @@ describe('archived products refuse new stock through other doors', () => {
     )
     expect(error.code).toBe('conflict')
     expect(error.message).toMatch(/archivado/)
-    await adjustLot(fx.managerA, {
+    await adjustLot(fx.owner, {
       lotId: lot.id,
       quantity: -4,
       reason: 'Merma',

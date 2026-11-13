@@ -34,19 +34,19 @@ type LotsDialogProps = {
   pack: PackInfo
   presentations: ReadonlyArray<{ id: string; name: string; factor: number }>
   today: string
-  canManage: boolean
+  canAdjustStock: boolean
   /** Lot whose "Quitar existencias" opens right away, e.g. from an Inicio alert. */
   removeLotId?: string
   onClose: () => void
 }
 
-/** Lots of one product in the warehouse, with "Quitar existencias" and "Sumar existencias" for managers. */
+/** Lots of one product in the warehouse, with "Quitar existencias" and "Sumar existencias" for owners. */
 export function LotsDialog({
   stock,
   pack,
   presentations,
   today,
-  canManage,
+  canAdjustStock,
   removeLotId,
   onClose,
 }: LotsDialogProps) {
@@ -63,7 +63,7 @@ export function LotsDialog({
     presentationId: presentations.at(0)?.id ?? '',
   })
   const [operation, setOperation] = useState<LotOperation | null>(() => {
-    const lot = canManage
+    const lot = canAdjustStock
       ? stock.lots.find(({ id }) => id === removeLotId)
       : undefined
     return lot ? operationFor(lot, 'remove') : null
@@ -91,7 +91,7 @@ export function LotsDialog({
                   'Caducidad',
                   'Existencias',
                   'Recibido',
-                  ...(canManage ? [''] : []),
+                  ...(canAdjustStock ? [''] : []),
                 ]}
               </ListHead>
               <ListBody>
@@ -118,7 +118,7 @@ export function LotsDialog({
                       <ListCell>
                         {dateLabel(new Date(lot.receivedAt).toISOString())}
                       </ListCell>
-                      {canManage && (
+                      {canAdjustStock && (
                         <ListCell className="flex justify-end gap-2">
                           <ActionButton
                             className="min-h-9 px-3"

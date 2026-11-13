@@ -52,16 +52,11 @@ async function requireArchivable(tx: Reader, id: string) {
     .from(orderLines)
     .innerJoin(orders, eq(orders.id, orderLines.orderId))
     .where(
-      and(
-        eq(orderLines.productId, id),
-        inArray(orders.status, ['Reservado', 'Preparado']),
-      ),
+      and(eq(orderLines.productId, id), inArray(orders.status, ['Reservado'])),
     )
     .limit(1)
   if (openOrders.length) {
-    throw refusal(
-      'está en pedidos de clientes abiertos (Reservado o Preparado).',
-    )
+    throw refusal('está en pedidos de clientes abiertos (Reservado).')
   }
   const openPurchases = await tx
     .select({ id: purchaseLines.id })

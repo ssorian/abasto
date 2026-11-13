@@ -94,9 +94,9 @@ export function SettleDialog({
       >
         {!cashOpen && (
           <WarningInline>
-            Abre la caja en Mostrador para liquidar.{' '}
+            Abre la caja en Ventas para liquidar.{' '}
             <Link to="/mostrador" className="font-semibold underline">
-              Ir a Mostrador
+              Ir a Ventas
             </Link>
           </WarningInline>
         )}

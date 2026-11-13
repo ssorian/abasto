@@ -4,7 +4,6 @@ import { runWithActor } from '#/lib/server-actor'
 import {
   cancelOrder,
   pickupOrder,
-  prepareOrder,
 } from '#/modules/orders/services/order-actions'
 import { getOrder } from '#/modules/orders/services/order-reads'
 import { createOrder } from '#/modules/orders/services/orders'
@@ -29,14 +28,6 @@ export const createOrderFn = createServerFn({ method: 'POST' })
   .handler(({ data }) =>
     runWithActor((actor) =>
       createOrder(actor, parseInput(createOrderInput, data)),
-    ),
-  )
-
-export const prepareOrderFn = createServerFn({ method: 'POST' })
-  .validator((data: unknown) => data)
-  .handler(({ data }) =>
-    runWithActor((actor) =>
-      prepareOrder(actor, parseInput(orderIdInput, data).orderId),
     ),
   )
 

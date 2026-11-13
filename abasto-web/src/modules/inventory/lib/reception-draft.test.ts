@@ -23,32 +23,33 @@ const lines: Array<ReceptionLine> = [
 
 const draft = (patch: Partial<ReceptionDraft> = {}): ReceptionDraft => ({
   lines: {
-    l1: { missing: '0', damaged: '0', expiresOn: '', noExpiry: true },
-    l2: { missing: '0', damaged: '0', expiresOn: '', noExpiry: true },
+    l1: { received: '10', damaged: '0', expiresOn: '', noExpiry: true },
+    l2: { received: '4', damaged: '0', expiresOn: '', noExpiry: true },
   },
   replacements: {},
   ...patch,
 })
 
 describe('goodBoxes', () => {
-  test('is ordered − missing − damaged', () => {
-    expect(goodBoxes(10, '1', '2')).toBe(7)
-    expect(goodBoxes(10, '', '')).toBe(10)
+  test('is received − damaged', () => {
+    expect(goodBoxes('9', '2')).toBe(7)
+    expect(goodBoxes('12', '2')).toBe(10)
   })
 
   test('never goes negative', () => {
-    expect(goodBoxes(10, '8', '5')).toBe(0)
+    expect(goodBoxes('2', '5')).toBe(0)
   })
 
-  test('treats invalid text as no exception', () => {
-    expect(goodBoxes(10, 'x', '2')).toBe(8)
+  test('treats invalid text as zero', () => {
+    expect(goodBoxes('x', '0')).toBe(0)
+    expect(goodBoxes('10', 'x')).toBe(10)
   })
 })
 
 describe('initialReception', () => {
-  test('starts with everything good: no exceptions and no lot to type', () => {
+  test('starts with everything ordered received good: no damage and no lot to type', () => {
     expect(initialReception(lines).lines.l1).toEqual({
-      missing: '0',
+      received: '10',
       damaged: '0',
       expiresOn: '',
       noExpiry: false,
@@ -66,8 +67,8 @@ describe('receptionIssues', () => {
       lines,
       draft({
         lines: {
-          l1: { missing: '0', damaged: '0', expiresOn: '', noExpiry: false },
-          l2: { missing: '4', damaged: '0', expiresOn: '', noExpiry: false },
+          l1: { received: '10', damaged: '0', expiresOn: '', noExpiry: false },
+          l2: { received: '0', damaged: '0', expiresOn: '', noExpiry: false },
         },
         replacements: {
           m1: { boxes: '1', expiresOn: '' },
@@ -81,18 +82,18 @@ describe('receptionIssues', () => {
     expect(issues).toEqual({ l1: message, m1: message })
   })
 
-  test('rejects missing + damaged above the ordered boxes', () => {
+  test('rejects damaged above the received boxes', () => {
     const issues = receptionIssues(
       lines,
       draft({
         lines: {
           ...draft().lines,
-          l1: { missing: '8', damaged: '3', expiresOn: '' },
+          l1: { received: '2', damaged: '3', expiresOn: '' },
         },
       }),
       {},
     )
-    expect(issues.l1).toContain('pedidas')
+    expect(issues.l1).toContain('recibidas')
     expect(issues.l2).toBeUndefined()
   })
 
@@ -102,7 +103,7 @@ describe('receptionIssues', () => {
       draft({
         lines: {
           ...draft().lines,
-          l2: { missing: '-1', damaged: '0', expiresOn: '' },
+          l2: { received: '-1', damaged: '0', expiresOn: '' },
         },
       }),
       {},
@@ -128,12 +129,25 @@ describe('receptionSummary', () => {
       lines,
       draft({
         lines: {
-          l1: { missing: '1', damaged: '2', expiresOn: '' },
-          l2: { missing: '0', damaged: '0', expiresOn: '' },
+          l1: { received: '9', damaged: '2', expiresOn: '' },
+          l2: { received: '4', damaged: '0', expiresOn: '' },
         },
       }),
     )
-    expect(summary).toEqual({ good: 11, damaged: 2, missing: 1 })
+    expect(summary).toEqual({ good: 11, damaged: 2, missing: 1, surplus: 0 })
+  })
+
+  test('boxes received above the ordered ones are surplus, not missing', () => {
+    const summary = receptionSummary(
+      lines,
+      draft({
+        lines: {
+          ...draft().lines,
+          l1: { received: '12', damaged: '1', expiresOn: '' },
+        },
+      }),
+    )
+    expect(summary).toEqual({ good: 15, damaged: 1, missing: 0, surplus: 2 })
   })
 })
 
@@ -146,7 +160,7 @@ describe('receptionInputFromDraft', () => {
         ...draft(),
         lines: {
           ...draft().lines,
-          l1: { missing: '0', damaged: '1', expiresOn: '2027-01-01' },
+          l1: { received: '10', damaged: '1', expiresOn: '2027-01-01' },
         },
       },
       {},
@@ -158,11 +172,11 @@ describe('receptionInputFromDraft', () => {
         lines: [
           {
             lineId: 'l1',
-            missingBoxes: 0,
+            receivedBoxes: 10,
             damagedBoxes: 1,
             expiresOn: '2027-01-01',
           },
-          { lineId: 'l2', missingBoxes: 0, damagedBoxes: 0, noExpiry: true },
+          { lineId: 'l2', receivedBoxes: 4, damagedBoxes: 0, noExpiry: true },
         ],
       },
     })
@@ -198,7 +212,7 @@ describe('receptionInputFromDraft', () => {
       draft({
         lines: {
           ...draft().lines,
-          l1: { missing: '10', damaged: '1', expiresOn: '' },
+          l1: { received: '0', damaged: '1', expiresOn: '' },
         },
       }),
       {},
@@ -274,6 +288,18 @@ describe('receptionSummaryText', () => {
     ).toBe('Entran 10 cajas')
   })
 
+  test('says surplus boxes enter at no cost', () => {
+    expect(
+      receptionSummaryText({
+        good: 12,
+        replaced: 0,
+        missing: 0,
+        damaged: 0,
+        surplus: 2,
+      }),
+    ).toBe('Entran 12 cajas · 2 cajas de más sin costo')
+  })
+
   test('says so when nothing enters', () => {
     expect(
       receptionSummaryText({ good: 0, replaced: 0, missing: 3, damaged: 0 }),
@@ -281,15 +307,34 @@ describe('receptionSummaryText', () => {
   })
 })
 
+describe('receptionInputFromDraft: received boxes', () => {
+  test('sends the typed received boxes, more or fewer than ordered', () => {
+    const parsed = receptionInputFromDraft(
+      'po1',
+      lines,
+      draft({
+        lines: {
+          l1: { received: '12', damaged: '0', expiresOn: '', noExpiry: true },
+          l2: { received: '1', damaged: '0', expiresOn: '', noExpiry: true },
+        },
+      }),
+      {},
+    )
+    expect(parsed.ok && parsed.value.lines.map((l) => l.receivedBoxes)).toEqual(
+      [12, 1],
+    )
+  })
+})
+
 describe('receptionOutcome (S12)', () => {
   const over = draft({
     lines: {
       ...draft().lines,
-      l2: { missing: '10', damaged: '0', expiresOn: '', noExpiry: true },
+      l2: { received: '2', damaged: '3', expiresOn: '', noExpiry: true },
     },
   })
 
-  test('a line above the ordered boxes blocks confirm and never prints a summary that contradicts the error', () => {
+  test('damaged above the received boxes blocks confirm and never prints a summary that contradicts the error', () => {
     const outcome = receptionOutcome(lines, over, {})
     expect(outcome.canConfirm).toBe(false)
     expect(outcome.summary).toBe(
@@ -305,7 +350,7 @@ describe('receptionOutcome (S12)', () => {
       draft({
         lines: {
           ...draft().lines,
-          l2: { missing: '1', damaged: '0', expiresOn: '', noExpiry: true },
+          l2: { received: '3', damaged: '0', expiresOn: '', noExpiry: true },
         },
       }),
       {},
@@ -322,7 +367,7 @@ describe('receptionOutcome (S12)', () => {
       draft({
         lines: {
           ...draft().lines,
-          l1: { missing: '0', damaged: '0', expiresOn: '' },
+          l1: { received: '10', damaged: '0', expiresOn: '' },
         },
       }),
       {},
@@ -336,7 +381,7 @@ describe('receptionOutcome (S12)', () => {
         [{ lineId: 'p', productId: 'p', orderedBoxes: 5, boxFactor: 1 }],
         {
           lines: {
-            p: { missing: '0', damaged: '0', expiresOn: '', noExpiry: true },
+            p: { received: '5', damaged: '0', expiresOn: '', noExpiry: true },
           },
           replacements: {},
         },
@@ -375,8 +420,8 @@ describe('expired expiry dates (S3)', () => {
   const today = '2026-11-11'
   const expiredDraft = draft({
     lines: {
-      l1: { missing: '0', damaged: '0', expiresOn: '2020-01-01' },
-      l2: { missing: '4', damaged: '0', expiresOn: '2020-01-01' },
+      l1: { received: '10', damaged: '0', expiresOn: '2020-01-01' },
+      l2: { received: '0', damaged: '0', expiresOn: '2020-01-01' },
     },
     replacements: {
       m1: { boxes: '1', expiresOn: '2026-11-10' },
@@ -426,7 +471,7 @@ describe('expired expiry dates (S3)', () => {
 
 describe('receptionIssues units (S13)', () => {
   test('a piece-based line says pieces, a boxed one says boxes', () => {
-    const entry = { missing: '8', damaged: '3', expiresOn: '', noExpiry: true }
+    const entry = { received: '2', damaged: '3', expiresOn: '', noExpiry: true }
     const issues = receptionIssues(
       [
         { lineId: 'p', productId: 'p', orderedBoxes: 5, boxFactor: 1 },
@@ -435,11 +480,7 @@ describe('receptionIssues units (S13)', () => {
       { lines: { p: entry, b: entry }, replacements: {} },
       {},
     )
-    expect(issues.p).toBe(
-      'Las faltantes y dañadas no pueden superar las piezas pedidas.',
-    )
-    expect(issues.b).toBe(
-      'Las faltantes y dañadas no pueden superar las cajas pedidas.',
-    )
+    expect(issues.p).toBe('Las dañadas no pueden superar las piezas recibidas.')
+    expect(issues.b).toBe('Las dañadas no pueden superar las cajas recibidas.')
   })
 })

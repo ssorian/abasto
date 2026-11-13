@@ -16,7 +16,6 @@ describe('order status', () => {
       'Por atender',
       'Todos',
       'Reservado',
-      'Preparado',
       'Recogido',
       'Cancelado',
       'Vencido',
@@ -25,18 +24,11 @@ describe('order status', () => {
 
   test('actions follow the service transitions', () => {
     expect(availableActions('Reservado')).toEqual({
-      prepare: true,
-      pickup: true,
-      cancel: true,
-    })
-    expect(availableActions('Preparado')).toEqual({
-      prepare: false,
       pickup: true,
       cancel: true,
     })
     for (const final of ['Recogido', 'Cancelado', 'Vencido'] as const) {
       expect(availableActions(final)).toEqual({
-        prepare: false,
         pickup: false,
         cancel: false,
       })
@@ -46,7 +38,6 @@ describe('order status', () => {
   test('every status has a tone and a hint', () => {
     for (const status of [
       'Reservado',
-      'Preparado',
       'Recogido',
       'Cancelado',
       'Vencido',
@@ -64,7 +55,6 @@ describe('chargeGate', () => {
       enabled: false,
       notice: 'Abre la caja antes de cobrar.',
     })
-    expect(chargeGate('Preparado', false).enabled).toBe(false)
   })
 
   test('with the drawer open charging is enabled and there is no notice', () => {
@@ -88,7 +78,6 @@ describe('"Por atender" filter and counts', () => {
   const orders = [
     { status: 'Reservado' },
     { status: 'Reservado' },
-    { status: 'Preparado' },
     { status: 'Recogido' },
     { status: 'Cancelado' },
     { status: 'Vencido' },
@@ -98,25 +87,23 @@ describe('"Por atender" filter and counts', () => {
     expect(defaultStatusFilter).toBe('Por atender')
   })
 
-  test('"Por atender" keeps Reservado and Preparado only', () => {
+  test('"Por atender" keeps Reservado only', () => {
     expect(filterOrders(orders, 'Por atender').map((o) => o.status)).toEqual([
       'Reservado',
       'Reservado',
-      'Preparado',
     ])
   })
 
   test('"Todos" keeps everything and a status keeps just that status', () => {
-    expect(filterOrders(orders, 'Todos')).toHaveLength(6)
+    expect(filterOrders(orders, 'Todos')).toHaveLength(5)
     expect(filterOrders(orders, 'Vencido')).toHaveLength(1)
   })
 
   test('every chip gets its count, zero included', () => {
     expect(statusCounts(orders)).toEqual({
-      'Por atender': 3,
-      Todos: 6,
+      'Por atender': 2,
+      Todos: 5,
       Reservado: 2,
-      Preparado: 1,
       Recogido: 1,
       Cancelado: 1,
       Vencido: 1,

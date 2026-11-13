@@ -28,8 +28,11 @@ import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-act
 import { formatCents } from '#/modules/inventory/lib/cents'
 import { boxCountLabel } from '#/modules/inventory/lib/order-rows'
 import {
+  emptyLine,
   expiredEntries,
   goodBoxes,
+  missingBoxes,
+  surplusBoxes,
   initialReception,
   receptionInputFromDraft,
   missingExpiry,
@@ -183,9 +186,10 @@ export function ReceptionDialog({
       lines: {
         ...current.lines,
         [lineId]: {
-          missing: '0',
-          damaged: '0',
-          expiresOn: '',
+          ...emptyLine({
+            orderedBoxes: lines.find((line) => line.lineId === lineId)!
+              .orderedBoxes,
+          }),
           ...current.lines[lineId],
           ...patch,
         },
@@ -324,9 +328,12 @@ export function ReceptionDialog({
           }}
         >
           <p className="text-xs text-[#9c898f]">
-            Si el proveedor cobró otro costo por pieza, corrígelo. Las faltantes
-            quedan «Por reponer»; las dañadas o caducadas, «Por devolver», y no
-            entran al inventario. Indica la caducidad de lo que entra o marca
+            «Recibidas» empieza en las cajas pedidas; corrígelo si llegaron
+            otras. Si son menos que las pedidas, la diferencia queda «Por
+            reponer»; si son más, las de más entran al inventario sin costo y no
+            suben lo que debes. Las dañadas o caducadas salen de las recibidas,
+            quedan «Por devolver» y no entran. Si el proveedor cobró otro costo
+            por pieza, corrígelo. Indica la caducidad de lo que entra o marca
             «Sin caducidad».
           </p>
           <ListPanel className="overflow-auto">
@@ -337,7 +344,7 @@ export function ReceptionDialog({
                   'Pedidas',
                   'Costo por pieza',
                   'Total',
-                  'Faltantes',
+                  'Recibidas',
                   'Dañadas / caducadas',
                   'Buenas',
                   'Caducidad',
@@ -393,14 +400,28 @@ export function ReceptionDialog({
                       <ListCell>
                         <FieldInput
                           inputMode="numeric"
-                          aria-label={`${unitWord(line.boxFactor)} faltantes de ${line.productName}`}
+                          aria-label={`${unitWord(line.boxFactor)} recibidas de ${line.productName}`}
                           aria-invalid={issue ? true : undefined}
                           className={`${compact} w-[64px]`}
-                          value={entry?.missing ?? ''}
+                          value={entry?.received ?? ''}
                           onChange={(event) =>
-                            patchLine(line.id, { missing: event.target.value })
+                            patchLine(line.id, { received: event.target.value })
                           }
                         />
+                        {missingBoxes(line.boxes, entry?.received ?? '') >
+                          0 && (
+                          <small className="block text-[#907e84]">
+                            Por reponer:{' '}
+                            {missingBoxes(line.boxes, entry?.received ?? '')}
+                          </small>
+                        )}
+                        {surplusBoxes(line.boxes, entry?.received ?? '') >
+                          0 && (
+                          <small className="block text-[#907e84]">
+                            {surplusBoxes(line.boxes, entry?.received ?? '')} de
+                            más, sin costo
+                          </small>
+                        )}
                       </ListCell>
                       <ListCell>
                         <FieldInput
@@ -419,8 +440,7 @@ export function ReceptionDialog({
                           aria-label={`${unitWord(line.boxFactor)} buenas de ${line.productName}`}
                         >
                           {goodBoxes(
-                            line.boxes,
-                            entry?.missing ?? '',
+                            entry?.received ?? '',
                             entry?.damaged ?? '',
                           )}
                         </strong>

@@ -33,12 +33,15 @@ import {
   stockShortageMessage,
 } from '#/modules/counter/lib/order-stock'
 import {
-  availabilityLabel,
+  countLabel,
   filterSellable,
+  groupSellable,
+  productAvailabilityLabel,
   sellableSuppliers,
 } from '#/modules/counter/lib/sellable'
 import { formatCents } from '#/modules/pricing/lib/money'
 import type { DraftLine } from '#/modules/counter/lib/order-draft'
+import type { SellableOption } from '#/modules/counter/lib/sellable'
 import type { CounterOverview } from '#/modules/counter/types/counter-view'
 
 type NewOrderDialogProps = {
@@ -86,13 +89,50 @@ export function NewOrderDialog({
   const shortages = findStockShortages(lines, optionOf)
   const lineOf = new Map(lines.map((line) => [line.presentationId, line]))
   const suppliers = useMemo(() => sellableSuppliers(sellable), [sellable])
+  const products = useMemo(() => groupSellable(sellable), [sellable])
+  const addedProducts = new Set(
+    lines.flatMap((line) => optionOf.get(line.presentationId)?.productId ?? []),
+  )
   // "Solo agregados" turns itself off once the order is empty again.
   const showOnlyAdded = onlyAdded && lines.length > 0
-  const visible = filterSellable(sellable, {
+  const visible = filterSellable(products, {
     query,
     supplierId,
-    onlyIds: showOnlyAdded ? new Set(lineOf.keys()) : undefined,
+    onlyIds: showOnlyAdded ? addedProducts : undefined,
   })
+
+  /** Box or piece input of a product row; blocked without stock or without that presentation. */
+  function quantityInput(
+    option: SellableOption | null,
+    label: string,
+    blocked: boolean,
+    productName: string,
+  ) {
+    const line = option ? lineOf.get(option.presentationId) : undefined
+    return (
+      <label className="grid gap-1 text-xs text-[#907e84]">
+        {label}
+        <FieldInput
+          inputMode="numeric"
+          aria-label={`${label} de ${productName}`}
+          placeholder="0"
+          className="w-20"
+          disabled={!option || blocked}
+          value={line?.quantity ?? ''}
+          onChange={(event) =>
+            option &&
+            setLines((current) =>
+              typeLineQuantity(
+                current,
+                option.presentationId,
+                event.target.value,
+              ),
+            )
+          }
+        />
+      </label>
+    )
+  }
 
   async function submit() {
     const parsed = draftToOrderInput({ warehouseId, customerId, notes, lines })
@@ -109,7 +149,7 @@ export function NewOrderDialog({
 
   return (
     <CounterDialog
-      wide
+      full
       title="Nuevo pedido"
       description={`${warehouseName}. Reserva el producto por ${reservationHours} h y fija el precio al reservar.`}
       onClose={onClose}
@@ -166,10 +206,10 @@ export function NewOrderDialog({
               )}
               onClick={() => setOnlyAdded((current) => !current)}
             >
-              Solo agregados ({lines.length})
+              Solo agregados ({addedProducts.size})
             </button>
           </div>
-          <TableWrap className="max-h-[min(460px,52dvh)] overflow-y-auto rounded-xl border border-[#f1ebe5]">
+          <TableWrap className="h-full min-h-[14rem] overflow-y-auto rounded-xl border border-[#f1ebe5]">
             <DataTable>
               <thead className="sticky top-0 z-10">
                 <tr>
@@ -180,35 +220,51 @@ export function NewOrderDialog({
                 </tr>
               </thead>
               <tbody>
-                {visible.map((option) => {
-                  const line = lineOf.get(option.presentationId)
-                  const priced = quoted.get(option.presentationId)
-                  const shortage = shortages.get(option.presentationId)
+                {visible.map((product) => {
+                  const options = [product.box, product.piece].flatMap(
+                    (option) => (option ? [option] : []),
+                  )
+                  const inOrder = addedProducts.has(product.productId)
+                  const shortage = options
+                    .map((option) => shortages.get(option.presentationId))
+                    .find(Boolean)
+                  const totals = options.flatMap((option) => {
+                    const priced = quoted.get(option.presentationId)
+                    return lineOf.has(option.presentationId) &&
+                      priced?.lineTotalCents != null
+                      ? [priced.lineTotalCents]
+                      : []
+                  })
+                  const outOfStock = product.availableBase === 0
                   return (
                     <tr
-                      key={option.presentationId}
-                      className={line ? 'bg-[#fbf7f3]' : undefined}
+                      key={product.productId}
+                      className={inOrder ? 'bg-[#fbf7f3]' : undefined}
                     >
                       <Td>
-                        <span className="flex items-center gap-3">
-                          <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#faf9f7]">
+                        <span className="flex items-stretch gap-3">
+                          <span className="flex w-[72px] shrink-0 items-center justify-center self-stretch overflow-hidden rounded-lg bg-[#faf9f7] min-h-[72px]">
                             <ProductImage
-                              src={option.imageUrl}
-                              name={option.productName}
-                              className="size-full object-contain p-1 mix-blend-multiply"
-                              placeholderClassName="size-5"
+                              src={product.imageUrl}
+                              name={product.productName}
+                              className="size-full max-h-[96px] object-contain p-1 mix-blend-multiply"
+                              placeholderClassName="size-7"
                             />
                           </span>
                           <span>
                             <strong className="font-semibold">
-                              {option.productName}
+                              {product.productName}
                             </strong>
                             <CellNote>
-                              {option.sku} · {option.presentationName}
-                              {option.supplierName &&
-                                ` · ${option.supplierName}`}
+                              {product.sku}
+                              {product.box &&
+                                ` · ${countLabel(product.box.factor, product.unit)} por ${product.box.presentationName.toLowerCase()}`}
+                              {product.supplierName &&
+                                ` · ${product.supplierName}`}
                             </CellNote>
-                            <CellNote>{availabilityLabel(option)}</CellNote>
+                            <CellNote>
+                              {productAvailabilityLabel(product)}
+                            </CellNote>
                             {shortage && (
                               <p
                                 role="alert"
@@ -221,36 +277,44 @@ export function NewOrderDialog({
                         </span>
                       </Td>
                       <Td>
-                        {formatCents(
-                          priced?.unitPriceCents ?? option.priceCents,
-                        )}
-                        <CellNote>
-                          {priced?.unitPriceCents != null
-                            ? quoteRuleLabel(priced.rule)
-                            : 'Precio de lista'}
-                        </CellNote>
+                        {options.map((option) => {
+                          const priced = quoted.get(option.presentationId)
+                          return (
+                            <span key={option.presentationId} className="block">
+                              {formatCents(
+                                priced?.unitPriceCents ?? option.priceCents,
+                              )}{' '}
+                              <span className="text-xs text-[#907e84]">
+                                / {option.presentationName.toLowerCase()}
+                              </span>
+                              <CellNote>
+                                {priced?.unitPriceCents != null
+                                  ? quoteRuleLabel(priced.rule)
+                                  : 'Precio de lista'}
+                              </CellNote>
+                            </span>
+                          )
+                        })}
                       </Td>
                       <Td>
-                        <FieldInput
-                          inputMode="numeric"
-                          aria-label={`Cantidad de ${option.label}`}
-                          placeholder="0"
-                          className="w-20"
-                          value={line?.quantity ?? ''}
-                          onChange={(event) =>
-                            setLines((current) =>
-                              typeLineQuantity(
-                                current,
-                                option.presentationId,
-                                event.target.value,
-                              ),
-                            )
-                          }
-                        />
+                        <span className="flex gap-2">
+                          {quantityInput(
+                            product.box,
+                            'Cajas',
+                            outOfStock,
+                            product.productName,
+                          )}
+                          {quantityInput(
+                            product.piece,
+                            'Piezas',
+                            outOfStock,
+                            product.productName,
+                          )}
+                        </span>
                       </Td>
                       <Td>
-                        {line && priced?.lineTotalCents != null
-                          ? formatCents(priced.lineTotalCents)
+                        {totals.length
+                          ? formatCents(totals.reduce((a, b) => a + b, 0))
                           : '—'}
                       </Td>
                     </tr>

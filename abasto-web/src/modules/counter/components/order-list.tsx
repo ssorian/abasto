@@ -45,8 +45,7 @@ export function OrderList({ orders, now, onOpen }: OrderListProps) {
                 <strong className="text-base tabular-nums">
                   {formatCents(order.totalCents)}
                 </strong>
-                {(order.status === 'Reservado' ||
-                  order.status === 'Preparado') && (
+                {order.status === 'Reservado' && (
                   <CellNote>{expiryLabel(order.expiresAt, now)}</CellNote>
                 )}
               </div>
@@ -76,8 +75,7 @@ export function OrderList({ orders, now, onOpen }: OrderListProps) {
                 <Td>
                   <strong>{orderCode(order.id)}</strong>
                   <CellNote>
-                    {order.status === 'Reservado' ||
-                    order.status === 'Preparado'
+                    {order.status === 'Reservado'
                       ? expiryLabel(order.expiresAt, now)
                       : ''}
                   </CellNote>

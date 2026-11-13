@@ -63,12 +63,12 @@ describe('stock ledger', () => {
     const fx = await setupInventory()
     const first = await receive(fx, { quantity: 20, expiresOn: '2026-12-01' })
     const second = await receive(fx, { quantity: 10, expiresOn: '2027-01-01' })
-    await adjustLot(fx.managerA, {
+    await adjustLot(fx.owner, {
       lotId: first.id,
       quantity: 5,
       reason: 'Sobrante',
     })
-    await registerLoss(fx.managerA, {
+    await registerLoss(fx.owner, {
       lotId: second.id,
       quantity: 4,
       category: 'dañado',
@@ -85,7 +85,7 @@ describe('stock ledger', () => {
       countedQuantity: 40,
     })
     await errorOf(() =>
-      adjustLot(fx.managerA, { lotId: second.id, quantity: -999, reason: 'x' }),
+      adjustLot(fx.owner, { lotId: second.id, quantity: -999, reason: 'x' }),
     )
     for (const lot of await db.select().from(lots)) {
       expect(await ledgerSum(lot.id)).toBe(lot.onHand)

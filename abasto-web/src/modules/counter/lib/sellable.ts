@@ -78,25 +78,75 @@ export function buildSellable(
   })
 }
 
+/** One product of the new-order table: its box and its loose-piece presentations. */
+export type SellableProduct = {
+  productId: string
+  productName: string
+  sku: string
+  imageUrl: string | null
+  supplierId: string | null
+  supplierName: string | null
+  /** Base unit in plural ("piezas"). */
+  unit: string
+  /** Base units still available, shared by every presentation. */
+  availableBase: number
+  /** Biggest priced presentation of more than one piece; null when there is none. */
+  box: SellableOption | null
+  /** Priced presentation of exactly one piece; null when there is none. */
+  piece: SellableOption | null
+}
+
+/** Groups presentations into one row per product, in first-seen order. */
+export function groupSellable(
+  options: ReadonlyArray<SellableOption>,
+): Array<SellableProduct> {
+  const byProduct = new Map<string, SellableProduct>()
+  for (const option of options) {
+    const group = byProduct.get(option.productId) ?? {
+      productId: option.productId,
+      productName: option.productName,
+      sku: option.sku,
+      imageUrl: option.imageUrl,
+      supplierId: option.supplierId,
+      supplierName: option.supplierName,
+      unit: option.unit,
+      availableBase: option.availableBase,
+      box: null,
+      piece: null,
+    }
+    if (option.factor === 1) group.piece ??= option
+    else if (!group.box || option.factor > group.box.factor) group.box = option
+    byProduct.set(option.productId, group)
+  }
+  return [...byProduct.values()]
+}
+
 export type SellableFilter = {
   /** Name or SKU, case- and accent-insensitive. */
   query: string
   /** Supplier id; empty means every supplier. */
   supplierId: string
-  /** When set, only these presentations (the ones already in the order). */
+  /** When set, only these products (the ones already in the order). */
   onlyIds?: ReadonlySet<string>
 }
 
-/** Options the new-order table shows for the current search and filters. */
-export function filterSellable(
-  options: ReadonlyArray<SellableOption>,
+type Filterable = {
+  productId: string
+  productName: string
+  sku: string
+  supplierId: string | null
+}
+
+/** Rows the new-order table shows for the current search and filters. */
+export function filterSellable<T extends Filterable>(
+  options: ReadonlyArray<T>,
   { query, supplierId, onlyIds }: SellableFilter,
-): Array<SellableOption> {
+): Array<T> {
   const needle = normalize(query.trim())
   return options.filter(
     (option) =>
       (!supplierId || option.supplierId === supplierId) &&
-      (!onlyIds || onlyIds.has(option.presentationId)) &&
+      (!onlyIds || onlyIds.has(option.productId)) &&
       (!needle ||
         normalize(option.productName).includes(needle) ||
         normalize(option.sku).includes(needle)),
@@ -105,7 +155,7 @@ export function filterSellable(
 
 /** Suppliers with something to sell, once each and by name, for the supplier filter. */
 export function sellableSuppliers(
-  options: ReadonlyArray<SellableOption>,
+  options: ReadonlyArray<Pick<SellableOption, 'supplierId' | 'supplierName'>>,
 ): Array<{ id: string; name: string; active: boolean }> {
   const byId = new Map<string, string>()
   for (const { supplierId, supplierName } of options) {
@@ -148,4 +198,16 @@ export function availabilityLabel(option: SellableOption): string {
   return option.factor === 1
     ? `Disponible: ${countLabel(option.availableBase, option.unit)}`
     : `Disponible: ${inPresentations} (${countLabel(option.availableBase, option.unit)})`
+}
+
+/** Availability of a product row: whole boxes and loose pieces, plus the pieces behind them. */
+export function productAvailabilityLabel(product: SellableProduct): string {
+  const pieces = countLabel(product.availableBase, product.unit)
+  if (!product.box || product.availableBase === 0)
+    return `Disponible: ${pieces}`
+  const boxes = Math.floor(product.availableBase / product.box.factor)
+  const loose = product.availableBase % product.box.factor
+  const parts = [countLabel(boxes, product.box.presentationName)]
+  if (loose) parts.push(countLabel(loose, product.unit))
+  return `Disponible: ${parts.join(' y ')} (${pieces})`
 }

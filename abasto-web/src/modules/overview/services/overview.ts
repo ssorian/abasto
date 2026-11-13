@@ -47,10 +47,10 @@ async function operationalCounts(
   const result = await db.execute<Counts>(sql`
     select w.id as warehouse_id,
       (select count(*)::int from orders o
-        where o.warehouse_id = w.id and o.status in ('Reservado', 'Preparado')
+        where o.warehouse_id = w.id and o.status = 'Reservado'
           and o.expires_at > ${at}) as open_orders,
       (select count(*)::int from orders o
-        where o.warehouse_id = w.id and o.status in ('Reservado', 'Preparado')
+        where o.warehouse_id = w.id and o.status = 'Reservado'
           and o.expires_at > ${at}
           and ${day(sql.raw('o.expires_at'))} = ${today}::date) as expiring_today,
       (select count(*)::int from orders o
@@ -162,5 +162,6 @@ export async function getOverview(actor: Actor): Promise<Overview> {
     lowStock,
     expiring: expiringRows.slice(0, LIST_SIZE).map(lotItem),
     expired: expiredRows.slice(0, LIST_SIZE).map(lotItem),
+    canAdjustStock: visible.some(({ id }) => can(actor, 'stock.adjust', id)),
   }
 }

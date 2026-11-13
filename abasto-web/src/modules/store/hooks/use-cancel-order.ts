@@ -21,7 +21,7 @@ export function useCancelOrder() {
         failure instanceof ClientError ? failure.message : genericErrorMessage,
         { position: 'top-center' },
       )
-      // The order may have moved on (e.g. already prepared): show the truth.
+      // The order may have moved on (e.g. already picked up): show the truth.
       await router.invalidate()
     } finally {
       setPendingId(null)

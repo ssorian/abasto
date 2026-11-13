@@ -108,7 +108,7 @@ describe('supplier order input shapes', () => {
   test('reception takes boxes per line and optional replacements', () => {
     const valid = {
       purchaseId: 'o1',
-      lines: [{ lineId: 'l1', missingBoxes: 4, damagedBoxes: 1 }],
+      lines: [{ lineId: 'l1', receivedBoxes: 4, damagedBoxes: 1 }],
       replacements: [{ pendingId: 'b1', boxes: 2 }],
     }
     expect(parseInput(receiveOrderInput, valid)).toEqual(valid)
@@ -118,7 +118,7 @@ describe('supplier order input shapes', () => {
     expect(
       fails(receiveOrderInput, {
         ...valid,
-        lines: [{ lineId: 'l1', missingBoxes: 1.5, damagedBoxes: 0 }],
+        lines: [{ lineId: 'l1', receivedBoxes: 1.5, damagedBoxes: 0 }],
       }),
     ).toBe(true)
   })

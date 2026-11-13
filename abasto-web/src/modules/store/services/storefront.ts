@@ -257,7 +257,7 @@ export async function cancelMyOrder(
     },
     orderId,
     ['Reservado'],
-    'Tu pedido ya se está preparando. Comunícate con el almacén para cancelarlo.',
+    'Tu pedido ya no está reservado. Comunícate con el almacén.',
   )
   return toStoreOrder(detail, await headOf(detail.id))
 }
@@ -279,7 +279,7 @@ async function headOf(orderId: string): Promise<OrderHead> {
 /** Customer projection of an order; an overdue reservation reads as Vencido. */
 function toStoreOrder(detail: OrderDetail, head: OrderHead): StoreOrder {
   const overdue =
-    (detail.status === 'Reservado' || detail.status === 'Preparado') &&
+    detail.status === 'Reservado' &&
     detail.expiresAt.getTime() <= now().getTime()
   return {
     id: detail.id,

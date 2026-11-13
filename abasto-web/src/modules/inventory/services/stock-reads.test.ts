@@ -157,7 +157,7 @@ describe('listStockMovements', () => {
       quantity: 8,
       lotCode: 'S-1',
     })
-    await adjustLot(fx.managerA, {
+    await adjustLot(fx.owner, {
       lotId: milkLot.id,
       quantity: -3,
       reason: 'Se cayó',
@@ -182,7 +182,7 @@ describe('listStockMovements', () => {
     ])
     expect(rows[1]).toMatchObject({
       reason: 'Se cayó',
-      actorName: 'gerente-a',
+      actorName: 'Dueño',
       lotCode: 'L-1',
     })
     expect(rows[1].createdAt).toBeInstanceOf(Date)

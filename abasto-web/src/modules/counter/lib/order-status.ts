@@ -4,7 +4,6 @@ export const orderStatusFilters = [
   'Por atender',
   'Todos',
   'Reservado',
-  'Preparado',
   'Recogido',
   'Cancelado',
   'Vencido',
@@ -14,8 +13,7 @@ export type StatusFilter = (typeof orderStatusFilters)[number]
 /** The counter opens on the orders that still need someone. */
 export const defaultStatusFilter: StatusFilter = 'Por atender'
 
-const isOpen = (status: OrderStatus) =>
-  status === 'Reservado' || status === 'Preparado'
+const isOpen = (status: OrderStatus) => status === 'Reservado'
 
 function matches(status: OrderStatus, filter: StatusFilter) {
   if (filter === 'Todos') return true
@@ -44,8 +42,8 @@ export function statusCounts(
 
 /** Which actions the service allows from this status (L26 transitions). */
 export function availableActions(status: OrderStatus) {
-  const open = status === 'Reservado' || status === 'Preparado'
-  return { prepare: status === 'Reservado', pickup: open, cancel: open }
+  const open = isOpen(status)
+  return { pickup: open, cancel: open }
 }
 
 export const drawerClosedNotice = 'Abre la caja antes de cobrar.'
@@ -66,7 +64,6 @@ export function chargeGate(status: OrderStatus, drawerOpen: boolean) {
 
 const tones: Record<OrderStatus, string> = {
   Reservado: 'bg-[#fff4d6] text-[#8a5a00]',
-  Preparado: 'bg-[#f7f1eb] text-[#5b1f8f]',
   Recogido: 'bg-[#e1f4e7] text-[#256b41]',
   Cancelado: 'bg-[#f3f1ee] text-[#766369]',
   Vencido: 'bg-[#fde8e6] text-[#a1372e]',
@@ -76,7 +73,6 @@ export const statusTone = (status: OrderStatus) => tones[status]
 
 const hints: Record<OrderStatus, string> = {
   Reservado: 'El producto está apartado para este cliente.',
-  Preparado: 'Listo para que el cliente pase por él.',
   Recogido: 'El cliente ya recogió el pedido.',
   Cancelado: 'Se canceló y se liberó el producto.',
   Vencido: 'Venció y se liberó el producto.',

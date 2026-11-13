@@ -55,6 +55,7 @@ describe('Inicio per role', () => {
   test('the owner sees every warehouse with money', async () => {
     const fx = await scenario()
     const overview = await getOverview(fx.owner)
+    expect(overview.canAdjustStock).toBe(true)
     expect(overview.today).toBe('2026-11-04')
     expect(overview.warehouses.map((item) => item.name)).toEqual([
       'Almacén A',
@@ -125,6 +126,8 @@ describe('Inicio per role', () => {
   test('a manager sees only their warehouse, with money', async () => {
     const fx = await scenario()
     const overview = await getOverview(fx.managerA)
+    // Only owners get «Quitar» on expired lots.
+    expect(overview.canAdjustStock).toBe(false)
     expect(overview.warehouses.map((item) => item.id)).toEqual([fx.a.id])
     expect(overview.warehouses[0]).toMatchObject({
       salesCents: 4000,

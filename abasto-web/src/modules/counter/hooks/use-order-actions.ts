@@ -11,7 +11,6 @@ import {
   cancelOrderFn,
   createOrderFn,
   orderDetailFn,
-  prepareOrderFn,
   setReservationHoursFn,
 } from '#/modules/orders/server/orders'
 
@@ -28,8 +27,6 @@ export function useOrderActions() {
     pending: run.pending,
     createOrder: (input: OrderInput) =>
       run(() => createOrderFn({ data: input }), 'Pedido reservado.'),
-    prepare: (orderId: string) =>
-      run(() => prepareOrderFn({ data: { orderId } }), 'Pedido preparado.'),
     /**
      * Delivers the order with its payment. The refusal message comes back to
      * the payment step (no toast) so it can sit next to what to do about it.

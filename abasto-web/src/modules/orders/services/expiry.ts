@@ -18,7 +18,7 @@ export async function lockWarehouseStock(tx: Tx, warehouseId: string) {
 }
 
 /**
- * Lazy expiry: overdue Reservado/Preparado orders of a warehouse become
+ * Lazy expiry: overdue Reservado orders of a warehouse become
  * Vencido and give their units back. Call it inside the transaction of any
  * order or stock write in that warehouse, before reading or locking stock;
  * it takes the warehouse stock lock first.
@@ -32,7 +32,7 @@ export async function expireOverdueOrders(tx: Tx, warehouseId: string) {
     .where(
       and(
         eq(orders.warehouseId, warehouseId),
-        inArray(orders.status, ['Reservado', 'Preparado']),
+        inArray(orders.status, ['Reservado']),
         lte(orders.expiresAt, at),
       ),
     )

@@ -23,19 +23,13 @@ describe('store labels', () => {
 
   test('only Reservado orders can be cancelled by the customer', () => {
     expect(canCancelOrder('Reservado')).toBe(true)
-    for (const status of [
-      'Preparado',
-      'Recogido',
-      'Cancelado',
-      'Vencido',
-    ] as const) {
+    for (const status of ['Recogido', 'Cancelado', 'Vencido'] as const) {
       expect(canCancelOrder(status)).toBe(false)
     }
   })
 
   test('order status tones', () => {
     expect(orderStatusTone('Reservado')).toBe('blue')
-    expect(orderStatusTone('Preparado')).toBe('amber')
     expect(orderStatusTone('Recogido')).toBe('green')
     expect(orderStatusTone('Cancelado')).toBe('gray')
     expect(orderStatusTone('Vencido')).toBe('red')
@@ -55,9 +49,6 @@ describe('store labels', () => {
   test('pickup deadline shows only while it matters', () => {
     const date = new Date('2026-11-09T20:30:00Z')
     expect(pickupDeadlineLabel('Reservado', date)?.prefix).toBe(
-      'Recoge antes de',
-    )
-    expect(pickupDeadlineLabel('Preparado', date)?.prefix).toBe(
       'Recoge antes de',
     )
     expect(pickupDeadlineLabel('Vencido', date)?.prefix).toBe('Venció el')

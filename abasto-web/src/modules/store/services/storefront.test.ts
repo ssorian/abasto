@@ -8,7 +8,7 @@ import { saveCommercialRules } from '#/modules/customers/services/commercial-rul
 import { createCustomer } from '#/modules/customers/services/customers'
 import { orders } from '#/modules/orders/db/schema'
 import { createOrder } from '#/modules/orders/services/orders'
-import { prepareOrder } from '#/modules/orders/services/order-actions'
+import { cancelOrder } from '#/modules/orders/services/order-actions'
 import {
   advance,
   errorOf,
@@ -431,7 +431,7 @@ describe('my orders', () => {
     expect((await orderState()).lots.map((lot) => lot.reserved)).toEqual([0])
   })
 
-  test('cannot cancel a Preparado order or another customer order', async () => {
+  test('cannot cancel an order that is no longer reserved, nor another customer order', async () => {
     const fx = await setupStore()
     await receive(fx, { productId: fx.milkBox.id, quantity: 5 })
     const placed = await placeStoreOrder(fx.shopper, {
@@ -444,12 +444,12 @@ describe('my orders', () => {
       customerId: other.id,
       lines: [{ presentationId: fx.pieceId, quantity: 1 }],
     })
-    await prepareOrder(fx.staffA, placed.id)
+    await cancelOrder(fx.staffA, placed.id)
     const before = await orderState()
     const preparing = await errorOf(() => cancelMyOrder(fx.shopper, placed.id))
     expect(preparing.code).toBe('conflict')
     expect(preparing.message).toBe(
-      'Tu pedido ya se está preparando. Comunícate con el almacén para cancelarlo.',
+      'Tu pedido ya no está reservado. Comunícate con el almacén.',
     )
     const notMine = await errorOf(() => cancelMyOrder(fx.shopper, foreign.id))
     expect(notMine.code).toBe('not_found')

@@ -3,7 +3,7 @@
 export type WarehouseOverview = {
   id: string
   name: string
-  /** Reservado or Preparado orders still holding stock. */
+  /** Reservado orders still holding stock. */
   openOrders: number
   /** Open orders whose reservation ends today. */
   expiringTodayOrders: number
@@ -60,4 +60,6 @@ export type Overview = {
   expiring: Array<ExpiringItem>
   /** Lots past their expiry day that still hold stock. */
   expired: Array<ExpiringItem>
+  /** Only owners add or remove lot stock («Quitar existencias»). */
+  canAdjustStock?: boolean
 }

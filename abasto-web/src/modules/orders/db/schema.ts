@@ -16,7 +16,6 @@ import { warehouses } from '#/modules/warehouses/db/schema'
 
 export const orderStatuses = [
   'Reservado',
-  'Preparado',
   'Recogido',
   'Cancelado',
   'Vencido',
@@ -66,7 +65,6 @@ export const orders = pgTable(
       .references(() => user.id),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     expiresAt: timestamp('expires_at').notNull(),
-    preparedAt: timestamp('prepared_at'),
     /** When the order was picked up, cancelled or expired. */
     closedAt: timestamp('closed_at'),
   },
@@ -74,7 +72,7 @@ export const orders = pgTable(
     check('orders_total_min', sql`${table.totalCents} > 0`),
     check(
       'orders_status_check',
-      sql`${table.status} in ('Reservado', 'Preparado', 'Recogido', 'Cancelado', 'Vencido')`,
+      sql`${table.status} in ('Reservado', 'Recogido', 'Cancelado', 'Vencido')`,
     ),
     check('orders_source_check', sql`${table.source} in ('counter', 'store')`),
     index('orders_warehouse_status_idx').on(

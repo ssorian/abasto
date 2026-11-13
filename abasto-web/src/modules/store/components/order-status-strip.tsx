@@ -1,6 +1,6 @@
 import type { StoreOrderStatus } from '#/modules/store/services/storefront'
 
-const steps = ['Reservado', 'Preparado', 'Recogido'] as const
+const steps = ['Reservado', 'Recogido'] as const
 
 /**
  * Three positions on one strip. Cancelado and Vencido end the strip: every

@@ -30,7 +30,7 @@ Not an e-commerce checkout: a reservation channel for a closed set of distributo
 
 - Public catalog: anyone sees products, list prices and availability labels (Disponible / Pocas / Agotado), never exact quantities.
 - Reserving, cart pricing with the customer's conditions, "Mis pedidos" and cancelling a Reservado order require a customer session.
-- Order statuses: Reservado → Preparado → Recogido, or Cancelado / Vencido.
+- Order statuses: Reservado → Recogido, or Cancelado / Vencido.
 - UI copy is Spanish (es-MX); identifiers and code in English. Stack: TanStack Start, React 19, Tailwind 4.
 - Product images are external URLs and may be missing or broken; every surface needs a graceful fallback.
 - Store name is provisional and must live in one configurable place.
