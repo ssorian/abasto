@@ -21,7 +21,7 @@ Constraint: "No hay absolutamente nada en prod aun" — schema may change freely
 | --- | --- | --- | --- |
 | T0 | — | inline: commit pre-existing work on `main` ("commitea lo que tenemos y continua") | 733b493, 4d045c0, 673732e, 173f523 |
 | T1 | S1 | inline: `scrapped` pending type, migration 0035, `scrapPendings` service/server fn, pendings tab action + dialog, labels | e67c493 |
-| T2 | S2, S3 | inline: credits from `returned`+`discount` as discountable balances in `createSupplierOrder`, order dialog, reopen on cancel | |
+| T2 | S2, S3 | inline: credits from `returned`+`discount` as discountable balances in `createSupplierOrder`, order dialog, reopen on cancel | f0b5c4a |
 | T3 | S4, S5 | worker (context backstop): supplier recovery report service (recovered, pending, lost incl. valued stock losses) | |
 | T4 | S5 | worker (with T3): owner reports card with breakdown, period and supplier filters | |
 
