@@ -16,13 +16,16 @@ UI copy is Spanish (es-MX); code and identifiers in English. The database is dev
 
 ## Tasks
 
-- [ ] T1 — S1-S4 — worker A — counter: rename, dialog size, image, box/piece inputs.
-- [ ] T2 — S5 — worker B — orders: remove Preparado + migration.
-- [ ] T3 — S6-S8 — worker C — inventory: folio, received boxes, owner-only adjustments.
-- [ ] T4 — all — verify (S8 security, S5/S7 data) + full suite.
+- [x] T1 — S1-S4 — inline — counter: «Ventas» label, full-viewport new-order dialog, taller image, one row per product with «Cajas»/«Piezas» inputs disabled without stock. Commit 4cd24ea.
+- [x] T2 — S5 — inline — Preparado removed (service, server fn, UI, store strip, seed); migration 0037_remove_prepared_status maps stored Preparado to Reservado and drops prepared_at. Commit 7a05322.
+- [x] T3 — S6 — inline — server assigns reference E001, E002… (advisory lock, max E-number + 1); dialog shows a read-only folio. Commit 491bdd9.
+- [ ] T5 — S7 — worker — reception «Recibidas» input replaces «Faltantes»; surplus enters free.
+- [ ] T6 — S8 — worker — owner-only lot adjustments (UI + server).
+- [ ] T4 — all — verify (S8 security, S5/S7 data) + full suite + on-screen check.
 
 ## Log
 
 - L1 — User: "vamos a hacer cambios que pidio el cliente [Image#1] [Image#2] [Image#3] [Image#4] En esta crea un input para caja y pieza. [Image#5] [Image#6] [Image#7] En esta en vez de un input para faltantes cambialo por uno de recibidos asi se sabe si recibieron menos o mas. [Image#8]" (image captions quoted in S1–S8).
 - L2 — Decisions (questionnaire): Preparado → "Quitarlo y migrar los datos"; extra boxes → "Entran sin costo"; folio → "Fijo, sin poder editarlo"; caja/pieza → "Una fila por producto con dos campos".
 - L3 — User: "Tienes bastante libertad, no te preocupes por la db, no estamos en produccion y la db actual de supabase es de desarrollo"
+- L4 — Writers were refused by the runtime guard (absolute spec path); T1–T3 done inline. Context backstop reached after T3: T5 and T6 delegated.
