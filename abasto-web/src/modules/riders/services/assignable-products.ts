@@ -41,6 +41,7 @@ export async function listAssignableProducts(
     .map((product) => ({
       productId: product.productId,
       name: product.name,
+      sku: product.sku,
       boxFactor: boxOf.get(product.productId) ?? 1,
       available: product.available,
     }))
