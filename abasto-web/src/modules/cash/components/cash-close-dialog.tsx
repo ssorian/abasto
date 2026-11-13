@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { cn } from '#/lib/utils/cn'
 import { ActionButton } from '#/modules/counter/components/action-button'
 import { CounterDialog } from '#/modules/counter/components/counter-dialog'
 import {
@@ -8,9 +9,19 @@ import {
   FieldTextarea,
 } from '#/modules/counter/components/form-controls'
 import { useCashActions } from '#/modules/cash/hooks/use-cash-actions'
-import { countedCash, differenceLabel } from '#/modules/cash/lib/cash-summary'
+import {
+  countedCash,
+  differenceLabel,
+  differenceTone,
+} from '#/modules/cash/lib/cash-summary'
 import { formatCents } from '#/modules/pricing/lib/money'
 import type { CashSession } from '#/modules/cash/services/cash-ledger'
+
+const differenceClass = {
+  short: 'text-[#a1372e]',
+  over: 'text-[#1f7a4d]',
+  even: '',
+}
 
 type CashCloseDialogProps = {
   warehouseId: string
@@ -50,7 +61,12 @@ export function CashCloseDialog({
             {formatCents(closed.countedCents ?? 0)}
           </dd>
           <dt className="font-[650]">Diferencia</dt>
-          <dd className="text-right font-[650]">
+          <dd
+            className={cn(
+              'text-right font-[650]',
+              differenceClass[differenceTone(closed.differenceCents ?? 0)],
+            )}
+          >
             {differenceLabel(closed.differenceCents ?? 0)}
           </dd>
           {closed.note && (

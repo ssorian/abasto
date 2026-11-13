@@ -3,6 +3,8 @@ import { formatCents } from '#/modules/pricing/lib/money'
 import {
   countedCash,
   differenceLabel,
+  differenceTone,
+  lastCloseHint,
   movementLabel,
   summarizeSession,
 } from '#/modules/cash/lib/cash-summary'
@@ -53,7 +55,7 @@ describe('summarizeSession', () => {
 
 describe('differenceLabel', () => {
   test('says whether cash is missing, left over or exact', () => {
-    expect(differenceLabel(0)).toBe('Sin diferencia')
+    expect(differenceLabel(0)).toBe('Cuadra')
     expect(differenceLabel(-1550)).toBe(`Faltan ${'$15.50'}`)
     expect(differenceLabel(200)).toBe('Sobran $2.00')
   })
@@ -80,5 +82,20 @@ describe('movementLabel', () => {
     expect(movementLabel('withdrawal', -100)).toBe('Retiro')
     expect(movementLabel('rider_difference', -3041)).toBe('Faltante de reparto')
     expect(movementLabel('rider_difference', 500)).toBe('Sobrante de reparto')
+  })
+})
+
+describe('differenceTone', () => {
+  test('shortage is danger, surplus is positive, exact is neutral', () => {
+    expect(differenceTone(-1)).toBe('short')
+    expect(differenceTone(1)).toBe('over')
+    expect(differenceTone(0)).toBe('even')
+  })
+})
+
+describe('lastCloseHint', () => {
+  test('names the last counted cash, or nothing when there is no close', () => {
+    expect(lastCloseHint(100000)).toBe('El último cierre contó $1,000.00')
+    expect(lastCloseHint(null)).toBeUndefined()
   })
 })

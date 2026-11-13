@@ -85,7 +85,7 @@ export function CashPanel({
               <ActionButton onClick={() => setDialog('withdrawal')}>
                 Retiro
               </ActionButton>
-              <ActionButton tone="primary" onClick={() => setDialog('close')}>
+              <ActionButton onClick={() => setDialog('close')}>
                 Cerrar caja
               </ActionButton>
             </>
@@ -136,10 +136,12 @@ export function CashPanel({
         <CashMovementDialog
           kind={dialog}
           warehouseId={warehouseId}
+          availableCents={summary?.expectedCents}
           onClose={close}
         />
       )}
-      {dialog === 'close' && cash && (
+      {/* The close dialog stays up after the close (the drawer is then gone) to show the result. */}
+      {dialog === 'close' && (
         <CashCloseDialog warehouseId={warehouseId} onClose={close} />
       )}
       {dialog === 'history' && (

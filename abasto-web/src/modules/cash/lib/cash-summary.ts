@@ -49,9 +49,24 @@ export function summarizeSession(
 
 /** Counted − expected: negative means cash is missing. */
 export function differenceLabel(differenceCents: number): string {
-  if (differenceCents === 0) return 'Sin diferencia'
+  if (differenceCents === 0) return 'Cuadra'
   const amount = formatCents(Math.abs(differenceCents))
   return differenceCents < 0 ? `Faltan ${amount}` : `Sobran ${amount}`
+}
+
+/** Visual tone of a close difference: shortage reads red, surplus green. */
+export function differenceTone(
+  differenceCents: number,
+): 'short' | 'over' | 'even' {
+  if (differenceCents < 0) return 'short'
+  return differenceCents > 0 ? 'over' : 'even'
+}
+
+/** Hint under the opening cash: what the previous close counted. */
+export function lastCloseHint(countedCents: number | null): string | undefined {
+  return countedCents === null
+    ? undefined
+    : `El último cierre contó ${formatCents(countedCents)}`
 }
 
 /** Counted pesos typed at a blind close → cents; the server computes the difference. */

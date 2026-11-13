@@ -13,6 +13,7 @@ import {
 } from '#/modules/cash/services/cash-movements'
 import {
   closeCashSession,
+  getLastClosedCount,
   listCashSessions,
   openCashSession,
 } from '#/modules/cash/services/cash-sessions'
@@ -55,5 +56,14 @@ export const cashHistoryFn = createServerFn({ method: 'GET' })
   .handler(({ data }) =>
     runWithActor((actor) =>
       listCashSessions(actor, parseInput(warehouseInput, data).warehouseId),
+    ),
+  )
+
+/** Counted cash of the last close, as a hint when opening the drawer (owner and manager). */
+export const lastCloseFn = createServerFn({ method: 'GET' })
+  .validator((data: unknown) => data)
+  .handler(({ data }) =>
+    runWithActor((actor) =>
+      getLastClosedCount(actor, parseInput(warehouseInput, data).warehouseId),
     ),
   )
