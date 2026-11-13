@@ -43,6 +43,7 @@ export const pendingTypes = [
   'discounted',
   'returned',
   'reopened',
+  'scrapped',
 ] as const
 export type PendingType = (typeof pendingTypes)[number]
 
@@ -290,7 +291,7 @@ export const stockMinimums = pgTable(
  * `damaged` = "Por devolver") are positive and have no `settlesId`. Every
  * other entry points at the origin it settles: negative when it closes boxes
  * (`replaced` by a delivery, `written_off` "a lo chino", `discounted` on a new
- * order, `returned` to the supplier), positive `reopened` when a discounting
+ * order, `returned` to the supplier, `scrapped` written off as merma), positive `reopened` when a discounting
  * order is cancelled. An origin's balance is its quantity plus its settlements.
  * A database trigger rejects UPDATE and DELETE.
  */
@@ -329,11 +330,11 @@ export const supplierPendings = pgTable(
   (table) => [
     check(
       'supplier_pendings_type_check',
-      sql`${table.type} in ('damaged', 'missing', 'replaced', 'written_off', 'discounted', 'returned', 'reopened')`,
+      sql`${table.type} in ('damaged', 'missing', 'replaced', 'written_off', 'discounted', 'returned', 'reopened', 'scrapped')`,
     ),
     check(
       'supplier_pendings_sign',
-      sql`(${table.type} in ('damaged', 'missing', 'reopened') and ${table.quantity} > 0 and ${table.valueCents} >= 0) or (${table.type} in ('replaced', 'written_off', 'discounted', 'returned') and ${table.quantity} < 0 and ${table.valueCents} <= 0)`,
+      sql`(${table.type} in ('damaged', 'missing', 'reopened') and ${table.quantity} > 0 and ${table.valueCents} >= 0) or (${table.type} in ('replaced', 'written_off', 'discounted', 'returned', 'scrapped') and ${table.quantity} < 0 and ${table.valueCents} <= 0)`,
     ),
     check(
       'supplier_pendings_origin',

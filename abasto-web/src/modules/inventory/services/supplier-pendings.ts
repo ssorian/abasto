@@ -192,3 +192,43 @@ export async function returnPendings(
     return { valueCents, creditCents }
   })
 }
+
+/**
+ * Closes boxes of a "Por devolver" balance as merma: the supplier will neither
+ * take them back nor credit them, so their original value is lost. Nothing
+ * leaves stock here; those boxes never entered it.
+ */
+export async function scrapPendings(
+  actor: Actor,
+  input: { pendingId: string; boxes: number },
+): Promise<{ valueCents: number }> {
+  authorizeSupplierBalance(actor)
+  if (!Number.isSafeInteger(input.boxes) || input.boxes <= 0) {
+    throw badBoxes('dar por merma')
+  }
+  return db.transaction(async (tx) => {
+    const balance = await lockedBalance(tx, input.pendingId)
+    if (balance.kind !== 'return') {
+      throw new AppError(
+        'invalid',
+        'Solo se pueden dar por merma cajas dañadas o caducadas.',
+      )
+    }
+    const { valueCents } = await settleBalance(
+      tx,
+      {
+        balance,
+        boxes: input.boxes,
+        type: 'scrapped',
+        purchaseId: null,
+        actorId: actor.userId,
+      },
+      () =>
+        new AppError(
+          'invalid',
+          'Las cajas a dar por merma superan el saldo del proveedor.',
+        ),
+    )
+    return { valueCents }
+  })
+}

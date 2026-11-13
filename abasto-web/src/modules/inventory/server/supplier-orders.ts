@@ -6,6 +6,7 @@ import {
   pendingsInput,
   receiveOrderInput,
   returnInput,
+  scrapInput,
   supplierOrderInput,
   supplierOrdersInput,
 } from '#/modules/inventory/lib/inventory-inputs'
@@ -19,6 +20,7 @@ import {
 import {
   listSupplierPendings,
   returnPendings,
+  scrapPendings,
 } from '#/modules/inventory/services/supplier-pendings'
 
 export const createSupplierOrderFn = createServerFn({ method: 'POST' })
@@ -75,4 +77,10 @@ export const returnPendingsFn = createServerFn({ method: 'POST' })
     runWithActor((actor) =>
       returnPendings(actor, parseInput(returnInput, data)),
     ),
+  )
+
+export const scrapPendingsFn = createServerFn({ method: 'POST' })
+  .validator((data: unknown) => data)
+  .handler(({ data }) =>
+    runWithActor((actor) => scrapPendings(actor, parseInput(scrapInput, data))),
   )

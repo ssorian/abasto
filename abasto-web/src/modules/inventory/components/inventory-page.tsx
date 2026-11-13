@@ -29,6 +29,7 @@ import { OrderDetailDialog } from '#/modules/inventory/forms/order-detail-dialog
 import { OrderDialog } from '#/modules/inventory/forms/order-dialog'
 import { ReceptionDialog } from '#/modules/inventory/forms/reception-dialog'
 import { ReturnDialog } from '#/modules/inventory/forms/return-dialog'
+import { ScrapDialog } from '#/modules/inventory/forms/scrap-dialog'
 import { tabBadges } from '#/modules/inventory/lib/tab-badges'
 import type { InventoryAction } from '#/modules/inventory/lib/inventory-action'
 import {
@@ -101,6 +102,7 @@ type Dialog =
   | { kind: 'receiveOrder'; order: SupplierOrderSummary }
   | { kind: 'cancelOrder'; order: SupplierOrderSummary }
   | { kind: 'return'; pending: PendingBalance }
+  | { kind: 'scrap'; pending: PendingBalance }
   | { kind: 'count' }
   | { kind: 'transfer' }
   | { kind: 'receive'; transfer: TransferListItem }
@@ -329,6 +331,7 @@ export function InventoryPage({
             suppliers={supplierNames}
             products={labels}
             onReturn={(pending) => setDialog({ kind: 'return', pending })}
+            onScrap={(pending) => setDialog({ kind: 'scrap', pending })}
           />
         </TabsContent>
         <TabsContent value="Movimientos" className="text-base">
@@ -398,6 +401,9 @@ export function InventoryPage({
           pending={dialog.pending}
           onClose={() => setDialog(null)}
         />
+      )}
+      {dialog?.kind === 'scrap' && (
+        <ScrapDialog pending={dialog.pending} onClose={() => setDialog(null)} />
       )}
       {dialog?.kind === 'count' && (
         <CountDialog

@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test'
-import { returnInputFromDraft } from '#/modules/inventory/lib/pending-return'
+import {
+  returnInputFromDraft,
+  scrapInputFromDraft,
+} from '#/modules/inventory/lib/pending-return'
 
 const base = { pendingId: 'p1', owedBoxes: 4 }
 
@@ -78,5 +81,25 @@ describe('returnInputFromDraft', () => {
     expect(rejected('1', '1,5')).toBe(
       'Usa punto para los decimales, sin comas.',
     )
+  })
+})
+
+describe('scrapInputFromDraft', () => {
+  test('sends the boxes to write off', () => {
+    expect(scrapInputFromDraft({ ...base, boxes: '3' })).toEqual({
+      ok: true,
+      value: { pendingId: 'p1', boxes: 3 },
+    })
+  })
+
+  test('refuses zero boxes and more than owed', () => {
+    expect(scrapInputFromDraft({ ...base, boxes: '0' })).toEqual({
+      ok: false,
+      message: 'Escribe cuántas cajas dar por merma.',
+    })
+    expect(scrapInputFromDraft({ ...base, boxes: '5' })).toEqual({
+      ok: false,
+      message: 'El proveedor tiene 4 cajas por devolver.',
+    })
   })
 })

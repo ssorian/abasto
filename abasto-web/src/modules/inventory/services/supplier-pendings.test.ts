@@ -22,6 +22,7 @@ import {
 import {
   listSupplierPendings,
   returnPendings,
+  scrapPendings,
 } from '#/modules/inventory/services/supplier-pendings'
 import {
   errorOf,
@@ -771,6 +772,87 @@ describe('returnPendings', () => {
     for (const [actor, payload, code, message] of cases) {
       const before = await supplierState()
       const error = await errorOf(() => returnPendings(actor, payload))
+      expect([error.code, error.message]).toEqual([code, message])
+      expect(await supplierState()).toEqual(before)
+    }
+  })
+})
+
+describe('scrapPendings', () => {
+  test('closing damaged boxes as merma records their value as lost and leaves stock alone', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 0, 3)
+    const damaged = (await returnMilk(fx))!
+    const before = await supplierState()
+    expect(
+      await scrapPendings(fx.managerA, {
+        pendingId: damaged.pendingId,
+        boxes: 1,
+      }),
+    ).toEqual({ valueCents: 1344 })
+    expect(await returnMilk(fx)).toMatchObject({ owedBoxes: 2 })
+    expect(
+      await scrapPendings(fx.owner, { pendingId: damaged.pendingId, boxes: 2 }),
+    ).toEqual({ valueCents: 2688 })
+    expect(await returnMilk(fx)).toBeUndefined()
+    const after = await supplierState()
+    expect(after.inventory).toEqual(before.inventory)
+    const scrapped = after.pendings.filter((row) => row.type === 'scrapped')
+    expect(scrapped).toHaveLength(2)
+    expect(scrapped[0]).toMatchObject({
+      settlesId: damaged.pendingId,
+      purchaseId: null,
+      quantity: -12,
+      valueCents: -1344,
+      resolution: null,
+      creditCents: null,
+      actorId: fx.managerA.userId,
+    })
+  })
+
+  test('rejects bad write-offs and leaves everything unchanged', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 3, 2)
+    const damaged = (await returnMilk(fx))!
+    const missing = (await restockMilk(fx))!
+    const input = { pendingId: damaged.pendingId, boxes: 1 }
+    const cases: Array<
+      [
+        Parameters<typeof scrapPendings>[0],
+        Parameters<typeof scrapPendings>[1],
+        AppErrorCode,
+        string,
+      ]
+    > = [
+      [
+        fx.owner,
+        { ...input, boxes: 3 },
+        'invalid',
+        'Las cajas a dar por merma superan el saldo del proveedor.',
+      ],
+      [
+        fx.owner,
+        { ...input, boxes: 0 },
+        'invalid',
+        'Las cajas a dar por merma deben ser un número entero mayor que cero.',
+      ],
+      [
+        fx.owner,
+        { ...input, pendingId: missing.pendingId },
+        'invalid',
+        'Solo se pueden dar por merma cajas dañadas o caducadas.',
+      ],
+      [
+        fx.owner,
+        { ...input, pendingId: crypto.randomUUID() },
+        'not_found',
+        'No encontramos ese saldo.',
+      ],
+      [unassigned(fx.managerB), input, 'forbidden', forbidden],
+    ]
+    for (const [actor, payload, code, message] of cases) {
+      const before = await supplierState()
+      const error = await errorOf(() => scrapPendings(actor, payload))
       expect([error.code, error.message]).toEqual([code, message])
       expect(await supplierState()).toEqual(before)
     }

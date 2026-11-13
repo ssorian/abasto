@@ -246,6 +246,13 @@
       "when": 1794580000000,
       "tag": "0034_freeze_derived_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794585701047,
+      "tag": "0035_supplier_pending_scrapped",
+      "breakpoints": true
     }
   ]
 }

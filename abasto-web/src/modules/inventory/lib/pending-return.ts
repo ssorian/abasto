@@ -45,3 +45,22 @@ export function returnInputFromDraft(
   if (!credit.ok) return credit
   return { ok: true, value: { ...base, creditCents: credit.value } }
 }
+
+export type ScrapRequest = { pendingId: string; boxes: number }
+
+/** "Dar por merma" form → server input. */
+export function scrapInputFromDraft(draft: {
+  pendingId: string
+  owedBoxes: number
+  boxes: string
+}): Parsed<ScrapRequest> {
+  const boxes = parseBoxCount(draft.boxes)
+  if (!boxes.ok) return boxes
+  if (boxes.value === 0) return fail('Escribe cuántas cajas dar por merma.')
+  if (boxes.value > draft.owedBoxes) {
+    return fail(
+      `El proveedor tiene ${draft.owedBoxes} ${draft.owedBoxes === 1 ? 'caja' : 'cajas'} por devolver.`,
+    )
+  }
+  return { ok: true, value: { pendingId: draft.pendingId, boxes: boxes.value } }
+}

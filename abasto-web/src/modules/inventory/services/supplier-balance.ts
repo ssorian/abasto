@@ -149,7 +149,7 @@ export async function loadSupplierBalances(
 type SettleInput = {
   balance: Balance
   boxes: number
-  type: 'replaced' | 'returned'
+  type: 'replaced' | 'returned' | 'scrapped'
   /** Receiving order for a replacement; null otherwise. */
   purchaseId: string | null
   actorId: string
