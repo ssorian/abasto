@@ -13,11 +13,21 @@ import {
   listProducts,
 } from '#/modules/catalog/services/products'
 import { getCounterOverview } from '#/modules/counter/server/counter-overview'
-import { lots } from '#/modules/inventory/db/schema'
+import { lots, supplierPendings } from '#/modules/inventory/db/schema'
+import { adjustLot } from '#/modules/inventory/services/stock-adjustments'
+import {
+  lineFor,
+  setupSupplierOrders,
+  supplierState,
+} from '#/modules/inventory/services/supplier-testing'
 import { setMinimumStock } from '#/modules/inventory/services/stock-minimums'
 import { countStock } from '#/modules/inventory/services/stock-counts'
 import { createPurchase } from '#/modules/inventory/services/purchases'
-import { createSupplierOrder } from '#/modules/inventory/services/supplier-orders'
+import {
+  createSupplierOrder,
+  getSupplierOrder,
+  receiveSupplierOrder,
+} from '#/modules/inventory/services/supplier-orders'
 import { prepareOrder } from '#/modules/orders/services/order-actions'
 import { createOrder } from '#/modules/orders/services/orders'
 import { getOrder } from '#/modules/orders/services/order-reads'
@@ -28,6 +38,7 @@ import {
 } from '#/modules/orders/services/testing'
 import { assignRider } from '#/modules/riders/services/assignments'
 import { createRider } from '#/modules/riders/services/riders'
+import { listWarehousePrices } from '#/modules/pricing/services/price-reads'
 import { getStoreCatalog } from '#/modules/store/services/storefront'
 import { dispatchTransfer } from '#/modules/transfers/services/transfer-dispatch'
 
@@ -81,6 +92,9 @@ describe('archiveProduct', () => {
     expect((await getStoreCatalog(fx.a.id)).map((p) => p.id)).not.toContain(
       product.id,
     )
+    expect(
+      (await listWarehousePrices(fx.owner, fx.a.id)).map((r) => r.productId),
+    ).not.toContain(product.id)
     const counter = await getCounterOverview(fx.staffA, fx.a.id)
     expect(counter.sellable.map((s) => s.productId)).not.toContain(product.id)
 
@@ -241,6 +255,39 @@ describe('archiveProduct', () => {
     )
   })
 
+  test('refuses with a transfer En tránsito', async () => {
+    const { fx, product, archivedAtOf, emptyLots } = await setup()
+    await receive(fx, { productId: product.id, quantity: 20 })
+    await dispatchTransfer(fx.managerA, {
+      fromWarehouseId: fx.a.id,
+      toWarehouseId: fx.b.id,
+      items: [{ productId: product.id, quantity: 5 }],
+    })
+    await emptyLots()
+    await refused(
+      () => archiveProduct(fx.owner, product.id),
+      archivedAtOf,
+      /traslado en tránsito/,
+    )
+  })
+
+  test('refuses with an open supplier balance (por reponer / por devolver)', async () => {
+    const { fx, product, archivedAtOf } = await setup()
+    await db.insert(supplierPendings).values({
+      supplierId: fx.supplier.id,
+      productId: product.id,
+      type: 'missing',
+      quantity: 3,
+      valueCents: 300,
+      actorId: fx.owner.userId,
+    })
+    await refused(
+      () => archiveProduct(fx.owner, product.id),
+      archivedAtOf,
+      /saldo abierto con el proveedor/,
+    )
+  })
+
   test('only the owner can archive or restore', async () => {
     const { fx, product, archivedAtOf } = await setup()
     for (const actor of [fx.managerA, fx.staffA]) {
@@ -283,5 +330,66 @@ describe('archiveProduct', () => {
     expect((await getProduct(fx.owner, product.id)).name).toBe(
       'Leche entera 1L',
     )
+  })
+})
+
+describe('archived products refuse new stock through other doors', () => {
+  const archiveDirectly = (id: string) =>
+    db
+      .update(products)
+      .set({ archivedAt: new Date() })
+      .where(eq(products.id, id))
+
+  test('receiving a supplier order refuses unordered extras of an archived product', async () => {
+    const fx = await setupSupplierOrders()
+    const created = await createSupplierOrder(fx.owner, {
+      supplierId: fx.supplier.id,
+      warehouseId: fx.a.id,
+      lines: [lineFor(fx.milk, 2)],
+    })
+    const order = await getSupplierOrder(fx.owner, created.id)
+    await archiveDirectly(fx.free.id)
+    const before = await supplierState()
+    const error = await errorOf(() =>
+      receiveSupplierOrder(fx.managerA, {
+        purchaseId: order.id,
+        lines: order.lines.map((line) => ({
+          lineId: line.id,
+          noExpiry: true,
+          missingBoxes: 0,
+          damagedBoxes: 0,
+        })),
+        extras: [{ productId: fx.free.id, boxes: 1, noExpiry: true }],
+      }),
+    )
+    expect(error.code).toBe('conflict')
+    expect(error.message).toMatch(/archivado/)
+    expect(await supplierState()).toEqual(before)
+  })
+
+  test('positive adjustments on an archived product are refused; removals are allowed', async () => {
+    const { fx, product } = await setup()
+    await receive(fx, { productId: product.id, quantity: 10 })
+    const [lot] = await db
+      .select()
+      .from(lots)
+      .where(eq(lots.productId, product.id))
+    await archiveDirectly(product.id)
+    const error = await errorOf(() =>
+      adjustLot(fx.managerA, {
+        lotId: lot.id,
+        quantity: 5,
+        reason: 'Hallazgo',
+      }),
+    )
+    expect(error.code).toBe('conflict')
+    expect(error.message).toMatch(/archivado/)
+    await adjustLot(fx.managerA, {
+      lotId: lot.id,
+      quantity: -4,
+      reason: 'Merma',
+    })
+    const [after] = await db.select().from(lots).where(eq(lots.id, lot.id))
+    expect(after.onHand).toBe(lot.onHand - 4)
   })
 })

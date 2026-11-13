@@ -25,11 +25,12 @@ export function ruleLabel(
   return `${names.get(rule.presentationId) ?? 'Presentación'}: ${value} desde ${rule.minQuantity}`
 }
 
-/** One option per active presentation, labelled "Producto · Presentación". */
+/** One option per active presentation (archived products included, flagged), labelled "Producto · Presentación". */
 export function presentationOptions(
   products: ReadonlyArray<{
     name: string
     sku?: string
+    archivedAt?: Date | string | null
     presentations: ReadonlyArray<{ id: string; name: string; active: boolean }>
   }>,
 ): Array<PresentationOption> {
@@ -40,8 +41,21 @@ export function presentationOptions(
         id: presentation.id,
         label: `${product.name} · ${presentation.name}`,
         ...(product.sku ? { sku: product.sku } : {}),
+        ...(product.archivedAt ? { archived: true as const } : {}),
       })),
   )
+}
+
+/**
+ * Options the picker offers: those of active products, plus the ones the
+ * rules being edited already use so they keep showing their name.
+ */
+export function selectableOptions(
+  options: ReadonlyArray<PresentationOption>,
+  inUse: ReadonlyArray<string>,
+): Array<PresentationOption> {
+  const used = new Set(inUse)
+  return options.filter((option) => !option.archived || used.has(option.id))
 }
 
 const dateTime = new Intl.DateTimeFormat('es-MX', {

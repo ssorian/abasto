@@ -20,4 +20,10 @@ export type RuleView = {
 }
 
 /** A presentation a rule can target. */
-export type PresentationOption = { id: string; label: string; sku?: string }
+export type PresentationOption = {
+  id: string
+  label: string
+  sku?: string
+  /** Its product is archived: still named in rules, not offered for new ones. */
+  archived?: true
+}

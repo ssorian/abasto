@@ -1,6 +1,8 @@
 import { eq } from 'drizzle-orm'
 import { db } from '#/db'
 import { AppError } from '#/lib/errors'
+import { products } from '#/modules/catalog/db/schema'
+import { productArchived } from '#/modules/catalog/services/product-reads'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { lossCategories, lots } from '#/modules/inventory/db/schema'
@@ -26,12 +28,18 @@ function moveLot(
   return db.transaction(async (tx) => {
     const found = (
       await tx
-        .select({ warehouseId: lots.warehouseId })
+        .select({
+          warehouseId: lots.warehouseId,
+          archivedAt: products.archivedAt,
+        })
         .from(lots)
+        .innerJoin(products, eq(products.id, lots.productId))
         .where(eq(lots.id, lotId))
     ).at(0)
     if (!found) throw new AppError('not_found', 'No encontramos ese lote.')
     authorize(actor, 'warehouse.manage', found.warehouseId)
+    // Archived products only lose stock; nothing new may enter them.
+    if (quantity > 0 && found.archivedAt) throw productArchived()
     // Overdue orders release their units before the lot is locked.
     await expireOverdueOrders(tx, found.warehouseId)
     const lot = await lockLot(tx, lotId)

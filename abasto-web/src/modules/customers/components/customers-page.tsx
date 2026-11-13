@@ -9,6 +9,7 @@ import { CustomerFormDialog } from '#/modules/customers/forms/customer-form-dial
 import { useSaveCustomer } from '#/modules/customers/hooks/use-customers'
 import { filterCustomers } from '#/modules/customers/lib/customer-search'
 import { activeFirst } from '#/modules/customers/lib/customer-sort'
+import { selectableOptions } from '#/modules/customers/lib/customer-labels'
 
 import type { PresentationOption } from '#/modules/customers/lib/customer-view'
 import type { CustomersOverview } from '#/modules/customers/server/customers'
@@ -83,7 +84,12 @@ export function CustomersPage({ overview, presentations }: CustomersPageProps) {
           key={editor.customerId ?? 'new'}
           customer={editing}
           rules={editing ? (rules[editing.id] ?? []) : []}
-          presentations={presentations}
+          presentations={selectableOptions(
+            presentations,
+            (editing ? (rules[editing.id] ?? []) : []).map(
+              (rule) => rule.presentationId,
+            ),
+          )}
           onSubmit={save}
           onClose={() => setEditor(undefined)}
         />

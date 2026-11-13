@@ -18,6 +18,7 @@ import { CountsTab } from '#/modules/inventory/components/counts-tab'
 import { EntriesTab } from '#/modules/inventory/components/entries-tab'
 import { MovementsTab } from '#/modules/inventory/components/movements-tab'
 import type { ProductLabel } from '#/modules/inventory/components/movement-table'
+import { activeProducts } from '#/modules/inventory/lib/active-products'
 import { ProductsTab } from '#/modules/inventory/components/products-tab'
 import { SupplierOrdersTab } from '#/modules/inventory/components/supplier-orders-tab'
 import { SupplierPendingsTab } from '#/modules/inventory/components/supplier-pendings-tab'
@@ -143,6 +144,8 @@ export function InventoryPage({
     setDialog(null)
     if (initialAction) onActionDone?.()
   }
+
+  const pickable = useMemo(() => activeProducts(products), [products])
 
   const labels = useMemo(
     () =>
@@ -366,7 +369,7 @@ export function InventoryPage({
           warehouses={managed}
           initialWarehouseId={selected.id}
           suppliers={suppliers}
-          products={products}
+          products={pickable}
           canEditProducts={canEditProducts}
           restock={pendings.restock}
           initialProductId={dialog.productId}
@@ -383,7 +386,7 @@ export function InventoryPage({
         <ReceptionDialog
           order={dialog.order}
           restock={pendings.restock}
-          products={products}
+          products={pickable}
           onClose={() => setDialog(null)}
         />
       )}
@@ -402,14 +405,14 @@ export function InventoryPage({
       {dialog?.kind === 'count' && (
         <CountDialog
           warehouseId={selected.id}
-          products={products}
+          products={pickable}
           onClose={() => setDialog(null)}
         />
       )}
       {dialog?.kind === 'minimum' && (
         <MinimumDialog
           warehouseId={selected.id}
-          products={products}
+          products={pickable}
           stock={stock}
           productId={dialog.productId}
           onClose={() => setDialog(null)}
@@ -419,7 +422,7 @@ export function InventoryPage({
         <TransferDialog
           from={selected}
           destinations={transfers.destinations}
-          products={products}
+          products={pickable}
           stock={stock}
           onClose={() => setDialog(null)}
         />

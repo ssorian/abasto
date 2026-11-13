@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { unwrap } from '#/lib/boundary'
 import {
-  listProductsFn,
+  listCatalogProductsFn,
   listSuppliersFn,
 } from '#/modules/catalog/server/catalog'
 import { InventoryPage } from '#/modules/inventory/components/inventory-page'
@@ -45,7 +45,7 @@ export const Route = createFileRoute('/inventario')({
   loader: async ({ deps }) => {
     const [overview, products, suppliers] = await Promise.all([
       inventoryOverviewFn({ data: { warehouseId: deps.almacen } }),
-      listProductsFn(),
+      listCatalogProductsFn(),
       listSuppliersFn(),
     ])
     const loaded = unwrap(overview)

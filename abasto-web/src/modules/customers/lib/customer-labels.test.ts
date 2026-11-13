@@ -4,6 +4,7 @@ import {
   formatOrderDate,
   pickerItems,
   presentationOptions,
+  selectableOptions,
   ruleLabel,
   rulesSummary,
   statusLabel,
@@ -82,6 +83,30 @@ describe('customer labels', () => {
     expect(options).toEqual([
       { id: 'a', label: 'Leche · Pieza' },
       { id: 'c', label: 'Cola · Caja' },
+    ])
+  })
+
+  test('archived products keep a name but are not selectable unless in use', () => {
+    const options = presentationOptions([
+      {
+        name: 'Leche',
+        archivedAt: new Date('2026-11-01'),
+        presentations: [{ id: 'a', name: 'Pieza', active: true }],
+      },
+      {
+        name: 'Cola',
+        archivedAt: null,
+        presentations: [{ id: 'c', name: 'Caja', active: true }],
+      },
+    ])
+    expect(options.map((o) => o.label)).toEqual([
+      'Leche · Pieza',
+      'Cola · Caja',
+    ])
+    expect(selectableOptions(options, []).map((o) => o.id)).toEqual(['c'])
+    expect(selectableOptions(options, ['a']).map((o) => o.id)).toEqual([
+      'a',
+      'c',
     ])
   })
 
