@@ -45,7 +45,7 @@ import { hasWarehouseChoice } from '#/modules/warehouses/lib/warehouse-choice'
 type CatalogPageProps = {
   products: Array<CatalogProduct>
   suppliers: Array<CatalogSupplier>
-  /** Owner-only (`catalog.manage`); staff can browse. */
+  /** `catalog.manage`: the owner and warehouse managers; other staff browse. */
   canManage: boolean
   pricing: PricingOverview
   onSelectWarehouse: (id: string) => void
@@ -256,7 +256,8 @@ export function CatalogPage({
           key={editor.productId ?? 'new'}
           product={editing}
           suppliers={suppliers}
-          warehouseName={warehouse?.name}
+          // Prices can only be saved in a warehouse the user manages.
+          warehouseName={warehouse?.canManage ? warehouse.name : undefined}
           onArchive={
             editor.productId
               ? () => actions.archiveProduct(editor.productId!)
@@ -267,7 +268,7 @@ export function CatalogPage({
               editor.productId,
               draft,
               presentations,
-              pricing.selectedId,
+              warehouse?.canManage ? warehouse.id : undefined,
             )
           }
           onClose={() => setEditor(undefined)}

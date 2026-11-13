@@ -41,9 +41,26 @@ describe('catalog.cost', () => {
     )
   })
 
-  test('it grants no other catalog permission', () => {
+  test('it grants no other company-wide permission', () => {
     const manager = actor('staff', { [north]: 'manager' })
-    expect(can(manager, 'catalog.manage')).toBe(false)
+    expect(can(manager, 'warehouses.manage')).toBe(false)
+  })
+})
+
+describe('catalog.manage', () => {
+  test('the owner and any warehouse manager may manage the catalog', () => {
+    expect(can(actor('owner'), 'catalog.manage')).toBe(true)
+    expect(can(actor('staff', { [north]: 'manager' }), 'catalog.manage')).toBe(
+      true,
+    )
+  })
+
+  test('staff without a warehouse and customers may not', () => {
+    expect(can(actor('staff'), 'catalog.manage')).toBe(false)
+    expect(can(actor('customer'), 'catalog.manage')).toBe(false)
+    expect(
+      can(actor('customer', { [north]: 'manager' }), 'catalog.manage'),
+    ).toBe(false)
   })
 })
 
@@ -80,7 +97,6 @@ describe('can', () => {
 
   test('staff never hold owner-only permissions, whatever their assignments', () => {
     const manager = actor('staff', { [north]: 'manager', [south]: 'manager' })
-    expect(can(manager, 'catalog.manage')).toBe(false)
     expect(can(manager, 'warehouses.manage')).toBe(false)
     expect(can(manager, 'users.manage')).toBe(false)
     expect(can(manager, 'customers.manage')).toBe(false)

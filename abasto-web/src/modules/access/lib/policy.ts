@@ -10,7 +10,10 @@ export type Actor = {
   assignments: ReadonlyMap<string, WarehouseRole>
 }
 
-/** Company-wide permissions: owner only. */
+/**
+ * Company-wide permissions: owner only, except `catalog.manage` (products,
+ * presentations, suppliers, import), which any warehouse manager also holds.
+ */
 export type GlobalPermission =
   'catalog.manage' | 'warehouses.manage' | 'users.manage' | 'customers.manage'
 
@@ -51,7 +54,7 @@ export function can(
 ): boolean {
   if (actor.role === 'owner') return true
   if (actor.role === 'customer') return false
-  if (permission === 'catalog.cost') {
+  if (permission === 'catalog.cost' || permission === 'catalog.manage') {
     return [...actor.assignments.values()].includes('manager')
   }
   if (!isWarehousePermission(permission) || !warehouseId) return false

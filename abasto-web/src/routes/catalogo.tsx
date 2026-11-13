@@ -32,7 +32,10 @@ export const Route = createFileRoute('/catalogo')({
       <CatalogPage
         products={products}
         suppliers={suppliers}
-        canManage={user?.role === 'owner'}
+        canManage={
+          user?.role === 'owner' ||
+          pricing.warehouses.some((warehouse) => warehouse.canManage)
+        }
         pricing={pricing}
         onSelectWarehouse={(almacen) => void navigate({ search: { almacen } })}
       />

@@ -98,7 +98,10 @@ function InventoryRoute() {
       overview={overview}
       products={products}
       suppliers={suppliers}
-      canEditProducts={user?.role === 'owner'}
+      canEditProducts={
+        user?.role === 'owner' ||
+        overview.warehouses.some((warehouse) => warehouse.canManage)
+      }
       transfers={transfers}
       supplierOrders={[...supplierOrders]}
       pendings={{

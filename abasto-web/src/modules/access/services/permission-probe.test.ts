@@ -162,6 +162,44 @@ async function setup() {
 
 type Fixture = Awaited<ReturnType<typeof setup>>
 
+/** Catalog services: the owner and any warehouse manager, never a customer. */
+const managerCatalog: Array<
+  [string, (actor: Actor, fx: Fixture) => Promise<unknown>]
+> = [
+  [
+    'catalog.manage createProduct',
+    (actor) =>
+      createProduct(actor, {
+        name: 'Refresco',
+        sku: 'REF-1',
+        category: 'Bebidas',
+        unit: 'piezas',
+        presentations: [{ name: 'Pieza', factor: 1 }],
+        defaultIndex: 0,
+      }),
+  ],
+  [
+    'catalog.manage updateProduct',
+    (actor, fx) => updateProduct(actor, fx.product.id, { name: 'Robado' }),
+  ],
+  [
+    'catalog.manage savePresentations',
+    (actor, fx) =>
+      savePresentations(actor, fx.product.id, {
+        presentations: [{ name: 'Pieza', factor: 1 }],
+        defaultIndex: 0,
+      }),
+  ],
+  [
+    'catalog.manage createSupplier',
+    (actor) => createSupplier(actor, { name: 'Falso' }),
+  ],
+  [
+    'catalog.manage updateSupplier',
+    (actor, fx) => updateSupplier(actor, fx.supplier.id, { active: false }),
+  ],
+]
+
 /** Every owner-only service, with valid input, keyed by the permission it needs. */
 const ownerOnly: Array<
   [string, (actor: Actor, fx: Fixture) => Promise<unknown>]
@@ -200,38 +238,6 @@ const ownerOnly: Array<
   [
     'warehouses.manage setReservationHours',
     (actor) => setReservationHours(actor, 48),
-  ],
-  [
-    'catalog.manage createProduct',
-    (actor) =>
-      createProduct(actor, {
-        name: 'Refresco',
-        sku: 'REF-1',
-        category: 'Bebidas',
-        unit: 'piezas',
-        presentations: [{ name: 'Pieza', factor: 1 }],
-        defaultIndex: 0,
-      }),
-  ],
-  [
-    'catalog.manage updateProduct',
-    (actor, fx) => updateProduct(actor, fx.product.id, { name: 'Robado' }),
-  ],
-  [
-    'catalog.manage savePresentations',
-    (actor, fx) =>
-      savePresentations(actor, fx.product.id, {
-        presentations: [{ name: 'Pieza', factor: 1 }],
-        defaultIndex: 0,
-      }),
-  ],
-  [
-    'catalog.manage createSupplier',
-    (actor) => createSupplier(actor, { name: 'Falso' }),
-  ],
-  [
-    'catalog.manage updateSupplier',
-    (actor, fx) => updateSupplier(actor, fx.supplier.id, { active: false }),
   ],
   [
     'customers.manage createCustomer',
@@ -286,6 +292,32 @@ const ownerOnly: Array<
 ]
 
 beforeEach(() => resetDatabase(db))
+
+describe('catalog operations', () => {
+  test.each(managerCatalog)(
+    'a warehouse manager passes the server entry: %s',
+    async (_name, call) => {
+      const fx = await setup()
+      const result = await throughServerEntry(fx.managerHeaders, (actor) =>
+        call(actor, fx),
+      )
+      expect(result).toMatchObject({ ok: true })
+    },
+  )
+
+  test.each(managerCatalog)(
+    'a store customer is refused at the server entry: %s',
+    async (_name, call) => {
+      const fx = await setup()
+      const before = await snapshot()
+      const result = await throughServerEntry(fx.customerHeaders, (actor) =>
+        call(actor, fx),
+      )
+      expect(result).toEqual(customerOnly)
+      expect(await snapshot()).toEqual(before)
+    },
+  )
+})
 
 describe('owner-only operations', () => {
   test.each(ownerOnly)(
