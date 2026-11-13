@@ -12,7 +12,6 @@ const availabilityTones: Record<Availability, StatusTone> = {
 
 const statusTones: Record<StoreOrderStatus, StatusTone> = {
   Reservado: 'blue',
-  Preparado: 'amber',
   Recogido: 'green',
   Cancelado: 'gray',
   Vencido: 'red',
@@ -53,14 +52,14 @@ export const holdUntilLabel = (expiresAt: Date) =>
   `Pasa por él antes de ${formatPickupDate(expiresAt)}`
 
 /**
- * Deadline line for an order: shown while it is open (Reservado, Preparado),
+ * Deadline line for an order: shown while it is open (Reservado),
  * in past tense once Vencido, and omitted for Recogido and Cancelado.
  */
 export const pickupDeadlineLabel = (
   status: StoreOrderStatus,
   expiresAt: Date,
 ): { prefix: string; date: string } | null => {
-  if (status === 'Reservado' || status === 'Preparado') {
+  if (status === 'Reservado') {
     return { prefix: 'Recoge antes de', date: formatPickupDate(expiresAt) }
   }
   if (status === 'Vencido') {

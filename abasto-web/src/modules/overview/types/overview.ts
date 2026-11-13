@@ -3,7 +3,7 @@
 export type WarehouseOverview = {
   id: string
   name: string
-  /** Reservado or Preparado orders still holding stock. */
+  /** Reservado orders still holding stock. */
   openOrders: number
   /** Open orders whose reservation ends today. */
   expiringTodayOrders: number

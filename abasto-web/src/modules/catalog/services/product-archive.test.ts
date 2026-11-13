@@ -28,7 +28,6 @@ import {
   getSupplierOrder,
   receiveSupplierOrder,
 } from '#/modules/inventory/services/supplier-orders'
-import { prepareOrder } from '#/modules/orders/services/order-actions'
 import { createOrder } from '#/modules/orders/services/orders'
 import { getOrder } from '#/modules/orders/services/order-reads'
 import {
@@ -200,21 +199,15 @@ describe('archiveProduct', () => {
     )
   })
 
-  test('refuses with an open customer order (Reservado and Preparado)', async () => {
+  test('refuses with an open customer order (Reservado)', async () => {
     const { fx, product, archivedAtOf, emptyLots } = await setup()
     await receive(fx, { productId: product.id, quantity: 20 })
-    const order = await createOrder(fx.staffA, {
+    await createOrder(fx.staffA, {
       warehouseId: fx.a.id,
       customerId: fx.customer.id,
       lines: [{ presentationId: fx.pieceId, quantity: 2 }],
     })
     await emptyLots()
-    await refused(
-      () => archiveProduct(fx.owner, product.id),
-      archivedAtOf,
-      /pedidos de clientes/,
-    )
-    await prepareOrder(fx.staffA, order.id)
     await refused(
       () => archiveProduct(fx.owner, product.id),
       archivedAtOf,

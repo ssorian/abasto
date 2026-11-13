@@ -74,21 +74,6 @@ export async function transition(
 const operate = (actor: Actor) => (head: { warehouseId: string }) =>
   authorize(actor, 'warehouse.operate', head.warehouseId)
 
-/** Reservado → Preparado; the reservation stays. */
-export const prepareOrder = (actor: Actor, orderId: string) =>
-  transition(
-    operate(actor),
-    orderId,
-    ['Reservado'],
-    'Solo se puede preparar un pedido reservado.',
-    async (tx) => {
-      await tx
-        .update(orders)
-        .set({ status: 'Preparado', preparedAt: now() })
-        .where(eq(orders.id, orderId))
-    },
-  )
-
 /** Cancels from the given statuses and releases the reserved units. */
 export const cancelOrderWith = (
   guard: Guard,
@@ -104,19 +89,19 @@ export const cancelOrderWith = (
       .where(eq(orders.id, orderId))
   })
 
-/** Reservado/Preparado → Cancelado; releases the reserved units. */
+/** Reservado → Cancelado; releases the reserved units. */
 export const cancelOrder = (actor: Actor, orderId: string) =>
   cancelOrderWith(
     operate(actor),
     orderId,
-    ['Reservado', 'Preparado'],
-    'Solo se puede cancelar un pedido reservado o preparado.',
+    ['Reservado'],
+    'Solo se puede cancelar un pedido reservado.',
   )
 
 export type PickupResult = OrderDetail & { payment: PickupReceipt }
 
 /**
- * Reservado/Preparado → Recogido (whole order), paid in cash: settles the
+ * Reservado → Recogido (whole order), paid in cash: settles the
  * payment, appends one `sale` movement per allocation and lowers `on_hand`
  * and `reserved` together, all in one transaction.
  */
@@ -129,8 +114,8 @@ export async function pickupOrder(
   const detail = await transition(
     operate(actor),
     orderId,
-    ['Reservado', 'Preparado'],
-    'Solo se puede entregar un pedido reservado o preparado.',
+    ['Reservado'],
+    'Solo se puede entregar un pedido reservado.',
     async (tx, order) => {
       if (await hasExpiredLot(tx, orderId)) {
         throw new AppError(

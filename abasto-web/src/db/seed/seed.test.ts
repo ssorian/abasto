@@ -141,7 +141,7 @@ describe('seedDatabase', () => {
           (row) => row.status,
         ),
       )
-      for (const status of ['Reservado', 'Preparado', 'Recogido', 'Cancelado'])
+      for (const status of ['Reservado', 'Recogido', 'Cancelado'])
         expect(statuses.has(status as never)).toBe(true)
 
       // Open drawers, one closed cut, and transfers both received and in transit.
@@ -231,7 +231,7 @@ describe('seedDatabase', () => {
           )
           .innerJoin(orders, eq(orders.id, orderLines.orderId))
           .where(
-            sql`${orderAllocations.lotId} = ${lot.id} and ${orders.status} in ('Reservado', 'Preparado')`,
+            sql`${orderAllocations.lotId} = ${lot.id} and ${orders.status} in ('Reservado')`,
           )
         expect(lot.reserved).toBe(open.value)
       }

@@ -41,7 +41,6 @@ import { businessDate } from '#/modules/orders/services/clock'
 import {
   cancelOrder,
   pickupOrder,
-  prepareOrder,
 } from '#/modules/orders/services/order-actions'
 import type { PickupPayment } from '#/modules/orders/services/pickup-gate'
 import { createOrder } from '#/modules/orders/services/orders'
@@ -421,11 +420,10 @@ export async function seedDatabase({
     reason: 'Compra de bolsas y hielo',
   })
   await order('Tejupilco', 'sanchez', [['13455', 25]], 'Pasa mañana temprano.')
-  const prepared = await order('Tejupilco', 'donPepe', [
+  await order('Tejupilco', 'donPepe', [
     ['25018', 4],
     ['LU11', 2],
   ])
-  await prepareOrder(managerOf('Tejupilco'), prepared.id)
   const cancelled = await order('Tejupilco', 'esquinita', [['SA80', 2]])
   await cancelOrder(managerOf('Tejupilco'), cancelled.id)
 

@@ -104,7 +104,7 @@ export function OrderViewDialog({
     >
       <div className="flex flex-wrap items-center gap-3 text-[13px] text-[#8d6f79]">
         <StatusBadge status={order.status} />
-        {(order.status === 'Reservado' || order.status === 'Preparado') && (
+        {order.status === 'Reservado' && (
           <span>{expiryLabel(order.expiresAt, now)}</span>
         )}
         <span>Total {formatCents(order.totalCents)}</span>
@@ -177,11 +177,6 @@ export function OrderViewDialog({
         />
       ) : (
         <div className="flex flex-wrap items-center gap-3">
-          {allowed.prepare && (
-            <ActionButton disabled={busy} onClick={() => act(actions.prepare)}>
-              Preparar
-            </ActionButton>
-          )}
           {allowed.pickup && (
             <ActionButton
               tone="primary"

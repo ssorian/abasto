@@ -37,7 +37,7 @@ export type ProductStock = {
   supplierId: string | null
   supplierName: string | null
   onHand: number
-  /** Held by open orders (Reservado or Preparado). */
+  /** Held by open orders (Reservado). */
   reserved: number
   /** Handed to riders on open assignments (En ruta); still on hand until settled. */
   inRoute: number
