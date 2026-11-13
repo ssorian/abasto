@@ -280,7 +280,7 @@ export async function seedDatabase({
         const line = lines.find((entry) => entry.productId === stock.productId)!
         return {
           lineId: stock.id,
-          missingBoxes: 0,
+          receivedBoxes: stock.boxes,
           damagedBoxes: damaged[line.seed.sku] ?? 0,
           expiresOn: line.expiresOn,
           noExpiry: !line.expiresOn,
@@ -317,7 +317,7 @@ export async function seedDatabase({
   const expired = await orderAndReceive('Arcelia', 'lala', [
     lineFor('23431', 'Arcelia', 1, -2),
   ])
-  await registerLoss(managerOf('Arcelia'), {
+  await registerLoss(owner, {
     lotId: expired.lots[0].id,
     quantity: item('23431').seed.boxFactor,
     category: 'caducado',

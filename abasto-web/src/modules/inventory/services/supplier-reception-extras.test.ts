@@ -38,7 +38,7 @@ const arrive = (order: Order, extras: Array<ReceptionExtraInput>) => ({
   lines: order.lines.map((line) => ({
     lineId: line.id,
     noExpiry: true,
-    missingBoxes: 0,
+    receivedBoxes: line.boxes,
     damagedBoxes: 0,
   })),
   extras,

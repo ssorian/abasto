@@ -39,9 +39,13 @@ import type { Lot } from '#/modules/inventory/services/stock-ledger'
 
 export type ReceptionLineInput = {
   lineId: string
-  /** Whole boxes that never arrived: they become a "Por reponer" balance. */
-  missingBoxes: number
-  /** Whole boxes that arrived damaged or expired: a "Por devolver" balance, never stock. */
+  /**
+   * Whole boxes that actually arrived. Fewer than ordered: the difference is a
+   * "Por reponer" balance. More than ordered: the extra boxes enter stock
+   * without raising what is owed to the supplier.
+   */
+  receivedBoxes: number
+  /** Whole boxes, of the received ones, that arrived damaged or expired: a "Por devolver" balance, never stock. */
   damagedBoxes: number
   /** YYYY-MM-DD. Required when good boxes enter, unless `noExpiry` says the product has none. */
   expiresOn?: string
@@ -56,7 +60,7 @@ export type ReceptionLineInput = {
 }
 export type ReceptionInput = {
   purchaseId: string
-  /** Good boxes are derived: ordered − missing − damaged. */
+  /** Good boxes are derived: received − damaged. */
   lines: Array<ReceptionLineInput>
   /** Also save every changed list price per piece on its catalog product. */
   updateCatalogPrices?: boolean
@@ -107,27 +111,23 @@ function validateLines(
       'Captura la recepción de todas las líneas del pedido.',
     )
   }
-  const ordered = new Map(
-    stored.map((line) => [line.id, line.quantity / line.boxFactor]),
-  )
   for (const line of input.lines) {
-    if (!isCount(line.missingBoxes) || !isCount(line.damagedBoxes)) {
+    if (!isCount(line.receivedBoxes) || !isCount(line.damagedBoxes)) {
       throw new AppError(
         'invalid',
-        'Las cajas faltantes y dañadas deben ser enteros de cero o más.',
+        'Las cajas recibidas y dañadas deben ser enteros de cero o más.',
       )
     }
-    if (line.missingBoxes + line.damagedBoxes > ordered.get(line.lineId)!) {
+    if (line.damagedBoxes > line.receivedBoxes) {
       throw new AppError(
         'invalid',
-        'Las cajas faltantes y dañadas no pueden superar las cajas pedidas.',
+        'Las cajas dañadas no pueden superar las cajas recibidas.',
       )
     }
     if (line.expiresOn && !isIsoDate(line.expiresOn)) {
       throw new AppError('invalid', 'La fecha de caducidad no es válida.')
     }
-    const good =
-      ordered.get(line.lineId)! - line.missingBoxes - line.damagedBoxes
+    const good = line.receivedBoxes - line.damagedBoxes
     if (good > 0 && !declaresExpiry(line)) throw missingExpiry()
     if (good > 0 && isExpired(line, today) && !input.confirmExpired) {
       throw expiredNotConfirmed()
@@ -180,13 +180,16 @@ function validateReplacements(input: ReceptionInput, today: string) {
 }
 
 /**
- * Verifies a waiting order from its exceptions only: per line the missing and
- * damaged boxes (the good ones are ordered − missing − damaged) and, when the
+ * Verifies a waiting order: per line the boxes received and, of those, the
+ * damaged ones (the good ones are received − damaged) and, when the
  * supplier charged another list price per piece, that price: the line's costs
  * are recomputed first, so lots and balances use what was actually charged. Every lot of
  * the order gets the order's code (its reference, else `PED-` + folio). Good
- * boxes become one lot per line; missing boxes become a "Por reponer" balance
- * and damaged ones a "Por devolver" balance, never stock. Replacements settle
+ * boxes become one lot per line; boxes not received (ordered − received) become
+ * a "Por reponer" balance and damaged ones a "Por devolver" balance, never
+ * stock. Boxes received above the ordered ones enter the same lot at the line's
+ * cost per piece but are never owed: the line's cost, hence the order total and
+ * the payable, stays computed on the ordered boxes. Replacements settle
  * open "Por reponer" balances of the same supplier (other orders) and enter as
  * lots at their original cost. Stock changes only here, atomically; the
  * purchase row is locked so an order cannot be received twice.
@@ -333,21 +336,26 @@ export async function receiveSupplierOrder(
     }> = []
     for (const entry of input.lines) {
       const line = stored.find((item) => item.id === entry.lineId)!
-      const missingUnits = entry.missingBoxes * line.boxFactor
+      const receivedUnits = entry.receivedBoxes * line.boxFactor
+      const missingUnits = Math.max(0, line.quantity - receivedUnits)
       const damagedUnits = entry.damagedBoxes * line.boxFactor
-      const goodUnits = line.quantity - missingUnits - damagedUnits
+      // Surplus included: it enters the lot, but the line below caps what is recorded.
+      const goodUnits = receivedUnits - damagedUnits
       const goodBoxes = goodUnits / line.boxFactor
       const expiresOn = entry.expiresOn || null
       await tx
         .update(purchaseLines)
         .set({
-          goodQuantity: goodUnits,
+          // The line keeps good + damaged ≤ ordered; surplus lives in the lot only.
+          goodQuantity: Math.min(goodUnits, line.quantity - damagedUnits),
           damagedQuantity: damagedUnits,
           lotCode: code,
           expiresOn,
         })
         .where(eq(purchaseLines.id, line.id))
       if (goodUnits > 0) {
+        // Lot cost: the line's cost per piece for every good piece, surplus
+        // included, so the unit cost and the sale price rule stay the ordered ones.
         const costCents = lineShareCents(
           line.totalCostCents,
           goodUnits,

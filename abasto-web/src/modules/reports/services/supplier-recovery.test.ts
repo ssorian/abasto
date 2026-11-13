@@ -51,7 +51,7 @@ async function receiveMilk(
     lines: [
       {
         lineId: order.lines[0].id,
-        missingBoxes: missing,
+        receivedBoxes: boxes - missing,
         damagedBoxes: damaged,
         noExpiry: true,
       },
@@ -138,7 +138,7 @@ describe('recovered', () => {
       lines: [
         {
           lineId: order.lines[0].id,
-          missingBoxes: 0,
+          receivedBoxes: order.lines[0].boxes,
           damagedBoxes: 0,
           noExpiry: true,
         },

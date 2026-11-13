@@ -20,9 +20,9 @@ export type ReceptionLine = {
   price?: LinePrice
 }
 
-/** Only the exceptions are typed; the good boxes are derived. */
+/** The boxes that arrived (defaulting to the ordered ones) and the damaged ones are typed; the good boxes are derived. */
 export type ReceptionLineDraft = {
-  missing: string
+  received: string
   damaged: string
   expiresOn: string
   /** Checked when the good boxes carry no expiry date. */
@@ -64,19 +64,24 @@ export type ReceptionDraft = {
 /** Open "Por reponer" boxes by pending id for the order's supplier. */
 export type OwedBoxes = Readonly<Record<string, number | undefined>>
 
-const emptyLine = (): ReceptionLineDraft => ({
-  missing: '0',
+/** A line as it starts: everything ordered arrived, nothing damaged. */
+export const emptyLine = (line: {
+  orderedBoxes: number
+}): ReceptionLineDraft => ({
+  received: String(line.orderedBoxes),
   damaged: '0',
   expiresOn: '',
   noExpiry: false,
 })
 
-/** Starts from "everything arrived good"; the user types the exceptions. */
+/** Starts from "everything ordered arrived good"; the user types what differs. */
 export function initialReception(
   lines: ReadonlyArray<ReceptionLine>,
 ): ReceptionDraft {
   return {
-    lines: Object.fromEntries(lines.map((line) => [line.lineId, emptyLine()])),
+    lines: Object.fromEntries(
+      lines.map((line) => [line.lineId, emptyLine(line)]),
+    ),
     replacements: {},
   }
 }
@@ -86,9 +91,9 @@ const count = (text: string) => {
   return parsed.ok ? parsed.value : 0
 }
 
-/** Ordered − missing − damaged, never below zero. */
-export const goodBoxes = (ordered: number, missing: string, damaged: string) =>
-  Math.max(ordered - count(missing) - count(damaged), 0)
+/** Received − damaged, never below zero. */
+export const goodBoxes = (received: string, damaged: string) =>
+  Math.max(count(received) - count(damaged), 0)
 
 /** Problems by line id (and by pending id for replacements); empty when valid. */
 export function receptionIssues(
@@ -98,21 +103,18 @@ export function receptionIssues(
 ): Record<string, string> {
   const issues: Record<string, string> = {}
   for (const line of lines) {
-    const entry = draft.lines[line.lineId] ?? emptyLine()
-    const missing = parseBoxCount(entry.missing)
+    const entry = draft.lines[line.lineId] ?? emptyLine(line)
+    const received = parseBoxCount(entry.received)
     const damaged = parseBoxCount(entry.damaged)
     const priceIssue = piecePriceIssue(line, entry.price)
-    if (!missing.ok) issues[line.lineId] = missing.message
+    if (!received.ok) issues[line.lineId] = received.message
     else if (!damaged.ok) issues[line.lineId] = damaged.message
-    else if (missing.value + damaged.value > line.orderedBoxes) {
+    else if (damaged.value > received.value) {
       issues[line.lineId] =
-        `Las faltantes y dañadas no pueden superar las ${line.boxFactor === 1 ? 'piezas' : 'cajas'} pedidas.`
+        `Las dañadas no pueden superar las ${line.boxFactor === 1 ? 'piezas' : 'cajas'} recibidas.`
     } else if (priceIssue) {
       issues[line.lineId] = priceIssue
-    } else if (
-      line.orderedBoxes - missing.value - damaged.value > 0 &&
-      !declaresExpiry(entry)
-    ) {
+    } else if (received.value - damaged.value > 0 && !declaresExpiry(entry)) {
       issues[line.lineId] = missingExpiry
     }
   }
@@ -131,6 +133,14 @@ export function receptionIssues(
   return issues
 }
 
+/** Boxes that did not arrive: ordered − received, never below zero. */
+export const missingBoxes = (ordered: number, received: string) =>
+  Math.max(ordered - count(received), 0)
+
+/** Boxes received above the ordered ones: they enter stock at no cost. */
+export const surplusBoxes = (ordered: number, received: string) =>
+  Math.max(count(received) - ordered, 0)
+
 /** What the confirmation will record: totals across lines. */
 export function receptionSummary(
   lines: ReadonlyArray<ReceptionLine>,
@@ -138,16 +148,17 @@ export function receptionSummary(
 ) {
   return lines.reduce(
     (total, line) => {
-      const entry = draft.lines[line.lineId] ?? emptyLine()
+      const entry = draft.lines[line.lineId] ?? emptyLine(line)
       return {
-        good:
-          total.good +
-          goodBoxes(line.orderedBoxes, entry.missing, entry.damaged),
+        good: total.good + goodBoxes(entry.received, entry.damaged),
         damaged: total.damaged + count(entry.damaged),
-        missing: total.missing + count(entry.missing),
+        missing:
+          total.missing + missingBoxes(line.orderedBoxes, entry.received),
+        surplus:
+          total.surplus + surplusBoxes(line.orderedBoxes, entry.received),
       }
     },
-    { good: 0, damaged: 0, missing: 0 },
+    { good: 0, damaged: 0, missing: 0, surplus: 0 },
   )
 }
 
@@ -168,7 +179,7 @@ export function expiredEntries(
   for (const line of lines) {
     const entry = draft.lines[line.lineId]
     if (!entry?.expiresOn || entry.expiresOn >= today) continue
-    if (goodBoxes(line.orderedBoxes, entry.missing, entry.damaged) > 0) {
+    if (goodBoxes(entry.received, entry.damaged) > 0) {
       expired.push(line.lineId)
     }
   }
@@ -207,11 +218,11 @@ export function receptionInputFromDraft(
     : false
   if (hasExpired && !confirmExpired) return fail(expiredNotConfirmed)
   const entries = lines.map((line) => {
-    const entry = draft.lines[line.lineId] ?? emptyLine()
+    const entry = draft.lines[line.lineId] ?? emptyLine(line)
     const price = changedPiecePrice(line, entry.price)
     return {
       lineId: line.lineId,
-      missingBoxes: count(entry.missing),
+      receivedBoxes: count(entry.received),
       damagedBoxes: count(entry.damaged),
       ...expiryFields(entry),
       ...(price === undefined ? {} : { listPricePerPiece: price }),
@@ -304,6 +315,8 @@ export function receptionSummaryText(totals: {
   replaced: number
   missing: number
   damaged: number
+  /** Boxes received above the ordered ones: they enter without cost. */
+  surplus?: number
   /** Every ordered product is sold by the piece: count pieces, not boxes. */
   piecesOnly?: boolean
 }) {
@@ -320,6 +333,9 @@ export function receptionSummaryText(totals: {
       : entering,
     totals.missing > 0
       ? plural(totals.missing, 'faltante nuevo', 'faltantes nuevos')
+      : null,
+    totals.surplus
+      ? `${plural(totals.surplus, one, many)} de más sin costo`
       : null,
     totals.damaged > 0
       ? `${totals.damaged} ${totals.damaged === 1 ? 'dañada' : 'dañadas'} por devolver`

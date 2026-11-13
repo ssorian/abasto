@@ -66,7 +66,7 @@ export const receiveOrderInput = z.object({
   lines: z.array(
     z.object({
       lineId: id,
-      missingBoxes: whole,
+      receivedBoxes: whole,
       damagedBoxes: whole,
       expiresOn: z.string().optional(),
       noExpiry: z.boolean().optional(),

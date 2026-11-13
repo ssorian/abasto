@@ -43,14 +43,14 @@ const soda: ReceptionLine = {
 const draft = (milkPrice?: string, sodaPrice?: string): ReceptionDraft => ({
   lines: {
     l1: {
-      missing: '0',
+      received: '10',
       damaged: '0',
       expiresOn: '',
       noExpiry: true,
       price: milkPrice,
     },
     l2: {
-      missing: '0',
+      received: '2',
       damaged: '0',
       expiresOn: '',
       noExpiry: true,
@@ -144,12 +144,12 @@ describe('reception with prices', () => {
         lines: [
           {
             lineId: 'l1',
-            missingBoxes: 0,
+            receivedBoxes: 10,
             damagedBoxes: 0,
             noExpiry: true,
             listPricePerPiece: 13000,
           },
-          { lineId: 'l2', missingBoxes: 0, damagedBoxes: 0, noExpiry: true },
+          { lineId: 'l2', receivedBoxes: 2, damagedBoxes: 0, noExpiry: true },
         ],
         updateCatalogPrices: true,
       },

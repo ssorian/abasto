@@ -38,7 +38,7 @@ async function pendingOrder(
 
 type Order = Awaited<ReturnType<typeof pendingOrder>>
 type LineEntry = {
-  missingBoxes?: number
+  receivedBoxes?: number
   damagedBoxes?: number
   listPricePerPiece?: number
 }
@@ -53,7 +53,7 @@ const arrive = (
   lines: order.lines.map((line, index) => ({
     lineId: line.id,
     noExpiry: true,
-    missingBoxes: 0,
+    receivedBoxes: line.boxes,
     damagedBoxes: 0,
     ...entries[index],
   })),
@@ -124,7 +124,7 @@ describe('receiveSupplierOrder: list price per piece at reception', () => {
     const result = await receiveSupplierOrder(
       fx.managerA,
       arrive(order, [
-        { missingBoxes: 2, damagedBoxes: 1, listPricePerPiece: 13000 },
+        { receivedBoxes: 8, damagedBoxes: 1, listPricePerPiece: 13000 },
         {},
       ]),
     )
@@ -209,7 +209,7 @@ describe('receiveSupplierOrder: list price per piece at reception', () => {
     const first = await pendingOrder(fx)
     await receiveSupplierOrder(
       fx.managerA,
-      arrive(first, [{ missingBoxes: 10 }, {}]),
+      arrive(first, [{ receivedBoxes: 0 }, {}]),
     )
     const pendings = await listSupplierPendings(fx.owner, fx.supplier.id)
     const order = await pendingOrder(fx, {
