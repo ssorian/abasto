@@ -44,6 +44,8 @@ export function useCatalogActions() {
       productId: string | undefined,
       draft: ProductDraft,
       presentations?: { rows: Array<PresentationDraft>; defaultKey: string },
+      /** Warehouse selected in Catálogo: a new product's price is saved there. */
+      warehouseId?: string | null,
     ) =>
       inline(
         () =>
@@ -63,6 +65,7 @@ export function useCatalogActions() {
                   draft,
                   presentations?.rows,
                   presentations?.defaultKey,
+                  warehouseId,
                 ),
               }),
         'Producto guardado.',

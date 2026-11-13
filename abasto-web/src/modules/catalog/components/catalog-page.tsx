@@ -238,8 +238,14 @@ export function CatalogPage({
           key={editor.productId ?? 'new'}
           product={editing}
           suppliers={suppliers}
+          warehouseName={warehouse?.name}
           onSubmit={(draft, presentations) =>
-            actions.saveProduct(editor.productId, draft, presentations)
+            actions.saveProduct(
+              editor.productId,
+              draft,
+              presentations,
+              pricing.selectedId,
+            )
           }
           onClose={() => setEditor(undefined)}
         />

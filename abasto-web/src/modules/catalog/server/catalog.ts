@@ -6,7 +6,7 @@ import { presentationSetInput } from '#/modules/catalog/schemas/presentations-sc
 import {
   idInput,
   pieceCostInput,
-  productInput,
+  newProductInput,
   productPatchInput,
   supplierInput,
   supplierPatchInput,
@@ -21,8 +21,8 @@ import {
   updateProduct,
 } from '#/modules/catalog/services/products'
 import type {
+  NewProductInput,
   PieceCost,
-  ProductInput,
   ProductPatch,
 } from '#/modules/catalog/services/products'
 import {
@@ -52,10 +52,10 @@ export const listSuppliersFn = createServerFn({ method: 'GET' }).handler(() => {
 })
 
 export const createProductFn = createServerFn({ method: 'POST' })
-  .validator((data: ProductInput) => data)
+  .validator((data: NewProductInput) => data)
   .handler(({ data }) =>
     runWithActor((actor) =>
-      createProduct(actor, parseInput(productInput, data)),
+      createProduct(actor, parseInput(newProductInput, data)),
     ),
   )
 

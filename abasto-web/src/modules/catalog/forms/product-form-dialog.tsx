@@ -19,7 +19,11 @@ import {
 import {
   draftFromProduct,
   emptyProductDraft,
+  newProductCostErrors,
 } from '#/modules/catalog/lib/product-draft'
+import { formatBps, formatCents, parsePesos } from '#/modules/pricing/lib/money'
+import { netCostOf, saleCheck } from '#/modules/pricing/lib/product-costs'
+import { formatTenThousandths } from '#/lib/utils/supplier-cost'
 
 import type { PresentationsState } from '#/modules/catalog/forms/presentation-rows'
 import type {
@@ -33,6 +37,11 @@ type ProductFormDialogProps = {
   /** Product being edited; undefined creates a new one. */
   product?: CatalogProduct
   suppliers: ReadonlyArray<CatalogSupplier>
+  /**
+   * Warehouse selected in Catálogo. When creating, the sale price of the
+   * default presentation is saved there; without one it is set later in Precios.
+   */
+  warehouseName?: string
   /**
    * The only save of the dialog: product fields and presentations together.
    * Resolves to the server message when it failed (shown in the dialog, which
@@ -72,6 +81,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export function ProductFormDialog({
   product,
   suppliers,
+  warehouseName,
   onSubmit,
   onClose,
 }: ProductFormDialogProps) {
@@ -85,6 +95,8 @@ export function ProductFormDialog({
   )
   const [saving, setSaving] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
+  const [tab, setTab] = useState('details')
+  const [showCostErrors, setShowCostErrors] = useState(false)
   const patch = (change: Partial<ProductDraft>) =>
     setDraft((current) => ({ ...current, ...change }))
   const changeUnit = (unit: string) => {
@@ -99,8 +111,27 @@ export function ProductFormDialog({
     ({ active, id }) => active || id === draft.supplierId,
   )
 
+  const costErrors = product
+    ? {}
+    : newProductCostErrors(draft, Boolean(warehouseName))
+  const defaultRow = presentations.rows.find(
+    (row) => row.key === presentations.defaultKey,
+  )
+  const defaultFactor = defaultRow?.factor ?? 1
+  const net = draft.listPrice.trim() ? netCostOf(draft, defaultFactor) : null
+  const typedPrice = parsePesos(draft.salePrice)
+  const check =
+    net && typedPrice.ok
+      ? saleCheck(defaultFactor, typedPrice.value, net.perPiece)
+      : null
+
   async function save() {
     setFailure(null)
+    setShowCostErrors(true)
+    if (Object.keys(costErrors).length) {
+      setTab('details')
+      return
+    }
     setSaving(true)
     const message = await onSubmit(draft, presentations)
     setSaving(false)
@@ -113,6 +144,14 @@ export function ProductFormDialog({
     ['brand', 'Marca'],
     ['sku', 'SKU'],
   ]
+
+  const costFields: Array<readonly [keyof ProductDraft, string]> = [
+    ['listPrice', 'Costo por pieza'],
+    ['fixedDiscount', 'Descuento fijo'],
+    ['promotion', 'Promoción'],
+  ]
+  const errorOf = (key: string) =>
+    showCostErrors ? (costErrors as Record<string, string>)[key] : undefined
 
   const details = (
     <div className="grid gap-[18px]">
@@ -207,6 +246,74 @@ export function ProductFormDialog({
           />
         </Field>
       </Section>
+      {!product && (
+        <Section title="Costo y precio">
+          {costFields.map(([key, label]) => (
+            <Field key={key} label={label}>
+              <TextInput
+                inputMode="decimal"
+                placeholder="0.0000"
+                aria-label={label}
+                aria-invalid={Boolean(errorOf(key))}
+                value={String(draft[key])}
+                onChange={(event) => patch({ [key]: event.target.value })}
+              />
+              {errorOf(key) && (
+                <span className="text-xs text-[#b42318]">{errorOf(key)}</span>
+              )}
+            </Field>
+          ))}
+          <p className="text-xs text-[#9d8c92] md:self-end md:pb-3">
+            Costo del proveedor por pieza, para todos los almacenes. Hasta 4
+            decimales.
+          </p>
+          {warehouseName ? (
+            <Field
+              label={`Precio de venta · ${defaultRow?.name ?? 'presentación principal'} · ${warehouseName}`}
+              className="md:col-span-2"
+            >
+              <TextInput
+                inputMode="decimal"
+                placeholder="0.00"
+                aria-label="Precio de venta"
+                aria-invalid={Boolean(errorOf('salePrice'))}
+                value={draft.salePrice}
+                onChange={(event) => patch({ salePrice: event.target.value })}
+              />
+              {errorOf('salePrice') && (
+                <span className="text-xs text-[#b42318]">
+                  {errorOf('salePrice')}
+                </span>
+              )}
+            </Field>
+          ) : (
+            <p className="rounded-[9px] border border-[#e7deed] bg-[#f8f2ec] p-[13px] text-xs leading-[1.7] text-[#856972] md:col-span-2">
+              No hay un almacén seleccionado en el catálogo, así que el precio
+              de venta se define después en «Precios».
+            </p>
+          )}
+          <dl className="grid gap-x-4 gap-y-1 rounded-xl bg-[#faf6f1] px-3.5 py-3 text-sm md:col-span-2 md:grid-cols-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <dt className="text-[#89747b]">Costo neto por pieza</dt>
+              <dd className="font-bold text-[#4d2b6a]">
+                {net ? `$${formatTenThousandths(net.perPiece)}` : '—'}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-2">
+              <dt className="text-[#89747b]">Margen del precio</dt>
+              <dd className="font-bold text-[#4d2b6a]">
+                {check ? `${formatBps(check.marginBps)}%` : '—'}
+              </dd>
+            </div>
+          </dl>
+          {check?.belowCost && (
+            <p className="text-xs text-[#a08442] md:col-span-2">
+              El precio está por debajo del costo neto (
+              {formatCents(check.costCents)}). Puedes guardarlo.
+            </p>
+          )}
+        </Section>
+      )}
     </div>
   )
 
@@ -214,10 +321,14 @@ export function ProductFormDialog({
     <CatalogModal
       size="editor"
       title={product ? 'Editar producto' : 'Nuevo producto'}
-      description="Aquí se define qué es el producto, su proveedor y sus presentaciones. Los costos y precios de venta se capturan en «Precios»."
+      description={
+        product
+          ? 'Aquí se define qué es el producto, su proveedor y sus presentaciones. Los costos y precios de venta se editan en «Precios».'
+          : 'Aquí se define qué es el producto, su proveedor y sus presentaciones. También capturas su costo y su precio de venta, y todo se guarda junto.'
+      }
       onClose={onClose}
     >
-      <Tabs defaultValue="details" className="flex-col gap-[18px]">
+      <Tabs value={tab} onValueChange={setTab} className="flex-col gap-[18px]">
         <TabsList variant="line" className="h-auto w-full justify-start">
           <TabsTrigger value="details" className={tabClass}>
             Datos del producto
