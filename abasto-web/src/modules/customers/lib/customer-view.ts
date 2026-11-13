@@ -7,6 +7,8 @@ export type CustomerView = {
   addresses: Array<string>
   notes: string
   active: boolean
+  /** Owner only: the customer already has a store account. */
+  hasStoreAccess: boolean
 }
 
 /** A commercial rule as stored: exactly one of discount or fixed price is set. */
@@ -18,4 +20,4 @@ export type RuleView = {
 }
 
 /** A presentation a rule can target. */
-export type PresentationOption = { id: string; label: string }
+export type PresentationOption = { id: string; label: string; sku?: string }

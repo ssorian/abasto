@@ -2,8 +2,10 @@ import { describe, expect, test } from 'bun:test'
 import {
   contactLine,
   formatOrderDate,
+  pickerItems,
   presentationOptions,
   ruleLabel,
+  rulesSummary,
   statusLabel,
 } from '#/modules/customers/lib/customer-labels'
 
@@ -87,5 +89,24 @@ describe('customer labels', () => {
     // 2026-01-10 03:30 UTC is still the 9th in Mexico City (UTC-6).
     expect(formatOrderDate(new Date('2026-01-10T03:30:00Z'))).toContain('9')
     expect(formatOrderDate(new Date('2026-01-10T03:30:00Z'))).toContain('2026')
+  })
+})
+
+describe('rules help and presentation picker items', () => {
+  test('empty rules read as list price', () => {
+    expect(rulesSummary(0)).toBe('Sin condiciones: compra a precio de lista.')
+    expect(rulesSummary(2)).toBeNull()
+  })
+
+  test('presentation options become picker items searchable by SKU', () => {
+    expect(
+      pickerItems([
+        { id: 'p1', label: 'Leche · Caja', sku: 'LEC-1' },
+        { id: 'p2', label: 'Arroz · Bulto' },
+      ]),
+    ).toEqual([
+      { id: 'p1', name: 'Leche · Caja', sku: 'LEC-1' },
+      { id: 'p2', name: 'Arroz · Bulto', sku: '' },
+    ])
   })
 })

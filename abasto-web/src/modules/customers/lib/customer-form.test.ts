@@ -123,6 +123,7 @@ describe('draftFromCustomer', () => {
     addresses: ['Calle 1', 'Calle 2'],
     notes: 'Paga los viernes',
     active: false,
+    hasStoreAccess: false,
   }
 
   test('shows pesos, percents and one address per line', () => {
@@ -182,5 +183,11 @@ describe('draftFromCustomer', () => {
       { presentationId: 'p1', minQuantity: 5, discountBps: 1250 },
       { presentationId: 'p2', minQuantity: 1, priceCents: 43805 },
     ])
+  })
+})
+
+describe('new customer defaults', () => {
+  test('a new customer starts active with no rules', () => {
+    expect(emptyDraft()).toMatchObject({ active: true, rules: [] })
   })
 })

@@ -1,7 +1,8 @@
 import { CustomerButton } from '#/modules/customers/components/customer-button'
 import { CustomerModal } from '#/modules/customers/components/customer-modal'
 import { CustomerOrderHistory } from '#/modules/customers/components/customer-order-history'
-import { StoreAccessSection } from '#/modules/store/components/store-access-section'
+import { StatusBadge } from '#/modules/customers/components/status-badge'
+import { StoreAccessPanel } from '#/modules/customers/components/store-access-panel'
 import {
   contactLine,
   ruleLabel,
@@ -39,11 +40,20 @@ export function CustomerDetailDialog({
       title={customer.name}
       description={contactLine(customer)}
       onClose={onClose}
+      headerAction={
+        canManage ? (
+          <CustomerButton className="min-h-[38px] px-3.5" onClick={onEdit}>
+            Editar
+          </CustomerButton>
+        ) : undefined
+      }
     >
       <div className="rounded-[10px] bg-[#fbf9f6] px-[18px] py-4 text-[13px] leading-[1.8] whitespace-pre-line text-[#8d6f79]">
         <p>{customer.addresses.join(' · ') || 'Sin domicilios registrados'}</p>
         {customer.notes && <p>{customer.notes}</p>}
-        <p>{statusLabel(customer)}</p>
+        <StatusBadge active={customer.active}>
+          {statusLabel(customer)}
+        </StatusBadge>
       </div>
       <h3 className="text-[17px] font-[650]">Condiciones comerciales</h3>
       {rules.length === 0 ? (
@@ -60,14 +70,9 @@ export function CustomerDetailDialog({
         </ul>
       )}
       {canManage && (
-        <CustomerButton onClick={onEdit}>
-          Editar cliente y condiciones
-        </CustomerButton>
-      )}
-      {canManage && (
         <>
           <h3 className="mt-2 text-[17px] font-[650]">Acceso a la tienda</h3>
-          <StoreAccessSection customerId={customer.id} />
+          <StoreAccessPanel customerId={customer.id} />
         </>
       )}
       <h3 className="mt-2 text-[17px] font-[650]">Historial de pedidos</h3>

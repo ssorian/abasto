@@ -29,6 +29,7 @@ export function ruleLabel(
 export function presentationOptions(
   products: ReadonlyArray<{
     name: string
+    sku?: string
     presentations: ReadonlyArray<{ id: string; name: string; active: boolean }>
   }>,
 ): Array<PresentationOption> {
@@ -38,6 +39,7 @@ export function presentationOptions(
       .map((presentation) => ({
         id: presentation.id,
         label: `${product.name} · ${presentation.name}`,
+        ...(product.sku ? { sku: product.sku } : {}),
       })),
   )
 }
@@ -53,3 +55,11 @@ const dateTime = new Intl.DateTimeFormat('es-MX', {
 
 /** Date and time in the business time zone, the same on server and client. */
 export const formatOrderDate = (date: Date) => dateTime.format(date)
+
+/** Help line under "Condiciones comerciales" when there are no rules, else null. */
+export const rulesSummary = (count: number) =>
+  count === 0 ? 'Sin condiciones: compra a precio de lista.' : null
+
+/** Presentation options in the shape of the shared searchable picker. */
+export const pickerItems = (options: ReadonlyArray<PresentationOption>) =>
+  options.map(({ id, label, sku }) => ({ id, name: label, sku: sku ?? '' }))

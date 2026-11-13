@@ -86,17 +86,19 @@ export function CustomerFormDialog({
             onChange={(event) => patch({ phone: event.target.value })}
           />
         </Field>
-        <Field label="Estado">
-          <SelectInput
-            value={draft.active ? 'Activo' : 'Inactivo'}
-            onChange={(event) =>
-              patch({ active: event.target.value === 'Activo' })
-            }
-          >
-            <option>Activo</option>
-            <option>Inactivo</option>
-          </SelectInput>
-        </Field>
+        {customer && (
+          <Field label="Estado">
+            <SelectInput
+              value={draft.active ? 'Activo' : 'Inactivo'}
+              onChange={(event) =>
+                patch({ active: event.target.value === 'Activo' })
+              }
+            >
+              <option>Activo</option>
+              <option>Inactivo</option>
+            </SelectInput>
+          </Field>
+        )}
       </div>
       <Field label="Domicilios · uno por línea">
         <TextArea
@@ -116,9 +118,12 @@ export function CustomerFormDialog({
         presentations={presentations}
         onChange={(next) => patch({ rules: next })}
       />
-      <CustomerButton tone="primary" disabled={saving} onClick={save}>
-        {saving ? 'Guardando…' : 'Guardar cliente'}
-      </CustomerButton>
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <CustomerButton onClick={onClose}>Cancelar</CustomerButton>
+        <CustomerButton tone="primary" disabled={saving} onClick={save}>
+          {saving ? 'Guardando…' : 'Guardar cliente'}
+        </CustomerButton>
+      </div>
     </CustomerModal>
   )
 }

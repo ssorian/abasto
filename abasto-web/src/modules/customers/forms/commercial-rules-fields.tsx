@@ -1,11 +1,12 @@
 import { PlusIcon, Trash2Icon } from 'lucide-react'
 
+import { ProductPicker } from '#/components/product-picker'
 import { CustomerButton } from '#/modules/customers/components/customer-button'
+import { Field, TextInput } from '#/modules/customers/forms/form-field'
 import {
-  Field,
-  SelectInput,
-  TextInput,
-} from '#/modules/customers/forms/form-field'
+  pickerItems,
+  rulesSummary,
+} from '#/modules/customers/lib/customer-labels'
 import { emptyRule } from '#/modules/customers/lib/customer-form'
 
 import type { RuleDraft } from '#/modules/customers/lib/customer-form'
@@ -27,10 +28,18 @@ export function CommercialRulesFields({
       rules.map((rule, i) => (i === index ? { ...rule, ...change } : rule)),
     )
 
+  const items = pickerItems(presentations)
+
   return (
     <>
-      <div className="mb-[23px] flex items-start justify-between gap-[15px] md:items-center">
-        <h3 className="text-base">Condiciones comerciales</h3>
+      <div className="flex items-start justify-between gap-[15px] md:items-center">
+        <div>
+          <h3 className="text-base">Condiciones comerciales</h3>
+          <p className="mt-2 text-xs leading-[1.8] text-[#a49197] md:text-sm">
+            {rulesSummary(rules.length) ??
+              'Se usa la condición de la presentación con mayor cantidad mínima alcanzada. Un precio pactado sustituye el precio de lista del almacén; el descuento se aplica sólo cuando no hay precio pactado.'}
+          </p>
+        </div>
         <CustomerButton
           className="min-h-[38px] px-2.5 py-2 text-xs md:min-h-[44px] md:px-[17px] md:py-2.5 md:text-sm"
           disabled={presentations.length === 0}
@@ -40,29 +49,18 @@ export function CommercialRulesFields({
           Agregar condición
         </CustomerButton>
       </div>
-      <p className="mt-3 mb-5 text-xs leading-[1.8] text-[#a49197] md:text-sm">
-        Se usa la condición de la presentación con mayor cantidad mínima
-        alcanzada. Un precio pactado sustituye el precio de lista del almacén;
-        el descuento se aplica sólo cuando no hay precio pactado.
-      </p>
       {rules.map((rule, index) => (
         <div
           key={index}
           className="flex flex-wrap items-start gap-3 border-b border-[#f0eae3] py-4 metrics:flex-nowrap metrics:items-end"
         >
           <Field label="Presentación" className="min-w-[130px] flex-[2]">
-            <SelectInput
+            <ProductPicker
+              label="Presentación"
+              products={items}
               value={rule.presentationId}
-              onChange={(event) =>
-                patch(index, { presentationId: event.target.value })
-              }
-            >
-              {presentations.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </SelectInput>
+              onChange={(presentationId) => patch(index, { presentationId })}
+            />
           </Field>
           <Field label="Desde cantidad" className="min-w-[130px] flex-1">
             <TextInput

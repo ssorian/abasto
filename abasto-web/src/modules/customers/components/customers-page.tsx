@@ -8,6 +8,7 @@ import { CustomersTable } from '#/modules/customers/components/customers-table'
 import { CustomerFormDialog } from '#/modules/customers/forms/customer-form-dialog'
 import { useSaveCustomer } from '#/modules/customers/hooks/use-customers'
 import { filterCustomers } from '#/modules/customers/lib/customer-search'
+import { activeFirst } from '#/modules/customers/lib/customer-sort'
 
 import type { PresentationOption } from '#/modules/customers/lib/customer-view'
 import type { CustomersOverview } from '#/modules/customers/server/customers'
@@ -59,7 +60,8 @@ export function CustomersPage({ overview, presentations }: CustomersPageProps) {
         />
       </div>
       <CustomersTable
-        customers={filterCustomers(customers, query)}
+        customers={activeFirst(filterCustomers(customers, query))}
+        canManage={canManage}
         rules={rules}
         onView={setDetailId}
       />
