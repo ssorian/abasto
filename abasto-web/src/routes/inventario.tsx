@@ -49,26 +49,29 @@ export const Route = createFileRoute('/inventario')({
       listSuppliersFn(),
     ])
     const loaded = unwrap(overview)
-    const transfers = loaded.selectedId
-      ? unwrap(
-          await transfersOverviewFn({
-            data: { warehouseId: loaded.selectedId },
-          }),
-        )
-      : { transfers: [], destinations: [] }
     const selected = loaded.warehouses.find(
       ({ id }) => id === loaded.selectedId,
     )
-    // Orders and supplier balances are only for managers of the warehouse.
-    const [supplierOrders, pendings] =
-      selected?.canManage && loaded.selectedId
-        ? await Promise.all([
-            supplierOrdersFn({ data: { warehouseId: loaded.selectedId } }),
-            supplierPendingsFn({ data: {} }),
-          ]).then(
-            ([orders, balances]) => [unwrap(orders), unwrap(balances)] as const,
-          )
-        : ([[], { restock: [], returns: [], history: [] }] as const)
+    const warehouseId = loaded.selectedId
+    // Transfers, orders and supplier balances only need the selected
+    // warehouse, so they load together. Orders and balances are only for
+    // managers of the warehouse.
+    const [transfersResult, ordersResult, pendingsResult] = await Promise.all([
+      warehouseId ? transfersOverviewFn({ data: { warehouseId } }) : undefined,
+      selected?.canManage && warehouseId
+        ? supplierOrdersFn({ data: { warehouseId } })
+        : undefined,
+      selected?.canManage && warehouseId
+        ? supplierPendingsFn({ data: {} })
+        : undefined,
+    ])
+    const transfers = transfersResult
+      ? unwrap(transfersResult)
+      : { transfers: [], destinations: [] }
+    const supplierOrders = ordersResult ? unwrap(ordersResult) : []
+    const pendings = pendingsResult
+      ? unwrap(pendingsResult)
+      : { restock: [], returns: [], history: [] }
     return {
       overview: loaded,
       supplierOrders,

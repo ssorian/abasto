@@ -59,6 +59,7 @@ export function LotsDialog({
     productName: stock.name,
     pack,
     presentations,
+    today,
     presentationId: presentations.at(0)?.id ?? '',
   })
   const [operation, setOperation] = useState<LotOperation | null>(() => {

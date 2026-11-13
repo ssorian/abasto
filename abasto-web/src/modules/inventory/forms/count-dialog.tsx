@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { ProductPicker } from '#/components/product-picker'
 import { ActionButton } from '#/modules/inventory/components/action-button'
 import {
   Field,
-  FieldSelect,
+  FieldGroup,
   FieldTextarea,
 } from '#/modules/inventory/components/form-controls'
 import { FormError } from '#/modules/inventory/components/info-blocks'
@@ -96,23 +97,18 @@ export function CountDialog({
           void submit()
         }}
       >
-        <Field label="Producto">
-          <FieldSelect
+        <FieldGroup label="Producto">
+          <ProductPicker
+            label="Producto"
+            products={products}
             value={productId}
-            onChange={(event) => {
-              setProductId(event.target.value)
+            onChange={(id) => {
+              setProductId(id)
               setPresentationId('')
               setZeroConfirmed(false)
             }}
-          >
-            <option value="">Selecciona un producto</option>
-            {products.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </FieldSelect>
-        </Field>
+          />
+        </FieldGroup>
         {product && pack && (
           <>
             <QuantityFields

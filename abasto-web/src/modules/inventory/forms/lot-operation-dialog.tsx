@@ -14,6 +14,8 @@ import {
 import { QuantityFields } from '#/modules/inventory/forms/quantity-fields'
 import { useInventoryActions } from '#/modules/inventory/hooks/use-inventory-actions'
 import { formatQuantity } from '#/modules/inventory/lib/quantity'
+import { removalPrefill } from '#/modules/inventory/lib/removal-prefill'
+import { expiryState } from '#/modules/inventory/lib/stock-metrics'
 import type { PackInfo } from '#/modules/inventory/lib/quantity'
 import {
   additionInputFromDraft,
@@ -29,6 +31,8 @@ export type LotOperation = {
   productName: string
   pack: PackInfo
   presentations: ReadonlyArray<{ id: string; name: string; factor: number }>
+  /** Today (warehouse date) to tell whether the lot is already expired. */
+  today: string
   /** Presentation the quantity starts in. */
   presentationId: string
 }
@@ -48,12 +52,26 @@ export function LotOperationDialog({
   onClose: () => void
 }) {
   const actions = useInventoryActions()
+  const expired =
+    expiryState(operation.lot.expiresOn, operation.today) === 'expired'
+  const factorOf = (presentationId: string) =>
+    operation.presentations.find(({ id }) => id === presentationId)?.factor ?? 1
+  const prefillFor = (nextReason: RemovalReason, presentationId: string) =>
+    operation.mode === 'remove'
+      ? (removalPrefill({
+          reason: nextReason,
+          expired,
+          onHand: operation.lot.onHand,
+          factor: factorOf(presentationId),
+        }) ?? { packs: '', loose: '' })
+      : { packs: '', loose: '' }
   const [reason, setReason] = useState<RemovalReason>('caducado')
   const [quantity, setQuantity] = useState({
     presentationId: operation.presentationId,
-    packs: '',
-    loose: '',
+    ...prefillFor('caducado', operation.presentationId),
   })
+  // Once the user edits the quantity, changing the reason no longer rewrites it.
+  const [edited, setEdited] = useState(false)
   const [detail, setDetail] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -110,9 +128,16 @@ export function LotOperationDialog({
           <Field label="¿Por qué las quitas?">
             <FieldSelect
               value={reason}
-              onChange={(event) =>
-                setReason(event.target.value as RemovalReason)
-              }
+              onChange={(event) => {
+                const next = event.target.value as RemovalReason
+                setReason(next)
+                if (!edited) {
+                  setQuantity({
+                    ...quantity,
+                    ...prefillFor(next, quantity.presentationId),
+                  })
+                }
+              }}
             >
               {reasonOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -126,7 +151,10 @@ export function LotOperationDialog({
           presentations={operation.presentations}
           unit={operation.pack.unit}
           {...quantity}
-          onChange={(patch) => setQuantity({ ...quantity, ...patch })}
+          onChange={(patch) => {
+            setEdited(true)
+            setQuantity({ ...quantity, ...patch })
+          }}
         />
         <Field label={adding ? '¿Por qué las sumas?' : '¿Qué pasó?'}>
           <FieldTextarea

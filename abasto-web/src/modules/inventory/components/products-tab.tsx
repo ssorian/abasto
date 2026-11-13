@@ -81,11 +81,6 @@ export function ProductsTab({
           value={supplierId}
           onChange={onSupplierChange}
         />
-        {canManage && (
-          <ActionButton onClick={() => onMinimum('')}>
-            Fijar un mínimo
-          </ActionButton>
-        )}
       </div>
       {rows.length ? (
         <ListPanel>

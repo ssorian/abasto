@@ -411,7 +411,7 @@ export function InventoryPage({
           warehouseId={selected.id}
           products={products}
           stock={stock}
-          initialProductId={dialog.productId}
+          productId={dialog.productId}
           onClose={() => setDialog(null)}
         />
       )}
