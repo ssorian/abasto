@@ -32,7 +32,7 @@ export type NavItem = {
 
 export const primaryNav: Array<NavItem> = [
   { label: 'Inicio', icon: House, to: '/' },
-  { label: 'Mostrador', icon: ScanLine, to: '/mostrador' },
+  { label: 'Ventas', icon: ScanLine, to: '/mostrador' },
   { label: 'Clientes', icon: Users, to: '/clientes' },
   { label: 'Catálogo', icon: LayoutGrid, to: '/catalogo' },
   { label: 'Inventario', icon: Boxes, to: '/inventario' },

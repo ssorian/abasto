@@ -99,8 +99,8 @@ export function RepartosPage({
       {!overview.cash && (
         <WarningInline className="mt-0 mb-5">
           {hasOpen
-            ? 'La caja de este almacén está cerrada. Puedes asignar, pero para liquidar un reparto necesitas abrirla en Mostrador.'
-            : 'La caja de este almacén está cerrada. Para liquidar un reparto necesitarás abrirla en Mostrador.'}
+            ? 'La caja de este almacén está cerrada. Puedes asignar, pero para liquidar un reparto necesitas abrirla en Ventas.'
+            : 'La caja de este almacén está cerrada. Para liquidar un reparto necesitarás abrirla en Ventas.'}
         </WarningInline>
       )}
       <AssignmentsSection

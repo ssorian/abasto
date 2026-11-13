@@ -4,6 +4,8 @@ import {
   buildSellable,
   countLabel,
   filterSellable,
+  groupSellable,
+  productAvailabilityLabel,
   sellableSuppliers,
 } from '#/modules/counter/lib/sellable'
 import type { SellableOption } from '#/modules/counter/lib/sellable'
@@ -227,5 +229,55 @@ describe('sellableSuppliers', () => {
       { id: 'alpura', name: 'Alpura', active: true },
       { id: 'lala', name: 'Lala', active: true },
     ])
+  })
+})
+
+describe('groupSellable', () => {
+  const rows = buildSellable(
+    [
+      price('m1', 'm', 1000, 1),
+      price('m12', 'm', 12000, 12),
+      price('c12', 'c', 9000, 12),
+      price('x1', 'x', 500, 1),
+    ],
+    [
+      { productId: 'm', available: 30, unit: 'piezas' },
+      { productId: 'c', available: 0, unit: 'piezas' },
+      { productId: 'x', available: 4, unit: 'piezas' },
+    ],
+  )
+  const groups = groupSellable(rows)
+
+  test('one row per product, with its box and its piece', () => {
+    expect(
+      groups.map((group) => [
+        group.productId,
+        group.box?.presentationId ?? null,
+        group.piece?.presentationId ?? null,
+        group.availableBase,
+      ]),
+    ).toEqual([
+      ['m', 'm12', 'm1', 30],
+      ['c', 'c12', null, 0],
+      ['x', null, 'x1', 4],
+    ])
+  })
+
+  test('availability says boxes and loose pieces', () => {
+    expect(groups.map(productAvailabilityLabel)).toEqual([
+      'Disponible: 2 cajas y 6 piezas (30 piezas)',
+      'Disponible: 0 piezas',
+      'Disponible: 4 piezas',
+    ])
+  })
+
+  test('filters by product: only added keeps products already in the order', () => {
+    expect(
+      filterSellable(groups, {
+        query: '',
+        supplierId: '',
+        onlyIds: new Set(['x']),
+      }).map((group) => group.productId),
+    ).toEqual(['x'])
   })
 })
