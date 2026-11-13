@@ -4,6 +4,7 @@ import { AppError } from '#/lib/errors'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { products } from '#/modules/catalog/db/schema'
+import { productArchived } from '#/modules/catalog/services/product-reads'
 import { lots } from '#/modules/inventory/db/schema'
 import {
   appendMovement,
@@ -67,12 +68,17 @@ export async function dispatchTransfer(
     await expireOverdueOrders(tx, input.fromWarehouseId)
     const productIds = [...wanted.keys()]
     const found = await tx
-      .select({ id: products.id, name: products.name })
+      .select({
+        id: products.id,
+        name: products.name,
+        archivedAt: products.archivedAt,
+      })
       .from(products)
       .where(inArray(products.id, productIds))
     if (found.length !== productIds.length) {
       throw new AppError('not_found', 'No encontramos ese producto.')
     }
+    if (found.some((product) => product.archivedAt)) throw productArchived()
     const names = new Map(found.map((product) => [product.id, product.name]))
     // Row locks in id order, like every order operation.
     const candidates = await tx

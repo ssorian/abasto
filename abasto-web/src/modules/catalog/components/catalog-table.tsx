@@ -23,6 +23,8 @@ type CatalogTableProps = {
   canManage: boolean
   onPrices: (productId: string) => void
   onEdit: (productId: string) => void
+  /** Brings an archived product back; shown on archived rows to the owner. */
+  onRestore: (productId: string) => void
 }
 
 const head =
@@ -39,6 +41,7 @@ export function CatalogTable({
   canManage,
   onPrices,
   onEdit,
+  onRestore,
 }: CatalogTableProps) {
   return (
     <div className="overflow-x-auto rounded-xl border border-[#eee8e2] bg-white">
@@ -143,13 +146,26 @@ export function CatalogTable({
                   </td>
                 )}
                 <td className={cell}>
-                  <StatusBadge tone={product.published ? 'green' : 'gray'}>
-                    {product.published ? 'Publicado' : 'Pausado'}
-                  </StatusBadge>
+                  {product.archivedAt ? (
+                    <StatusBadge tone="gray">Archivado</StatusBadge>
+                  ) : (
+                    <StatusBadge tone={product.published ? 'green' : 'gray'}>
+                      {product.published ? 'Publicado' : 'Pausado'}
+                    </StatusBadge>
+                  )}
                 </td>
                 <td className={cell}>
                   <div className="flex items-center gap-2 whitespace-nowrap">
-                    {showPrices && group?.rows.length ? (
+                    {product.archivedAt ? (
+                      canManage && (
+                        <CatalogButton
+                          className="min-h-9 px-3"
+                          onClick={() => onRestore(product.id)}
+                        >
+                          Restaurar
+                        </CatalogButton>
+                      )
+                    ) : showPrices && group?.rows.length ? (
                       <CatalogButton
                         className="min-h-9 px-3"
                         onClick={() => onPrices(product.id)}
@@ -158,7 +174,7 @@ export function CatalogTable({
                         Precios
                       </CatalogButton>
                     ) : null}
-                    {canManage && (
+                    {canManage && !product.archivedAt && (
                       <CatalogButton
                         className="min-h-9 px-3"
                         onClick={() => onEdit(product.id)}

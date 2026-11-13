@@ -4,6 +4,7 @@ import { AppError } from '#/lib/errors'
 import { authorize } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
 import { presentations, products } from '#/modules/catalog/db/schema'
+import { productArchived } from '#/modules/catalog/services/product-reads'
 import { expireOverdueOrders } from '#/modules/orders/services/expiry'
 import { lots, purchaseLines, purchases } from '#/modules/inventory/db/schema'
 import {
@@ -100,7 +101,11 @@ export async function createPurchase(
     await expireOverdueOrders(tx, input.warehouseId)
     const productIds = [...new Set(input.lines.map((line) => line.productId))]
     const found = await tx
-      .select({ id: products.id, boxFactor: presentations.factor })
+      .select({
+        id: products.id,
+        archivedAt: products.archivedAt,
+        boxFactor: presentations.factor,
+      })
       .from(products)
       .leftJoin(
         presentations,
@@ -113,6 +118,7 @@ export async function createPurchase(
     if (found.length !== productIds.length) {
       throw new AppError('not_found', 'No encontramos ese producto.')
     }
+    if (found.some((row) => row.archivedAt)) throw productArchived()
     const boxFactor = new Map(found.map((row) => [row.id, row.boxFactor ?? 1]))
     for (const line of input.lines) {
       if (line.salePriceCents === undefined) continue

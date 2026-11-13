@@ -1,5 +1,5 @@
-import { asc, eq } from 'drizzle-orm'
-import type { db } from '#/db'
+import { asc, eq, isNotNull } from 'drizzle-orm'
+import { db } from '#/db'
 import { AppError } from '#/lib/errors'
 import { presentations, products } from '#/modules/catalog/db/schema'
 
@@ -13,6 +13,13 @@ export type Executor = Pick<typeof db, 'select' | 'insert' | 'update'>
 
 export const productNotFound = () =>
   new AppError('not_found', 'No encontramos ese producto.')
+
+/** The refusal for new work (orders, purchases, counts…) on an archived product. */
+export const productArchived = () =>
+  new AppError(
+    'conflict',
+    'Ese producto está archivado. Restáuralo en el catálogo para usarlo.',
+  )
 
 const byFactor = [asc(presentations.factor), asc(presentations.name)]
 
@@ -43,4 +50,13 @@ export async function loadProduct(
   const product = (await loadProducts(executor, id)).at(0)
   if (!product) throw productNotFound()
   return product
+}
+
+/** Ids of archived products, to keep them out of sale pickers built from other reads. */
+export async function archivedProductIds(): Promise<Set<string>> {
+  const rows = await db
+    .select({ id: products.id })
+    .from(products)
+    .where(isNotNull(products.archivedAt))
+  return new Set(rows.map((row) => row.id))
 }

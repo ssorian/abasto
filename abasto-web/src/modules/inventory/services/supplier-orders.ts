@@ -7,6 +7,7 @@ import type { Actor } from '#/modules/access/lib/policy'
 import { grossLineCents, netLineCents } from '#/lib/utils/supplier-cost'
 import { purchaseLines, purchases } from '#/modules/inventory/db/schema'
 import { openOf } from '#/modules/inventory/lib/pending-value'
+import { productArchived } from '#/modules/catalog/services/product-reads'
 import { loadBoxProducts } from '#/modules/inventory/services/box-products'
 import {
   discountBalance,
@@ -134,6 +135,7 @@ export async function createSupplierOrder(
       if (!product) {
         throw new AppError('not_found', 'No encontramos ese producto.')
       }
+      if (product.archivedAt) throw productArchived()
       if (product.supplierId !== input.supplierId) {
         throw new AppError(
           'invalid',

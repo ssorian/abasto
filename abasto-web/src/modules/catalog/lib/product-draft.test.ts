@@ -25,6 +25,7 @@ const stored: CatalogProduct = {
   fixedDiscountPerPiece: 1000,
   promotionPerPiece: 500,
   published: false,
+  archivedAt: null,
   createdAt: new Date(0),
   presentations: [],
 }

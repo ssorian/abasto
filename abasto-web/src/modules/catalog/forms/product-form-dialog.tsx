@@ -51,6 +51,11 @@ type ProductFormDialogProps = {
     draft: ProductDraft,
     presentations: PresentationsState,
   ) => Promise<string | null>
+  /**
+   * Archives the product being edited (owner only). Resolves to the refusal
+   * message (shown in the dialog) or null once archived, which closes it.
+   */
+  onArchive?: () => Promise<string | null>
   onClose: () => void
 }
 
@@ -83,6 +88,7 @@ export function ProductFormDialog({
   suppliers,
   warehouseName,
   onSubmit,
+  onArchive,
   onClose,
 }: ProductFormDialogProps) {
   const [draft, setDraft] = useState(() =>
@@ -94,6 +100,7 @@ export function ProductFormDialog({
       : initialPresentationDrafts(draft.unit),
   )
   const [saving, setSaving] = useState(false)
+  const [confirmingArchive, setConfirmingArchive] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const [tab, setTab] = useState('details')
   const [showCostErrors, setShowCostErrors] = useState(false)
@@ -137,6 +144,19 @@ export function ProductFormDialog({
     setSaving(false)
     if (message === null) onClose()
     else setFailure(message)
+  }
+
+  async function archive() {
+    if (!onArchive) return
+    setFailure(null)
+    setSaving(true)
+    const message = await onArchive()
+    setSaving(false)
+    if (message === null) onClose()
+    else {
+      setConfirmingArchive(false)
+      setFailure(message)
+    }
   }
 
   const identityFields: Array<readonly [keyof ProductDraft, string]> = [
@@ -380,6 +400,47 @@ export function ProductFormDialog({
         <p role="alert" className="mt-[18px] text-sm text-[#b42318]">
           {failure}
         </p>
+      )}
+      {onArchive && (
+        <div className="mt-[18px] rounded-[9px] border border-[#eee7e0] bg-[#faf9f7] p-[13px]">
+          {confirmingArchive ? (
+            <div className="grid gap-3">
+              <p className="text-sm leading-[1.6] text-[#513f45]">
+                ¿Archivar este producto? Dejará de verse en el catálogo, los
+                pedidos y la tienda, pero conserva todo su historial. Podrás
+                restaurarlo cuando quieras desde «Archivados».
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <CatalogButton
+                  disabled={saving}
+                  onClick={() => setConfirmingArchive(false)}
+                >
+                  No archivar
+                </CatalogButton>
+                <CatalogButton
+                  tone="primary"
+                  disabled={saving}
+                  onClick={() => void archive()}
+                >
+                  {saving ? 'Archivando…' : 'Sí, archivar'}
+                </CatalogButton>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs leading-[1.6] text-[#856972]">
+                Si ya no lo vendes, archívalo. Solo se puede sin existencias ni
+                pedidos abiertos, y se puede restaurar.
+              </p>
+              <CatalogButton
+                disabled={saving}
+                onClick={() => setConfirmingArchive(true)}
+              >
+                Archivar producto
+              </CatalogButton>
+            </div>
+          )}
+        </div>
       )}
       <div className="mt-[18px] flex items-center justify-between gap-3 border-t border-[#f4eee8] pt-5">
         <CatalogButton onClick={onClose}>Cancelar</CatalogButton>

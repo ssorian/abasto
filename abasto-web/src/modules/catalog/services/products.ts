@@ -306,8 +306,13 @@ export async function savePieceCost(
   })
 }
 
-/** Any signed-in actor may read the catalog. */
+/** Active products: what every picker and the store offer. Archived ones are left out. */
 export async function listProducts(_actor: Actor): Promise<Array<Product>> {
+  return (await loadProducts(db)).filter((product) => !product.archivedAt)
+}
+
+/** The whole catalog, archived products included (the "Archivados" filter). */
+export async function listAllProducts(_actor: Actor): Promise<Array<Product>> {
   return loadProducts(db)
 }
 

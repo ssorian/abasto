@@ -7,6 +7,8 @@ import { SupplierSelect } from '#/components/supplier-select'
 import { CatalogButton } from '#/modules/catalog/components/catalog-button'
 import { CatalogCard } from '#/modules/catalog/components/catalog-card'
 import { CatalogEmpty } from '#/modules/catalog/components/catalog-empty'
+import { CatalogStatusFilter } from '#/modules/catalog/components/catalog-status-filter'
+import type { CatalogStatus } from '#/modules/catalog/components/catalog-status-filter'
 import { CatalogTable } from '#/modules/catalog/components/catalog-table'
 import { CatalogToolbar } from '#/modules/catalog/components/catalog-toolbar'
 import { CatalogViewToggle } from '#/modules/catalog/components/catalog-view-toggle'
@@ -19,6 +21,7 @@ import { importReferenceProducts } from '#/modules/catalog/lib/catalog-import'
 import {
   filterCatalog,
   publicationCounts,
+  splitArchived,
 } from '#/modules/catalog/lib/catalog-search'
 import { netCostPerPieceOf } from '#/modules/pricing/lib/product-costs'
 import { CardPrices } from '#/modules/pricing/components/card-prices'
@@ -72,6 +75,7 @@ export function CatalogPage({
   const [view, setView] = useCatalogView()
   const [query, setQuery] = useState('')
   const [supplierId, setSupplierId] = useState('')
+  const [status, setStatus] = useState<CatalogStatus>('active')
   const [editor, setEditor] = useState<Editor>()
   const [suppliersOpen, setSuppliersOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -79,8 +83,13 @@ export function CatalogPage({
   const [history, setHistory] = useState<HistoryTarget>()
 
   const editing = products.find(({ id }) => id === editor?.productId)
-  const visible = filterCatalog(products, query, supplierId)
-  const { published, paused } = publicationCounts(products)
+  const { active, archived } = splitArchived(products)
+  const visible = filterCatalog(
+    status === 'archived' ? archived : active,
+    query,
+    supplierId,
+  )
+  const { published, paused } = publicationCounts(active)
   const supplierNames = new Map(suppliers.map(({ id, name }) => [id, name]))
 
   const warehouse = pricing.warehouses.find(
@@ -154,12 +163,19 @@ export function CatalogPage({
           onChange={setSupplierId}
         />
         <CatalogViewToggle value={view} onChange={setView} />
+        {(archived.length > 0 || status === 'archived') && (
+          <CatalogStatusFilter
+            value={status}
+            archivedCount={archived.length}
+            onChange={setStatus}
+          />
+        )}
       </CatalogToolbar>
       <p className="mb-3.5 text-xs leading-[1.5] text-[#9f8f94]">
         {warehouse
           ? 'Es una referencia: cada lote puede venderse más caro al darle entrada. '
           : ''}
-        {inventoryNote(products)}
+        {inventoryNote(active)}
       </p>
       {view === 'table' ? (
         <CatalogTable
@@ -171,6 +187,7 @@ export function CatalogPage({
           canManage={canManage}
           onPrices={setPricesId}
           onEdit={(productId) => setEditor({ productId })}
+          onRestore={(productId) => void actions.restoreProduct(productId)}
         />
       ) : (
         <div className="grid grid-cols-2 gap-2.5 phone:gap-3.5 md:gap-4 tablet:grid-cols-3 wide:gap-5">
@@ -201,6 +218,7 @@ export function CatalogPage({
                   : undefined
               }
               onEdit={() => setEditor({ productId: product.id })}
+              onRestore={() => void actions.restoreProduct(product.id)}
             />
           ))}
         </div>
@@ -239,6 +257,11 @@ export function CatalogPage({
           product={editing}
           suppliers={suppliers}
           warehouseName={warehouse?.name}
+          onArchive={
+            editor.productId
+              ? () => actions.archiveProduct(editor.productId!)
+              : undefined
+          }
           onSubmit={(draft, presentations) =>
             actions.saveProduct(
               editor.productId,

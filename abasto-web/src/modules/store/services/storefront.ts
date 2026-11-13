@@ -4,7 +4,7 @@
  * orders and cancellation. Everything returned here is a customer projection:
  * no lot codes, costs, creators or exact stock quantities.
  */
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { db } from '#/db'
 import { products } from '#/modules/catalog/db/schema'
 import { computeQuotePreview } from '#/modules/counter/server/quote-preview'
@@ -124,7 +124,11 @@ export async function getStoreCatalog(
         })
         .from(products)
         .where(
-          and(inArray(products.id, productIds), eq(products.published, true)),
+          and(
+            inArray(products.id, productIds),
+            eq(products.published, true),
+            isNull(products.archivedAt),
+          ),
         )
     ).map((row) => [row.id, row]),
   )

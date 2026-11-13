@@ -4,6 +4,8 @@ import type { Tx } from '#/modules/inventory/services/stock-ledger'
 
 export type BoxProduct = {
   id: string
+  /** Set when the product is archived; new work on it is refused. */
+  archivedAt: Date | null
   supplierId: string | null
   /** Supplier list price, discount and promotion per piece (ten-thousandths of a peso). */
   listPricePerPiece: number
@@ -23,6 +25,7 @@ export async function loadBoxProducts(
   const rows = await tx
     .select({
       id: products.id,
+      archivedAt: products.archivedAt,
       supplierId: products.supplierId,
       listPricePerPiece: products.listPricePerPiece,
       fixedDiscountPerPiece: products.fixedDiscountPerPiece,

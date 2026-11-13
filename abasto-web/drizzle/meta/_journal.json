@@ -232,6 +232,13 @@
       "when": 1794493058507,
       "tag": "0032_unordered_lines",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794546223458,
+      "tag": "0033_product_archive",
+      "breakpoints": true
     }
   ]
 }

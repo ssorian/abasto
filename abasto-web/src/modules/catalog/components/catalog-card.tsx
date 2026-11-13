@@ -18,6 +18,8 @@ type CatalogCardProps = {
   /** Opens the Prices dialog; absent when the product has no prices to show. */
   onPrices?: () => void
   onEdit: () => void
+  /** Brings an archived product back (owner only). */
+  onRestore: () => void
 }
 
 const statusClass =
@@ -30,7 +32,13 @@ export function CatalogCard({
   prices,
   onPrices,
   onEdit,
+  onRestore,
 }: CatalogCardProps) {
+  const statusLabel = product.archivedAt
+    ? 'Archivado'
+    : product.published
+      ? 'Publicado'
+      : 'Pausado'
   return (
     <article className="relative overflow-hidden rounded-xl border border-[#eee8e2] bg-white shadow-[0_3px_5px_#35145202] transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[#ddd4d7] hover:shadow-[0_7px_22px_#3712570b]">
       {product.imageUrl ? (
@@ -44,13 +52,13 @@ export function CatalogCard({
             className={`${statusClass} absolute top-[9px] right-[9px] md:top-3 md:right-3`}
           >
             <CheckIcon size={12} />
-            {product.published ? 'Publicado' : 'Pausado'}
+            {statusLabel}
           </span>
         </div>
       ) : (
         <span className={`${statusClass} absolute top-3 right-3 bg-[#faf9f7]`}>
           <CheckIcon size={12} />
-          {product.published ? 'Publicado' : 'Pausado'}
+          {statusLabel}
         </span>
       )}
       <div className="px-[15px] pt-[15px] pb-[15px] md:pb-[22px] wide:px-[19px] wide:pt-[17px]">
@@ -75,7 +83,15 @@ export function CatalogCard({
           ) : null}
         </div>
         {prices}
-        {onPrices || canManage ? (
+        {product.archivedAt ? (
+          canManage && (
+            <div className="my-3.5 flex flex-wrap gap-[9px]">
+              <CatalogButton className="flex-1 px-3" onClick={onRestore}>
+                Restaurar
+              </CatalogButton>
+            </div>
+          )
+        ) : onPrices || canManage ? (
           <div className="my-3.5 flex flex-wrap gap-[9px]">
             {onPrices ? (
               <CatalogButton className="flex-1 px-3" onClick={onPrices}>

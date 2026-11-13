@@ -1,5 +1,6 @@
 import { can } from '#/modules/access/lib/policy'
 import type { Actor } from '#/modules/access/lib/policy'
+import { archivedProductIds } from '#/modules/catalog/services/product-reads'
 import { getOpenCashSession } from '#/modules/cash/services/cash-sessions'
 import { buildSellable } from '#/modules/counter/lib/sellable'
 import type { CounterOverview } from '#/modules/counter/types/counter-view'
@@ -37,12 +38,13 @@ export async function getCounterOverview(
       sellable: [],
     }
   }
-  const [orders, customers, prices, stock, cash] = await Promise.all([
+  const [orders, customers, prices, stock, cash, archived] = await Promise.all([
     listOrders(actor, { warehouseId: selected.id }),
     listCustomers(actor, { active: true }),
     listWarehousePrices(actor, selected.id),
     getWarehouseStock(actor, selected.id),
     getOpenCashSession(actor, selected.id),
+    archivedProductIds(),
   ])
   return {
     ...base,
@@ -51,6 +53,9 @@ export async function getCounterOverview(
     canViewCashHistory: can(actor, 'warehouse.manage', selected.id),
     orders,
     customers: customers.map(({ id, name }) => ({ id, name })),
-    sellable: buildSellable(prices, stock),
+    sellable: buildSellable(
+      prices.filter((price) => !archived.has(price.productId)),
+      stock,
+    ),
   }
 }
