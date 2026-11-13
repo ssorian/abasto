@@ -12,9 +12,9 @@ describe('role labels', () => {
     expect(warehouseRoleLabel('manager')).toBe('Encargado')
   })
 
-  test('chipLabel joins warehouse and role', () => {
+  test('chipLabel is only the warehouse name (the Rol column has the role)', () => {
     expect(
       chipLabel({ warehouseId: 'a', warehouseName: 'Norte', role: 'manager' }),
-    ).toBe('Norte · Encargado')
+    ).toBe('Norte')
   })
 })

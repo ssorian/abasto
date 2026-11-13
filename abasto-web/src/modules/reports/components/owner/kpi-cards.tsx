@@ -122,30 +122,32 @@ export function KpiCards({ current, previous, days, rows }: KpiCardsProps) {
     },
   ]
   return (
-    <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3 min-[1280px]:grid-cols-5">
-      {cards.map((card) => (
-        <article
-          key={card.label}
-          className="min-w-0 rounded-xl border border-[#f0e9e1] bg-white px-5 py-[18px]"
-        >
-          <h2 className="text-[11px] font-normal text-ink-muted">
-            {card.label}
-          </h2>
-          <p className="mt-2 text-[23px] font-bold tracking-[-0.7px] text-ink-figure">
-            {card.value}
-          </p>
-          <p className="mt-1.5 text-xs">
-            <DeltaText value={card.delta.value} label={card.delta.label} />{' '}
-            <span className="text-[11px] text-ink-muted">vs. anterior</span>
-          </p>
-          <div className="mt-2.5">
-            <Sparkline values={card.trend} color={card.color} />
-          </div>
-          <p className="mt-2 text-xs leading-[1.5] text-ink-row">
-            {card.sentence}
-          </p>
-        </article>
-      ))}
+    <div className="@container">
+      <div className="grid grid-cols-1 gap-[18px] @[34rem]:grid-cols-2 @[52rem]:grid-cols-3 @[62rem]:grid-cols-5">
+        {cards.map((card) => (
+          <article
+            key={card.label}
+            className="min-w-0 rounded-xl border border-[#f0e9e1] bg-white px-5 py-[18px]"
+          >
+            <h2 className="text-[11px] font-normal text-ink-muted">
+              {card.label}
+            </h2>
+            <p className="mt-2 text-[23px] font-bold tracking-[-0.7px] text-ink-figure">
+              {card.value}
+            </p>
+            <p className="mt-1.5 text-xs">
+              <DeltaText value={card.delta.value} label={card.delta.label} />{' '}
+              <span className="text-[11px] text-ink-muted">vs. anterior</span>
+            </p>
+            <div className="mt-2.5">
+              <Sparkline values={card.trend} color={card.color} />
+            </div>
+            <p className="mt-2 text-xs leading-[1.5] text-ink-row">
+              {card.sentence}
+            </p>
+          </article>
+        ))}
+      </div>
     </div>
   )
 }

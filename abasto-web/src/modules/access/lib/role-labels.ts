@@ -17,5 +17,6 @@ const warehouseRoleLabels: Record<WarehouseRole, string> = {
 export const warehouseRoleLabel = (role: WarehouseRole) =>
   warehouseRoleLabels[role]
 
+/** The chip is the warehouse name; the role already lives in the Rol column. */
 export const chipLabel = (assignment: UserAssignment) =>
-  `${assignment.warehouseName} · ${warehouseRoleLabel(assignment.role)}`
+  assignment.warehouseName

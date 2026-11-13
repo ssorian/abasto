@@ -10,7 +10,7 @@ import {
 import { formatDeltaBps } from '#/modules/executive/lib/format'
 import type { WarehouseMetrics } from '#/modules/executive/types/profitability'
 import { formatCents } from '#/modules/pricing/lib/money'
-import { rangeLabel } from '#/modules/reports/lib/period'
+import { longRangeLabel } from '#/modules/reports/lib/period'
 import { relativeChangeBps } from '#/modules/reports/lib/owner-series'
 import type { DateRange } from '#/modules/reports/types/reports'
 
@@ -98,7 +98,7 @@ export function ProfitBridge({
         </DataTable>
       </TableWrap>
       <p className="mt-3.5 text-xs text-ink-muted">
-        Anterior: {rangeLabel(previousRange)}, de la misma duración.
+        Anterior: {longRangeLabel(previousRange)}, de la misma duración.
       </p>
     </ReportCard>
   )
