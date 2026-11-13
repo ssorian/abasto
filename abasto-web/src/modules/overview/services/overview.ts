@@ -162,5 +162,6 @@ export async function getOverview(actor: Actor): Promise<Overview> {
     lowStock,
     expiring: expiringRows.slice(0, LIST_SIZE).map(lotItem),
     expired: expiredRows.slice(0, LIST_SIZE).map(lotItem),
+    canAdjustStock: visible.some(({ id }) => can(actor, 'stock.adjust', id)),
   }
 }

@@ -59,7 +59,7 @@ export function OverviewPage({ overview }: { overview: Overview }) {
       (item) => item.id === warehouseId && item.salesCents !== undefined,
     )
   const removeLot = (lot: Overview['expired'][number]) =>
-    manages(lot.warehouseId) ? (
+    overview.canAdjustStock && manages(lot.warehouseId) ? (
       <Link
         to="/inventario"
         search={{

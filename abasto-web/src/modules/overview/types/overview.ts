@@ -60,4 +60,6 @@ export type Overview = {
   expiring: Array<ExpiringItem>
   /** Lots past their expiry day that still hold stock. */
   expired: Array<ExpiringItem>
+  /** Only owners add or remove lot stock («Quitar existencias»). */
+  canAdjustStock?: boolean
 }
