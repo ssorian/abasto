@@ -103,6 +103,26 @@ describe('recovered', () => {
     expect(result.recoveredCents).toBe(6532)
   })
 
+  test('a discount cancelled and applied again counts once', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 3, 0)
+    const balance = (await pendingsOf(fx)).restock[0]
+    const discountOn = () =>
+      createSupplierOrder(fx.owner, {
+        supplierId: fx.supplier.id,
+        warehouseId: fx.a.id,
+        lines: [lineFor(fx.milk, 5)],
+        discounts: [{ pendingId: balance.pendingId }],
+      })
+    const first = await discountOn()
+    await cancelSupplierOrder(fx.owner, first.id)
+    await discountOn()
+    const result = await read(fx)
+    expect(result.discountedCents).toBe(4032)
+    expect(result.recoveredCents).toBe(4032)
+    expect(result.pendingCents).toBe(0)
+  })
+
   test('a replacement received counts as replaced merchandise', async () => {
     const fx = await setupSupplierOrders()
     await receiveMilk(fx, 10, 3, 0)

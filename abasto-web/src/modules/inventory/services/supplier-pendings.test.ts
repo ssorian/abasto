@@ -712,6 +712,8 @@ describe('returnPendings', () => {
       (row) => row.type === 'returned',
     )
     expect(returned.map((row) => row.creditCents).sort()).toEqual([1344, 2500])
+    // The settlement keeps the original value, so the unrecognized part is derivable.
+    expect(returned.map((row) => row.valueCents).sort()).toEqual([-1344, -2688])
   })
 
   test('rejects bad returns and leaves everything unchanged', async () => {
@@ -816,6 +818,70 @@ describe('return credits', () => {
       pendingId: credit.pendingId,
       owedValueCents: 2500,
     })
+  })
+
+  test('a credit cannot be received as a replacement', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 0, 3)
+    const damaged = (await returnMilk(fx))!
+    await returnPendings(fx.owner, {
+      pendingId: damaged.pendingId,
+      boxes: 2,
+      resolution: 'discount',
+    })
+    const credit = (await creditMilk(fx))!
+    const order = await orderMilk(fx, 1)
+    const before = await supplierState()
+    const error = await errorOf(() =>
+      receiveSupplierOrder(fx.owner, {
+        purchaseId: order.id,
+        lines: [
+          {
+            lineId: order.lines[0].id,
+            missingBoxes: 0,
+            damagedBoxes: 0,
+            noExpiry: true,
+          },
+        ],
+        replacements: [
+          { pendingId: credit.pendingId, boxes: 1, noExpiry: true },
+        ],
+      }),
+    )
+    expect([error.code, error.message]).toEqual([
+      'invalid',
+      'Ese saldo no es un faltante por reponer.',
+    ])
+    expect(await supplierState()).toEqual(before)
+  })
+
+  test('concurrent orders cannot discount the same credit twice', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 0, 3)
+    const damaged = (await returnMilk(fx))!
+    await returnPendings(fx.owner, {
+      pendingId: damaged.pendingId,
+      boxes: 2,
+      resolution: 'discount',
+      creditCents: 2500,
+    })
+    const credit = (await creditMilk(fx))!
+    const place = () =>
+      createSupplierOrder(fx.owner, {
+        supplierId: fx.supplier.id,
+        warehouseId: fx.a.id,
+        lines: [lineFor(fx.milk, 5)],
+        discounts: [{ pendingId: credit.pendingId }],
+      })
+    const results = await Promise.allSettled([place(), place()])
+    expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(
+      1,
+    )
+    expect(
+      (await db.select().from(purchases))
+        .map((row) => row.discountCents)
+        .sort(),
+    ).toEqual([0, 2500])
   })
 
   test('a replacement or a zero discount leaves no credit', async () => {
