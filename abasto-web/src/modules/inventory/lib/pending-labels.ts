@@ -8,6 +8,8 @@ export const pendingTypeLabels: Record<PendingType, string> = {
   discounted: 'Descontado en un pedido',
   returned: 'Devuelto al proveedor',
   reopened: 'Reabierto',
+  scrapped: 'Merma',
+  credit: 'Descuento a favor',
 }
 
 /** Order statuses in the filter of "Por recibir". */

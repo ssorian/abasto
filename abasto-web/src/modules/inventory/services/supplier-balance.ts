@@ -10,6 +10,7 @@ import {
   supplierPendings,
 } from '#/modules/inventory/db/schema'
 import type {
+  OriginType,
   PendingKind,
   ReturnResolution,
 } from '#/modules/inventory/db/schema'
@@ -45,7 +46,7 @@ export async function lockSupplier(tx: Tx, supplierId: string) {
 export const balanceNotFound = () =>
   new AppError('not_found', 'No encontramos ese saldo.')
 
-/** An origin ledger entry (Por reponer or Por devolver) with what has been settled of it. */
+/** An origin ledger entry (Por reponer, Por devolver or Descuento a favor) with what has been settled of it. */
 export type Balance = {
   id: string
   kind: PendingKind
@@ -118,7 +119,7 @@ export async function loadBalances(
     .orderBy(asc(supplierPendings.createdAt), asc(supplierPendings.id))
   return rows.map(({ type, reference, folio, ...row }) => ({
     ...row,
-    kind: pendingKindOf(type as 'missing' | 'damaged'),
+    kind: pendingKindOf(type as OriginType),
     originCode: row.purchaseId ? orderCode({ reference, folio }) : '',
   }))
 }
@@ -149,7 +150,7 @@ export async function loadSupplierBalances(
 type SettleInput = {
   balance: Balance
   boxes: number
-  type: 'replaced' | 'returned'
+  type: 'replaced' | 'returned' | 'scrapped'
   /** Receiving order for a replacement; null otherwise. */
   purchaseId: string | null
   actorId: string
@@ -185,8 +186,8 @@ export async function settleBalance(
 }
 
 /**
- * Closes whatever is still open of a "Por reponer" balance on a new order
- * ("a lo chino"). Returns the value in cents (positive).
+ * Closes whatever is still open of a "Por reponer" or "Descuento a favor"
+ * balance on a new order. Returns the value in cents (positive).
  */
 export async function discountBalance(
   tx: Tx,

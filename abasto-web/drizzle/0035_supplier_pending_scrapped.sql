@@ -1,0 +1,4 @@
+ALTER TABLE "supplier_pendings" DROP CONSTRAINT "supplier_pendings_type_check";--> statement-breakpoint
+ALTER TABLE "supplier_pendings" DROP CONSTRAINT "supplier_pendings_sign";--> statement-breakpoint
+ALTER TABLE "supplier_pendings" ADD CONSTRAINT "supplier_pendings_type_check" CHECK ("supplier_pendings"."type" in ('damaged', 'missing', 'replaced', 'written_off', 'discounted', 'returned', 'reopened', 'scrapped'));--> statement-breakpoint
+ALTER TABLE "supplier_pendings" ADD CONSTRAINT "supplier_pendings_sign" CHECK (("supplier_pendings"."type" in ('damaged', 'missing', 'reopened') and "supplier_pendings"."quantity" > 0 and "supplier_pendings"."value_cents" >= 0) or ("supplier_pendings"."type" in ('replaced', 'written_off', 'discounted', 'returned', 'scrapped') and "supplier_pendings"."quantity" < 0 and "supplier_pendings"."value_cents" <= 0));

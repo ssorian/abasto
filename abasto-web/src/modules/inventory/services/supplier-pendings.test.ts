@@ -22,6 +22,7 @@ import {
 import {
   listSupplierPendings,
   returnPendings,
+  scrapPendings,
 } from '#/modules/inventory/services/supplier-pendings'
 import {
   errorOf,
@@ -146,6 +147,7 @@ describe('listSupplierPendings', () => {
     expect(await listSupplierPendings(fx.owner, fx.cocaCola.id)).toEqual({
       restock: [],
       returns: [],
+      credits: [],
       history: [],
     })
     const all = await listSupplierPendings(fx.owner)
@@ -585,7 +587,7 @@ describe('discounts on a new order', () => {
         [{ pendingId: damaged.pendingId }],
         5,
         'invalid',
-        'Solo se pueden descontar faltantes por reponer.',
+        'Solo se pueden descontar faltantes por reponer o descuentos a favor.',
       ],
       [
         [{ pendingId: crypto.randomUUID() }],
@@ -710,6 +712,8 @@ describe('returnPendings', () => {
       (row) => row.type === 'returned',
     )
     expect(returned.map((row) => row.creditCents).sort()).toEqual([1344, 2500])
+    // The settlement keeps the original value, so the unrecognized part is derivable.
+    expect(returned.map((row) => row.valueCents).sort()).toEqual([-1344, -2688])
   })
 
   test('rejects bad returns and leaves everything unchanged', async () => {
@@ -771,6 +775,209 @@ describe('returnPendings', () => {
     for (const [actor, payload, code, message] of cases) {
       const before = await supplierState()
       const error = await errorOf(() => returnPendings(actor, payload))
+      expect([error.code, error.message]).toEqual([code, message])
+      expect(await supplierState()).toEqual(before)
+    }
+  })
+})
+
+describe('return credits', () => {
+  const creditMilk = async (fx: SupplierFixture) =>
+    (await view(fx)).credits.find((row) => row.productId === fx.milk.id)
+
+  test('a discount leaves a credit that is only discounted when chosen on an order', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 0, 3)
+    const damaged = (await returnMilk(fx))!
+    await returnPendings(fx.owner, {
+      pendingId: damaged.pendingId,
+      boxes: 2,
+      resolution: 'discount',
+      creditCents: 2500,
+    })
+    const credit = (await creditMilk(fx))!
+    expect(credit).toMatchObject({
+      kind: 'credit',
+      supplierId: fx.supplier.id,
+      owedBoxes: 2,
+      owedValueCents: 2500,
+      originCode: damaged.originCode,
+    })
+    expect((await view(fx)).restock).toEqual([])
+    // Never automatic: an order that does not choose it leaves it open.
+    const plain = await orderMilk(fx, 5)
+    expect(plain.discountCents).toBe(0)
+    expect(await creditMilk(fx)).toMatchObject({ owedValueCents: 2500 })
+    const order = await orderMilk(fx, 5, {
+      discounts: [{ pendingId: credit.pendingId }],
+    })
+    expect(order).toMatchObject({ discountCents: 2500, payableCents: 4220 })
+    expect(await creditMilk(fx)).toBeUndefined()
+    await cancelSupplierOrder(fx.owner, order.id)
+    expect(await creditMilk(fx)).toMatchObject({
+      pendingId: credit.pendingId,
+      owedValueCents: 2500,
+    })
+  })
+
+  test('a credit cannot be received as a replacement', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 0, 3)
+    const damaged = (await returnMilk(fx))!
+    await returnPendings(fx.owner, {
+      pendingId: damaged.pendingId,
+      boxes: 2,
+      resolution: 'discount',
+    })
+    const credit = (await creditMilk(fx))!
+    const order = await orderMilk(fx, 1)
+    const before = await supplierState()
+    const error = await errorOf(() =>
+      receiveSupplierOrder(fx.owner, {
+        purchaseId: order.id,
+        lines: [
+          {
+            lineId: order.lines[0].id,
+            missingBoxes: 0,
+            damagedBoxes: 0,
+            noExpiry: true,
+          },
+        ],
+        replacements: [
+          { pendingId: credit.pendingId, boxes: 1, noExpiry: true },
+        ],
+      }),
+    )
+    expect([error.code, error.message]).toEqual([
+      'invalid',
+      'Ese saldo no es un faltante por reponer.',
+    ])
+    expect(await supplierState()).toEqual(before)
+  })
+
+  test('concurrent orders cannot discount the same credit twice', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 0, 3)
+    const damaged = (await returnMilk(fx))!
+    await returnPendings(fx.owner, {
+      pendingId: damaged.pendingId,
+      boxes: 2,
+      resolution: 'discount',
+      creditCents: 2500,
+    })
+    const credit = (await creditMilk(fx))!
+    const place = () =>
+      createSupplierOrder(fx.owner, {
+        supplierId: fx.supplier.id,
+        warehouseId: fx.a.id,
+        lines: [lineFor(fx.milk, 5)],
+        discounts: [{ pendingId: credit.pendingId }],
+      })
+    const results = await Promise.allSettled([place(), place()])
+    expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(
+      1,
+    )
+    expect(
+      (await db.select().from(purchases))
+        .map((row) => row.discountCents)
+        .sort(),
+    ).toEqual([0, 2500])
+  })
+
+  test('a replacement or a zero discount leaves no credit', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 0, 3)
+    const damaged = (await returnMilk(fx))!
+    await returnPendings(fx.owner, {
+      pendingId: damaged.pendingId,
+      boxes: 1,
+      resolution: 'replacement',
+    })
+    await returnPendings(fx.owner, {
+      pendingId: damaged.pendingId,
+      boxes: 1,
+      resolution: 'discount',
+      creditCents: 0,
+    })
+    expect((await view(fx)).credits).toEqual([])
+  })
+})
+
+describe('scrapPendings', () => {
+  test('closing damaged boxes as merma records their value as lost and leaves stock alone', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 0, 3)
+    const damaged = (await returnMilk(fx))!
+    const before = await supplierState()
+    expect(
+      await scrapPendings(fx.managerA, {
+        pendingId: damaged.pendingId,
+        boxes: 1,
+      }),
+    ).toEqual({ valueCents: 1344 })
+    expect(await returnMilk(fx)).toMatchObject({ owedBoxes: 2 })
+    expect(
+      await scrapPendings(fx.owner, { pendingId: damaged.pendingId, boxes: 2 }),
+    ).toEqual({ valueCents: 2688 })
+    expect(await returnMilk(fx)).toBeUndefined()
+    const after = await supplierState()
+    expect(after.inventory).toEqual(before.inventory)
+    const scrapped = after.pendings.filter((row) => row.type === 'scrapped')
+    expect(scrapped.map((row) => row.quantity).sort()).toEqual([-12, -24])
+    expect(scrapped.find((row) => row.quantity === -12)).toMatchObject({
+      settlesId: damaged.pendingId,
+      purchaseId: null,
+      quantity: -12,
+      valueCents: -1344,
+      resolution: null,
+      creditCents: null,
+      actorId: fx.managerA.userId,
+    })
+  })
+
+  test('rejects bad write-offs and leaves everything unchanged', async () => {
+    const fx = await setupSupplierOrders()
+    await receiveMilk(fx, 10, 3, 2)
+    const damaged = (await returnMilk(fx))!
+    const missing = (await restockMilk(fx))!
+    const input = { pendingId: damaged.pendingId, boxes: 1 }
+    const cases: Array<
+      [
+        Parameters<typeof scrapPendings>[0],
+        Parameters<typeof scrapPendings>[1],
+        AppErrorCode,
+        string,
+      ]
+    > = [
+      [
+        fx.owner,
+        { ...input, boxes: 3 },
+        'invalid',
+        'Las cajas a dar por merma superan el saldo del proveedor.',
+      ],
+      [
+        fx.owner,
+        { ...input, boxes: 0 },
+        'invalid',
+        'Las cajas a dar por merma deben ser un número entero mayor que cero.',
+      ],
+      [
+        fx.owner,
+        { ...input, pendingId: missing.pendingId },
+        'invalid',
+        'Solo se pueden dar por merma cajas dañadas o caducadas.',
+      ],
+      [
+        fx.owner,
+        { ...input, pendingId: crypto.randomUUID() },
+        'not_found',
+        'No encontramos ese saldo.',
+      ],
+      [unassigned(fx.managerB), input, 'forbidden', forbidden],
+    ]
+    for (const [actor, payload, code, message] of cases) {
+      const before = await supplierState()
+      const error = await errorOf(() => scrapPendings(actor, payload))
       expect([error.code, error.message]).toEqual([code, message])
       expect(await supplierState()).toEqual(before)
     }

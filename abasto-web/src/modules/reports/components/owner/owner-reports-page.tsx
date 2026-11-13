@@ -12,6 +12,7 @@ import { OwnerPeriodFilters } from '#/modules/reports/components/owner/owner-per
 import { ProfitBridge } from '#/modules/reports/components/owner/profit-bridge'
 import { SectionIndex } from '#/modules/reports/components/owner/section-index'
 import { StockAlerts } from '#/modules/reports/components/owner/stock-alerts'
+import { SupplierRecovery } from '#/modules/reports/components/owner/supplier-recovery'
 import { SupplierChart } from '#/modules/reports/components/owner/supplier-chart'
 import { TopProductsChart } from '#/modules/reports/components/owner/top-products-chart'
 import { TrendChart } from '#/modules/reports/components/owner/trend-chart'
@@ -169,6 +170,16 @@ function Dashboard({
         ) : (
           <ReportEmpty>No hay pedidos entregados en este periodo.</ReportEmpty>
         )}
+      </section>
+      <section
+        id="reporte-proveedores"
+        aria-label="Dinero con proveedores"
+        className="grid scroll-mt-4 gap-[18px]"
+      >
+        <SupplierRecovery
+          data={data.supplierRecovery}
+          warehouseFiltered={Boolean(search.almacen)}
+        />
       </section>
       <section
         id="reporte-inventario"

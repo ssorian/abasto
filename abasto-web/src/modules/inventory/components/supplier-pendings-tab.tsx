@@ -23,26 +23,30 @@ import type {
 type SupplierPendingsTabProps = {
   restock: ReadonlyArray<PendingBalance>
   returns: ReadonlyArray<PendingBalance>
+  credits: ReadonlyArray<PendingBalance>
   history: ReadonlyArray<PendingEntry>
   suppliers: ReadonlyMap<string, string>
   products: ReadonlyMap<string, ProductLabel>
   onReturn: (pending: PendingBalance) => void
+  onScrap: (pending: PendingBalance) => void
 }
 
 /** What each supplier owes us, split in boxes to replenish and boxes to return, and how it was settled. */
 export function SupplierPendingsTab({
   restock,
   returns,
+  credits,
   history,
   suppliers,
   products,
   onReturn,
+  onScrap,
 }: SupplierPendingsTabProps) {
   return (
     <>
       <SectionRow
         title="Saldos de proveedores"
-        description="Lo faltante se repone o se descuenta en el siguiente pedido; lo dañado o caducado se devuelve."
+        description="Lo faltante se repone o se descuenta en el siguiente pedido; lo dañado o caducado se devuelve o se da por merma."
       />
       <BalanceSection
         title="Por reponer"
@@ -54,9 +58,17 @@ export function SupplierPendingsTab({
         title="Por devolver"
         description="Cajas dañadas o caducadas que siguen contigo; no son inventario."
         emptyTitle="No tienes cajas por devolver"
-        action="Marcar como devuelto"
         rows={returns}
-        onAction={onReturn}
+        actions={[
+          { label: 'Marcar como devuelto', onAction: onReturn },
+          { label: 'Dar por merma', onAction: onScrap },
+        ]}
+      />
+      <BalanceSection
+        title="Descuentos a favor"
+        description="Lo que el proveedor descontó por cajas devueltas; se elige al registrar el siguiente pedido."
+        emptyTitle="No tienes descuentos a favor"
+        rows={credits}
       />
       {history.length > 0 && (
         <>
@@ -115,18 +127,19 @@ type BalanceSectionProps = {
   description: string
   emptyTitle: string
   rows: ReadonlyArray<PendingBalance>
-  /** Row action; omitted for balances settled elsewhere (restock: on the next order). */
-  action?: string
-  onAction?: (pending: PendingBalance) => void
+  /** Row actions; none for balances settled elsewhere (restock: on the next order). */
+  actions?: ReadonlyArray<{
+    label: string
+    onAction: (pending: PendingBalance) => void
+  }>
 }
 
 function BalanceSection({
   title,
   description,
   emptyTitle,
-  action,
   rows,
-  onAction,
+  actions = [],
 }: BalanceSectionProps) {
   if (!rows.length) {
     return (
@@ -152,7 +165,7 @@ function BalanceSection({
               'Pedido',
               'Debe',
               'Valor',
-              ...(action ? [''] : []),
+              ...(actions.length ? [''] : []),
             ]}
           </ListHead>
           <ListBody>
@@ -170,15 +183,18 @@ function BalanceSection({
                   {boxCountLabel(row.owedBoxes, row.boxFactor)}
                 </ListCell>
                 <ListCell>{formatCents(row.owedValueCents)}</ListCell>
-                {action && onAction && (
+                {actions.length > 0 && (
                   <ListCell>
-                    <span className="flex justify-end">
-                      <ActionButton
-                        className="min-h-9 px-3"
-                        onClick={() => onAction(row)}
-                      >
-                        {action}
-                      </ActionButton>
+                    <span className="flex flex-wrap justify-end gap-2">
+                      {actions.map(({ label, onAction }) => (
+                        <ActionButton
+                          key={label}
+                          className="min-h-9 px-3"
+                          onClick={() => onAction(row)}
+                        >
+                          {label}
+                        </ActionButton>
+                      ))}
                     </span>
                   </ListCell>
                 )}

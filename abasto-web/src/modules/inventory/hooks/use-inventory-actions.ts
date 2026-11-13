@@ -15,11 +15,15 @@ import {
   createSupplierOrderFn,
   receiveSupplierOrderFn,
   returnPendingsFn,
+  scrapPendingsFn,
   supplierOrderFn,
 } from '#/modules/inventory/server/supplier-orders'
 import type { OrderStock } from '#/modules/inventory/lib/order-rows'
 import { formatCents } from '#/modules/inventory/lib/cents'
-import type { ReturnRequest } from '#/modules/inventory/lib/pending-return'
+import type {
+  ReturnRequest,
+  ScrapRequest,
+} from '#/modules/inventory/lib/pending-return'
 import type { ReceptionInput } from '#/modules/inventory/services/supplier-reception'
 import type {
   SupplierOrder,
@@ -55,7 +59,16 @@ export function useInventoryActions() {
           toast.success(
             creditCents === null
               ? 'Devolución registrada: el proveedor repondrá las cajas.'
-              : `Devolución registrada con descuento de ${formatCents(creditCents)}.`,
+              : creditCents === 0
+                ? 'Devolución registrada sin descuento.'
+                : `Devolución registrada: ${formatCents(creditCents)} a favor para el siguiente pedido.`,
+          ),
+      }),
+    scrapPending: (input: ScrapRequest) =>
+      run(() => scrapPendingsFn({ data: input }), {
+        onSuccess: ({ valueCents }) =>
+          toast.success(
+            `Merma registrada: se perdieron ${formatCents(valueCents)}.`,
           ),
       }),
     /** Lines of an order; a failure shows the message and resolves to undefined. */

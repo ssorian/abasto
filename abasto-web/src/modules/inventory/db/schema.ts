@@ -43,18 +43,28 @@ export const pendingTypes = [
   'discounted',
   'returned',
   'reopened',
+  'scrapped',
+  'credit',
 ] as const
 export type PendingType = (typeof pendingTypes)[number]
 
 /**
  * Balance kinds: `missing` entries are "Por reponer" (the supplier owes boxes
  * that never arrived), `damaged` entries are "Por devolver" (boxes that
- * arrived unsellable and go back to the supplier).
+ * arrived unsellable and go back to the supplier), `credit` entries are
+ * "Descuentos a favor" (what the supplier credited for returned boxes, to be
+ * discounted, when chosen, on a later order).
  */
-export const pendingKinds = ['restock', 'return'] as const
+export const pendingKinds = ['restock', 'return', 'credit'] as const
 export type PendingKind = (typeof pendingKinds)[number]
-export const pendingKindOf = (type: 'missing' | 'damaged'): PendingKind =>
-  type === 'missing' ? 'restock' : 'return'
+export type OriginType = 'missing' | 'damaged' | 'credit'
+const kindByOrigin: Record<OriginType, PendingKind> = {
+  missing: 'restock',
+  damaged: 'return',
+  credit: 'credit',
+}
+export const pendingKindOf = (type: OriginType): PendingKind =>
+  kindByOrigin[type]
 
 /** How the supplier closed a "Por devolver" balance. */
 export const returnResolutions = ['replacement', 'discount'] as const
@@ -287,10 +297,11 @@ export const stockMinimums = pgTable(
 
 /**
  * Append-only supplier balance. Origin entries (`missing` = "Por reponer",
- * `damaged` = "Por devolver") are positive and have no `settlesId`. Every
+ * `damaged` = "Por devolver", `credit` = the amount a supplier credited for
+ * returned boxes, worth that amount for the returned units) are positive and have no `settlesId`. Every
  * other entry points at the origin it settles: negative when it closes boxes
  * (`replaced` by a delivery, `written_off` "a lo chino", `discounted` on a new
- * order, `returned` to the supplier), positive `reopened` when a discounting
+ * order, `returned` to the supplier, `scrapped` written off as merma), positive `reopened` when a discounting
  * order is cancelled. An origin's balance is its quantity plus its settlements.
  * A database trigger rejects UPDATE and DELETE.
  */
@@ -329,15 +340,15 @@ export const supplierPendings = pgTable(
   (table) => [
     check(
       'supplier_pendings_type_check',
-      sql`${table.type} in ('damaged', 'missing', 'replaced', 'written_off', 'discounted', 'returned', 'reopened')`,
+      sql`${table.type} in ('damaged', 'missing', 'replaced', 'written_off', 'discounted', 'returned', 'reopened', 'scrapped', 'credit')`,
     ),
     check(
       'supplier_pendings_sign',
-      sql`(${table.type} in ('damaged', 'missing', 'reopened') and ${table.quantity} > 0 and ${table.valueCents} >= 0) or (${table.type} in ('replaced', 'written_off', 'discounted', 'returned') and ${table.quantity} < 0 and ${table.valueCents} <= 0)`,
+      sql`(${table.type} in ('damaged', 'missing', 'credit', 'reopened') and ${table.quantity} > 0 and ${table.valueCents} >= 0) or (${table.type} in ('replaced', 'written_off', 'discounted', 'returned', 'scrapped') and ${table.quantity} < 0 and ${table.valueCents} <= 0)`,
     ),
     check(
       'supplier_pendings_origin',
-      sql`(${table.type} in ('damaged', 'missing') and ${table.settlesId} is null) or (${table.type} not in ('damaged', 'missing') and ${table.settlesId} is not null)`,
+      sql`(${table.type} in ('damaged', 'missing', 'credit') and ${table.settlesId} is null) or (${table.type} not in ('damaged', 'missing', 'credit') and ${table.settlesId} is not null)`,
     ),
     check(
       'supplier_pendings_resolution',

@@ -81,7 +81,8 @@ function toPendingBalance(balance: Balance): PendingBalance {
 /**
  * Open balances of a supplier (all suppliers without `supplierId`), split into
  * "Por reponer" (`restock`: boxes that never arrived) and "Por devolver"
- * (`returns`: boxes that arrived unsellable), oldest first, plus the ledger
+ * (`returns`: boxes that arrived unsellable) and "Descuentos a favor"
+ * (`credits`: amounts credited for returned boxes), oldest first, plus the ledger
  * entries behind them (newest first). Balances of fully settled entries are
  * not listed.
  */
@@ -91,6 +92,7 @@ export async function listSupplierPendings(
 ): Promise<{
   restock: Array<PendingBalance>
   returns: Array<PendingBalance>
+  credits: Array<PendingBalance>
   history: Array<PendingEntry>
 }> {
   authorizeSupplierBalance(actor)
@@ -105,6 +107,7 @@ export async function listSupplierPendings(
   return {
     restock: open.filter((row) => row.kind === 'restock'),
     returns: open.filter((row) => row.kind === 'return'),
+    credits: open.filter((row) => row.kind === 'credit'),
     history,
   }
 }
@@ -176,7 +179,7 @@ export async function returnPendings(
       input.resolution === 'discount'
         ? (input.creditCents ?? preview.valueCents)
         : null
-    const { valueCents } = await settleBalance(
+    const { valueCents, units } = await settleBalance(
       tx,
       {
         balance,
@@ -189,6 +192,58 @@ export async function returnPendings(
       },
       tooMany,
     )
+    // The credit becomes its own balance, discounted only when an order chooses it.
+    if (creditCents) {
+      await tx.insert(supplierPendings).values({
+        supplierId: balance.supplierId,
+        productId: balance.productId,
+        purchaseId: balance.purchaseId,
+        type: 'credit',
+        quantity: units,
+        valueCents: creditCents,
+        actorId: actor.userId,
+      })
+    }
     return { valueCents, creditCents }
+  })
+}
+
+/**
+ * Closes boxes of a "Por devolver" balance as merma: the supplier will neither
+ * take them back nor credit them, so their original value is lost. Nothing
+ * leaves stock here; those boxes never entered it.
+ */
+export async function scrapPendings(
+  actor: Actor,
+  input: { pendingId: string; boxes: number },
+): Promise<{ valueCents: number }> {
+  authorizeSupplierBalance(actor)
+  if (!Number.isSafeInteger(input.boxes) || input.boxes <= 0) {
+    throw badBoxes('dar por merma')
+  }
+  return db.transaction(async (tx) => {
+    const balance = await lockedBalance(tx, input.pendingId)
+    if (balance.kind !== 'return') {
+      throw new AppError(
+        'invalid',
+        'Solo se pueden dar por merma cajas dañadas o caducadas.',
+      )
+    }
+    const { valueCents } = await settleBalance(
+      tx,
+      {
+        balance,
+        boxes: input.boxes,
+        type: 'scrapped',
+        purchaseId: null,
+        actorId: actor.userId,
+      },
+      () =>
+        new AppError(
+          'invalid',
+          'Las cajas a dar por merma superan el saldo del proveedor.',
+        ),
+    )
+    return { valueCents }
   })
 }
