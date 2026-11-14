@@ -24,7 +24,10 @@ type Detail = 'cash' | 'riders' | 'suppliers'
 
 type ControlSummaryProps = {
   cashCuts: CashCuts
-  supplierRecovery: SupplierRecovery
+  /** Absent for a warehouse manager: then only cash cuts and deliveries. */
+  supplierRecovery?: SupplierRecovery
+  /** One warehouse: the detail tables drop the warehouse column. */
+  oneWarehouse?: boolean
   /** A supplier is selected: say that cash does not follow it. */
   supplierFiltered?: boolean
   /** A warehouse is selected: say that supplier balances ignore it. */
@@ -45,6 +48,7 @@ export function ControlSummary({
   supplierRecovery,
   supplierFiltered = false,
   warehouseFiltered = false,
+  oneWarehouse = false,
   defaultOpen,
 }: ControlSummaryProps) {
   const [open, setOpen] = useState<Detail | null>(defaultOpen ?? null)
@@ -57,15 +61,24 @@ export function ControlSummary({
       <div className="flex flex-wrap items-baseline gap-x-2.5 px-[22px] pt-[18px] pb-3">
         <h3 className="text-[15px] font-[650] text-ink-figure">Control</h3>
         <span className="text-xs text-muted-foreground">
-          Dinero que faltó o está en riesgo en el periodo.
+          {supplierRecovery
+            ? 'Dinero que faltó o está en riesgo en el periodo.'
+            : 'Dinero que faltó en el periodo, en caja y en repartos.'}
         </span>
       </div>
-      <div className="grid border-t border-border min-[820px]:grid-cols-3">
+      <div
+        className={cn(
+          'grid border-t border-border',
+          supplierRecovery
+            ? 'min-[820px]:grid-cols-3'
+            : 'min-[820px]:grid-cols-2',
+        )}
+      >
         <Cell
           detail="cash"
           open={open}
           onToggle={toggle}
-          label="Caja"
+          label={supplierRecovery ? 'Caja' : 'Cortes de caja'}
           value={formatDeltaCents(cash.totalCents)}
           tone={toneOf(cash.totalCents)}
           note={
@@ -89,26 +102,28 @@ export function ControlSummary({
               : `${plural(riders.length, 'repartidor', 'repartidores')} con diferencia`
           }
         />
-        <Cell
-          detail="suppliers"
-          open={open}
-          onToggle={toggle}
-          label="Proveedores, por recuperar"
-          value={formatCents(supplierRecovery.pendingCents)}
-          tone={supplierRecovery.pendingCents === 0 ? 'quiet' : undefined}
-          note={
-            supplierRecovery.lostCents > 0 ? (
-              <>
-                <span className="text-destructive">
-                  {formatCents(supplierRecovery.lostCents)}
-                </span>{' '}
-                ya perdido
-              </>
-            ) : (
-              'Nada perdido en el periodo'
-            )
-          }
-        />
+        {supplierRecovery && (
+          <Cell
+            detail="suppliers"
+            open={open}
+            onToggle={toggle}
+            label="Proveedores, por recuperar"
+            value={formatCents(supplierRecovery.pendingCents)}
+            tone={supplierRecovery.pendingCents === 0 ? 'quiet' : undefined}
+            note={
+              supplierRecovery.lostCents > 0 ? (
+                <>
+                  <span className="text-destructive">
+                    {formatCents(supplierRecovery.lostCents)}
+                  </span>{' '}
+                  ya perdido
+                </>
+              ) : (
+                'Nada perdido en el periodo'
+              )
+            }
+          />
+        )}
       </div>
       {(supplierFiltered || warehouseFiltered) && (
         // The figures above ignore one of the filters: say so next to them.
@@ -123,15 +138,15 @@ export function ControlSummary({
       )}
       {open === 'cash' && (
         <Drawer id="control-cash">
-          <CashDetail cashCuts={cashCuts} />
+          <CashDetail cashCuts={cashCuts} oneWarehouse={oneWarehouse} />
         </Drawer>
       )}
       {open === 'riders' && (
         <Drawer id="control-riders">
-          <RidersDetail rows={riders} />
+          <RidersDetail rows={riders} oneWarehouse={oneWarehouse} />
         </Drawer>
       )}
-      {open === 'suppliers' && (
+      {open === 'suppliers' && supplierRecovery && (
         <Drawer id="control-suppliers">
           <SuppliersDetail data={supplierRecovery} />
         </Drawer>
@@ -222,7 +237,13 @@ function DifferenceBadge({ cents }: { cents: number }) {
   )
 }
 
-function CashDetail({ cashCuts }: { cashCuts: CashCuts }) {
+function CashDetail({
+  cashCuts,
+  oneWarehouse,
+}: {
+  cashCuts: CashCuts
+  oneWarehouse: boolean
+}) {
   const cuts = closedCashCuts(cashCuts.rows)
   if (cuts.length === 0) {
     return <Quiet>No hay cortes cerrados en este periodo.</Quiet>
@@ -232,7 +253,7 @@ function CashDetail({ cashCuts }: { cashCuts: CashCuts }) {
       <thead>
         <tr>
           <th>Día</th>
-          <th>Almacén</th>
+          {!oneWarehouse && <th>Almacén</th>}
           <th>Cerró</th>
           <th className={numericCell}>Esperado</th>
           <th className={numericCell}>Contado</th>
@@ -246,7 +267,7 @@ function CashDetail({ cashCuts }: { cashCuts: CashCuts }) {
         {cuts.map((cut) => (
           <tr key={cut.sessionId}>
             <td>{weekdayLabel(cut.day)}</td>
-            <td>{cut.warehouseName}</td>
+            {!oneWarehouse && <td>{cut.warehouseName}</td>}
             <td>{cut.closedByName ?? '—'}</td>
             <td className={numericCell}>{formatCents(cut.expectedCents)}</td>
             <td className={numericCell}>
@@ -270,7 +291,13 @@ function CashDetail({ cashCuts }: { cashCuts: CashCuts }) {
   )
 }
 
-function RidersDetail({ rows }: { rows: CashCuts['riderShortfalls'] }) {
+function RidersDetail({
+  rows,
+  oneWarehouse,
+}: {
+  rows: CashCuts['riderShortfalls']
+  oneWarehouse: boolean
+}) {
   if (rows.length === 0) {
     return (
       <Quiet>
@@ -283,7 +310,7 @@ function RidersDetail({ rows }: { rows: CashCuts['riderShortfalls'] }) {
       <thead>
         <tr>
           <th>Repartidor</th>
-          <th>Almacén</th>
+          {!oneWarehouse && <th>Almacén</th>}
           <th className={numericCell}>Entregas</th>
           <th className={numericCell}>Faltante</th>
           <th className={numericCell}>Sobrante</th>
@@ -294,7 +321,7 @@ function RidersDetail({ rows }: { rows: CashCuts['riderShortfalls'] }) {
         {rows.map((row) => (
           <tr key={`${row.riderId}-${row.warehouseId}`}>
             <td>{row.riderName}</td>
-            <td>{row.warehouseName}</td>
+            {!oneWarehouse && <td>{row.warehouseName}</td>}
             <td className={numericCell}>{row.deliveries}</td>
             <td className={numericCell}>{formatCents(row.shortfallCents)}</td>
             <td className={numericCell}>{formatCents(row.surplusCents)}</td>

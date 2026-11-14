@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reportes del encargado · tu almacén en una pantalla</title>
+<style>
+:root{
+  --background:#fff8f0;--foreground:#1a1a1a;--card:#ffffff;--primary:#c81d4e;--secondary:#f1eaf6;--secondary-foreground:#5b2a86;
+  --muted:#f6efe6;--muted-foreground:#74686a;--destructive:#b3261e;--border:#ede3d6;--input:#e4d8ca;--ring:#5b2a86;
+  --ink-figure:#2a1d33;--ink-heading:#4a2670;--ink-link:#a3173f;--ink-row:#3d3438;
+  --green:#1d7a4b;--amber:#a77a24;--amber-bg:#fff0d1;--red-bg:#fbeae7;
+  --font-sans:Inter,'Segoe UI',Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--background);color:var(--foreground);font:14px/1.45 var(--font-sans);-webkit-font-smoothing:antialiased}
+:is(button,a,select,summary,[tabindex]):focus-visible{outline:3px solid var(--ring);outline-offset:3px}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.neg{color:var(--destructive)}
+.muted{color:var(--muted-foreground)}
+h1,h2,h3,p{margin:0}
+
+/* ---- shell (same as the console) ---- */
+.app{display:flex;min-height:100vh}
+aside.sb{width:242px;flex:none;background:#2a1c36;color:#cbbfd6;padding:31px 16px 20px;display:flex;flex-direction:column}
+.brand{font-size:22px;font-weight:750;letter-spacing:-1.1px;color:#fff;padding:0 3px 28px}
+.brand .dot{color:#c81d4e}
+.biz{margin-bottom:34px;border:1px solid #45334f;background:#33233f;border-radius:10px;padding:13px 10px;color:#faf5fd}
+.biz strong{display:block;font-size:12px;font-weight:600}.biz small{display:block;font-size:12px;color:#b3a5c0;margin-top:4px}
+.nav{display:flex;flex-direction:column;gap:3px}
+.nav a{padding:10px 15px;border-radius:8px;font-size:14px;color:#cbbfd6;text-decoration:none}
+.nav a:hover{background:#382745;color:#fff}
+.nav a[aria-current=page]{background:var(--primary);color:#fff;font-weight:700}
+.nav.sec{margin-top:auto}.nav.sec a{font-size:13px}
+aside.sb :focus-visible{outline-color:#f08aa6}
+.mainw{flex:1;min-width:0;display:flex;flex-direction:column}
+header.tb{height:77px;flex:none;background:#fff;border-bottom:1px solid #eee4d7;display:flex;align-items:center;justify-content:space-between;padding:0 38px;gap:16px}
+.crumb{font-size:12px;color:var(--muted-foreground)}.crumb strong{font-weight:550;color:var(--ink-row)}
+.usr{display:flex;align-items:center;gap:16px}.usr strong{display:block;font-size:12px;font-weight:650}.usr .r{display:block;font-size:12px;color:var(--muted-foreground)}
+.av{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#ede3f5;color:#5b2a86;font-weight:750;font-size:12px}
+main.c{padding:28px 38px 40px;flex:1}
+
+/* ---- page head: title and every control in one row ---- */
+.ph{display:flex;align-items:center;flex-wrap:wrap;gap:14px 16px;margin-bottom:22px}
+.ph h1{font-size:30px;line-height:1.2;font-weight:700;letter-spacing:-1px;margin-right:auto}
+.seg{display:inline-flex;border:1px solid #e6dfeb;background:#fff;border-radius:9px;padding:3px}
+.seg button{border:0;background:none;border-radius:6px;min-height:36px;padding:6px 16px;font:13px var(--font-sans);color:var(--muted-foreground);cursor:pointer}
+.seg button[aria-pressed=true]{background:#3f1266;color:#fff;font-weight:650}
+.seg button:hover:not([aria-pressed=true]){background:var(--muted)}
+select{min-height:42px;border:1px solid var(--input);border-radius:9px;background:#fff;padding:6px 12px;font:13px var(--font-sans);color:var(--ink-row)}
+select.sm{min-height:32px;padding:3px 8px;font-size:12px}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:9px 16px;border-radius:9px;font:650 13px var(--font-sans);border:1px solid var(--primary);background:var(--primary);color:#fff;cursor:pointer}
+.btn:hover{background:#a8173f;border-color:#a8173f}
+.dl{position:relative}
+.dl-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:5;width:270px;margin:0;padding:6px;list-style:none;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px #2a1c3622}
+.dl-menu[hidden]{display:none}
+.dl-menu button{display:flex;width:100%;justify-content:space-between;align-items:center;gap:12px;min-height:40px;padding:8px 12px;border:0;border-radius:8px;background:none;font:14px var(--font-sans);color:var(--ink-row);cursor:pointer;text-align:left}
+.dl-menu button:hover{background:var(--muted)}
+.dl-menu small{font-size:12px;color:var(--muted-foreground)}
+.dl-menu hr{border:0;border-top:1px solid var(--border);margin:6px 4px}
+
+/* ---- two columns: the period on the left, today on the right ---- */
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 352px;gap:20px;align-items:start}
+.col{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;min-width:0}
+.colhead{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;min-height:22px}
+.colhead h2{font-size:13px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-heading)}
+.colhead span{font-size:13px;color:var(--muted-foreground)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 22px}
+.card h3{font-size:15px;font-weight:650;color:var(--ink-figure)}
+.card .hint{font-size:12px;color:var(--muted-foreground)}
+
+/* resultado: figures on the left, the one chart on the right */
+.res{display:grid;grid-template-columns:250px minmax(0,1fr);padding:0}
+.figs{padding:22px 24px;border-right:1px solid var(--border);display:grid;gap:18px;align-content:start}
+.lbl{font-size:13px;color:var(--muted-foreground)}
+.fig{font-weight:700;letter-spacing:-.8px;line-height:1.15;color:var(--ink-figure);font-variant-numeric:tabular-nums}
+.fig.xl{font-size:36px;letter-spacing:-1.2px}
+.fig.md{font-size:22px}
+.sub{font-size:12px;color:var(--muted-foreground);margin-top:3px}
+.up{color:var(--green);font-weight:650}
+.figs hr{border:0;border-top:1px solid var(--border);margin:0}
+.chart{padding:22px 24px 16px;display:flex;flex-direction:column;min-width:0}
+.bars{flex:1;display:grid;grid-template-columns:repeat(7,1fr);gap:14px;align-items:end;min-height:178px;margin-top:14px;border-bottom:1px solid var(--border)}
+.bar{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:5px}
+.bar b{font-size:11px;font-weight:600;color:var(--ink-row);font-variant-numeric:tabular-nums}
+.bar i{display:block;width:100%;max-width:46px;border-radius:5px 5px 0 0;background:#5b2a86}
+.bar.zero i{height:2px;background:var(--input);border-radius:0}
+.bar.future i{height:2px;background:none;border-top:2px dashed var(--input);border-radius:0}
+.bar.future b{color:var(--muted-foreground);font-weight:400}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:14px;margin-top:7px;font-size:12px;color:var(--muted-foreground);text-align:center}
+.days .today{color:var(--ink-figure);font-weight:700}
+
+/* desglose */
+.tabs{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:-4px 0 10px}
+.tabs h3{margin-right:auto}
+.tab{border:0;background:none;border-radius:7px;min-height:34px;padding:5px 12px;font:13px var(--font-sans);color:var(--muted-foreground);cursor:pointer}
+.tab:hover{background:var(--muted)}
+.tab[aria-selected=true]{background:var(--secondary);color:var(--secondary-foreground);font-weight:650}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:12px;font-weight:600;color:var(--muted-foreground);text-align:left;padding:7px 10px;border-bottom:1px solid var(--border)}
+th.num{text-align:right}
+td{padding:9px 10px;border-bottom:1px solid #f4ede3;color:var(--ink-row)}
+tr:last-child td{border-bottom:0}
+td:first-child,th:first-child{padding-left:0}td:last-child,th:last-child{padding-right:0}
+td small{display:block;font-size:12px;color:var(--muted-foreground)}
+.share{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.share span{width:72px;height:6px;border-radius:3px;background:var(--muted);overflow:hidden}
+.share span i{display:block;height:100%;background:#5b2a86;border-radius:3px}
+.share em{font-style:normal;min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* control: three cells, one detail drawer below */
+.ctl{padding:0}
+.ctl-head{padding:18px 22px 12px;display:flex;align-items:baseline;gap:10px}
+.cells{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border)}
+.cell{border:0;border-right:1px solid var(--border);background:none;text-align:left;padding:14px 22px 16px;font:inherit;color:inherit;cursor:pointer;display:grid;gap:2px}
+.cell:last-child{border-right:0}
+.cell:hover{background:#fdf9f4}
+.cell[aria-expanded=true]{background:var(--secondary)}
+.cell .fig{font-size:22px}
+.cell .ok{color:var(--muted-foreground)}
+.fig.neg{color:var(--destructive)}
+.cell .more{font-size:12px;color:var(--ink-link);font-weight:600;margin-top:4px}
+.drawer{border-top:1px solid var(--border);padding:14px 22px 16px}
+.drawer[hidden]{display:none}
+.badge{display:inline-block;font-size:12px;font-weight:650;padding:2px 9px;border-radius:99px;background:var(--red-bg);color:var(--destructive)}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.kv dl{margin:0}.kv dt{font-size:12px;color:var(--muted-foreground)}
+.kv dd{margin:0;font-size:13px;display:flex;justify-content:space-between;gap:8px;padding:3px 0;color:var(--ink-row)}
+.kv dd.t{font-weight:700;font-size:15px;color:var(--ink-figure);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px}
+
+/* right rail: today */
+.rail{background:var(--secondary);border-radius:16px;padding:14px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.rail .colhead{padding:4px 8px 0}
+.rail .card{border-color:#e6dbef;padding:16px 18px}
+.split{display:grid;gap:5px;margin-top:10px;font-size:13px;color:var(--ink-row)}
+.split div{display:flex;justify-content:space-between;gap:8px}
+.alert{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f4ede3}
+.alert:first-of-type{padding-top:4px}.alert:last-child{border-bottom:0;padding-bottom:0}
+.alert .ic{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;margin-top:1px}
+.ic.red{background:var(--red-bg);color:var(--destructive)}.ic.amb{background:var(--amber-bg);color:#7a5714}
+.alert strong{display:block;font-size:13px;font-weight:650;color:var(--ink-figure)}
+.alert small{display:block;font-size:12px;color:var(--muted-foreground)}
+.alert a,.lnk{margin-left:auto;font-size:13px;font-weight:650;color:var(--ink-link);text-decoration:none;padding:2px 0}
+.alert a:hover,.lnk:hover{text-decoration:underline}
+.idle-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.idle{list-style:none;margin:10px 0 0;padding:0;font-size:13px}
+.idle li{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #f4ede3;color:var(--ink-row)}
+.idle li span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+@media (max-width:1180px){.cols{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:820px){
+  aside.sb{display:none}header.tb{padding:0 16px}main.c{padding:20px 16px 32px}
+  .res{grid-template-columns:1fr}.figs{border-right:0;border-bottom:1px solid var(--border)}
+  .cells,.kv{grid-template-columns:1fr}.cell{border-right:0;border-bottom:1px solid var(--border)}.cell:last-child{border-bottom:0}
+  .ph h1{width:100%}.tabs h3{width:100%;margin-bottom:4px}.seg{max-width:100%;overflow-x:auto}.bars,.days{gap:6px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>
+/* Manager variant: two control cells, and the open-cash badge. */
+.cells.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.badge.open{background:#f1eaf6;color:#5b2a86}
+@media (max-width:640px){.cells.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sb">
+  <div class="brand">abarroteros<span class="dot">.</span></div>
+  <div class="biz"><strong>Distribuidora del Sur</strong><small>Arcelia, Guerrero</small></div>
+  <nav class="nav" aria-label="Navegación principal">
+    <a href="#">Inicio</a><a href="#">Ventas</a><a href="#">Clientes</a><a href="#">Catálogo</a><a href="#">Inventario</a><a href="#">Repartos</a><a href="#" aria-current="page">Reportes</a>
+  </nav>
+  <nav class="nav sec" aria-label="Secundaria"><a href="#">Guía rápida</a></nav>
+</aside>
+<div class="mainw">
+<header class="tb">
+  <div class="crumb">Panel del almacén &nbsp;›&nbsp; <strong>Reportes</strong></div>
+  <div class="usr"><div><strong>Miguel Cruz</strong><span class="r">Encargado</span></div><span class="av" aria-hidden="true">MC</span></div>
+</header>
+
+<main class="c">
+  <div class="ph">
+    <h1>Reportes · Arcelia</h1>
+    <div class="seg" role="group" aria-label="Periodo">
+      <button type="button" aria-pressed="false">Hoy</button><button type="button" aria-pressed="true">Semana</button><button type="button" aria-pressed="false">Mes</button><button type="button" aria-pressed="false">Personalizado</button>
+    </div>
+    <select aria-label="Proveedor"><option>Todos los proveedores</option><option>Alpura</option><option>Grupo Lala</option></select>
+    <div class="dl">
+      <button class="btn" id="dl-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="dl-menu">Descargar PDF <span aria-hidden="true">▾</span></button>
+      <ul class="dl-menu" id="dl-menu" role="menu" aria-label="Descargar reporte de Arcelia" hidden>
+        <li role="none"><button role="menuitem" type="button">Día <small>viernes 13 nov</small></button></li>
+        <li role="none"><button role="menuitem" type="button">Semana <small>9 al 13 nov</small></button></li>
+        <li role="none"><button role="menuitem" type="button">Mes <small>noviembre 2026</small></button></li>
+        <li role="separator"><hr></li>
+        <li role="none"><button role="menuitem" type="button">Ayer <small>jueves 12 nov</small></button></li>
+        <li role="none"><button role="menuitem" type="button">Semana pasada <small>2 al 8 nov</small></button></li>
+        <li role="none"><button role="menuitem" type="button">Mes pasado <small>octubre 2026</small></button></li>
+        <li role="separator"><hr></li>
+        <li role="none"><button role="menuitem" type="button">Exportar ventas CSV</button></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="cols">
+    <!-- ============ LEFT: the selected period ============ -->
+    <section class="col" aria-labelledby="h-per">
+      <div class="colhead"><h2 id="h-per">Semana del 9 al 13 nov</h2><span>comparada con la semana anterior, 2 al 6 nov</span></div>
+
+      <div class="card res">
+        <div class="figs">
+          <div>
+            <div class="lbl">Ventas</div>
+            <div class="fig xl">$8,912.40</div>
+            <div class="sub"><span class="up">▲ 9 %</span> vs. semana anterior</div>
+          </div>
+          <hr>
+          <div>
+            <div class="lbl">Utilidad bruta</div>
+            <div class="fig md">$1,746.83</div>
+            <div class="sub">margen 19.6 %</div>
+          </div>
+          <div>
+            <div class="lbl">Tickets</div>
+            <div class="fig md">14</div>
+            <div class="sub">promedio $636.60</div>
+          </div>
+        </div>
+        <div class="chart">
+          <h3>Ventas por día</h3>
+          <div class="bars" role="img" aria-label="Ventas por día: lunes $1,420.00, martes $2,105.40, miércoles $980.00, jueves $1,000.00, viernes $3,407.00; sábado y domingo aún no ocurren.">
+            <div class="bar"><b>$1,420</b><i style="height:36%"></i></div>
+            <div class="bar"><b>$2,105</b><i style="height:53%"></i></div>
+            <div class="bar"><b>$980</b><i style="height:25%"></i></div>
+            <div class="bar"><b>$1,000</b><i style="height:25%"></i></div>
+            <div class="bar"><b>$3,407</b><i style="height:85%"></i></div>
+            <div class="bar future"><b>—</b><i></i></div>
+            <div class="bar future"><b>—</b><i></i></div>
+          </div>
+          <div class="days" aria-hidden="true"><span>Lun 9</span><span>Mar 10</span><span>Mié 11</span><span>Jue 12</span><span class="today">Hoy</span><span>Sáb 14</span><span>Dom 15</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="tabs" role="tablist" aria-label="Desglose de ventas">
+          <h3>Desglose</h3>
+          <button class="tab" role="tab" type="button" id="t-prod" aria-selected="true" aria-controls="p-prod">Por producto</button>
+          <button class="tab" role="tab" type="button" id="t-can" aria-selected="false" aria-controls="p-can" tabindex="-1">Por canal</button>
+        </div>
+        <div class="tw" role="tabpanel" id="p-prod" aria-labelledby="t-prod">
+          <table>
+            <thead><tr><th>Producto, de mayor a menor venta</th><th class="num">Unidades</th><th class="num">Ventas</th><th class="num">Parte de las ventas</th><th class="num">Utilidad</th></tr></thead>
+            <tbody>
+              <tr><td>Nutri Leche Entera UHT 1 L<small>Grupo Lala</small></td><td class="num">132 piezas</td><td class="num">$3,042.60</td><td><div class="share"><span><i style="width:34.1%"></i></span><em>34.1 %</em></div></td><td class="num">$641.52</td></tr>
+              <tr><td>Crema Ácida Alpura 426 ml<small>Alpura</small></td><td class="num">60 piezas</td><td class="num">$2,335.80</td><td><div class="share"><span><i style="width:26.2%"></i></span><em>26.2 %</em></div></td><td class="num">$408.06</td></tr>
+              <tr><td>Yoghurt Bebible Lala 220 g<small>Grupo Lala</small></td><td class="num">96 piezas</td><td class="num">$1,395.84</td><td><div class="share"><span><i style="width:15.7%"></i></span><em>15.7 %</em></div></td><td class="num">$362.92</td></tr>
+              <tr><td>Leche Alpura Semidescremada Ultra UHT 1 L<small>Alpura</small></td><td class="num">48 piezas</td><td class="num">$1,382.52</td><td><div class="share"><span><i style="width:15.5%"></i></span><em>15.5 %</em></div></td><td class="num">$221.20</td></tr>
+              <tr><td>Alpura Vaquitas Fresa 180 ml<small>Alpura</small></td><td class="num">82 piezas</td><td class="num">$755.64</td><td><div class="share"><span><i style="width:8.5%"></i></span><em>8.5 %</em></div></td><td class="num">$113.13</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tw" role="tabpanel" id="p-can" aria-labelledby="t-can" hidden>
+          <table>
+            <thead><tr><th>Canal</th><th class="num">Ventas</th><th class="num">Parte de las ventas</th><th class="num">Utilidad</th><th class="num">Margen</th></tr></thead>
+            <tbody>
+              <tr><td>Mostrador<small>9 tickets</small></td><td class="num">$5,204.80</td><td><div class="share"><span><i style="width:58.4%"></i></span><em>58.4 %</em></div></td><td class="num">$1,040.96</td><td class="num">20.0 %</td></tr>
+              <tr><td>Reparto<small>3 tickets, repartos liquidados</small></td><td class="num">$2,687.60</td><td><div class="share"><span><i style="width:30.2%"></i></span><em>30.2 %</em></div></td><td class="num">$510.64</td><td class="num">19.0 %</td></tr>
+              <tr><td>Tienda<small>2 tickets, pedidos en línea</small></td><td class="num">$1,020.00</td><td><div class="share"><span><i style="width:11.4%"></i></span><em>11.4 %</em></div></td><td class="num">$195.23</td><td class="num">19.1 %</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card ctl">
+        <div class="ctl-head"><h3>Control</h3><span class="hint">Dinero que faltó en la semana, en caja y en repartos.</span></div>
+        <div class="cells two">
+          <button class="cell" type="button" aria-expanded="false" aria-controls="d-caja">
+            <span class="lbl">Cortes de caja</span>
+            <span class="fig neg">−$50.00</span>
+            <span class="sub">1 de 5 cortes con diferencia</span>
+            <span class="more">Ver detalle</span>
+          </button>
+          <button class="cell" type="button" aria-expanded="false" aria-controls="d-rep">
+            <span class="lbl">Repartos</span>
+            <span class="fig neg">−$120.00</span>
+            <span class="sub">1 repartidor entregó de menos</span>
+            <span class="more">Ver detalle</span>
+          </button>
+        </div>
+        <div class="drawer tw" id="d-caja" hidden>
+          <table>
+            <thead><tr><th>Día</th><th>Cerró</th><th class="num">Esperado</th><th class="num">Contado</th><th class="num">Diferencia</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>Vie 13 nov</td><td>Miguel Cruz</td><td class="num">$2,038.34</td><td class="num">$1,988.34</td><td class="num neg">−$50.00</td><td class="num"><span class="badge">Faltante</span></td></tr>
+              <tr><td>Jue 12 nov</td><td>Miguel Cruz</td><td class="num">$1,000.00</td><td class="num">$1,000.00</td><td class="num">$0.00</td><td></td></tr>
+              <tr><td>Mié 11 nov</td><td>Miguel Cruz</td><td class="num">$980.00</td><td class="num">$980.00</td><td class="num">$0.00</td><td></td></tr>
+              <tr><td>Mar 10 nov</td><td>Miguel Cruz</td><td class="num">$2,105.40</td><td class="num">$2,105.40</td><td class="num">$0.00</td><td></td></tr>
+              <tr><td>Lun 9 nov</td><td>Miguel Cruz</td><td class="num">$1,420.00</td><td class="num">$1,420.00</td><td class="num">$0.00</td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="drawer tw" id="d-rep" hidden>
+          <table>
+            <thead><tr><th>Repartidor</th><th class="num">Liquidaciones</th><th class="num">Vendido</th><th class="num">Entregado</th><th class="num">Diferencia</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>Óscar Benítez</td><td class="num">2</td><td class="num">$1,840.00</td><td class="num">$1,720.00</td><td class="num neg">−$120.00</td><td class="num"><span class="badge">Faltante</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ RIGHT: the warehouse right now ============ -->
+    <aside class="rail" aria-labelledby="h-hoy">
+      <div class="colhead"><h2 id="h-hoy">Tu almacén hoy</h2><span>no cambia con el periodo</span></div>
+
+      <div class="card">
+        <div class="idle-head"><div class="lbl">Caja, esperado ahora</div><span class="badge open">Abierta 08:41</span></div>
+        <div class="fig" style="font-size:28px">$2,368.66</div>
+        <div class="sub">Lo que debe haber al contar en este momento.</div>
+        <a class="lnk" href="#" style="display:inline-block;margin-top:8px">Ir a la caja</a>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:4px">Requiere atención</h3>
+        <div class="alert"><span class="ic red" aria-hidden="true">!</span><div><strong>2 lotes vencidos con existencia</strong><small>$1,284.00 a costo · retíralos de la venta</small></div><a href="#" aria-label="Ver lotes vencidos">Ver</a></div>
+        <div class="alert"><span class="ic amb" aria-hidden="true">!</span><div><strong>3 lotes caducan en 7 días</strong><small>$2,910.40 a costo · el más próximo, mañana 14 nov</small></div><a href="#" aria-label="Ver lotes por caducar">Ver</a></div>
+        <div class="alert"><span class="ic amb" aria-hidden="true">!</span><div><strong>1 producto con stock bajo</strong><small>Crema Ácida Alpura 426 ml · 96 de mínimo 120</small></div><a href="#" aria-label="Ver productos con stock bajo">Ver</a></div>
+      </div>
+
+      <div class="card">
+        <h3>Pedidos por recibir</h3>
+        <ul class="idle">
+          <li><span>Alpura · pedido del 11 nov</span><span class="num">$18,420.00</span></li>
+          <li><span>Grupo Lala · pedido del 12 nov</span><span class="num">$9,760.50</span></li>
+        </ul>
+        <a class="lnk" href="#" style="display:inline-block;margin-top:8px">Ver pedidos a proveedor</a>
+      </div>
+    </aside>
+  </div>
+</main>
+</div>
+</div>
+<script>
+// PDF menu: a plain popover, closed by default.
+(function(){
+  var b=document.getElementById('dl-btn'),m=document.getElementById('dl-menu');
+  function set(open){m.hidden=!open;b.setAttribute('aria-expanded',open);if(open)m.querySelector('button').focus()}
+  b.addEventListener('click',function(){set(m.hidden)});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!m.hidden){set(false);b.focus()}});
+  document.addEventListener('click',function(e){if(!e.target.closest('.dl'))set(false)});
+})();
+// Breakdown tabs.
+(function(){
+  var tabs=[].slice.call(document.querySelectorAll('.tab'));
+  function pick(t){tabs.forEach(function(x){var on=x===t;x.setAttribute('aria-selected',on);x.tabIndex=on?0:-1;document.getElementById(x.getAttribute('aria-controls')).hidden=!on})}
+  tabs.forEach(function(t,i){
+    t.addEventListener('click',function(){pick(t)});
+    t.addEventListener('keydown',function(e){var d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;if(d){var n=tabs[(i+d+tabs.length)%tabs.length];pick(n);n.focus()}});
+  });
+})();
+// Control cells: one shared detail drawer, closed by default.
+(function(){
+  var cells=[].slice.call(document.querySelectorAll('.cell'));
+  cells.forEach(function(c){c.addEventListener('click',function(){
+    var open=c.getAttribute('aria-expanded')==='true';
+    cells.forEach(function(x){x.setAttribute('aria-expanded','false');document.getElementById(x.getAttribute('aria-controls')).hidden=true});
+    if(!open){c.setAttribute('aria-expanded','true');document.getElementById(c.getAttribute('aria-controls')).hidden=false}
+  })});
+})();
+</script>
+</body>
+</html>

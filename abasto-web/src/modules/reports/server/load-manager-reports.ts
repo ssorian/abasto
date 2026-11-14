@@ -1,6 +1,6 @@
 import { ClientError, unwrap } from '#/lib/boundary'
 import type { ManagerReportsSearch } from '#/modules/reports/lib/manager-search'
-import { periodOf } from '#/modules/reports/lib/search'
+import { executivePeriodOf } from '#/modules/executive/lib/search'
 import { managerDashboardFn } from '#/modules/reports/server/manager-reports'
 import {
   reportScopeFn,
@@ -36,7 +36,8 @@ export async function loadManagerReports(
     reportSuppliersFn(),
     managerDashboardFn({
       data: {
-        period: periodOf(search),
+        // Calendar periods, like the owner view the URL is shared with.
+        period: executivePeriodOf(search),
         warehouseId: search.almacen,
         supplierId: search.proveedor,
       },

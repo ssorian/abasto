@@ -1,4 +1,11 @@
 import { describe, expect, test } from 'bun:test'
+import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+} from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import { ManagerReportsPage } from '#/modules/reports/components/manager/manager-reports-page'
@@ -61,8 +68,18 @@ const dashboard = (orders: number): ManagerDashboard => ({
 const lala = { id: 's1', name: 'Grupo Lala', active: true }
 const alpura = { id: 's2', name: 'Alpura', active: false }
 
+/** The rail links to other screens, so the page renders inside a router. */
+async function inRouter(node: ReactNode) {
+  const router = createRouter({
+    routeTree: createRootRoute({ component: () => node }),
+    history: createMemoryHistory({ initialEntries: ['/reportes'] }),
+  })
+  await router.load()
+  return renderToStaticMarkup(<RouterProvider router={router} />)
+}
+
 const render = (load: ManagerReportsLoad, search: ManagerReportsSearch = {}) =>
-  renderToStaticMarkup(
+  inRouter(
     <ManagerReportsPage
       load={load}
       search={search}
@@ -71,8 +88,8 @@ const render = (load: ManagerReportsLoad, search: ManagerReportsSearch = {}) =>
   )
 
 describe('ManagerReportsPage', () => {
-  test('a warehouse without sales shows an explicit empty state', () => {
-    const html = render({
+  test('a warehouse without sales shows an explicit empty state', async () => {
+    const html = await render({
       allowed: true,
       warehouses: [tejupilco],
       suppliers: [],
@@ -82,8 +99,8 @@ describe('ManagerReportsPage', () => {
     expect(html).not.toContain('Ticket promedio')
   })
 
-  test('shows money with centavos, and the selector only with a choice', () => {
-    const one = render({
+  test('shows money with centavos, and the selector only with a choice', async () => {
+    const one = await render({
       allowed: true,
       warehouses: [tejupilco],
       suppliers: [],
@@ -92,7 +109,7 @@ describe('ManagerReportsPage', () => {
     expect(one).toContain('$2,001.00')
     expect(one).not.toContain('Almacén del reporte')
 
-    const two = render({
+    const two = await render({
       allowed: true,
       warehouses: [tejupilco, { id: 'w2', name: 'Sultepec' }],
       suppliers: [],
@@ -102,25 +119,145 @@ describe('ManagerReportsPage', () => {
     expect(two).not.toContain('Todos mis almacenes')
   })
 
-  test('someone who manages nothing is told so', () => {
-    expect(render({ allowed: false })).toContain('encargados de almacén')
+  test('someone who manages nothing is told so', async () => {
+    expect(await render({ allowed: false })).toContain('encargados de almacén')
   })
 
-  test('offers every supplier, marks the chosen one, and says cash ignores it', () => {
+  test('offers every supplier, marks the chosen one, and says cash ignores it', async () => {
     const load: ManagerReportsLoad = {
       allowed: true,
       warehouses: [tejupilco],
       suppliers: [lala, alpura],
       dashboard: dashboard(2),
     }
-    const all = render(load)
+    const all = await render(load)
     expect(all).toContain('Todos los proveedores')
     expect(all).toContain('Grupo Lala')
     expect(all).toContain('Alpura')
     expect(all).not.toContain('La caja no se filtra por proveedor.')
 
-    const picked = render(load, { proveedor: 's1' })
+    const picked = await render(load, { proveedor: 's1' })
     expect(picked).toMatch(/<option value="s1" selected/)
     expect(picked).toContain('La caja no se filtra por proveedor.')
+  })
+})
+
+describe('ManagerReportsPage on one screen', () => {
+  const busy = (): ManagerDashboard => {
+    const base = dashboard(2)
+    return {
+      ...base,
+      sales: {
+        ...base.sales,
+        byProduct: [
+          {
+            key: 'p1',
+            name: 'Crema Ácida Alpura 426 ml',
+            sku: 'ALP-426',
+            unit: 'pieza',
+            orders: 2,
+            units: 60,
+            revenueCents: 200_100,
+            costCents: 160_100,
+            marginCents: 40_000,
+          },
+        ],
+        byChannel: [
+          {
+            key: 'counter',
+            name: 'Mostrador',
+            orders: 2,
+            units: 60,
+            revenueCents: 200_100,
+            costCents: 160_100,
+            marginCents: 40_000,
+          },
+        ],
+      },
+      cash: {
+        ...base.cash,
+        rows: [
+          {
+            sessionId: 'c1',
+            warehouseId: 'w1',
+            warehouseName: 'Tejupilco',
+            status: 'open',
+            openedAt: new Date('2026-11-13T14:41:00Z'),
+            closedAt: null,
+            openedByName: 'Laura',
+            closedByName: null,
+            openingCents: 50_000,
+            salesCents: 186_866,
+            entriesCents: 0,
+            withdrawalsCents: 0,
+            riderDifferenceCents: 0,
+            expectedCents: 236_866,
+            countedCents: null,
+            differenceCents: null,
+          },
+        ],
+      },
+      stock: {
+        ...base.stock,
+        lowStock: [
+          {
+            warehouseId: 'w1',
+            warehouseName: 'Tejupilco',
+            productId: 'p1',
+            name: 'Crema Ácida Alpura 426 ml',
+            sku: 'ALP-426',
+            unit: 'pieza',
+            available: 96,
+            minimum: 120,
+            missing: 24,
+          },
+        ],
+      },
+    }
+  }
+  const load = (warehouses = [tejupilco]): ManagerReportsLoad => ({
+    allowed: true,
+    warehouses,
+    suppliers: [],
+    dashboard: busy(),
+  })
+
+  test('works in calendar periods with the week by default', async () => {
+    const html = await render(load())
+    expect(html).toContain('Reportes · Tejupilco')
+    expect(html).toMatch(/aria-pressed="true"[^>]*>Semana</)
+    expect(html).toContain('>Mes<')
+    expect(html).not.toContain('7 días')
+    expect(await render(load(), { periodo: 'month' })).toMatch(
+      /aria-pressed="true"[^>]*>Mes</,
+    )
+  })
+
+  test('breaks the sales down by product and controls cash and deliveries only', async () => {
+    const html = await render(load())
+    expect(html).toContain('Producto, de mayor a menor venta')
+    expect(html).toContain('60 pieza')
+    expect(html).toContain('Por canal')
+    expect(html).toContain('Cortes de caja')
+    expect(html).toContain('Repartos')
+    expect(html).not.toContain('Proveedores, por recuperar')
+  })
+
+  test('the rail shows the open drawer, what needs attention and orders to receive', async () => {
+    const html = await render(load())
+    expect(html).toContain('Tu almacén hoy')
+    expect(html).toContain('Abierta 08:41')
+    expect(html).toContain('$2,368.66')
+    expect(html).toContain('1 producto con stock bajo')
+    expect(html).toContain('Crema Ácida Alpura 426 ml · 96 de mínimo 120')
+    expect(html).toContain('No hay pedidos pendientes con proveedores.')
+    expect(html).toContain('href="/inventario?almacen=w1"')
+  })
+
+  test('a manager of several picks among their own warehouses, never all of them', async () => {
+    const html = await render(load([tejupilco, { id: 'w2', name: 'Sultepec' }]))
+    expect(html).toMatch(/<option value="w1" selected/)
+    expect(html).toContain('Sultepec')
+    expect(html).not.toContain('Todos los almacenes')
   })
 })

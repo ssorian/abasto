@@ -18,7 +18,13 @@ import {
 import type { DailyPoint } from '#/modules/reports/lib/owner-series'
 import { monthLabel, weekdayLabel } from '#/modules/reports/lib/owner-view'
 import { addDays, longRangeLabel } from '#/modules/reports/lib/period'
+import type { ManagerDashboard } from '#/modules/reports/types/manager-dashboard'
 import type { OwnerDashboardData } from '#/modules/reports/types/owner-dashboard'
+import type {
+  CashCuts,
+  DateRange,
+  StockAlerts,
+} from '#/modules/reports/types/reports'
 
 export type PdfKind = 'day' | 'week' | 'month'
 
@@ -82,8 +88,9 @@ const marginRow = (row: MarginRow) => [
   String(row.orders),
 ]
 
-const byRevenue = <T extends MarginRow>(rows: ReadonlyArray<T>) =>
-  [...rows].sort((a, b) => b.revenueCents - a.revenueCents)
+const byRevenue = <T extends { revenueCents: number }>(
+  rows: ReadonlyArray<T>,
+) => [...rows].sort((a, b) => b.revenueCents - a.revenueCents)
 
 function resultSection(
   kind: PdfKind,
@@ -183,17 +190,25 @@ function timeSection(kind: PdfKind, days: Array<DailyPoint>): PdfSection {
   }
 }
 
-function cashSection(kind: PdfKind, data: OwnerDashboardData): PdfSection {
-  const cuts = closedCashCuts(data.cashCuts.rows)
-  const open = data.cashCuts.rows.length - cuts.length
+/** One warehouse needs no warehouse column. */
+function cashSection(
+  kind: PdfKind,
+  cashCuts: CashCuts,
+  oneWarehouse = false,
+): PdfSection {
+  const cuts = closedCashCuts(cashCuts.rows)
+  const open = cashCuts.rows.length - cuts.length
   const total = cuts.reduce((sum, cut) => sum + cut.differenceCents, 0)
-  const lead = kind === 'day' ? [] : ['Día']
+  const lead = [
+    ...(kind === 'day' ? [] : ['Día']),
+    ...(oneWarehouse ? [] : ['Almacén']),
+  ]
   return {
     title: 'Cortes de caja',
-    head: [...lead, 'Almacén', 'Cerró', 'Esperado', 'Contado', 'Diferencia'],
+    head: [...lead, 'Cerró', 'Esperado', 'Contado', 'Diferencia'],
     rows: cuts.map((cut) => [
       ...(kind === 'day' ? [] : [weekdayLabel(cut.day)]),
-      cut.warehouseName,
+      ...(oneWarehouse ? [] : [cut.warehouseName]),
       cut.closedByName ?? '-',
       formatCents(cut.expectedCents),
       formatCents(cut.countedCents ?? 0),
@@ -201,7 +216,7 @@ function cashSection(kind: PdfKind, data: OwnerDashboardData): PdfSection {
     ]),
     foot:
       cuts.length > 1
-        ? [...lead.map(() => ''), 'Total', '', '', '', formatDeltaCents(total)]
+        ? ['Total', ...lead.map(() => ''), '', '', formatDeltaCents(total)]
         : undefined,
     empty: 'No hay cortes cerrados en el periodo.',
     note:
@@ -211,13 +226,20 @@ function cashSection(kind: PdfKind, data: OwnerDashboardData): PdfSection {
   }
 }
 
-function ridersSection(data: OwnerDashboardData): PdfSection {
+function ridersSection(cashCuts: CashCuts, oneWarehouse = false): PdfSection {
   return {
     title: 'Repartos con diferencia',
-    head: ['Repartidor', 'Almacén', 'Entregas', 'Faltante', 'Sobrante', 'Neto'],
-    rows: data.cashCuts.riderShortfalls.map((row) => [
+    head: [
+      'Repartidor',
+      ...(oneWarehouse ? [] : ['Almacén']),
+      'Entregas',
+      'Faltante',
+      'Sobrante',
+      'Neto',
+    ],
+    rows: cashCuts.riderShortfalls.map((row) => [
       row.riderName,
-      row.warehouseName,
+      ...(oneWarehouse ? [] : [row.warehouseName]),
       String(row.deliveries),
       formatCents(row.shortfallCents),
       formatCents(row.surplusCents),
@@ -227,8 +249,8 @@ function ridersSection(data: OwnerDashboardData): PdfSection {
   }
 }
 
-function alertRows(data: OwnerDashboardData) {
-  const { expired, expiring, expiringDays, lowStock } = data.stockAlerts
+function alertRows(stock: StockAlerts) {
+  const { expired, expiring, expiringDays, lowStock } = stock
   const value = expiring.reduce((sum, lot) => sum + lot.valueCents, 0)
   return [
     ['Lotes vencidos con existencia', String(expired.length)],
@@ -274,8 +296,8 @@ function periodSections(
         (row) => marginRow(row).slice(0, 4),
       ),
     },
-    cashSection(kind, data),
-    ridersSection(data),
+    cashSection(kind, data.cashCuts),
+    ridersSection(data.cashCuts),
     {
       title: 'Proveedores',
       head: ['Concepto', 'Monto'],
@@ -299,7 +321,7 @@ function periodSections(
       rows: [...inventory.warehouses]
         .sort((a, b) => b.valueCents - a.valueCents)
         .map((row) => [row.name, formatCents(row.valueCents)])
-        .concat(alertRows(data)),
+        .concat(alertRows(data.stockAlerts)),
       foot: ['Total', formatCents(inventory.totalCents)],
       note: 'Es la foto del inventario al generar el reporte; no depende del periodo.',
     },
@@ -349,51 +371,46 @@ function daySections(data: OwnerDashboardData): Array<PdfSection> {
           formatCents(row.revenueCents),
         ]),
     },
-    cashSection('day', data),
-    ridersSection(data),
+    cashSection('day', data.cashCuts),
+    ridersSection(data.cashCuts),
     {
       title: 'Alertas de inventario al generar el reporte',
-      rows: alertRows(data),
+      rows: alertRows(data.stockAlerts),
     },
   ]
 }
 
-/**
- * Turns the owner dashboard of one day, week or month into the report to
- * print. Only what the dashboard holds is reported; nothing is estimated.
- */
-export function buildPdfReport(
-  kind: PdfKind,
-  data: OwnerDashboardData,
-  meta: PdfMeta,
-): PdfReport {
-  const { margin, ranking } = data
-  const { range } = margin
-  const current = metricsOf(
-    margin.summary.revenueCents,
-    margin.summary.costCents,
-    margin.summary.orders,
-  )
-  const days = dailySeries(
-    { range: data.sales.range, rows: data.sales.byDay },
-    { range: data.previousSales.range, rows: data.previousSales.byDay },
-  )
-  const compared = `Comparado con ${longRangeLabel(ranking.previousRange, Number(range.to.slice(0, 4)))}`
+type Assembly = {
+  kind: PdfKind
+  range: DateRange
+  previousRange: DateRange
+  orders: number
+  result: PdfSection
+  body: Array<PdfSection>
+  meta: PdfMeta
+}
+
+/** Heading, numbering and filename shared by the owner and manager reports. */
+function assemble({
+  kind,
+  range,
+  previousRange,
+  orders,
+  result,
+  body,
+  meta,
+}: Assembly): PdfReport {
+  const compared = `Comparado con ${longRangeLabel(previousRange, Number(range.to.slice(0, 4)))}`
   const generated = `Generado ${meta.generatedAt}${meta.generatedBy ? ` por ${meta.generatedBy}` : ''}`
   const scope = `${meta.business} · ${meta.scope}`
-  const result = resultSection(kind, current, previousTotals(ranking.rows))
   const noSales: PdfSection = {
     title: 'Ventas',
     rows: [],
     empty: 'No hay pedidos entregados en el periodo.',
   }
-  const body =
-    kind === 'day'
-      ? daySections(data)
-      : [timeSection(kind, days), ...periodSections(kind, data)]
   // Without sales the sales tables say nothing; cash, suppliers and stock stay.
   const sections = (
-    margin.summary.orders > 0
+    orders > 0
       ? [result, ...body]
       : [noSales, ...body.filter((section) => !salesTitles.has(section.title))]
   ).map((section, index) => ({
@@ -429,6 +446,131 @@ export function buildPdfReport(
   }
 }
 
+/**
+ * Turns the owner dashboard of one day, week or month into the report to
+ * print. Only what the dashboard holds is reported; nothing is estimated.
+ */
+export function buildPdfReport(
+  kind: PdfKind,
+  data: OwnerDashboardData,
+  meta: PdfMeta,
+): PdfReport {
+  const { margin, ranking } = data
+  const current = metricsOf(
+    margin.summary.revenueCents,
+    margin.summary.costCents,
+    margin.summary.orders,
+  )
+  const days = dailySeries(
+    { range: data.sales.range, rows: data.sales.byDay },
+    { range: data.previousSales.range, rows: data.previousSales.byDay },
+  )
+  return assemble({
+    kind,
+    range: margin.range,
+    previousRange: ranking.previousRange,
+    orders: margin.summary.orders,
+    result: resultSection(kind, current, previousTotals(ranking.rows)),
+    body:
+      kind === 'day'
+        ? daySections(data)
+        : [timeSection(kind, days), ...periodSections(kind, data)],
+    meta,
+  })
+}
+
+function channelSection(sales: ManagerDashboard['sales']): PdfSection {
+  return {
+    title: 'Ventas por canal',
+    head: ['Canal', 'Ventas', 'Utilidad', 'Margen', 'Tickets'],
+    rows: byRevenue(sales.byChannel).map((row) => [
+      row.name,
+      formatCents(row.revenueCents),
+      formatCents(row.marginCents),
+      formatBpsPercent(
+        metricsOf(row.revenueCents, row.costCents, row.orders).marginBps,
+      ),
+      String(row.orders),
+    ]),
+  }
+}
+
+function ordersSection(orders: ManagerDashboard['pendingOrders']): PdfSection {
+  return {
+    title: 'Pedidos a proveedor por recibir',
+    head: ['Proveedor', 'Pedido', 'Llega', 'Total'],
+    rows: orders.map((order) => [
+      order.supplierName,
+      order.code,
+      order.expectedOn ? weekdayLabel(order.expectedOn) : 'Sin fecha',
+      formatCents(order.totalCostCents),
+    ]),
+    empty: 'No hay pedidos pendientes con proveedores.',
+    note: 'Al generar el reporte; no depende del periodo.',
+  }
+}
+
+/**
+ * The report of one warehouse for its manager: its sales, cash and stock,
+ * without the supplier balances and whole inventory only the owner sees.
+ */
+export function buildManagerPdfReport(
+  kind: PdfKind,
+  data: ManagerDashboard,
+  meta: PdfMeta,
+): PdfReport {
+  const { sales, previousSales } = data
+  const totals = (report: typeof sales) =>
+    metricsOf(
+      report.summary.revenueCents,
+      report.summary.costCents,
+      report.summary.orders,
+    )
+  const days = dailySeries(
+    { range: sales.range, rows: sales.byDay },
+    { range: previousSales.range, rows: previousSales.byDay },
+  )
+  const products = byRevenue(sales.byProduct)
+  const productSection: PdfSection = {
+    title:
+      kind === 'month'
+        ? 'Productos, de mayor a menor venta'
+        : 'Productos con más ventas',
+    head: ['Producto', 'Unidades', 'Ventas', 'Utilidad'],
+    rows: (kind === 'month' ? products : products.slice(0, topProducts)).map(
+      (row) => [
+        row.name,
+        `${row.units} ${row.unit}`,
+        formatCents(row.revenueCents),
+        formatCents(row.marginCents),
+      ],
+    ),
+  }
+  const stock: PdfSection = {
+    title:
+      kind === 'day'
+        ? 'Alertas de inventario al generar el reporte'
+        : 'Inventario al generar el reporte',
+    rows: alertRows(data.stock),
+  }
+  return assemble({
+    kind,
+    range: sales.range,
+    previousRange: previousSales.range,
+    orders: sales.summary.orders,
+    result: resultSection(kind, totals(sales), totals(previousSales)),
+    body: [
+      ...(kind === 'day' ? [] : [timeSection(kind, days)]),
+      channelSection(sales),
+      productSection,
+      cashSection(kind, data.cash, true),
+      ridersSection(data.cash, true),
+      stock,
+      ordersSection(data.pendingOrders),
+    ],
+    meta,
+  })
+}
 const salesTitles = new Set([
   'Ventas por día',
   'Ventas por semana',
@@ -438,4 +580,6 @@ const salesTitles = new Set([
   'Productos con más ventas',
   'Productos con más utilidad',
   'Productos, de mayor a menor utilidad',
+  'Productos, de mayor a menor venta',
+  'Ventas por canal',
 ])

@@ -45,6 +45,11 @@ function ReportsRoute() {
       userName={user?.name}
     />
   ) : (
-    <ManagerReportsPage load={data.load} search={search} onSearch={onSearch} />
+    <ManagerReportsPage
+      load={data.load}
+      search={search}
+      onSearch={onSearch}
+      userName={user?.name}
+    />
   )
 }

@@ -9,6 +9,17 @@ describe('manager report search params', () => {
     ).toEqual({})
   })
 
+  test('calendar periods: the week is the default, rolling presets are dropped', () => {
+    expect(parseManagerReportsSearch({ periodo: 'week' })).toEqual({})
+    expect(parseManagerReportsSearch({ periodo: '30' })).toEqual({})
+    expect(parseManagerReportsSearch({ periodo: 'month' })).toEqual({
+      periodo: 'month',
+    })
+    expect(parseManagerReportsSearch({ periodo: 'today' })).toEqual({
+      periodo: 'today',
+    })
+  })
+
   test('keeps only the period, the warehouse and the supplier', () => {
     expect(
       parseManagerReportsSearch({

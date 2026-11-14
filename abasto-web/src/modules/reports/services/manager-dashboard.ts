@@ -1,7 +1,7 @@
 import { AppError } from '#/lib/errors'
 import type { Actor } from '#/modules/access/lib/policy'
 import { listSupplierOrders } from '#/modules/inventory/services/supplier-order-reads'
-import { previousRange } from '#/modules/reports/lib/manager-chart-data'
+import { comparisonRange } from '#/modules/reports/lib/period'
 import { getCashCuts } from '#/modules/reports/services/cash-cuts'
 import {
   managedWarehouses,
@@ -46,7 +46,7 @@ export async function getManagerDashboard(
   const pendingOrders = supplierId
     ? orders.filter((order) => order.supplierId === supplierId)
     : orders
-  const before = previousRange(sales.range)
+  const before = comparisonRange(input.period.preset, sales.range)
   const previous = await getSalesReport(actor, {
     period: { preset: 'custom', from: before.from, to: before.to },
     warehouseIds,

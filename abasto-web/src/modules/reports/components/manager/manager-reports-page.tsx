@@ -1,135 +1,195 @@
-import { DownloadIcon } from 'lucide-react'
-
-import { PageHeading } from '#/components/page-heading'
-import { ActionButton } from '#/modules/reports/components/report-buttons'
+import { workspace } from '#/config/workspace'
+import { unwrap } from '#/lib/boundary'
+import { metricsOf } from '#/modules/executive/lib/profitability'
+import { executivePeriodOf } from '#/modules/executive/lib/search'
+import { businessDate } from '#/modules/orders/services/clock'
+import { ManagerBreakdown } from '#/modules/reports/components/manager/manager-breakdown'
+import { WarehouseTodayRail } from '#/modules/reports/components/manager/warehouse-today-rail'
+import { ControlSummary } from '#/modules/reports/components/owner/control-summary'
+import { DownloadMenu } from '#/modules/reports/components/owner/download-menu'
+import {
+  ColumnHeading,
+  Panel,
+} from '#/modules/reports/components/owner/owner-panel'
+import { OwnerToolbar } from '#/modules/reports/components/owner/owner-toolbar'
+import { PeriodResult } from '#/modules/reports/components/owner/period-result'
 import { ReportEmpty } from '#/modules/reports/components/report-empty'
-import { CashCutsCard } from '#/modules/reports/components/manager/cash-cuts-card'
-import { RiderShortfallsCard } from '#/modules/reports/components/manager/rider-shortfalls-card'
-import { ExpiringLotsCard } from '#/modules/reports/components/manager/expiring-lots-card'
-import { LowStockCard } from '#/modules/reports/components/manager/low-stock-card'
-import { ManagerAttention } from '#/modules/reports/components/manager/manager-attention'
-import { ManagerFilters } from '#/modules/reports/components/manager/manager-filters'
-import { ManagerKpis } from '#/modules/reports/components/manager/manager-kpis'
-import { SalesByChannelCard } from '#/modules/reports/components/manager/sales-by-channel-card'
-import { SalesByDayChart } from '#/modules/reports/components/manager/sales-by-day-chart'
-import { SupplierOrdersCard } from '#/modules/reports/components/manager/supplier-orders-card'
-import { TopProductsCard } from '#/modules/reports/components/manager/top-products-card'
 import { downloadText, salesCsv } from '#/modules/reports/lib/csv'
-import { shortDate } from '#/modules/reports/lib/manager-format'
 import type { ManagerReportsSearch } from '#/modules/reports/lib/manager-search'
+import {
+  dailySeries,
+  relativeChangeBps,
+} from '#/modules/reports/lib/owner-series'
+import {
+  chartDays,
+  comparisonNoun,
+  periodHeading,
+} from '#/modules/reports/lib/owner-view'
+import { pdfChoices } from '#/modules/reports/lib/pdf-choices'
+import type { PdfChoice } from '#/modules/reports/lib/pdf-choices'
+import { buildManagerPdfReport } from '#/modules/reports/lib/pdf-report'
+import { longRangeLabel } from '#/modules/reports/lib/period'
+import { managerDashboardFn } from '#/modules/reports/server/manager-reports'
 import type { ManagerReportsLoad } from '#/modules/reports/server/load-manager-reports'
+import type { ManagerDashboard } from '#/modules/reports/types/manager-dashboard'
+import type { PeriodPreset } from '#/modules/reports/types/reports'
 
 type ManagerReportsPageProps = {
   load: ManagerReportsLoad
   search: ManagerReportsSearch
   /** Merges a change into the URL. */
   onSearch: (patch: Partial<ManagerReportsSearch>) => void
+  /** Who is signed in; printed on the PDF reports. */
+  userName?: string
 }
 
-/** Reports of the manager: what needs action in their warehouse, and how it sells. */
+/**
+ * Reports of one warehouse the manager runs, on one screen: the chosen period
+ * on the left, the warehouse right now on a rail at the right.
+ */
 export function ManagerReportsPage({
   load,
   search,
   onSearch,
+  userName,
 }: ManagerReportsPageProps) {
   if (!load.allowed) {
     return (
-      <>
-        <PageHeading
-          title="Reportes"
-          description="Tu almacén hoy y en el periodo. Primero lo que necesita acción."
-        />
-        <ReportEmpty>
-          Los reportes son para el dueño y los encargados de almacén.
-        </ReportEmpty>
-      </>
+      <ReportEmpty>
+        Los reportes son para el dueño y los encargados de almacén.
+      </ReportEmpty>
     )
   }
   const { dashboard } = load
-  const sales = dashboard?.sales
+  const { preset } = executivePeriodOf(search)
+  const supplier = load.suppliers.find((item) => item.id === search.proveedor)
+  // The reports follow the warehouse and supplier on screen, not its period.
+  const downloadPdf = async (choice: PdfChoice) => {
+    const data = unwrap(
+      await managerDashboardFn({
+        data: {
+          period: choice.period,
+          warehouseId: search.almacen,
+          supplierId: search.proveedor,
+        },
+      }),
+    )
+    const report = buildManagerPdfReport(choice.kind, data, {
+      business: workspace.business.name,
+      scope: [
+        `Almacén ${data.warehouse.name}`,
+        supplier && `Proveedor ${supplier.name}`,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      generatedAt: new Intl.DateTimeFormat('es-MX', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'America/Mexico_City',
+      }).format(new Date()),
+      generatedBy: userName,
+    })
+    const { downloadPdfReport } =
+      await import('#/modules/reports/lib/pdf-render')
+    await downloadPdfReport(report)
+  }
   return (
     <>
-      <PageHeading
+      <OwnerToolbar
         title={
           dashboard ? `Reportes · ${dashboard.warehouse.name}` : 'Reportes'
         }
-        description="Tu almacén hoy y en el periodo. Primero lo que necesita acción."
+        preset={preset}
+        search={search}
+        warehouses={load.warehouses}
+        managedWarehouseId={dashboard?.warehouse.id ?? search.almacen ?? ''}
+        suppliers={load.suppliers}
+        onChange={onSearch}
         actions={
-          sales && (
-            <ActionButton
-              disabled={sales.byDay.length === 0}
-              onClick={() =>
+          dashboard && (
+            <DownloadMenu
+              choices={pdfChoices(businessDate())}
+              onPdf={downloadPdf}
+              onCsv={() =>
                 downloadText(
-                  salesCsv('day', sales.byDay),
-                  `abasto-ventas-dia-${sales.range.from}-${sales.range.to}.csv`,
+                  salesCsv('day', dashboard.sales.byDay),
+                  `abasto-ventas-day-${dashboard.sales.range.from}-${dashboard.sales.range.to}.csv`,
                 )
               }
-            >
-              <DownloadIcon size={16} />
-              Exportar CSV
-            </ActionButton>
+            />
           )
         }
       />
-      <ManagerFilters
-        search={search}
-        warehouses={load.warehouses}
-        suppliers={load.suppliers}
-        current={dashboard?.warehouse}
-        range={sales?.range}
-        onChange={onSearch}
-      />
       {load.error && <ReportEmpty>{load.error}</ReportEmpty>}
-      {dashboard && sales && (
-        <div className="grid gap-[18px]">
-          <ManagerAttention data={dashboard} />
-          {sales.summary.orders === 0 ? (
-            <ReportEmpty className="py-10">
-              <strong className="text-sm text-ink-figure">
-                Sin ventas en {dashboard.warehouse.name}
-              </strong>
-              <span className="text-[13px]">
-                No hay pedidos entregados del {shortDate(sales.range.from)} al{' '}
-                {shortDate(sales.range.to)}. Prueba con un periodo más largo.
-              </span>
-            </ReportEmpty>
-          ) : (
-            <>
-              <ManagerKpis data={dashboard} />
-              <div className="grid items-start gap-[18px] lg:grid-cols-[1.5fr_1fr]">
-                <SalesByDayChart data={dashboard} />
-                <LowStockCard rows={dashboard.stock.lowStock} />
-              </div>
-            </>
-          )}
-          <div className="grid items-start gap-[18px] lg:grid-cols-[1.3fr_1fr_1.2fr]">
-            {sales.summary.orders === 0 && (
-              <LowStockCard rows={dashboard.stock.lowStock} />
-            )}
-            <ExpiringLotsCard
-              expiring={dashboard.stock.expiring}
-              expired={dashboard.stock.expired}
-              days={dashboard.stock.expiringDays}
-            />
-            {sales.summary.orders > 0 && (
-              <TopProductsCard rows={sales.byProduct} />
-            )}
-            <SupplierOrdersCard orders={dashboard.pendingOrders} />
-          </div>
-          {sales.summary.orders > 0 && (
-            <SalesByChannelCard rows={sales.byChannel} />
-          )}
-          <CashCutsCard
-            rows={dashboard.cash.rows}
-            warehouse={dashboard.warehouse.name}
+      {dashboard && (
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 min-[1180px]:grid-cols-[minmax(0,1fr)_352px]">
+          <PeriodColumn
+            data={dashboard}
+            preset={preset}
             supplierFiltered={Boolean(search.proveedor)}
           />
-          <RiderShortfallsCard
-            rows={dashboard.cash.riderShortfalls}
-            warehouse={dashboard.warehouse.name}
-          />
+          <WarehouseTodayRail data={dashboard} />
         </div>
       )}
     </>
+  )
+}
+
+function PeriodColumn({
+  data,
+  preset,
+  supplierFiltered,
+}: {
+  data: ManagerDashboard
+  preset: PeriodPreset
+  supplierFiltered: boolean
+}) {
+  const { sales, previousSales } = data
+  const current = metricsOf(
+    sales.summary.revenueCents,
+    sales.summary.costCents,
+    sales.summary.orders,
+  )
+  const days = dailySeries(
+    { range: sales.range, rows: sales.byDay },
+    { range: previousSales.range, rows: previousSales.byDay },
+  )
+  const noun = comparisonNoun(preset)
+  return (
+    <section
+      aria-labelledby="reportes-periodo"
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4"
+    >
+      <ColumnHeading
+        id="reportes-periodo"
+        title={periodHeading(preset, sales.range)}
+        note={`comparado con ${noun === 'periodo anterior' ? '' : `${noun}, `}${longRangeLabel(previousSales.range, Number(sales.range.to.slice(0, 4)))}`}
+      />
+      {sales.summary.orders > 0 ? (
+        <>
+          <PeriodResult
+            current={current}
+            revenueChangeBps={relativeChangeBps(
+              current.revenueCents,
+              previousSales.summary.revenueCents,
+            )}
+            comparedWith={noun}
+            bars={
+              days.length > 1 ? chartDays(preset, days, businessDate()) : []
+            }
+          />
+          <ManagerBreakdown sales={sales} />
+        </>
+      ) : (
+        <Panel className="px-[22px] py-5 text-sm text-muted-foreground">
+          Sin ventas en {data.warehouse.name} en este periodo.
+        </Panel>
+      )}
+      <ControlSummary
+        cashCuts={data.cash}
+        supplierFiltered={supplierFiltered}
+        oneWarehouse
+      />
+    </section>
   )
 }

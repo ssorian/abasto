@@ -27,6 +27,13 @@ type OwnerToolbarProps = {
   onChange: (patch: Partial<ExecutiveSearch>) => void
   /** Download menu, at the end of the row. */
   actions?: ReactNode
+  /** "Reportes" unless told otherwise, e.g. "Reportes · Arcelia". */
+  title?: string
+  /**
+   * A manager picks among their own warehouses only: no "all" choice, this
+   * one is shown, and the select hides when there is just one.
+   */
+  managedWarehouseId?: string
 }
 
 /** Title and every control of the page in one row: period, filters, download. */
@@ -37,12 +44,15 @@ export function OwnerToolbar({
   suppliers,
   onChange,
   actions,
+  title = 'Reportes',
+  managedWarehouseId,
 }: OwnerToolbarProps) {
+  const managed = managedWarehouseId !== undefined
   return (
     <div className="mb-[22px] grid gap-3.5">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3.5">
         <h1 className="mr-auto w-full text-[30px] leading-[1.2] font-bold tracking-[-1px] min-[820px]:w-auto">
-          Reportes
+          {title}
         </h1>
         <div
           role="group"
@@ -73,21 +83,23 @@ export function OwnerToolbar({
             </button>
           ))}
         </div>
-        <select
-          aria-label="Almacén del reporte"
-          value={search.almacen ?? ''}
-          onChange={(event) =>
-            onChange({ almacen: event.target.value || undefined })
-          }
-          className={control}
-        >
-          <option value="">Todos los almacenes</option>
-          {warehouses.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
+        {(!managed || warehouses.length > 1) && (
+          <select
+            aria-label="Almacén del reporte"
+            value={managed ? managedWarehouseId : (search.almacen ?? '')}
+            onChange={(event) =>
+              onChange({ almacen: event.target.value || undefined })
+            }
+            className={control}
+          >
+            {!managed && <option value="">Todos los almacenes</option>}
+            {warehouses.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           aria-label="Proveedor del reporte"
           value={search.proveedor ?? ''}

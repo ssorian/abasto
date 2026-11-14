@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react'
 
 import { cn } from '#/lib/utils/cn'
+import { formatBpsPercent } from '#/modules/executive/lib/format'
 
 /** White card of the owner dashboard. */
 export function Panel({ className, ...props }: ComponentProps<'div'>) {
@@ -87,5 +88,27 @@ export function PlainTable({ className, ...props }: ComponentProps<'table'>) {
         {...props}
       />
     </div>
+  )
+}
+
+/** "Parte de las ventas" cell: a thin bar and the percent. */
+export function ShareCell({ shareBps }: { shareBps: number }) {
+  return (
+    <td>
+      <div className="flex items-center justify-end gap-2">
+        <span
+          aria-hidden="true"
+          className="hidden h-1.5 w-[72px] overflow-hidden rounded-[3px] bg-muted min-[820px]:block"
+        >
+          <i
+            className="block h-full rounded-[3px] bg-secondary-foreground"
+            style={{ width: `${Math.min(shareBps / 100, 100)}%` }}
+          />
+        </span>
+        <span className="min-w-11 text-right tabular-nums">
+          {formatBpsPercent(shareBps)}
+        </span>
+      </div>
+    </td>
   )
 }

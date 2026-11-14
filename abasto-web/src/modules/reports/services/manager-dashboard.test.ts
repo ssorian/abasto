@@ -110,6 +110,35 @@ describe('getManagerDashboard sales', () => {
       dashboard.cash.rows.every((row) => row.warehouseId === fx.a.id),
     ).toBe(true)
   })
+
+  test('a calendar week compares with the same days of the week before', async () => {
+    const fx = await setupReports()
+    await receive(fx, {
+      productId: fx.milkBox.id,
+      quantity: 40,
+      expiresOn: farFuture,
+    })
+    await fx.sell({ at: '2026-11-10T18:00:00Z', quantity: 3 })
+    // Tuesday of the week before: inside the same Monday-to-Wednesday stretch.
+    await fx.sell({ at: '2026-11-03T18:00:00Z', quantity: 2 })
+    // Friday of the week before: outside it.
+    await fx.sell({ at: '2026-11-06T18:00:00Z', quantity: 1 })
+    useClock(() => new Date('2026-11-11T20:00:00Z'))
+
+    const dashboard = await getManagerDashboard(fx.staffA, {
+      period: { preset: 'week' },
+    })
+    expect(dashboard.sales.range).toEqual({
+      from: '2026-11-09',
+      to: '2026-11-11',
+    })
+    expect(dashboard.sales.summary.revenueCents).toBe(3000)
+    expect(dashboard.previousSales.range).toEqual({
+      from: '2026-11-02',
+      to: '2026-11-04',
+    })
+    expect(dashboard.previousSales.summary.revenueCents).toBe(2000)
+  })
 })
 
 describe('getManagerDashboard supplier filter', () => {
