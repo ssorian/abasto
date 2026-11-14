@@ -1,5 +1,9 @@
 import { AppError } from '#/lib/errors'
-import type { DateRange, PeriodInput } from '#/modules/reports/types/reports'
+import type {
+  DateRange,
+  PeriodInput,
+  PeriodPreset,
+} from '#/modules/reports/types/reports'
 
 const DAY_MS = 86_400_000
 const MAX_DAYS = 366
@@ -25,9 +29,9 @@ export const daysBetween = (from: string, to: string) =>
 
 /** Business-date range of a period; `today` is the current business day. */
 export function resolvePeriod(period: PeriodInput, today: string): DateRange {
-  if (period.preset === 'today') return { from: today, to: today }
-  if (period.preset === '7') return { from: addDays(today, -6), to: today }
-  if (period.preset === '30') return { from: addDays(today, -29), to: today }
+  if (period.preset !== 'custom') {
+    return presetRange(period.preset, anchorOf(period, today))
+  }
   const { from, to } = period
   if (!isBusinessDate(from) || !isBusinessDate(to)) {
     throw new AppError('invalid', 'Elige fechas válidas para el periodo.')
@@ -42,6 +46,54 @@ export function resolvePeriod(period: PeriodInput, today: string): DateRange {
     throw new AppError('invalid', 'El periodo no puede ser mayor a un año.')
   }
   return { from, to }
+}
+
+/** The day a preset ends on: today, or a past day asked through `anchor`. */
+function anchorOf(period: PeriodInput, today: string) {
+  if (period.anchor === undefined) return today
+  if (!isBusinessDate(period.anchor) || period.anchor > today) {
+    throw new AppError('invalid', 'Elige fechas válidas para el periodo.')
+  }
+  return period.anchor
+}
+
+function presetRange(
+  preset: Exclude<PeriodPreset, 'custom'>,
+  end: string,
+): DateRange {
+  if (preset === 'today') return { from: end, to: end }
+  if (preset === '7') return { from: addDays(end, -6), to: end }
+  if (preset === '30') return { from: addDays(end, -29), to: end }
+  if (preset === 'month') return { from: `${end.slice(0, 8)}01`, to: end }
+  // Calendar week: Monday is the first day.
+  const sinceMonday = (parse(end).getUTCDay() + 6) % 7
+  return { from: addDays(end, -sinceMonday), to: end }
+}
+
+/**
+ * The period a range is compared with. A calendar week compares with the same
+ * days of the week before; a calendar month with the same days of the month
+ * before (clamped to its length); anything else with the period of equal
+ * length that ends the day before the range starts.
+ */
+export function comparisonRange(
+  preset: PeriodPreset,
+  range: DateRange,
+): DateRange {
+  if (preset === 'week') {
+    return { from: addDays(range.from, -7), to: addDays(range.to, -7) }
+  }
+  if (preset === 'month') {
+    const lastOfPrevious = addDays(`${range.from.slice(0, 8)}01`, -1)
+    const day =
+      range.to.slice(8) < lastOfPrevious.slice(8)
+        ? range.to.slice(8)
+        : lastOfPrevious.slice(8)
+    const month = lastOfPrevious.slice(0, 8)
+    return { from: `${month}01`, to: `${month}${day}` }
+  }
+  const days = daysBetween(range.from, range.to) + 1
+  return { from: addDays(range.from, -days), to: addDays(range.from, -1) }
 }
 
 export const rangeLabel = (range: DateRange) =>

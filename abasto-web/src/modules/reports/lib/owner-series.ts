@@ -1,9 +1,6 @@
 import { businessDate } from '#/modules/orders/services/clock'
 import { metricsOf } from '#/modules/executive/lib/profitability'
-import type {
-  MarginRow,
-  WarehouseMetrics,
-} from '#/modules/executive/types/profitability'
+import type { WarehouseMetrics } from '#/modules/executive/types/profitability'
 import { addDays, daysBetween } from '#/modules/reports/lib/period'
 import type {
   CashCutRow,
@@ -71,60 +68,6 @@ export function dailySeries(
       previousRevenueCents: before.get(previousDay)?.revenueCents ?? 0,
     }
   })
-}
-
-/** Most profitable products first; products that lost money are left out. */
-export function topProfitProducts<T extends MarginRow>(
-  rows: ReadonlyArray<T>,
-  limit: number,
-): Array<T> {
-  return rows
-    .filter((row) => row.marginCents > 0)
-    .sort(
-      (a, b) => b.marginCents - a.marginCents || a.name.localeCompare(b.name),
-    )
-    .slice(0, limit)
-}
-
-export type SupplierShare = MarginRow & { shareBps: number }
-
-/** Each supplier's share of the total sales, in basis points. */
-export function supplierShares(
-  rows: ReadonlyArray<MarginRow>,
-): Array<SupplierShare> {
-  const total = rows.reduce((sum, row) => sum + row.revenueCents, 0)
-  return rows.map((row) => ({
-    ...row,
-    shareBps: total ? Math.round((row.revenueCents * 10_000) / total) : 0,
-  }))
-}
-
-export type IdleBucket = {
-  key: '30' | '60' | '90'
-  label: string
-  valueCents: number
-  products: number
-}
-
-/** Idle stock split by days without a sale; never sold counts as 90 or more. */
-export function nonMovingBuckets(
-  rows: ReadonlyArray<{
-    daysSinceLastSale: number | null
-    valueCents: number
-  }>,
-): Array<IdleBucket> {
-  const buckets: Array<IdleBucket> = [
-    { key: '30', label: '30 días', valueCents: 0, products: 0 },
-    { key: '60', label: '60 días', valueCents: 0, products: 0 },
-    { key: '90', label: '90 o más', valueCents: 0, products: 0 },
-  ]
-  for (const row of rows) {
-    const days = row.daysSinceLastSale
-    const bucket = days === null || days >= 90 ? 2 : days >= 60 ? 1 : 0
-    buckets[bucket].valueCents += row.valueCents
-    buckets[bucket].products += 1
-  }
-  return buckets
 }
 
 export type CashDifferenceSummary = {

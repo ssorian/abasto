@@ -1,7 +1,9 @@
 import { ClientError, unwrap } from '#/lib/boundary'
-import { defaultNonMovingDays } from '#/modules/executive/lib/search'
+import {
+  defaultNonMovingDays,
+  executivePeriodOf,
+} from '#/modules/executive/lib/search'
 import type { ExecutiveSearch } from '#/modules/executive/lib/search'
-import { periodOf } from '#/modules/reports/lib/search'
 import { ownerDashboardFn } from '#/modules/reports/server/owner-reports'
 import type { OwnerDashboard } from '#/modules/reports/types/owner-dashboard'
 
@@ -19,7 +21,7 @@ export async function loadOwnerReports(
     const dashboard = unwrap(
       await ownerDashboardFn({
         data: {
-          period: periodOf(search),
+          period: executivePeriodOf(search),
           warehouseId: search.almacen,
           supplierId: search.proveedor,
           days: search.sinventa ?? defaultNonMovingDays,

@@ -5,8 +5,8 @@ import {
   deltaOf,
   marginBps,
   metricsOf,
-  previousRange,
 } from '#/modules/executive/lib/profitability'
+import { comparisonRange } from '#/modules/reports/lib/period'
 import type {
   MarginReport,
   MarginRow,
@@ -197,7 +197,7 @@ export async function getWarehouseRanking(
   requireOwner(actor)
   const warehouses = await reportWarehouses(actor, input.warehouseIds)
   const range = periodRange(input.period)
-  const previous = previousRange(range)
+  const previous = comparisonRange(input.period.preset, range)
   const ids = warehouses.map((item) => item.id)
   const [now, before] = await Promise.all([
     metricsByWarehouse(range, ids, input.supplierId),

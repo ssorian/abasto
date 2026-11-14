@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=816">
+<title>PDF · Reporte semanal</title>
+<style>
+@page{size:Letter;margin:0}
+*{box-sizing:border-box}
+html{background:#e4d8ca}
+body{margin:0 auto;width:816px;color:#000;background:#e4d8ca;font:10.5px/1.3 Inter,'Segoe UI',Arial,sans-serif;font-variant-numeric:tabular-nums}
+.sheet{display:flex;flex-direction:column;gap:28px}
+.page{position:relative;width:816px;height:1056px;padding:44px 54px 58px;overflow:hidden;background:#fff;break-after:page}
+header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.5px solid #000;padding-bottom:10px}
+.brand{font-size:10.5px;font-weight:700;letter-spacing:.3px}
+h1{margin:2px 0 0;font-size:22px;line-height:1.15;font-weight:700;letter-spacing:-.5px}
+.hd-r{text-align:right;font-size:10.5px;line-height:1.5}
+.hd-r .date{font-size:12px;font-weight:600}
+h2{margin:15px 0 3px;font-size:11.5px;font-weight:700;border-bottom:1px solid #000;padding-bottom:3px}
+h2 span{font-weight:400;color:#333}
+table{width:100%;border-collapse:collapse}
+th{font-size:9.5px;font-weight:600;text-align:left;padding:2px 6px;border-bottom:1px solid #999;color:#222}
+td{padding:2px 6px;border-bottom:1px solid #ddd}
+th:first-child,td:first-child{padding-left:0}th:last-child,td:last-child{padding-right:0}
+.n{text-align:right}
+tr.tot td{font-weight:700;border-top:1px solid #000;border-bottom:0}
+td.in{padding-left:14px;color:#333}
+.empty{margin:4px 0 0;padding:6px 0;border-bottom:1px solid #ddd;color:#333}
+.note{margin:4px 0 0;font-size:9.5px;color:#333}
+footer{position:absolute;left:54px;right:54px;bottom:26px;display:flex;justify-content:space-between;font-size:9.5px;color:#333;border-top:1px solid #999;padding-top:5px}
+@media print{html,body{background:#fff}.sheet{gap:0}}
+</style>
+</head>
+<body>
+<div class="sheet">
+<div class="page">
+<header>
+  <div><div class="brand">Abasto · Reporte semanal</div><h1>Reporte semanal · 9 al 15 de noviembre de 2026</h1></div>
+  <div class="hd-r"><div class="date">Semana de lunes 9 a domingo 15 de noviembre</div>Todo el negocio · 2 almacenes<br>Comparado con 2 al 8 de noviembre<br>Generado 13 nov 2026, 20:29 por Marco Reyes</div>
+</header>
+
+<h2>1. Resultado</h2>
+<table><thead><tr><th>Concepto</th><th class="n">Semana</th><th class="n">Semana anterior</th><th class="n">Cambio</th></tr></thead><tbody>
+<tr><td>Ventas</td><td class="n">$6,436.58</td><td class="n">$5,747.00</td><td class="n">+12.0 %</td></tr>
+<tr><td>Costo</td><td class="n">$4,936.31</td><td class="n">$4,494.15</td><td class="n">+9.8 %</td></tr>
+<tr><td><strong>Utilidad bruta</strong></td><td class="n"><strong>$1,500.27</strong></td><td class="n">$1,252.85</td><td class="n">+19.7 %</td></tr>
+<tr><td>Margen</td><td class="n">23.3 %</td><td class="n">21.8 %</td><td class="n">+1.5 pp</td></tr>
+<tr><td>Tickets</td><td class="n">4</td><td class="n">5</td><td class="n">−1</td></tr>
+<tr><td>Ticket promedio</td><td class="n">$1,609.15</td><td class="n">$1,149.40</td><td class="n">+40.0 %</td></tr>
+</tbody></table>
+
+<h2>2. Ventas por día</h2>
+<table><thead><tr><th>Día</th><th class="n">Ventas</th><th class="n">Utilidad</th><th class="n">Tickets</th></tr></thead><tbody>
+<tr><td>Lunes 9</td><td class="n">$1,607.00</td><td class="n">$330.00</td><td class="n">1</td></tr>
+<tr><td>Martes 10</td><td class="n">$1,529.58</td><td class="n">$420.77</td><td class="n">1</td></tr>
+<tr><td>Miércoles 11</td><td class="n">$0.00</td><td class="n">$0.00</td><td class="n">0</td></tr>
+<tr><td>Jueves 12</td><td class="n">$1,500.00</td><td class="n">$412.00</td><td class="n">1</td></tr>
+<tr><td>Viernes 13</td><td class="n">$1,800.00</td><td class="n">$337.50</td><td class="n">1</td></tr>
+<tr><td>Sábado 14</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+<tr><td>Domingo 15</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+<tr class="tot"><td>Total</td><td class="n">$6,436.58</td><td class="n">$1,500.27</td><td class="n">4</td></tr>
+</tbody></table>
+<p class="note">— : el día aún no ocurre al momento de generar el reporte.</p>
+
+<h2>3. Por almacén</h2>
+<table><thead><tr><th>Almacén</th><th class="n">Ventas</th><th class="n">Utilidad</th><th class="n">Margen</th><th class="n">Tickets</th></tr></thead><tbody>
+<tr><td>Arcelia</td><td class="n">$3,407.00</td><td class="n">$667.50</td><td class="n">19.6 %</td><td class="n">2</td></tr>
+<tr><td>Tejupilco</td><td class="n">$3,029.58</td><td class="n">$832.77</td><td class="n">27.5 %</td><td class="n">2</td></tr>
+<tr class="tot"><td>Total</td><td class="n">$6,436.58</td><td class="n">$1,500.27</td><td class="n">23.3 %</td><td class="n">4</td></tr>
+</tbody></table>
+
+<h2>4. Por proveedor</h2>
+<table><thead><tr><th>Proveedor</th><th class="n">Ventas</th><th class="n">Utilidad</th><th class="n">Margen</th><th class="n">Tickets</th></tr></thead><tbody>
+<tr><td>Grupo Lala</td><td class="n">$3,260.76</td><td class="n">$942.38</td><td class="n">28.9 %</td><td class="n">3</td></tr>
+<tr><td>Alpura</td><td class="n">$3,175.82</td><td class="n">$557.89</td><td class="n">17.6 %</td><td class="n">3</td></tr>
+<tr class="tot"><td>Total</td><td class="n">$6,436.58</td><td class="n">$1,500.27</td><td class="n">23.3 %</td><td class="n">4</td></tr>
+</tbody></table>
+<p class="note">Un ticket puede incluir productos de ambos proveedores; los tickets por fila no suman el total.</p>
+
+<h2>5. Top 10 productos por utilidad</h2>
+<table><thead><tr><th>Producto</th><th class="n">Ventas</th><th class="n">Utilidad</th><th class="n">Margen</th></tr></thead><tbody>
+<tr><td>1. Nutri Leche Entera UHT 1 L</td><td class="n">$2,211.79</td><td class="n">$517.56</td><td class="n">23.4 %</td></tr>
+<tr><td>2. Yoghurt Bebible Lala Fresa 250 g</td><td class="n">$612.40</td><td class="n">$189.84</td><td class="n">31.0 %</td></tr>
+<tr><td>3. Crema Ácida Alpura 426 ml</td><td class="n">$540.00</td><td class="n">$118.80</td><td class="n">22.0 %</td></tr>
+<tr><td>4. Leche Alpura Semidescremada Ultra UHT 1 L</td><td class="n">$702.00</td><td class="n">$98.28</td><td class="n">14.0 %</td></tr>
+<tr><td>5. Leche Alpura Deslactosada Semidescremada UHT 1 L</td><td class="n">$640.00</td><td class="n">$96.00</td><td class="n">15.0 %</td></tr>
+<tr><td>6. Queso Panela Alpura 400 g</td><td class="n">$355.20</td><td class="n">$95.90</td><td class="n">27.0 %</td></tr>
+<tr><td>7. Crema Alpura 450 ml</td><td class="n">$301.00</td><td class="n">$90.30</td><td class="n">30.0 %</td></tr>
+<tr><td>8. Yoghurt Alpura Natural 1 kg</td><td class="n">$215.60</td><td class="n">$53.90</td><td class="n">25.0 %</td></tr>
+<tr><td>9. Crema Lala Ácida 200 ml</td><td class="n">$150.00</td><td class="n">$45.00</td><td class="n">30.0 %</td></tr>
+<tr><td>10. Mantequilla Lala 90 g</td><td class="n">$120.00</td><td class="n">$33.60</td><td class="n">28.0 %</td></tr>
+</tbody></table>
+<footer><span>Abasto · Distribuidora del Sur</span><span>Página 1 de 2</span></footer>
+</div>
+
+<div class="page">
+<header>
+  <div><div class="brand">Abasto · Reporte semanal</div><h1>Reporte semanal · 9 al 15 de noviembre de 2026</h1></div>
+  <div class="hd-r"><div class="date">Semana de lunes 9 a domingo 15 de noviembre</div>Todo el negocio · 2 almacenes<br>Generado 13 nov 2026, 20:29 por Marco Reyes</div>
+</header>
+
+<h2>6. Cortes de caja</h2>
+<table><thead><tr><th>Día</th><th>Almacén</th><th>Cerró</th><th class="n">Esperado</th><th class="n">Contado</th><th class="n">Diferencia</th></tr></thead><tbody>
+<tr><td>Lun 9 nov</td><td>Arcelia</td><td>Miguel Cruz</td><td class="n">$1,412.50</td><td class="n">$1,412.50</td><td class="n">$0.00</td></tr>
+<tr><td>Mar 10 nov</td><td>Tejupilco</td><td>Rosa Ibarra</td><td class="n">$1,310.20</td><td class="n">$1,310.20</td><td class="n">$0.00</td></tr>
+<tr><td>Jue 12 nov</td><td>Tejupilco</td><td>Rosa Ibarra</td><td class="n">$1,288.00</td><td class="n">$1,288.00</td><td class="n">$0.00</td></tr>
+<tr><td>Vie 13 nov</td><td>Arcelia</td><td>Miguel Cruz</td><td class="n">$2,038.34</td><td class="n">$1,988.34</td><td class="n"><strong>−$50.00</strong></td></tr>
+<tr class="tot"><td colspan="3">Total · 4 cortes, 1 con diferencia</td><td class="n">$6,049.04</td><td class="n">$5,999.04</td><td class="n">−$50.00</td></tr>
+</tbody></table>
+
+<h2>7. Repartos por repartidor</h2>
+<table><thead><tr><th>Repartidor</th><th class="n">Liquidaciones</th><th class="n">Entregado</th><th class="n">Vendido</th><th class="n">Faltante</th></tr></thead></table>
+<p class="empty">Sin repartos liquidados con diferencia</p>
+
+<h2>8. Proveedores</h2>
+<table><thead><tr><th>Concepto</th><th class="n">Monto</th></tr></thead><tbody>
+<tr><td><strong>Recuperado</strong></td><td class="n"><strong>$0.00</strong></td></tr>
+<tr><td class="in">Descontado en pedidos</td><td class="n">$0.00</td></tr>
+<tr><td class="in">Repuesto en mercadería</td><td class="n">$0.00</td></tr>
+<tr><td><strong>Pendiente</strong></td><td class="n"><strong>$342.00</strong></td></tr>
+<tr><td><strong>Perdido</strong></td><td class="n"><strong>$207.84</strong></td></tr>
+<tr><td class="in">Merma de proveedor</td><td class="n">$0.00</td></tr>
+<tr><td class="in">No reconocido en devoluciones</td><td class="n">$0.00</td></tr>
+<tr><td class="in">Pérdidas de inventario</td><td class="n">$207.84</td></tr>
+</tbody></table>
+
+<h2>9. Inventario al cierre <span>· foto al 13 nov 2026, 20:29; no depende de la semana</span></h2>
+<table><thead><tr><th>Almacén</th><th class="n">Valor a costo</th></tr></thead><tbody>
+<tr><td>Arcelia</td><td class="n">$9,847.20</td></tr>
+<tr><td>Tejupilco</td><td class="n">$1,341,105.45</td></tr>
+<tr class="tot"><td>Total</td><td class="n">$1,350,952.65</td></tr>
+</tbody></table>
+<table style="margin-top:10px"><tbody>
+<tr><td>Lotes que caducan en 7 días</td><td class="n">19 lotes · $557,076.60 a costo · el más próximo 14 nov</td></tr>
+<tr><td>Productos con stock bajo</td><td class="n">1 producto · Arcelia</td></tr>
+</tbody></table>
+<footer><span>Abasto · Distribuidora del Sur</span><span>Página 2 de 2</span></footer>
+</div>
+</div>
+</body>
+</html>
