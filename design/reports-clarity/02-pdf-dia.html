@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=816">
+<title>PDF · Cierre del día</title>
+<style>
+@page{size:Letter;margin:0}
+*{box-sizing:border-box}
+html{background:#fff}
+body{margin:0;width:816px;color:#000;background:#fff;font:11px/1.35 Inter,'Segoe UI',Arial,sans-serif;font-variant-numeric:tabular-nums}
+.page{position:relative;width:816px;height:1056px;padding:48px 54px 60px;overflow:hidden;background:#fff}
+header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.5px solid #000;padding-bottom:12px}
+.brand{font-size:11px;font-weight:700;letter-spacing:.3px}
+h1{margin:2px 0 0;font-size:24px;line-height:1.15;font-weight:700;letter-spacing:-.5px}
+.hd-r{text-align:right;font-size:11px;line-height:1.5}
+.date{font-size:13px;font-weight:600}
+h2{margin:17px 0 4px;font-size:12px;font-weight:700;letter-spacing:.2px;border-bottom:1px solid #000;padding-bottom:3px}
+h2 span{font-weight:400;color:#333}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;font-weight:600;text-align:left;padding:3px 6px;border-bottom:1px solid #999;color:#222}
+td{padding:3px 6px;border-bottom:1px solid #ddd}
+th:first-child,td:first-child{padding-left:0}th:last-child,td:last-child{padding-right:0}
+.n{text-align:right}
+tr.tot td{font-weight:700;border-top:1px solid #000;border-bottom:0}
+.empty{margin:6px 0 0;padding:7px 0;border-bottom:1px solid #ddd;color:#333}
+.res td:first-child{width:50%}
+.note{margin:5px 0 0;font-size:10px;color:#333}
+footer{position:absolute;left:54px;right:54px;bottom:30px;display:flex;justify-content:space-between;font-size:10px;color:#333;border-top:1px solid #999;padding-top:6px}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+  <div><div class="brand">Abasto · Reporte del día</div><h1>Cierre del día</h1></div>
+  <div class="hd-r"><div class="date">Viernes 13 de noviembre de 2026</div>Todo el negocio · 2 almacenes<br>Generado 13 nov 2026, 20:29 por Marco Reyes</div>
+</header>
+
+<h2>1. Resultado</h2>
+<table class="res"><tbody>
+  <tr><td>Ventas</td><td class="n">$1,800.00</td></tr>
+  <tr><td>Costo</td><td class="n">$1,462.50</td></tr>
+  <tr><td>Utilidad bruta</td><td class="n"><strong>$337.50</strong></td></tr>
+  <tr><td>Margen</td><td class="n">18.8 %</td></tr>
+  <tr><td>Tickets</td><td class="n">1</td></tr>
+  <tr><td>Ticket promedio</td><td class="n">$1,800.00</td></tr>
+</tbody></table>
+
+<h2>2. Ventas por almacén</h2>
+<table><thead><tr><th>Almacén</th><th class="n">Ventas</th><th class="n">Utilidad</th><th class="n">Margen</th><th class="n">Tickets</th></tr></thead><tbody>
+  <tr><td>Arcelia</td><td class="n">$1,800.00</td><td class="n">$337.50</td><td class="n">18.8 %</td><td class="n">1</td></tr>
+  <tr><td>Tejupilco</td><td class="n">$0.00</td><td class="n">$0.00</td><td class="n">—</td><td class="n">0</td></tr>
+  <tr class="tot"><td>Total</td><td class="n">$1,800.00</td><td class="n">$337.50</td><td class="n">18.8 %</td><td class="n">1</td></tr>
+</tbody></table>
+
+<h2>3. Top 10 productos vendidos <span>· por ventas</span></h2>
+<table><thead><tr><th>Producto</th><th class="n">Unidades</th><th class="n">Ventas</th></tr></thead><tbody>
+  <tr><td>Nutri Leche Entera UHT 1 L</td><td class="n">24</td><td class="n">$612.00</td></tr>
+  <tr><td>Leche Alpura Semidescremada Ultra UHT 1 L</td><td class="n">18</td><td class="n">$396.00</td></tr>
+  <tr><td>Crema Ácida Alpura 426 ml</td><td class="n">6</td><td class="n">$270.00</td></tr>
+  <tr><td>Yoghurt Bebible Lala Fresa 250 g</td><td class="n">12</td><td class="n">$222.00</td></tr>
+  <tr><td>Leche Alpura Deslactosada 1 L</td><td class="n">6</td><td class="n">$168.00</td></tr>
+  <tr><td>Queso Panela Alpura 400 g</td><td class="n">3</td><td class="n">$132.00</td></tr>
+  <tr class="tot"><td>Total</td><td class="n">69</td><td class="n">$1,800.00</td></tr>
+</tbody></table>
+<p class="note">Hoy se vendieron 6 productos distintos; la lista incluye todos.</p>
+
+<h2>4. Cortes de caja</h2>
+<table><thead><tr><th>Almacén</th><th>Cerró</th><th class="n">Esperado</th><th class="n">Contado</th><th class="n">Diferencia</th></tr></thead><tbody>
+  <tr><td>Arcelia</td><td>Miguel Cruz</td><td class="n">$2,038.34</td><td class="n">$1,988.34</td><td class="n"><strong>−$50.00</strong></td></tr>
+  <tr><td>Tejupilco</td><td colspan="4">Sin corte registrado hoy</td></tr>
+  <tr class="tot"><td colspan="2">Total</td><td class="n">$2,038.34</td><td class="n">$1,988.34</td><td class="n">−$50.00</td></tr>
+</tbody></table>
+
+<h2>5. Repartos liquidados</h2>
+<table><thead><tr><th>Repartidor</th><th class="n">Entregado</th><th class="n">Vendido</th><th class="n">Faltante</th></tr></thead></table>
+<p class="empty">Sin repartos liquidados con diferencia</p>
+
+<h2>6. Alertas de inventario <span>· al cierre</span></h2>
+<table><tbody>
+  <tr><td>Lotes que caducan en 7 días</td><td class="n">19 lotes · $557,076.60 a costo · el más próximo 14 nov</td></tr>
+  <tr><td>Productos con stock bajo</td><td class="n">1 producto · Arcelia</td></tr>
+</tbody></table>
+
+<footer><span>Abasto · Distribuidora del Sur</span><span>Página 1 de 1</span></footer>
+</div>
+</body>
+</html>

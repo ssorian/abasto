@@ -1,0 +1,11 @@
+{
+  "title": "Reportes del dueño: menos ruido y PDF",
+  "brief": "Pantalla única de Reportes para el dueño de Abasto (periodos calendario: Hoy, Semana lunes–domingo, Mes, Personalizado) con tres bloques claros: resultado del periodo, control del periodo e inventario de hoy como foto aparte; más las hojas PDF del día, la semana y el mes, solo tablas y aptas para impresión en blanco y negro.",
+  "artboards": [
+    { "file": "01-reportes-una-pagina.html", "title": "Reportes en una sola página", "tradeoff": "Una banda de tres cifras, una gráfica y filas expandibles: muy poco ruido; el desglose por producto queda en una pestaña en vez de a la vista", "width": 1440, "height": 3210 },
+    { "file": "02-pdf-dia.html", "title": "PDF · Cierre del día", "tradeoff": "Una hoja Carta, solo tablas y tinta negra; sin gráficas, así que la tendencia no se ve", "width": 816, "height": 1056 },
+    { "file": "03-pdf-semana.html", "title": "PDF · Reporte semanal", "tradeoff": "Dos hojas con comparación contra la semana anterior; denso pero legible impreso; las páginas 1 y 2 separan lo vendido de lo controlado", "width": 816, "height": 2140 },
+    { "file": "04-pdf-mes.html", "title": "PDF · Reporte mensual", "tradeoff": "Se dibuja la página 1 y un índice de las páginas 2 a 4; no valida el salto de página de la lista completa de productos", "width": 816, "height": 1660 },
+    { "file": "05-tablero-dos-columnas.html", "title": "Reportes · tablero en dos columnas", "tradeoff": "Todo cabe en una pantalla: el periodo a la izquierda y el inventario de hoy en un riel a la derecha; los detalles de control quedan cerrados hasta que se piden", "width": 1440, "height": 1100 }
+  ]
+}

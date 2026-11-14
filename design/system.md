@@ -1,12 +1,12 @@
 # Abasto / Abarroteros design system
 
-Captured from project source by design sync (2026-11-08). Values are copied, never invented. Nothing here is a proposed starter: every entry exists in the repository.
+Captured from project source by design sync (2026-11-08); re-synced 2026-11-13 (store components, mobile app). Values are copied, never invented. Nothing here is a proposed starter: every entry exists in the repository.
 
 Surfaces recorded:
 
 - **Staff console** (this system): `abasto-web/src/styles.css`, `abasto-web/src/components/ui/*`, `abasto-web/src/components/layout/*`, report and executive components. All artboards for the console follow it.
 - **Store surface** (customer store): `abasto-web/src/modules/store/styles/store.css`. Same palette family with its own `--color-st-*` aliases and `--font-st-sans`. Recorded separately below; do not mix its tokens into console artboards.
-- **Mobile app**: `abasto-mobile` is a separate app. Not captured here.
+- **Mobile app**: `abasto-mobile/src/global.css` and `abasto-mobile/tailwind.config.js`. Separate app with its own palette and fonts. Recorded separately below; do not mix its tokens into console artboards.
 
 Brand: raspberry primary on cream, plum secondary, dark plum sidebar. Light theme only (no `.dark` tokens defined in `styles.css`).
 
@@ -214,6 +214,157 @@ Almost flat: borders carry the structure. Source literals:
 
 Customer store, separate from the console. Same palette family under aliases: `--color-st-ground #fff8f0`, `st-sunk #f6efe6`, `st-card #ffffff`, `st-ink #2a1d33`, `st-ink-soft #503f45`, `st-muted #6f6366`, `st-brand #c81d4e`, `st-brand-hover #a8173f`, `st-brand-tint #f8e8ee`, `st-plum #5b2a86`, `st-plum-ink #4a2670`, `st-plum-tint #f1eaf6`, `st-line #ede3d6`, `st-line-strong #e4d8ca`, `st-control #9c8f92`, `st-danger #a3173f`, `st-danger-tint #fbeae7`, `st-ok #2f6b5a`, `st-ok-tint #e9f4ef`, `st-low #7d5a14`, `st-low-tint #fff0d1`. Font `--font-st-sans: Inter, 'Segoe UI', Arial, sans-serif`, focus `--st-focus` plum, easing `--st-ease cubic-bezier(0.25, 1, 0.5, 1)`. 21 color tokens, 1 font, 2 other.
 
-## Mobile — `abasto-mobile`
+Store literals (source `store.css`, not tokens): placeholder `#7a6f72`; disabled text `#7a6f72`; disabled stepper icon `#b3a8aa`; picked strip background `#fdf4f7`; product mat background `#fff`; sheet/dialog overlay `rgb(42 29 51 / 0.4)` (no blur).
 
-Separate app, not part of this web system. Mentioned only; no tokens captured.
+Store radius (literals): 20px login card (`.st-door`), 16px panels, blocks, rail and reservation tag, 14px plate, 12px product mat, 10px buttons, fields, stepper, add and tabs, 999px availability tag, 4px / 2px steps and tab extent.
+
+Store shadows: `0 2px 3px rgb(200 29 78 / 0.04)` button; `0 3px 9px rgb(200 29 78 / 0.11)` button hover; `0 8px 28px rgb(42 29 51 / 0.09)` login card.
+
+Store type: names and numerals weight 650 (`.st-stencil` tracking -0.005em, `.st-num` tabular lining numerals); order codes `.st-code` 650, no tracking, no wrap (e.g. `PED-5D6635E3`); button 15px / 650; field 16px; label 14px / 600; tab 15px / 600; tag 12.5px / 600; stepper input 17px / 650; step label 13px.
+
+Store components (source `store.css`):
+
+- **Button** `.st-btn`: min height 48px, padding 0 20px, radius 10px, raspberry `st-brand`, hover `st-brand-hover`. Variants: `--quiet` (plum-ink text, plum-tint hover), `--outline` (card background, `st-line-strong` border, `st-ink-soft` text), `--danger` (card background, `st-danger` text, border `rgb(163 23 63 / 0.35)`).
+- **Field** `.st-field`: min height 48px, border `st-control`, radius 10px, 16px text.
+- **Availability tag** `.st-tag`: 24px high, pill, 6px dot; `--ok`, `--low`, `--out` (sunk background, muted text, hollow dot).
+- **Product mat** `.st-mat`: 56px square, radius 12px, `st-line` border; `--empty` plum tint with 24px / 650 initial.
+- **Stepper** `.st-stepper`: three columns 44px / 48px / 44px, 44px high, border `st-control`, radius 10px; minus, quantity input, plus. `--set` quantity on brand tint. `--compact`: columns 36px / 44px / 36px, 36px high, 16px icons. `.st-add`: 44px brand square for a line at zero. (Replaces the earlier 12-cell quantity bar `.st-cells`, removed from the source.)
+- **Brand tabs** `.st-rail` / `.st-tab`: plum-tint rail radius 16px; tab min height 48px, radius 10px, 4px extent track proportional to product count; selected tab on card with brand extent.
+- **Strip** `.st-strip`: grid `minmax(0,1fr) 76px auto`, padding 8px 12px, top border `st-line`; picked `#fdf4f7`; out of stock muted.
+- **Order steps** `.st-steps`: three columns, 8px bars; done plum, current brand with 650 label; ended struck through.
+- **Surfaces**: `.st-panel`, `.st-block`, `.st-hangtag` white, `st-line` border, radius 16px; `.st-plate` plum tint radius 14px (`--brand` brand tint); `.st-door` login card radius 20px.
+- **Focus**: 3px solid `--st-focus` (plum), offset 2px (−4px on tabs). Motion 160ms `--st-ease`, `.st-tick` 200ms; all disabled under `prefers-reduced-motion`.
+
+## Mobile — source `abasto-mobile/src/global.css` `:root` and `abasto-mobile/tailwind.config.js`
+
+Separate app (NativeWind), own palette: institutional red, maize gold, tertiary green on a cream surface (Material-style role names). Do not mix with the console or store tokens. `global.css` mirrors `tailwind.config.js` ("Web mirrors of tailwind.config.js; native utilities use resolved static values"); the 58 color values are identical in both files. 58 color tokens, 14 type tokens (+5 `home-*` sizes), 12 spacing, 4 radius, 0 shadows.
+
+### Colors (58) — source `abasto-mobile/tailwind.config.js` `theme.extend.colors`, mirrored as `--color-*` in `global.css`
+
+**Brand red** (12)
+
+| Token | Value |
+| --- | --- |
+| `primary` | `#960e12` |
+| `primary-container` | `#b92b27` |
+| `primary-fixed` | `#ffdad6` |
+| `on-primary` | `#ffffff` |
+| `on-primary-container` | `#ffd5d0` |
+| `red-institutional` | `#b92b27` |
+| `red-warm` | `#c83e3e` |
+| `surface-tint` | `#b42724` |
+| `on-primary-fixed` | `#410002` |
+| `on-primary-fixed-variant` | `#91080f` |
+| `primary-fixed-dim` | `#ffb4ab` |
+| `inverse-primary` | `#ffb4ab` |
+
+**Maize / secondary** (10)
+
+| Token | Value |
+| --- | --- |
+| `maize-gold` | `#f5c542` |
+| `maize-dark` | `#7d5d00` |
+| `secondary-container` | `#ffce4b` |
+| `secondary-fixed` | `#ffdf95` |
+| `on-secondary-container` | `#735800` |
+| `secondary` | `#765a00` |
+| `secondary-fixed-dim` | `#f0c03e` |
+| `on-secondary` | `#ffffff` |
+| `on-secondary-fixed` | `#251a00` |
+| `on-secondary-fixed-variant` | `#594400` |
+
+**Tertiary green** (8)
+
+| Token | Value |
+| --- | --- |
+| `tertiary` | `#00562f` |
+| `tertiary-container` | `#1e7043` |
+| `tertiary-fixed` | `#a4f4bc` |
+| `tertiary-fixed-dim` | `#88d7a1` |
+| `on-tertiary` | `#ffffff` |
+| `on-tertiary-container` | `#a0f0b8` |
+| `on-tertiary-fixed` | `#00210f` |
+| `on-tertiary-fixed-variant` | `#00522c` |
+
+**Text and stock** (4)
+
+| Token | Value |
+| --- | --- |
+| `text-carbon` | `#20252b` |
+| `text-muted` | `#66717a` |
+| `stock-green` | `#2e7d4f` |
+| `stock-green-bg` | `#eaf5ee` |
+
+**Surfaces and background** (17)
+
+| Token | Value |
+| --- | --- |
+| `surface` | `#fbf9f3` |
+| `surface-container-lowest` | `#ffffff` |
+| `surface-container-low` | `#f5f3ee` |
+| `surface-container` | `#f0eee8` |
+| `surface-container-high` | `#eae8e2` |
+| `surface-container-highest` | `#e4e2dd` |
+| `on-surface-variant` | `#5a413e` |
+| `cream-card` | `#ffffff` |
+| `cream-canvas` | `#faf8f2` |
+| `on-surface` | `#1b1c19` |
+| `on-background` | `#1b1c19` |
+| `background` | `#fbf9f3` |
+| `surface-bright` | `#fbf9f3` |
+| `surface-dim` | `#dcdad4` |
+| `surface-variant` | `#e4e2dd` |
+| `inverse-surface` | `#30312d` |
+| `inverse-on-surface` | `#f2f1eb` |
+
+**Outline and border** (3)
+
+| Token | Value |
+| --- | --- |
+| `border-warm` | `#e8e2d5` |
+| `outline` | `#8e706d` |
+| `outline-variant` | `#e2beba` |
+
+**Error** (4)
+
+| Token | Value |
+| --- | --- |
+| `error` | `#ba1a1a` |
+| `error-container` | `#ffdad6` |
+| `on-error` | `#ffffff` |
+| `on-error-container` | `#93000a` |
+
+### Typography — source `abasto-mobile/tailwind.config.js` `fontSize` / `fontFamily`, `--type-*` in `global.css`
+
+Display and headline/price tokens use `--font-display: 'Plus Jakarta Sans', sans-serif`; body and label tokens use `--font-body: Inter, sans-serif`. Also declared: `--font-mono` (ui-monospace stack), `--font-rounded` (`'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif`), `--font-serif` (`Georgia, 'Times New Roman', serif`). Config also sets `sans` and `display` to `System` (native).
+
+| Token | Family | Size / line-height / tracking / weight |
+| --- | --- | --- |
+| `display-lg` | Plus Jakarta Sans | 36px / 44px / -0.02em / 800 |
+| `display-lg-mobile` | Plus Jakarta Sans | 28px / 36px / -0.02em / 800 |
+| `price-hero` | Plus Jakarta Sans | 28px / 32px / -0.02em / 800 |
+| `price-hero-mobile` | Plus Jakarta Sans | 22px / 26px / -0.02em / 800 |
+| `headline-lg` | Plus Jakarta Sans | 24px / 32px / -0.01em / 700 |
+| `headline-md` | Plus Jakarta Sans | 20px / 28px / -0.01em / 700 |
+| `headline-sm` | Plus Jakarta Sans | 18px / 24px / 0 / 600 |
+| `body-lg` | Inter | 16px / 24px / 0 / 400 |
+| `body-md` | Inter | 14px / 20px / 0 / 400 |
+| `body-sm` | Inter | 12px / 16px / 0 / 400 |
+| `label-lg` | Inter | 14px / 20px / 0.01em / 600 |
+| `label-md` | Inter | 12px / 16px / 0.02em / 700 |
+| `label-sm` | Inter | 11px / 14px / 0.03em / 700 |
+| `wholesale-unit` | Inter | 11px / 14px / 0.05em / 800 |
+
+Home sizes (`fontSize`, size / line-height): `home-xs` 0.6875rem / 0.875rem, `home-sm` 0.8125rem / 1.125rem, `home-base` 0.9375rem / 1.375rem, `home-lg` 1.125rem / 1.5rem, `home-xl` 1.375rem / 1.75rem.
+
+### Spacing (12) — source `abasto-mobile/tailwind.config.js` `spacing`, `--spacing-*` in `global.css`
+
+`space-xs` 0.25rem, `space-sm` 0.5rem, `space-md` 1rem, `space-lg` 1.5rem, `space-xl` 2rem, `gutter-mobile` 0.75rem, `gutter` 1rem, `margin-mobile` 1rem, `margin` 1.5rem. Config only: `4.5` 1.125rem, `5.5` 1.375rem, `7.5` 1.875rem.
+
+### Radius (4) — source `abasto-mobile/tailwind.config.js` `borderRadius`, `--radius-*` in `global.css`
+
+`DEFAULT` 0.25rem (4px), `lg` 0.5rem (8px), `xl` 0.75rem (12px), `full` 9999px.
+
+### Shadows
+
+None defined in `tailwind.config.js` or `global.css`.
