@@ -1,0 +1,18 @@
+# Allow-list: only what abasto-web/Dockerfile needs reaches the build context.
+*
+!package.json
+!bun.lock
+!abasto-mobile/package.json
+!abasto-web/
+
+# Never ship secrets, local state or build output.
+**/.env*
+**/*.local
+**/node_modules
+abasto-web/.output
+abasto-web/.nitro
+abasto-web/.tanstack
+abasto-web/.backups
+abasto-web/.impeccable
+abasto-web/.vscode
+abasto-web/env
