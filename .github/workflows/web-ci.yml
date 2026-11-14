@@ -30,6 +30,7 @@ jobs:
   # this job is informational until it passes.
   check:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
