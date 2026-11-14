@@ -1,6 +1,8 @@
 import { ChevronDownIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
+import { ClientError } from '#/lib/boundary'
 import { ActionButton } from '#/modules/reports/components/report-buttons'
 import type { PdfChoice } from '#/modules/reports/lib/pdf-choices'
 
@@ -19,7 +21,6 @@ const item =
 export function DownloadMenu({ choices, onPdf, onCsv }: DownloadMenuProps) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const root = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -40,13 +41,15 @@ export function DownloadMenu({ choices, onPdf, onCsv }: DownloadMenuProps) {
 
   const download = async (choice: PdfChoice) => {
     setBusy(choice.id)
-    setError(null)
     try {
       await onPdf(choice)
       setOpen(false)
     } catch (cause) {
-      setError(
-        cause instanceof Error && cause.message
+      // A toast outlives the menu, so closing it does not hide the failure.
+      toast.error(
+        // Only the app's own messages are meant for people; network and
+        // library errors fall back to a plain one.
+        cause instanceof ClientError
           ? cause.message
           : 'No se pudo generar el reporte. Intenta de nuevo.',
       )
@@ -108,11 +111,6 @@ export function DownloadMenu({ choices, onPdf, onCsv }: DownloadMenuProps) {
               >
                 Exportar ventas CSV
               </button>
-            </li>
-          )}
-          {error && (
-            <li role="alert" className="px-3 py-2 text-xs text-destructive">
-              {error}
             </li>
           )}
         </ul>

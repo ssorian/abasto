@@ -1,5 +1,5 @@
 import { workspace } from '#/config/workspace'
-import { unwrap } from '#/lib/boundary'
+import { ClientError, unwrap } from '#/lib/boundary'
 import { metricsOf } from '#/modules/executive/lib/profitability'
 import {
   defaultNonMovingDays,
@@ -80,7 +80,10 @@ export function OwnerReportsPage({
       }),
     )
     if (!dashboard.data) {
-      throw new Error(dashboard.error ?? 'No se pudo generar el reporte.')
+      throw new ClientError(
+        'unexpected',
+        dashboard.error ?? 'No se pudo generar el reporte.',
+      )
     }
     const report = buildPdfReport(choice.kind, dashboard.data, {
       business: workspace.business.name,

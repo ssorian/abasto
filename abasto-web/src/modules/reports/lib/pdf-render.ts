@@ -6,11 +6,20 @@ const muted = '#74686a'
 const rule = '#ede3d6'
 const headFill = '#f6efe6'
 
-/** The built-in PDF fonts only cover Latin-1; swap what falls outside it. */
-const latin = (text: string) =>
+/**
+ * The built-in PDF fonts only cover Latin-1: typographic marks become their
+ * plain form and anything else outside it (emoji, symbols) is dropped.
+ */
+export const pdfText = (text: string) =>
   text
     .replace(/[\u00a0\u2009\u202f]/g, ' ')
     .replace(/[\u2212\u2013\u2014]/g, '-')
+    .replace(/[\u2018\u2019\u201a]/g, "'")
+    .replace(/[\u201c\u201d\u201e]/g, '"')
+    .replace(/\u2026/g, '...')
+    .replace(/[^\u0020-\u00ff]/gu, '')
+    .replace(/ {2,}/g, ' ')
+    .trim()
 
 const numeric = /^[-+$\d]/
 
@@ -28,11 +37,11 @@ export async function downloadPdfReport(report: PdfReport) {
   const height = doc.internal.pageSize.getHeight()
 
   doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(ink)
-  doc.text(latin(report.heading), margin, margin + 8)
+  doc.text(pdfText(report.heading), margin, margin + 8)
   doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(muted)
   let y = margin + 26
   for (const line of report.lines) {
-    doc.text(latin(line), margin, y)
+    doc.text(pdfText(line), margin, y)
     y += 13
   }
   doc.setDrawColor(rule).line(margin, y, width - margin, y)
@@ -45,15 +54,15 @@ export async function downloadPdfReport(report: PdfReport) {
       y = margin + 8
     }
     doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(ink)
-    doc.text(latin(section.title), margin, y)
+    doc.text(pdfText(section.title), margin, y)
     y += 8
     if (section.rows.length === 0) {
       doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(muted)
-      doc.text(latin(section.empty ?? 'Sin datos.'), margin, y + 8)
+      doc.text(pdfText(section.empty ?? 'Sin datos.'), margin, y + 8)
       y += 30
       continue
     }
-    const rows = section.rows.map((row) => row.map(latin))
+    const rows = section.rows.map((row) => row.map(pdfText))
     const aligns = rows[0].map((_, column) =>
       column > 0 &&
       rows.every((row) => !row[column] || numeric.test(row[column]))
@@ -63,9 +72,9 @@ export async function downloadPdfReport(report: PdfReport) {
     autoTable(doc, {
       startY: y,
       margin: { left: margin, right: margin, bottom: margin + 16 },
-      head: section.head ? [section.head.map(latin)] : undefined,
+      head: section.head ? [section.head.map(pdfText)] : undefined,
       body: rows,
-      foot: section.foot ? [section.foot.map(latin)] : undefined,
+      foot: section.foot ? [section.foot.map(pdfText)] : undefined,
       showFoot: 'lastPage',
       theme: 'plain',
       styles: {
@@ -89,7 +98,7 @@ export async function downloadPdfReport(report: PdfReport) {
     if (section.note) {
       doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(muted)
       const lines = doc.splitTextToSize(
-        latin(section.note),
+        pdfText(section.note),
         width - margin * 2,
       ) as Array<string>
       doc.text(lines, margin, y)
@@ -102,7 +111,7 @@ export async function downloadPdfReport(report: PdfReport) {
   for (let page = 1; page <= pages; page += 1) {
     doc.setPage(page)
     doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(muted)
-    doc.text(latin(report.footer), margin, height - margin + 14)
+    doc.text(pdfText(report.footer), margin, height - margin + 14)
     doc.text(
       `Página ${page} de ${pages}`,
       width - margin,

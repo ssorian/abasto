@@ -339,7 +339,7 @@ function daySections(data: OwnerDashboardData): Array<PdfSection> {
       ],
     },
     {
-      title: 'Productos más vendidos',
+      title: 'Productos con más ventas',
       head: ['Producto', 'Unidades', 'Ventas'],
       rows: byRevenue(margin.byProduct)
         .slice(0, topProducts)
@@ -435,7 +435,7 @@ const salesTitles = new Set([
   'Ventas por almacén',
   'Por almacén',
   'Por proveedor',
-  'Productos más vendidos',
+  'Productos con más ventas',
   'Productos con más utilidad',
   'Productos, de mayor a menor utilidad',
 ])

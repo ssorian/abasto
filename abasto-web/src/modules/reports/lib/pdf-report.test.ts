@@ -219,7 +219,7 @@ describe('buildPdfReport', () => {
     expect(titles(report)).toEqual([
       '1. Resultado',
       '2. Ventas por almacén',
-      '3. Productos más vendidos',
+      '3. Productos con más ventas',
       '4. Cortes de caja',
       '5. Repartos con diferencia',
       '6. Alertas de inventario al generar el reporte',
