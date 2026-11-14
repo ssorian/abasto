@@ -7,6 +7,7 @@ import { formatCents } from '#/modules/pricing/lib/money'
 import {
   Panel,
   PlainTable,
+  ShareCell,
   numericCell,
 } from '#/modules/reports/components/owner/owner-panel'
 import { TextLink } from '#/modules/reports/components/report-buttons'
@@ -116,22 +117,7 @@ export function SalesBreakdown({ margin }: { margin: MarginReport }) {
                   </small>
                 </td>
                 <td className={numericCell}>{formatCents(row.revenueCents)}</td>
-                <td>
-                  <div className="flex items-center justify-end gap-2">
-                    <span
-                      aria-hidden="true"
-                      className="hidden h-1.5 w-[72px] overflow-hidden rounded-[3px] bg-muted min-[820px]:block"
-                    >
-                      <i
-                        className="block h-full rounded-[3px] bg-secondary-foreground"
-                        style={{ width: `${Math.min(share / 100, 100)}%` }}
-                      />
-                    </span>
-                    <span className="min-w-11 text-right tabular-nums">
-                      {formatBpsPercent(share)}
-                    </span>
-                  </div>
-                </td>
+                <ShareCell shareBps={share} />
                 <td
                   className={cn(
                     numericCell,
