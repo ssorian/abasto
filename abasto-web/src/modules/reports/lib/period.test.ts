@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test'
-import { longRangeLabel, resolvePeriod } from '#/modules/reports/lib/period'
+import {
+  comparisonRange,
+  longRangeLabel,
+  resolvePeriod,
+} from '#/modules/reports/lib/period'
 
 const today = '2026-11-04'
 const message = (run: () => unknown) => {
@@ -86,5 +90,79 @@ describe('longRangeLabel', () => {
     expect(longRangeLabel({ from: '2025-12-28', to: '2026-01-03' }, 2026)).toBe(
       '28 dic 2025 al 3 ene 2026',
     )
+  })
+})
+
+describe('calendar presets', () => {
+  test('week runs from Monday to today, month from the 1st to today', () => {
+    // 2026-11-04 is a Wednesday.
+    expect(resolvePeriod({ preset: 'week' }, today)).toEqual({
+      from: '2026-11-02',
+      to: '2026-11-04',
+    })
+    expect(resolvePeriod({ preset: 'week' }, '2026-11-02')).toEqual({
+      from: '2026-11-02',
+      to: '2026-11-02',
+    })
+    expect(resolvePeriod({ preset: 'week' }, '2026-11-08')).toEqual({
+      from: '2026-11-02',
+      to: '2026-11-08',
+    })
+    expect(resolvePeriod({ preset: 'month' }, today)).toEqual({
+      from: '2026-11-01',
+      to: '2026-11-04',
+    })
+  })
+
+  test('an anchor stands in for today, and cannot be invalid or in the future', () => {
+    expect(
+      resolvePeriod({ preset: 'month', anchor: '2026-10-31' }, today),
+    ).toEqual({ from: '2026-10-01', to: '2026-10-31' })
+    expect(
+      resolvePeriod({ preset: 'week', anchor: '2026-11-01' }, today),
+    ).toEqual({ from: '2026-10-26', to: '2026-11-01' })
+    expect(
+      resolvePeriod({ preset: 'today', anchor: '2026-11-03' }, today),
+    ).toEqual({ from: '2026-11-03', to: '2026-11-03' })
+    expect(
+      message(() => resolvePeriod({ preset: 'week', anchor: 'nope' }, today)),
+    ).toBe('Elige fechas válidas para el periodo.')
+    expect(
+      message(() =>
+        resolvePeriod({ preset: 'week', anchor: '2026-11-05' }, today),
+      ),
+    ).toBe('Elige fechas válidas para el periodo.')
+  })
+})
+
+describe('comparisonRange', () => {
+  test('week compares with the same days of the week before', () => {
+    expect(
+      comparisonRange('week', { from: '2026-11-02', to: '2026-11-04' }),
+    ).toEqual({ from: '2026-10-26', to: '2026-10-28' })
+  })
+
+  test('month compares with the same days of the month before, clamped to its length', () => {
+    expect(
+      comparisonRange('month', { from: '2026-11-01', to: '2026-11-13' }),
+    ).toEqual({ from: '2026-10-01', to: '2026-10-13' })
+    expect(
+      comparisonRange('month', { from: '2026-03-01', to: '2026-03-31' }),
+    ).toEqual({ from: '2026-02-01', to: '2026-02-28' })
+    expect(
+      comparisonRange('month', { from: '2026-01-01', to: '2026-01-15' }),
+    ).toEqual({ from: '2025-12-01', to: '2025-12-15' })
+  })
+
+  test('every other preset keeps the equal-length period that ends the day before', () => {
+    expect(
+      comparisonRange('7', { from: '2026-10-29', to: '2026-11-04' }),
+    ).toEqual({ from: '2026-10-22', to: '2026-10-28' })
+    expect(
+      comparisonRange('today', { from: '2026-11-04', to: '2026-11-04' }),
+    ).toEqual({ from: '2026-11-03', to: '2026-11-03' })
+    expect(
+      comparisonRange('custom', { from: '2026-11-01', to: '2026-11-03' }),
+    ).toEqual({ from: '2026-10-29', to: '2026-10-31' })
   })
 })

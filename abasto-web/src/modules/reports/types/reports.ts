@@ -1,9 +1,19 @@
 /** Shapes shared by the report services, CSV builders and screens. Money is integer cents. */
 
-export type PeriodPreset = 'today' | '7' | '30' | 'custom'
+/** `7` and `30` are rolling days; `week` and `month` are calendar periods up to today. */
+export type PeriodPreset = 'today' | '7' | '30' | 'week' | 'month' | 'custom'
 
-/** Period asked by the user; `from` and `to` (YYYY-MM-DD) matter for `custom` only. */
-export type PeriodInput = { preset: PeriodPreset; from?: string; to?: string }
+/**
+ * Period asked by the user; `from` and `to` (YYYY-MM-DD) matter for `custom`
+ * only. `anchor` replaces today for the other presets, to ask for a past day,
+ * week or month.
+ */
+export type PeriodInput = {
+  preset: PeriodPreset
+  from?: string
+  to?: string
+  anchor?: string
+}
 
 /** Business dates (America/Mexico_City), both included. */
 export type DateRange = { from: string; to: string }

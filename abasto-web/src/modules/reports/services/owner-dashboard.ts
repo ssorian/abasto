@@ -8,7 +8,7 @@ import {
   getMarginReport,
   getWarehouseRanking,
 } from '#/modules/executive/services/profitability'
-import { previousRange } from '#/modules/reports/lib/manager-chart-data'
+import { comparisonRange } from '#/modules/reports/lib/period'
 import { getCashCuts } from '#/modules/reports/services/cash-cuts'
 import {
   managedWarehouses,
@@ -48,7 +48,7 @@ export async function getOwnerDashboard(
   const filters = { warehouseIds, supplierId: input.supplierId }
   try {
     const period = input.period
-    const before = previousRange(periodRange(period))
+    const before = comparisonRange(period.preset, periodRange(period))
     const [
       margin,
       ranking,

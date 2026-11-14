@@ -1,9 +1,10 @@
 import { z } from 'zod'
 
 const period = z.object({
-  preset: z.enum(['today', '7', '30', 'custom']),
+  preset: z.enum(['today', '7', '30', 'week', 'month', 'custom']),
   from: z.string().optional(),
   to: z.string().optional(),
+  anchor: z.string().optional(),
 })
 
 /** Period plus an optional single-warehouse filter; the service checks permissions. */
