@@ -10,7 +10,7 @@ import type {
 export type ManagerDashboard = {
   warehouse: ReportWarehouse
   sales: SalesReport
-  /** The same number of days right before the period, to compare against. */
+  /** The comparison period: see `comparisonRange`. */
   previousSales: SalesReport
   cash: CashCuts
   stock: StockAlerts
