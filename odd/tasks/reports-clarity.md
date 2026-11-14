@@ -16,9 +16,9 @@ Decisions (parent): PDF with jsPDF + jspdf-autotable loaded on demand (new depen
 ## Tasks
 
 - T1 [S3] inline — calendar presets `week` / `month`, optional `anchor`, preset-aware comparison range; owner search defaults to week. Risk: item 3 (shared period code used by manager and executive services). Status: done. Commit: 933e813
-- T2 [S1,S2] inline — owner page rebuilt from artboard 05; unused owner components removed. Status: pending. Commit: —
-- T3 [S4] inline — PDF report model + jsPDF renderer + download menu. Risk: item 5 (new dependencies). Status: pending. Commit: —
-- T4 [S5] inline — full checks, design handoff, close. Status: pending. Commit: —
+- T2 [S1,S2] inline — owner page rebuilt from artboard 05; unused owner components removed. Status: done. Commit: f2e00f6 (slice boundary: 1,632 added, 2,387 of them deletions of the old charts)
+- T3 [S4] inline — PDF report model + jsPDF renderer + download menu. Risk: item 5 (new dependencies). Status: done. Commit: c2ce2f4
+- T4 [S5] inline — full checks, design handoff, close. Status: done. Commit: (this document)
 
 ## Log
 
@@ -27,3 +27,6 @@ Decisions (parent): PDF with jsPDF + jspdf-autotable loaded on demand (new depen
 - L3 (user): "Los reportes en pdf me gustaron mucho pero lo que es el layout y diseno de la pagina de reportes absolutamente no [Image#5], para hacer la UI no delegues, hazlo directamente tu" → parent wrote artboard `05-tablero-dos-columnas.html`; `01-reportes-una-pagina.html` is the rejected alternative.
 - L4 (user): "Me gusta, implementa" → chosen artboard: `design/reports-clarity/05-tablero-dos-columnas.html`; PDF artboards 02-04 are the content spec.
 - L5 (user, choice): PDF generation = "Archivo PDF directo (recomendado)".
+- L6 (evidence, T2): checked in the running app as the seeded owner at week, month and today, with the cash and supplier details open, and at 390 px without page overflow. The supplier filter stays in the toolbar because it filters the whole dashboard on the server; the artboard had it on the product tab only.
+- L7 (evidence, T3): five PDFs downloaded from the running app as the seeded owner (day, week, month, last week, last month): letter size, 1 to 3 pages, tables only. Sections with no source in the dashboard are left out: sales by payment method, and per-rider delivered/sold amounts (only settlements with a difference are listed). The menu also offers Ayer, Semana pasada and Mes pasado, added by the implementer.
+- L8 (evidence, T4): bun test 1325 pass, 2 skip, 0 fail; tsc clean; eslint 0 errors (4 earlier warnings outside this change); prettier clean; bun run build OK with jsPDF in its own lazy chunk (400 kB, 130 kB gzip).
