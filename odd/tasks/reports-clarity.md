@@ -15,7 +15,7 @@ Decisions (parent): PDF with jsPDF + jspdf-autotable loaded on demand (new depen
 
 ## Tasks
 
-- T1 [S3] inline — calendar presets `week` / `month`, optional `anchor`, preset-aware comparison range; owner search defaults to week. Risk: item 3 (shared period code used by manager and executive services). Status: pending. Commit: —
+- T1 [S3] inline — calendar presets `week` / `month`, optional `anchor`, preset-aware comparison range; owner search defaults to week. Risk: item 3 (shared period code used by manager and executive services). Status: done. Commit: 933e813
 - T2 [S1,S2] inline — owner page rebuilt from artboard 05; unused owner components removed. Status: pending. Commit: —
 - T3 [S4] inline — PDF report model + jsPDF renderer + download menu. Risk: item 5 (new dependencies). Status: pending. Commit: —
 - T4 [S5] inline — full checks, design handoff, close. Status: pending. Commit: —

@@ -1,42 +1,35 @@
 import { DownloadIcon } from 'lucide-react'
 
-import { PageHeading } from '#/components/page-heading'
 import { metricsOf } from '#/modules/executive/lib/profitability'
+import { executivePeriodOf } from '#/modules/executive/lib/search'
 import type { ExecutiveSearch } from '#/modules/executive/lib/search'
-import { RiderShortfallsSection } from '#/modules/reports/components/owner/rider-shortfalls-section'
-import { CashSection } from '#/modules/reports/components/owner/cash-section'
-import { IdleCapital } from '#/modules/reports/components/owner/idle-capital'
-import { InventoryChart } from '#/modules/reports/components/owner/inventory-chart'
-import { KpiCards } from '#/modules/reports/components/owner/kpi-cards'
-import { OwnerPeriodFilters } from '#/modules/reports/components/owner/owner-period-filters'
-import { ProfitBridge } from '#/modules/reports/components/owner/profit-bridge'
-import { SectionIndex } from '#/modules/reports/components/owner/section-index'
-import { StockAlerts } from '#/modules/reports/components/owner/stock-alerts'
-import { SupplierRecovery } from '#/modules/reports/components/owner/supplier-recovery'
-import { SupplierChart } from '#/modules/reports/components/owner/supplier-chart'
-import { TopProductsChart } from '#/modules/reports/components/owner/top-products-chart'
-import { TrendChart } from '#/modules/reports/components/owner/trend-chart'
-import { WarehouseComparison } from '#/modules/reports/components/owner/warehouse-comparison'
+import { businessDate } from '#/modules/orders/services/clock'
+import { ControlSummary } from '#/modules/reports/components/owner/control-summary'
+import { InventoryRail } from '#/modules/reports/components/owner/inventory-rail'
+import {
+  ColumnHeading,
+  Panel,
+} from '#/modules/reports/components/owner/owner-panel'
+import { OwnerToolbar } from '#/modules/reports/components/owner/owner-toolbar'
+import { PeriodResult } from '#/modules/reports/components/owner/period-result'
+import { SalesBreakdown } from '#/modules/reports/components/owner/sales-breakdown'
 import { ActionButton } from '#/modules/reports/components/report-buttons'
 import { ReportEmpty } from '#/modules/reports/components/report-empty'
 import { downloadText, salesCsv } from '#/modules/reports/lib/csv'
 import {
-  cashSentence,
-  idleCapitalSentence,
-  supplierSentence,
-  topProductSentence,
-  warehouseSentence,
-} from '#/modules/reports/lib/owner-narrative'
-import {
-  cashDifferenceSummary,
   dailySeries,
   previousTotals,
-  stockAlertSummary,
-  supplierShares,
-  topProfitProducts,
+  relativeChangeBps,
 } from '#/modules/reports/lib/owner-series'
+import {
+  chartDays,
+  comparisonNoun,
+  periodHeading,
+} from '#/modules/reports/lib/owner-view'
+import { longRangeLabel } from '#/modules/reports/lib/period'
 import type { OwnerReportsLoad } from '#/modules/reports/server/load-owner-reports'
 import type { OwnerDashboardData } from '#/modules/reports/types/owner-dashboard'
+import type { PeriodPreset } from '#/modules/reports/types/reports'
 
 type OwnerReportsPageProps = {
   load: OwnerReportsLoad
@@ -44,9 +37,10 @@ type OwnerReportsPageProps = {
   onSearch: (patch: Partial<ExecutiveSearch>) => void
 }
 
-const topProducts = 10
-
-/** Owner dashboard: profitability, comparisons, inventory and cash of the whole business. */
+/**
+ * Owner dashboard on one screen: the chosen period on the left, today's
+ * inventory on a rail at the right.
+ */
 export function OwnerReportsPage({
   load,
   search,
@@ -60,16 +54,15 @@ export function OwnerReportsPage({
     )
   }
   const { data } = load
-  const warehouseCount = data?.margin.warehouses.length
+  const { preset } = executivePeriodOf(search)
   return (
     <>
-      <PageHeading
-        title="Reportes"
-        description={
-          warehouseCount === undefined
-            ? 'Todo el negocio. Ventas, utilidad e inventario a costo.'
-            : `${search.almacen || search.proveedor ? 'Selección filtrada' : 'Todo el negocio'} · ${warehouseCount} ${warehouseCount === 1 ? 'almacén' : 'almacenes'}. Ventas, utilidad e inventario a costo.`
-        }
+      <OwnerToolbar
+        preset={preset}
+        search={search}
+        warehouses={load.warehouses}
+        suppliers={load.suppliers}
+        onChange={onSearch}
         actions={
           data && (
             <ActionButton
@@ -86,134 +79,79 @@ export function OwnerReportsPage({
           )
         }
       />
-      <OwnerPeriodFilters
-        search={search}
-        range={data?.margin.range}
-        previousRange={data?.ranking.previousRange}
-        warehouses={load.warehouses}
-        suppliers={load.suppliers}
-        onChange={onSearch}
-      />
       {load.error && <ReportEmpty>{load.error}</ReportEmpty>}
-      {data && <SectionIndex />}
-      {data && <Dashboard data={data} search={search} onSearch={onSearch} />}
+      {data && (
+        <div className="grid items-start gap-5 min-[1180px]:grid-cols-[minmax(0,1fr)_352px]">
+          <PeriodColumn data={data} preset={preset} search={search} />
+          <InventoryRail
+            inventory={data.inventory}
+            nonMoving={data.nonMoving}
+            stockAlerts={data.stockAlerts}
+            onSearch={onSearch}
+          />
+        </div>
+      )}
     </>
   )
 }
 
-type Data = OwnerDashboardData
-
-function Dashboard({
+function PeriodColumn({
   data,
+  preset,
   search,
-  onSearch,
 }: {
-  data: Data
+  data: OwnerDashboardData
+  preset: PeriodPreset
   search: ExecutiveSearch
-  onSearch: (patch: Partial<ExecutiveSearch>) => void
 }) {
-  const { margin, ranking, inventory, nonMoving, stockAlerts } = data
+  const { margin, ranking } = data
   const current = metricsOf(
     margin.summary.revenueCents,
     margin.summary.costCents,
     margin.summary.orders,
   )
   const previous = previousTotals(ranking.rows)
-  const hasSales = margin.summary.orders > 0
   const days = dailySeries(
     { range: data.sales.range, rows: data.sales.byDay },
     { range: data.previousSales.range, rows: data.previousSales.byDay },
   )
-  const products = topProfitProducts(margin.byProduct, topProducts)
-  const suppliers = supplierShares(margin.bySupplier)
-  const cash = cashDifferenceSummary(data.cashCuts.rows)
+  const noun = comparisonNoun(preset)
   return (
-    <div className="grid gap-[18px]">
-      <section
-        id="reporte-ventas"
-        aria-label="Ventas"
-        className="grid scroll-mt-4 gap-[18px]"
-      >
-        {hasSales ? (
-          <>
-            <KpiCards
-              current={current}
-              previous={previous}
-              days={days}
-              rows={ranking.rows}
-            />
-            <div className="grid items-start gap-[18px] min-[1100px]:grid-cols-[1.6fr_1fr]">
-              <TrendChart days={days} />
-              <ProfitBridge
-                current={current}
-                previous={previous}
-                previousRange={ranking.previousRange}
-              />
-            </div>
-            <div className="grid items-start gap-[18px] min-[1100px]:grid-cols-2">
-              <WarehouseComparison
-                rows={ranking.rows}
-                sentence={warehouseSentence(ranking.rows)}
-              />
-              <div className="grid gap-[18px]">
-                <TopProductsChart
-                  rows={products}
-                  sentence={topProductSentence(products[0])}
-                />
-                <SupplierChart
-                  suppliers={suppliers}
-                  sentence={supplierSentence(suppliers)}
-                />
-              </div>
-            </div>
-          </>
-        ) : (
-          <ReportEmpty>No hay pedidos entregados en este periodo.</ReportEmpty>
-        )}
-      </section>
-      <section
-        id="reporte-proveedores"
-        aria-label="Dinero con proveedores"
-        className="grid scroll-mt-4 gap-[18px]"
-      >
-        <SupplierRecovery
-          data={data.supplierRecovery}
-          warehouseFiltered={Boolean(search.almacen)}
-        />
-      </section>
-      <section
-        id="reporte-inventario"
-        aria-label="Inventario"
-        className="grid scroll-mt-4 items-start gap-[18px] min-[1100px]:grid-cols-3"
-      >
-        <InventoryChart inventory={inventory} />
-        <IdleCapital
-          nonMoving={nonMoving}
-          sentence={idleCapitalSentence(
-            nonMoving.totalCents,
-            inventory.totalCents,
-            Boolean(search.almacen || search.proveedor),
-          )}
-          onChange={onSearch}
-        />
-        <StockAlerts
-          summary={stockAlertSummary(stockAlerts)}
-          expiredCount={stockAlerts.expired.length}
-          expiringDays={stockAlerts.expiringDays}
-        />
-      </section>
-      <section
-        id="reporte-caja"
-        aria-label="Caja y repartos"
-        className="grid scroll-mt-4 gap-[18px]"
-      >
-        <CashSection
-          rows={data.cashCuts.rows}
-          sentence={cashSentence(cash)}
-          supplierFiltered={Boolean(search.proveedor)}
-        />
-        <RiderShortfallsSection rows={data.cashCuts.riderShortfalls} />
-      </section>
-    </div>
+    <section
+      aria-labelledby="reportes-periodo"
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4"
+    >
+      <ColumnHeading
+        id="reportes-periodo"
+        title={periodHeading(preset, margin.range)}
+        note={`comparado con ${noun === 'periodo anterior' ? '' : `${noun}, `}${longRangeLabel(ranking.previousRange, Number(margin.range.to.slice(0, 4)))}`}
+      />
+      {margin.summary.orders > 0 ? (
+        <>
+          <PeriodResult
+            current={current}
+            revenueChangeBps={relativeChangeBps(
+              current.revenueCents,
+              previous.revenueCents,
+            )}
+            comparedWith={noun}
+            bars={
+              days.length > 1 ? chartDays(preset, days, businessDate()) : []
+            }
+          />
+          <SalesBreakdown margin={margin} />
+        </>
+      ) : (
+        <Panel className="px-[22px] py-5 text-sm text-muted-foreground">
+          No hay pedidos entregados en este periodo.
+        </Panel>
+      )}
+      <ControlSummary
+        cashCuts={data.cashCuts}
+        supplierRecovery={data.supplierRecovery}
+        supplierFiltered={Boolean(search.proveedor)}
+        warehouseFiltered={Boolean(search.almacen)}
+      />
+    </section>
   )
 }

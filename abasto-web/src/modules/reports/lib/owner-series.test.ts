@@ -5,13 +5,10 @@ import {
   closedCashCuts,
   compactMoney,
   dailySeries,
-  nonMovingBuckets,
   previousTotals,
   relativeChangeBps,
   shortDay,
   stockAlertSummary,
-  supplierShares,
-  topProfitProducts,
 } from '#/modules/reports/lib/owner-series'
 import type {
   CashCutRow,
@@ -106,91 +103,6 @@ describe('dailySeries', () => {
     expect(first.orders).toBe(3)
     expect(second.orders).toBe(0)
     expect(second.averageTicketCents).toBe(0)
-  })
-})
-
-describe('topProfitProducts', () => {
-  const product = (name: string, marginCents: number) => ({
-    key: name,
-    name,
-    sku: name,
-    unit: 'pz',
-    orders: 1,
-    units: 1,
-    revenueCents: marginCents * 4,
-    costCents: marginCents * 3,
-    marginCents,
-    marginBps: 2500,
-  })
-
-  test('keeps the most profitable products first, at most the limit', () => {
-    const rows = [product('a', 10), product('b', 30), product('c', 20)]
-    expect(topProfitProducts(rows, 2).map((row) => row.name)).toEqual([
-      'b',
-      'c',
-    ])
-  })
-
-  test('leaves out products that lost money', () => {
-    expect(
-      topProfitProducts([product('a', 10), product('z', -5)], 10).map(
-        (row) => row.name,
-      ),
-    ).toEqual(['a'])
-  })
-})
-
-describe('supplierShares', () => {
-  test('gives each supplier its share of the sales in basis points', () => {
-    const shares = supplierShares([
-      {
-        key: '1',
-        name: 'Lala',
-        orders: 1,
-        units: 1,
-        revenueCents: 7500,
-        costCents: 6000,
-        marginCents: 1500,
-        marginBps: 2000,
-      },
-      {
-        key: '2',
-        name: 'Alpura',
-        orders: 1,
-        units: 1,
-        revenueCents: 2500,
-        costCents: 2000,
-        marginCents: 500,
-        marginBps: 2000,
-      },
-    ])
-    expect(shares.map((share) => share.shareBps)).toEqual([7500, 2500])
-  })
-
-  test('is empty without sales', () => {
-    expect(supplierShares([])).toEqual([])
-  })
-})
-
-describe('nonMovingBuckets', () => {
-  const row = (daysSinceLastSale: number | null, valueCents: number) => ({
-    daysSinceLastSale,
-    valueCents,
-  })
-
-  test('groups idle stock by 30, 60 and 90+ days; never sold counts as 90+', () => {
-    const buckets = nonMovingBuckets([
-      row(31, 100),
-      row(45, 50),
-      row(61, 200),
-      row(95, 300),
-      row(null, 400),
-    ])
-    expect(buckets).toEqual([
-      { key: '30', label: '30 días', valueCents: 150, products: 2 },
-      { key: '60', label: '60 días', valueCents: 200, products: 1 },
-      { key: '90', label: '90 o más', valueCents: 700, products: 2 },
-    ])
   })
 })
 
