@@ -13,9 +13,9 @@ one screen, less noise, calendar periods and PDF download. Visual spec: `design/
 
 ## Tasks
 
-- T1 [S3] inline — manager dashboard on calendar periods. Status: pending. Commit: —
-- T2 [S1, S2] inline — manager page rebuilt from artboard 06; old manager cards removed. Status: pending. Commit: —
-- T3 [S4] inline — manager PDF report and download menu. Status: pending. Commit: —
+- T1 [S3] inline — manager dashboard on calendar periods. Status: done. Commit: 0f30dfd
+- T2 [S1, S2] inline — manager page rebuilt from artboard 06; old manager cards removed. Status: done. Commits: owner pieces made reusable, then the page (see Log L6).
+- T3 [S4] inline — manager PDF report and download menu. Status: done. Commit: manager PDF builder.
 - T4 [S5] inline — full checks, design handoff, close. Status: pending. Commit: —
 
 ## Log
@@ -24,3 +24,5 @@ one screen, less noise, calendar periods and PDF download. Visual spec: `design/
 - L2 (design): `design/reports-clarity/06-encargado-tablero.html` written; chosen artboard for this feature.
 - L3 (user): "Pues esta bien el diseno asi, Pero solo es por almacen o se ven los demas?" Answered: one managed warehouse only; selector kept for managers of several.
 - L4 (user): "Implementa"
+- L5 (evidence): browser as Miguel (Arcelia), week by default: three figures, bars, breakdown by product and by channel, Control with two cells and cash detail without a warehouse column, rail with open drawer (Abierta 08:41, $2,368.66), one low-stock product and no pending orders. Day, week and month PDFs downloaded and read with pdftotext: only Arcelia, no supplier or whole-inventory sections.
+- L6 (slice): the page commit is over the ~400-line slice (about 550 authored lines plus 1,700 deleted lines of the old cards); it is one behavior that cannot ship half-built, so it is split only into: owner pieces made reusable, manager PDF builder, manager page. The narrow-viewport horizontal overflow (≈416 px at 390 px) also happens on Inicio and the owner page: it comes from the app shell, out of scope.
