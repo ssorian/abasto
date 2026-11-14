@@ -1,7 +1,10 @@
-import { DownloadIcon } from 'lucide-react'
-
+import { workspace } from '#/config/workspace'
+import { unwrap } from '#/lib/boundary'
 import { metricsOf } from '#/modules/executive/lib/profitability'
-import { executivePeriodOf } from '#/modules/executive/lib/search'
+import {
+  defaultNonMovingDays,
+  executivePeriodOf,
+} from '#/modules/executive/lib/search'
 import type { ExecutiveSearch } from '#/modules/executive/lib/search'
 import { businessDate } from '#/modules/orders/services/clock'
 import { ControlSummary } from '#/modules/reports/components/owner/control-summary'
@@ -13,7 +16,7 @@ import {
 import { OwnerToolbar } from '#/modules/reports/components/owner/owner-toolbar'
 import { PeriodResult } from '#/modules/reports/components/owner/period-result'
 import { SalesBreakdown } from '#/modules/reports/components/owner/sales-breakdown'
-import { ActionButton } from '#/modules/reports/components/report-buttons'
+import { DownloadMenu } from '#/modules/reports/components/owner/download-menu'
 import { ReportEmpty } from '#/modules/reports/components/report-empty'
 import { downloadText, salesCsv } from '#/modules/reports/lib/csv'
 import {
@@ -26,7 +29,11 @@ import {
   comparisonNoun,
   periodHeading,
 } from '#/modules/reports/lib/owner-view'
+import { pdfChoices } from '#/modules/reports/lib/pdf-choices'
+import type { PdfChoice } from '#/modules/reports/lib/pdf-choices'
+import { buildPdfReport } from '#/modules/reports/lib/pdf-report'
 import { longRangeLabel } from '#/modules/reports/lib/period'
+import { ownerDashboardFn } from '#/modules/reports/server/owner-reports'
 import type { OwnerReportsLoad } from '#/modules/reports/server/load-owner-reports'
 import type { OwnerDashboardData } from '#/modules/reports/types/owner-dashboard'
 import type { PeriodPreset } from '#/modules/reports/types/reports'
@@ -35,6 +42,8 @@ type OwnerReportsPageProps = {
   load: OwnerReportsLoad
   search: ExecutiveSearch
   onSearch: (patch: Partial<ExecutiveSearch>) => void
+  /** Who is signed in; printed on the PDF reports. */
+  userName?: string
 }
 
 /**
@@ -45,6 +54,7 @@ export function OwnerReportsPage({
   load,
   search,
   onSearch,
+  userName,
 }: OwnerReportsPageProps) {
   if (!load.allowed) {
     return (
@@ -55,6 +65,44 @@ export function OwnerReportsPage({
   }
   const { data } = load
   const { preset } = executivePeriodOf(search)
+  const warehouse = load.warehouses.find((item) => item.id === search.almacen)
+  const supplier = load.suppliers.find((item) => item.id === search.proveedor)
+  // The reports follow the warehouse and supplier on screen, not its period.
+  const downloadPdf = async (choice: PdfChoice) => {
+    const dashboard = unwrap(
+      await ownerDashboardFn({
+        data: {
+          period: choice.period,
+          warehouseId: search.almacen,
+          supplierId: search.proveedor,
+          days: search.sinventa ?? defaultNonMovingDays,
+        },
+      }),
+    )
+    if (!dashboard.data) {
+      throw new Error(dashboard.error ?? 'No se pudo generar el reporte.')
+    }
+    const report = buildPdfReport(choice.kind, dashboard.data, {
+      business: workspace.business.name,
+      scope: [
+        warehouse
+          ? `Almacén ${warehouse.name}`
+          : `Todo el negocio · ${load.warehouses.length} almacenes`,
+        supplier && `Proveedor ${supplier.name}`,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      generatedAt: new Intl.DateTimeFormat('es-MX', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'America/Mexico_City',
+      }).format(new Date()),
+      generatedBy: userName,
+    })
+    const { downloadPdfReport } =
+      await import('#/modules/reports/lib/pdf-render')
+    await downloadPdfReport(report)
+  }
   return (
     <>
       <OwnerToolbar
@@ -64,19 +112,19 @@ export function OwnerReportsPage({
         suppliers={load.suppliers}
         onChange={onSearch}
         actions={
-          data && (
-            <ActionButton
-              onClick={() =>
-                downloadText(
-                  salesCsv('day', data.sales.byDay),
-                  `abasto-ventas-day-${data.sales.range.from}-${data.sales.range.to}.csv`,
-                )
-              }
-            >
-              <DownloadIcon size={16} />
-              Exportar CSV
-            </ActionButton>
-          )
+          <DownloadMenu
+            choices={pdfChoices(businessDate())}
+            onPdf={downloadPdf}
+            onCsv={
+              data
+                ? () =>
+                    downloadText(
+                      salesCsv('day', data.sales.byDay),
+                      `abasto-ventas-day-${data.sales.range.from}-${data.sales.range.to}.csv`,
+                    )
+                : undefined
+            }
+          />
         }
       />
       {load.error && <ReportEmpty>{load.error}</ReportEmpty>}

@@ -32,12 +32,18 @@ function ReportsRoute() {
   const data = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
+  const { user } = Route.useRouteContext()
   const onSearch = (patch: Partial<ReportsSearch>) =>
     void navigate({
       search: (current) => parseReportsSearch({ ...current, ...patch }),
     })
   return data.role === 'owner' ? (
-    <OwnerReportsPage load={data.load} search={search} onSearch={onSearch} />
+    <OwnerReportsPage
+      load={data.load}
+      search={search}
+      onSearch={onSearch}
+      userName={user?.name}
+    />
   ) : (
     <ManagerReportsPage load={data.load} search={search} onSearch={onSearch} />
   )
